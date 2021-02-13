@@ -1,0 +1,15 @@
+	set(CURRENT_DIR tests/graphics)
+	set(src_graphics ${src_tests})
+	
+	add_subdirectory(Cursor)
+	add_subdirectory(Font)
+	add_subdirectory(GC)
+	add_subdirectory(Image)
+	add_subdirectory(ImageList)
+	add_subdirectory(Path)
+	add_subdirectory(Pattern)
+	add_subdirectory(Region)
+	add_subdirectory(TextLayout)
+	add_subdirectory(Transform)
+	
+	set(src_tests  ${CURRENT_DIR}/TGraphics.cpp ${src_graphics} PARENT_SCOPE)

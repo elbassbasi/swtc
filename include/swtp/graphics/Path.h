@@ -1,0 +1,303 @@
+/*
+ * Path.h
+ *
+ *  Created on: 17 sept. 2019
+ *      Author: azeddine El Bassbasi
+ */
+
+#ifndef SWTP_GRAPHICS_PATH_H_
+#define SWTP_GRAPHICS_PATH_H_
+#include "Rect.h"
+struct WPathData {
+	int type;
+	float pt[6];
+};
+/**
+ * Instances of this class represent paths through the two-dimensional
+ * coordinate system. Paths do not have to be continuous, and can be
+ * described using lines, rectangles, arcs, cubic or quadratic bezier curves,
+ * glyphs, or other paths.
+ * <p>
+ * Application code must explicitly invoke the <code>Path.dispose()</code>
+ * method to release the operating system resources managed by each instance
+ * when those instances are no longer required.
+ * </p>
+ * <p>
+ * This class requires the operating system's advanced graphics subsystem
+ * which may not be available on some platforms.
+ * </p>
+ */
+class WPath: public WResource {
+public:
+	WPath() {
+		w_path_init(W_PATH(this));
+	}
+	~WPath() {
+		w_path_dispose(W_PATH(this));
+	}
+	/**
+	 * Constructs a new empty Path.
+	 * <p>
+	 * This operation requires the operating system's advanced
+	 * graphics subsystem which may not be available on some
+	 * platforms.
+	 * </p>
+	 * <p>
+	 * You must dispose the path when it is no longer required.
+	 * </p>
+	 *
+	 * @param device the device on which to allocate the path
+	 *
+	 * @see #dispose()
+	 */
+	bool Create() {
+		return w_path_create(W_PATH(this)) > 0;
+	}
+
+	/**
+	 * Constructs a new Path that is a copy of <code>path</code>. If
+	 * <code>flatness</code> is less than or equal to zero, an unflatten
+	 * copy of the path is created. Otherwise, it specifies the maximum
+	 * error between the path and its flatten copy. Smaller numbers give
+	 * better approximation.
+	 * <p>
+	 * This operation requires the operating system's advanced
+	 * graphics subsystem which may not be available on some
+	 * platforms.
+	 * </p>
+	 * <p>
+	 * You must dispose the path when it is no longer required.
+	 * </p>
+	 *
+	 * @param device the device on which to allocate the path
+	 * @param path the path to make a copy
+	 * @param flatness the flatness value
+	 *
+	 * @see #dispose()
+	 */
+	bool Create(WPath &path, float flatness) {
+		return w_path_create_from_path(W_PATH(this), W_PATH(&path), flatness)
+				> 0;
+	}
+
+	/**
+	 * Constructs a new Path with the specified PathData.
+	 * <p>
+	 * This operation requires the operating system's advanced
+	 * graphics subsystem which may not be available on some
+	 * platforms.
+	 * </p>
+	 * <p>
+	 * You must dispose the path when it is no longer required.
+	 * </p>
+	 *
+	 * @param device the device on which to allocate the path
+	 * @param data the data for the path
+	 *
+	 * @see #dispose()
+	 */
+	bool Create(size_t length, char *types, float *pt) {
+		return w_path_create_from_data(W_PATH(this), length, types, pt) > 0;
+	}
+
+	/**
+	 * Adds to the receiver a circular or elliptical arc that lies within
+	 * the specified rectangular area.
+	 * <p>
+	 * The resulting arc begins at <code>startAngle</code> and extends
+	 * for <code>arcAngle</code> degrees.
+	 * Angles are interpreted such that 0 degrees is at the 3 o'clock
+	 * position. A positive value indicates a counter-clockwise rotation
+	 * while a negative value indicates a clockwise rotation.
+	 * </p><p>
+	 * The center of the arc is the center of the rectangle whose origin
+	 * is (<code>x</code>, <code>y</code>) and whose size is specified by the
+	 * <code>width</code> and <code>height</code> arguments.
+	 * </p><p>
+	 * The resulting arc covers an area <code>width + 1</code> pixels wide
+	 * by <code>height + 1</code> pixels tall.
+	 * </p>
+	 *
+	 * @param x the x coordinate of the upper-left corner of the arc
+	 * @param y the y coordinate of the upper-left corner of the arc
+	 * @param width the width of the arc
+	 * @param height the height of the arc
+	 * @param startAngle the beginning angle
+	 * @param arcAngle the angular extent of the arc, relative to the start angle
+	 */
+	bool AddArc(float x, float y, float width, float height, float startAngle,
+			float arcAngle) {
+		w_rectf rect = { x, y, width, height };
+		return w_path_add_arc(W_PATH(this), &rect, startAngle, arcAngle) > 0;
+	}
+
+	/**
+	 * Adds to the receiver the path described by the parameter.
+	 *
+	 * @param path the path to add to the receiver
+	 */
+	bool AddPath(WPath &path) {
+		return w_path_add_path(W_PATH(this), W_PATH(&path)) > 0;
+	}
+
+	/**
+	 * Adds to the receiver the rectangle specified by x, y, width and height.
+	 *
+	 * @param x the x coordinate of the rectangle to add
+	 * @param y the y coordinate of the rectangle to add
+	 * @param width the width of the rectangle to add
+	 * @param height the height of the rectangle to add
+	 */
+	bool AddRectangle(float x, float y, float width, float height) {
+		w_rectf rect = { x, y, width, height };
+		return w_path_add_rectangle(W_PATH(this), &rect) > 0;
+	}
+
+	/**
+	 * Adds to the receiver the pattern of glyphs generated by drawing
+	 * the given string using the given font starting at the point (x, y).
+	 *
+	 * @param string the text to use
+	 * @param x the x coordinate of the starting point
+	 * @param y the y coordinate of the starting point
+	 * @param font the font to use
+	 */
+	bool AddString(const char *string, float x, float y, WFont *font) {
+		return AddString(string, -1, x, y, font);
+	}
+	bool AddString(const char *string, int length, float x, float y,
+			WFont *font) {
+		w_pointf pt = { x, y };
+		return w_path_add_string(W_PATH(this), string, length, W_ENCODING_UTF8,
+				&pt, W_FONT(font)) > 0;
+	}
+
+	/**
+	 * Closes the current sub path by adding to the receiver a line
+	 * from the current point of the path back to the starting point
+	 * of the sub path.
+	 */
+	void Close() {
+		w_path_close(W_PATH(this));
+	}
+
+	/**
+	 * Returns <code>true</code> if the specified point is contained by
+	 * the receiver and false otherwise.
+	 * <p>
+	 * If outline is <code>true</code>, the point (x, y) checked for containment in
+	 * the receiver's outline. If outline is <code>false</code>, the point is
+	 * checked to see if it is contained within the bounds of the (closed) area
+	 * covered by the receiver.
+	 *
+	 * @param x the x coordinate of the point to test for containment
+	 * @param y the y coordinate of the point to test for containment
+	 * @param gc the GC to use when testing for containment
+	 * @param outline controls whether to check the outline or contained area of the path
+	 * @return <code>true</code> if the path contains the point and <code>false</code> otherwise
+	 */
+	bool Contains(float x, float y, WGraphics &gc, bool outline) {
+		w_pointf pt = { x, y };
+		return w_path_contains(W_PATH(this), &pt, W_GRAPHICS(&gc), outline) > 0;
+	}
+	/**
+	 * Adds to the receiver a cubic bezier curve based on the parameters.
+	 *
+	 * @param cx1 the x coordinate of the first control point of the spline
+	 * @param cy1 the y coordinate of the first control of the spline
+	 * @param cx2 the x coordinate of the second control of the spline
+	 * @param cy2 the y coordinate of the second control of the spline
+	 * @param x the x coordinate of the end point of the spline
+	 * @param y the y coordinate of the end point of the spline
+	 */
+	bool CubicTo(float cx1, float cy1, float cx2, float cy2, float x, float y) {
+		return w_path_cubicto(W_PATH(this), cx1, cy1, cx2, cy2, x, y) > 0;
+	}
+
+	/**
+	 * Replaces the first four elements in the parameter with values that
+	 * describe the smallest rectangle that will completely contain the
+	 * receiver (i.e. the bounding box).
+	 *
+	 * @param bounds the array to hold the result
+	 */
+	WRectF& GetBounds(WRectF &bounds) {
+		w_path_get_bounds(W_PATH(this), (w_rectf*) &bounds);
+		return bounds;
+	}
+
+	/**
+	 * Replaces the first two elements in the parameter with values that
+	 * describe the current point of the path.
+	 *
+	 * @param point the array to hold the result
+	 */
+	WPointF& GetCurrentPoint(WPointF &point) {
+		w_path_get_current_point(W_PATH(this), (w_pointf*) &point);
+		return point;
+	}
+
+	/**
+	 * Returns a device independent representation of the receiver.
+	 *
+	 * @return the PathData for the receiver
+	 *
+	 * @see PathData
+	 */
+	bool GetPathData(WIterator<WPathData> &data) {
+		return w_path_get_path_data(W_PATH(this), (w_iterator*) &data) > 0;
+	}
+	/**
+	 * Adds to the receiver a line from the current point to
+	 * the point specified by (x, y).
+	 *
+	 * @param x the x coordinate of the end of the line to add
+	 * @param y the y coordinate of the end of the line to add
+	 */
+	bool LineTo(float x, float y) {
+		return w_path_lineto(W_PATH(this), x, y) > 0;
+	}
+	/**
+	 * Returns <code>true</code> if the Path has been disposed,
+	 * and <code>false</code> otherwise.
+	 * <p>
+	 * This method gets the dispose state for the Path.
+	 * When a Path has been disposed, it is an error to
+	 * invoke any other method (except {@link #dispose()}) using the Path.
+	 *
+	 * @return <code>true</code> when the Path is disposed, and <code>false</code> otherwise
+	 */
+	bool IsDisposed() {
+		return !IsOk();
+	}
+	bool IsOk() {
+		return w_path_is_ok(W_PATH(this)) > 0;
+	}
+
+	/**
+	 * Sets the current point of the receiver to the point
+	 * specified by (x, y). Note that this starts a new
+	 * sub path.
+	 *
+	 * @param x the x coordinate of the new end point
+	 * @param y the y coordinate of the new end point
+	 */
+	bool MoveTo(float x, float y) {
+		return w_path_move_to(W_PATH(this), x, y) > 0;
+	}
+	/**
+	 * Adds to the receiver a quadratic curve based on the parameters.
+	 *
+	 * @param cx the x coordinate of the control point of the spline
+	 * @param cy the y coordinate of the control point of the spline
+	 * @param x the x coordinate of the end point of the spline
+	 * @param y the y coordinate of the end point of the spline
+	 */
+	bool QuadTo(float cx, float cy, float x, float y) {
+		return w_path_quadto(W_PATH(this), cx, cy, x, y) > 0;
+	}
+private:
+	void *handle[sizeof(w_path) / sizeof(void*)];
+};
+
+#endif /* SWTP_GRAPHICS_PATH_H_ */

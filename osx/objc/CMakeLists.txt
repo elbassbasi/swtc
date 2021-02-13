@@ -1,0 +1,21 @@
+	set(CURRENT_DIR osx/objc)
+	set(src_osx 
+		${src_osx}
+		${CURRENT_DIR}/NSAffineTransform.m
+		${CURRENT_DIR}/NSApplication.m
+		${CURRENT_DIR}/NSArray.m
+		${CURRENT_DIR}/NSAttributedString.m
+		${CURRENT_DIR}/NSBezierPath.m
+		${CURRENT_DIR}/NSColor.m
+		${CURRENT_DIR}/NSDictionary.m
+		${CURRENT_DIR}/NSFont.m
+		${CURRENT_DIR}/NSGraphicsContext.m
+		${CURRENT_DIR}/NSLayoutManager.m
+		${CURRENT_DIR}/NSObject.m
+		${CURRENT_DIR}/NSOutlineView.m
+		${CURRENT_DIR}/NSScrollView.m
+		${CURRENT_DIR}/NSTable.m
+		${CURRENT_DIR}/NSView.m
+		${CURRENT_DIR}/NSWindow.m
+		PARENT_SCOPE
+	)

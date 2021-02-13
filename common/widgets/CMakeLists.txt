@@ -1,0 +1,24 @@
+	set(CURRENT_DIR common/widgets)
+	set(src_common 
+		${src_common}
+		${CURRENT_DIR}/accessible.c
+		${CURRENT_DIR}/app.c
+		${CURRENT_DIR}/canvas.c
+		${CURRENT_DIR}/composite.c
+		${CURRENT_DIR}/control.c
+		${CURRENT_DIR}/dialogs.c
+		${CURRENT_DIR}/dnd.c
+		${CURRENT_DIR}/glcanvas.c
+		${CURRENT_DIR}/item.c
+		${CURRENT_DIR}/menu.c
+		${CURRENT_DIR}/scrollable.c
+		${CURRENT_DIR}/shell.c
+		${CURRENT_DIR}/taskbar.c
+		${CURRENT_DIR}/theme.c
+		${CURRENT_DIR}/toolkit.c
+		${CURRENT_DIR}/tooltip.c
+		${CURRENT_DIR}/tracker.c
+		${CURRENT_DIR}/tray.c
+		${CURRENT_DIR}/widget.c
+		PARENT_SCOPE
+	)
