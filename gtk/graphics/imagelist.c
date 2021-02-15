@@ -78,7 +78,31 @@ wresult w_imagelist_is_ok(w_imagelist *imagelist) {
 	return imagelist != 0 && _W_IMAGELIST(imagelist)->images != 0;
 }
 wresult w_imagelist_replace(w_imagelist *imagelist, int index, w_image *image) {
-	return W_FALSE;
+	if (_W_IMAGELIST(imagelist)->images == 0)
+		return W_ERROR_NO_HANDLES;
+	if (image == 0 || _W_IMAGE(image)->pixbuf == 0) {
+		return W_ERROR_INVALID_ARGUMENT;
+	}
+	_w_imagelist_images *images = _W_IMAGELIST(imagelist)->images;
+	if (images->count > index) {
+		GdkPixbuf *imageidx, *imagelast;
+		imagelast = images->images[index];
+		int width = gdk_pixbuf_get_width(_W_IMAGE(image)->pixbuf);
+		int heigth = gdk_pixbuf_get_height(_W_IMAGE(image)->pixbuf);
+		if (width == images->width && heigth == images->height) {
+			imageidx = gdk_pixbuf_copy(_W_IMAGE(image)->pixbuf);
+		} else {
+			imageidx = gdk_pixbuf_scale_simple(_W_IMAGE(image)->pixbuf,
+					images->width, images->height, GDK_INTERP_BILINEAR);
+		}
+		if (imageidx == 0)
+			return W_ERROR_NO_HANDLES;
+		images->images[images->count] = imageidx;
+		g_object_unref(imagelast);
+		return W_TRUE;
+	} else {
+		return w_imagelist_add(imagelist, image);
+	}
 }
 wresult w_imagelist_remove(w_imagelist *imagelist, int index) {
 	return W_FALSE;
@@ -91,7 +115,11 @@ wresult w_imagelist_get_image(w_imagelist *imagelist, int index, int copy,
 	return W_FALSE;
 }
 wresult w_imagelist_get_size(w_imagelist *imagelist, w_size *size) {
-	return W_FALSE;
+	if (imagelist == 0 || _W_IMAGELIST(imagelist)->images == 0)
+		return W_ERROR_NO_HANDLES;
+	size->width = _W_IMAGELIST(imagelist)->images->width;
+	size->height = _W_IMAGELIST(imagelist)->images->height;
+	return W_TRUE;
 }
 int w_imagelist_get_count(w_imagelist *imagelist) {
 	if (imagelist == 0 || _W_IMAGELIST(imagelist)->images == 0)

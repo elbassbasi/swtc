@@ -511,8 +511,25 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 wresult _w_control_set_capture(w_control *control, int capture) {
 	return W_FALSE;
 }
+wresult _w_control_set_cursor_0(w_control *control, GdkCursor *cursor,
+		_w_control_priv *priv) {
+	GdkWindow *window = priv->window_event(W_WIDGET(control), priv);
+	if (window != 0) {
+		gdk_window_set_cursor(window, cursor);
+		gdk_flush();
+	}
+	return W_TRUE;
+}
 wresult _w_control_set_cursor(w_control *control, w_cursor *cursor) {
-	return W_FALSE;
+	if (cursor != 0 && _W_CURSOR(cursor)->handle == 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	_W_CONTROL(control)->cursor = cursor;
+	GdkCursor *hcursor = 0;
+	if (cursor != 0) {
+		hcursor = _W_CURSOR(cursor)->handle;
+	}
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	return priv->set_cursor_0(control, hcursor, priv);
 }
 wresult _w_control_set_drag_detect(w_control *control, int dragDetect) {
 	return W_FALSE;
@@ -624,7 +641,9 @@ GdkWindow* _w_control_window_enable(w_widget *control, _w_control_priv *priv) {
 	return 0;
 }
 GdkWindow* _w_control_window_event(w_widget *control, _w_control_priv *priv) {
-	return 0;
+	GtkWidget *eventHandle = priv->handle_event(control, priv);
+	gtk_widget_realize(eventHandle);
+	return gtk_widget_get_window(eventHandle);
 }
 GdkWindow* _w_control_window_paint(w_widget *control, _w_control_priv *priv) {
 	return 0;
@@ -740,6 +759,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->set_relations = _w_control_set_relations;
 	priv->set_zorder = _w_control_set_zorder;
 	priv->update_layout = _w_control_update_layout;
+	priv->set_cursor_0 = _w_control_set_cursor_0;
 	/*
 	 * signals
 	 */

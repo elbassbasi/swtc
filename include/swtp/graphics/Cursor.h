@@ -33,6 +33,7 @@
  * </p>
  */
 class SWTP_PUBLIC WCursor: public WResource {
+public:
 	WCursor() {
 		w_cursor_init(W_CURSOR(this));
 	}

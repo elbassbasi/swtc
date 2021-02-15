@@ -13,7 +13,7 @@ public:
 	static void Registre(WTreeItem &parent);
 	TTransformImage();
 	~TTransformImage();
-	void DrawText(WGraphics &gc, int x, int y);
+	void DrawText(WGraphics &gc, const char *text, int x, int y);
 	void CreateControl(WComposite *parent);
 	bool OnPaint(WPaintEvent &e);
 	WImage image;

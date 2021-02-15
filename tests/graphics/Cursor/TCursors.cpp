@@ -6,11 +6,13 @@
  */
 
 #include "TCursors.h"
+#include "TCursorDemo.h"
 
 void TCursors::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Cursor", new TCursors());
 }
 
 bool TCursors::Expand(WTreeItem &item) {
+	TCursorDemo::Registre(item);
 	return true;
 }

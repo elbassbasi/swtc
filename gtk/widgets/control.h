@@ -107,6 +107,8 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	wresult (*set_bounds_0)(w_control *control, w_point *location, w_size *size,
 			_w_control_priv *priv);
+	wresult (*set_cursor_0)(w_control *control, GdkCursor *cursor,
+			_w_control_priv *priv);
 	void (*mark_layout)(w_control *control, int flags, _w_control_priv *priv);
 	void (*update_layout)(w_control *control, int flags, _w_control_priv *priv);
 	void (*move_handle)(w_control *control, w_point *position,

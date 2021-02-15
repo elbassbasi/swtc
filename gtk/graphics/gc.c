@@ -19,6 +19,7 @@ void _w_graphics_init(w_graphics *gc, cairo_t *drawable) {
 	_W_GRAPHICS(gc)->cairo = drawable;
 	_W_GRAPHICS(gc)->alpha = 0xFF;
 	_W_GRAPHICS(gc)->stringWidth = _W_GRAPHICS(gc)->stringHeight = -1;
+	_W_GRAPHICS(gc)->width = _W_GRAPHICS(gc)->height = -1;
 }
 #endif
 void w_graphics_dispose(w_graphics *gc) {
@@ -1160,11 +1161,153 @@ int w_graphics_get_char_width(w_graphics *gc, int ch) {
 	}
 	return 0;
 }
+void w_graphics_get_size(w_graphics *gc, int *width, int *height);
+cairo_region_t* w_graphics_convert_rgn(w_graphics *gc, cairo_region_t *rgn,
+		cairo_matrix_t *matrix) {
+	cairo_region_t *newRgn = cairo_region_create();
+	int isIdentity = 1;
+	if (matrix != 0) {
+		isIdentity = matrix->xx == 1 && matrix->yx == 0 && matrix->xy == 0
+				&& matrix->yy == 1 && matrix->x0 == 0 && matrix->y0 == 0;
+	}
+	if (isIdentity) {
+		cairo_region_union(newRgn, rgn);
+		return newRgn;
+	}
+	int nRects;
+	GdkRectangle *rects, *rect;
+	_gdk_region_get_rectangles(rgn, &rects, &nRects);
+	w_point points[4];
+	double x, y;
+	for (int i = 0; i < nRects; i++) {
+		rect = &rects[i];
+		x = rect->x;
+		y = rect->y;
+		cairo_matrix_transform_point(matrix, &x, &y);
+		points[0].x = x;
+		points[0].y = y;
+		x = rect->x + rect->width;
+		y = rect->y;
+		cairo_matrix_transform_point(matrix, &x, &y);
+		points[1].x = round(x);
+		points[1].y = y;
+		x = rect->x + rect->width;
+		y = rect->y + rect->height;
+		cairo_matrix_transform_point(matrix, &x, &y);
+		points[2].x = round(x);
+		points[2].y = round(y);
+		x = rect->x;
+		y = rect->y + rect->height;
+		cairo_matrix_transform_point(matrix, &x, &y);
+		points[3].x = x;
+		points[3].y = round(y);
+		cairo_region_t *polyRgn = _gdk_region_polygon(points, 4,
+		GDK_EVEN_ODD_RULE);
+		cairo_region_union(newRgn, polyRgn);
+		cairo_region_destroy(polyRgn);
+	}
+	if (rects != 0)
+		g_free(rects);
+	return newRgn;
+}
 wresult w_graphics_get_clipping_rect(w_graphics *gc, w_rect *rect) {
-	return W_FALSE;
+	wresult result = _w_graphics_check(gc, 0);
+	if (result > 0) {
+		GdkRectangle r;
+		//Calculate visible bounds in device space
+		rect->x = 0, rect->y = 0, rect->width = 0, rect->height = 0;
+		w_graphics_get_size(gc, &rect->width, &rect->height);
+		gdk_cairo_get_clip_rectangle(_W_GRAPHICS(gc)->cairo, &r);
+		// Intersect visible bounds with clipping in device space and then convert then to user space
+		cairo_t *cairo = _W_GRAPHICS(gc)->cairo;
+		cairo_region_t *clipRgn = _W_GRAPHICS(gc)->clipRgn;
+		cairo_region_t *damageRgn = _W_GRAPHICS(gc)->damageRgn;
+		if (clipRgn != 0 || damageRgn != 0 || cairo != 0) {
+			cairo_region_t *rgn = cairo_region_create();
+			r.x = r.y = 0;
+			r.width = rect->width;
+			r.height = rect->height;
+			cairo_region_union_rectangle(rgn, &r);
+			if (damageRgn != 0) {
+				cairo_region_intersect(rgn, damageRgn);
+			}
+			// Intersect visible bounds with clipping
+			if (clipRgn != 0) {
+				// Convert clipping to device space if needed
+				if (_W_GRAPHICS(gc)->isclippingTransform
+						!= 0&& GTK_VERSION < VERSION (3, 14, 0)) {
+					clipRgn = w_graphics_convert_rgn(gc, clipRgn,
+							&_W_GRAPHICS(gc)->clippingTransform);
+					cairo_region_intersect(rgn, clipRgn);
+					cairo_region_destroy(clipRgn);
+				} else {
+					cairo_region_intersect(rgn, clipRgn);
+				}
+			}
+			// Convert to user space
+			if (cairo != 0 && GTK_VERSION < VERSION(3, 14, 0)) {
+				cairo_matrix_t matrix;
+				cairo_get_matrix(cairo, &matrix);
+				cairo_matrix_invert(&matrix);
+				clipRgn = w_graphics_convert_rgn(gc, rgn, &matrix);
+				cairo_region_destroy(rgn);
+				rgn = clipRgn;
+			}
+			cairo_region_get_extents(rgn, &r);
+			cairo_region_destroy(rgn);
+			rect->x = r.x;
+			rect->y = r.y;
+			rect->width = r.width;
+			rect->height = r.height;
+		}
+	}
+	return result;
 }
 wresult w_graphics_get_clipping_region(w_graphics *gc, w_region *region) {
-	return W_FALSE;
+	wresult result = _w_graphics_check(gc, 0);
+	if (result < 0) {
+		if (region == 0)
+			return W_ERROR_NULL_ARGUMENT;
+		cairo_t *cairo = _W_GRAPHICS(gc)->cairo;
+		if (_W_REGION(region)->handle == 0) {
+			_W_REGION(region)->handle = cairo_region_create();
+		} else {
+			cairo_region_subtract(_W_REGION(region)->handle,
+			_W_REGION(region)->handle);
+		}
+		cairo_region_t *clipping = _W_REGION(region)->handle;
+		if (_W_GRAPHICS(gc)->clipRgn == 0) {
+			GdkRectangle rect;
+			gdk_cairo_get_clip_rectangle(_W_GRAPHICS(gc)->cairo, &rect);
+			w_graphics_get_size(gc, &rect.width, &rect.height);
+			cairo_region_union_rectangle(clipping, &rect);
+		} else {
+			// Convert clipping to device space if needed
+			if (_W_GRAPHICS(gc)->isclippingTransform
+					!= 0&& GTK_VERSION < VERSION (3, 14, 0)) {
+				cairo_region_t *rgn = w_graphics_convert_rgn(gc,
+				_W_GRAPHICS(gc)->clipRgn, &_W_GRAPHICS(gc)->clippingTransform);
+				cairo_region_union(clipping, rgn);
+				cairo_region_destroy(rgn);
+			} else {
+				cairo_region_union(clipping, _W_GRAPHICS(gc)->clipRgn);
+			}
+		}
+		if (_W_GRAPHICS(gc)->damageRgn != 0) {
+			cairo_region_intersect(clipping, _W_GRAPHICS(gc)->damageRgn);
+		}
+		// Convert to user space
+		if (GTK_VERSION < VERSION(3, 14, 0)) {
+			cairo_matrix_t matrix;
+			cairo_get_matrix(cairo, &matrix);
+			cairo_matrix_invert(&matrix);
+			cairo_region_t *rgn = w_graphics_convert_rgn(gc, clipping, &matrix);
+			cairo_region_subtract(clipping, clipping);
+			cairo_region_union(clipping, rgn);
+			cairo_region_destroy(rgn);
+		}
+	}
+	return result;
 }
 int w_graphics_get_fill_rule(w_graphics *gc) {
 	wresult result = _w_graphics_check(gc, 0);
@@ -1264,6 +1407,24 @@ float w_graphics_get_line_width(w_graphics *gc) {
 	if (_W_GRAPHICS(gc)->cairo == 0)
 		return 0;
 	return _W_GRAPHICS(gc)->line.width;
+}
+void w_graphics_get_size(w_graphics *gc, int *width, int *height) {
+	if (_W_GRAPHICS(gc)->width != -1 && _W_GRAPHICS(gc)->height != -1) {
+		width[0] = _W_GRAPHICS(gc)->width;
+		height[0] = _W_GRAPHICS(gc)->height;
+		return;
+	}
+	cairo_surface_t *surface = cairo_get_target(_W_GRAPHICS(gc)->cairo);
+	switch (cairo_surface_get_type(surface)) {
+	case CAIRO_SURFACE_TYPE_IMAGE:
+		width[0] = cairo_image_surface_get_width(surface);
+		height[0] = cairo_image_surface_get_height(surface);
+		break;
+		/*case CAIRO_SURFACE_TYPE_XLIB:
+		 width[0] = cairo_xlib_surface_get_width(surface);
+		 height[0] = cairo_xlib_surface_get_height(surface);
+		 break;*/
+	}
 }
 int w_graphics_get_style(w_graphics *gc) {
 	int style = 0;
@@ -1406,14 +1567,148 @@ wresult w_graphics_set_background_pattern(w_graphics *gc, w_pattern *pattern) {
 	}
 	return result;
 }
-wresult w_graphics_set_clipping_path(w_graphics *gc, w_path *path) {
-	return W_FALSE;
+/**
+ * Intersects given clipping with original clipping of this context, so
+ * that resulting clip does not allow to paint outside of the GC bounds.
+ */
+wresult w_graphics_limitClipping(w_graphics *gc, cairo_region_t *gcClipping) {
+	cairo_region_t *clippingRegion = cairo_region_create();
+	cairo_region_union_rectangle(clippingRegion, &_W_GRAPHICS(gc)->clipping);
+	cairo_region_intersect(gcClipping, clippingRegion);
+	cairo_region_destroy(clippingRegion);
+	return W_TRUE;
 }
-wresult w_graphics_set_clipping_rect(w_graphics *gc, w_rect *rect) {
-	return W_FALSE;
+wresult w_graphics_set_cairo_clip(w_graphics *gc, cairo_region_t *damageRgn,
+		cairo_region_t *clipRgn) {
+#if GTK3
+	cairo_reset_clip(_W_GRAPHICS(gc)->cairo);
+#endif
+	if (damageRgn != 0) {
+		cairo_matrix_t matrix;
+		cairo_get_matrix(_W_GRAPHICS(gc)->cairo, &matrix);
+		cairo_matrix_t identity;
+		cairo_matrix_init_identity(&identity);
+		cairo_set_matrix(_W_GRAPHICS(gc)->cairo, &identity);
+		gdk_cairo_region(_W_GRAPHICS(gc)->cairo, damageRgn);
+		cairo_clip(_W_GRAPHICS(gc)->cairo);
+		cairo_set_matrix(_W_GRAPHICS(gc)->cairo, &matrix);
+	}
+	if (clipRgn != 0) {
+		cairo_region_t *clipRgnCopy = cairo_region_create();
+		cairo_region_union(clipRgnCopy, clipRgn);
+
+		/*
+		 * Bug 531667: widgets paint over other widgets
+		 *
+		 * The Cairo handle is shared by all widgets, but GC.setClipping allows global clipping changes.
+		 * So we intersect whatever the client sets with the initial GC clipping.
+		 */
+		if (GTK_VERSION >= VERSION(3, 14, 0)) {
+			w_graphics_limitClipping(gc, clipRgnCopy);
+		}
+
+		gdk_cairo_region(_W_GRAPHICS(gc)->cairo, clipRgnCopy);
+		cairo_clip(_W_GRAPHICS(gc)->cairo);
+		cairo_region_destroy(clipRgnCopy);
+	}
+	return W_TRUE;
+}
+wresult w_graphics_set_clipping(w_graphics *gc, cairo_region_t *clipRgn) {
+	if (clipRgn == 0) {
+		if (_W_GRAPHICS(gc)->clipRgn != 0) {
+			cairo_region_destroy(_W_GRAPHICS(gc)->clipRgn);
+			_W_GRAPHICS(gc)->clipRgn = 0;
+		}
+		_W_GRAPHICS(gc)->isclippingTransform = 0;
+		w_graphics_set_cairo_clip(gc, _W_GRAPHICS(gc)->damageRgn, 0);
+	} else {
+		if (_W_GRAPHICS(gc)->clipRgn == 0)
+			_W_GRAPHICS(gc)->clipRgn = cairo_region_create();
+		cairo_region_subtract(_W_GRAPHICS(gc)->clipRgn,
+		_W_GRAPHICS(gc)->clipRgn);
+		cairo_region_union(_W_GRAPHICS(gc)->clipRgn, clipRgn);
+		if (GTK_VERSION < VERSION(3, 14, 0)) {
+			_W_GRAPHICS(gc)->isclippingTransform = 1;
+			cairo_get_matrix(_W_GRAPHICS(gc)->cairo,
+					&_W_GRAPHICS(gc)->clippingTransform);
+		}
+		w_graphics_set_cairo_clip(gc, _W_GRAPHICS(gc)->damageRgn, clipRgn);
+	}
+	return W_TRUE;
+}
+void w_graphics_reset_clipping(w_graphics *gc) {
+	if (GTK_VERSION >= VERSION(3, 14, 0)) {
+		/*
+		 * Bug 531667: widgets paint over other widgets
+		 *
+		 * The Cairo handle is shared by all widgets, and GC.setClipping(0) allows painting outside the current GC area.
+		 * So if we reset any custom clipping we still want to restrict GC operations with the initial GC clipping.
+		 */
+		cairo_region_t *clipRgn = cairo_region_create();
+		cairo_region_union_rectangle(clipRgn, &_W_GRAPHICS(gc)->clipping);
+		w_graphics_set_clipping(gc, clipRgn);
+		cairo_region_destroy(clipRgn);
+	} else {
+		w_graphics_set_clipping(gc, 0);
+	}
+}
+wresult w_graphics_set_clipping_path(w_graphics *gc, w_path *path) {
+	wresult result = _w_graphics_check(gc, 0);
+	if (result > 0) {
+		if (path != 0 && w_path_is_ok(path) <= 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		w_graphics_reset_clipping(gc);
+		if (path != 0) {
+			cairo_t *cairo = _W_GRAPHICS(gc)->cairo;
+			cairo_path_t *copy = cairo_copy_path(_W_PATH(path)->handle);
+			if (copy == 0)
+				return W_ERROR_NO_HANDLES;
+			cairo_append_path(cairo, copy);
+			cairo_path_destroy(copy);
+			cairo_clip(cairo);
+		}
+	}
+	return result;
+}
+wresult w_graphics_set_clipping_rect(w_graphics *gc, w_rect *r) {
+	wresult result = _w_graphics_check(gc, 0);
+	if (result < 0)
+		return result;
+	if (r == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	GdkRectangle rect;
+	rect.x = r->x;
+	rect.y = r->y;
+	rect.width = r->width;
+	rect.height = r->height;
+	if (rect.width < 0) {
+		rect.x = rect.x + rect.width;
+		rect.width = -rect.width;
+	}
+	if (rect.height < 0) {
+		rect.y = rect.y + rect.height;
+		rect.height = -rect.height;
+	}
+
+	cairo_region_t *clipRgn = cairo_region_create();
+	cairo_region_union_rectangle(clipRgn, &rect);
+	w_graphics_set_clipping(gc, clipRgn);
+	cairo_region_destroy(clipRgn);
+	return W_TRUE;
 }
 wresult w_graphics_set_clipping_region(w_graphics *gc, w_region *region) {
-	return W_FALSE;
+	wresult result = _w_graphics_check(gc, 0);
+	if (result < 0)
+		return result;
+	if (region == 0) {
+		w_graphics_reset_clipping(gc);
+	} else {
+		if (_W_REGION(region)->handle == 0)
+			return W_ERROR_INVALID_ARGUMENT;
+
+		w_graphics_set_clipping(gc, _W_REGION(region)->handle);
+	}
+	return W_TRUE;
 }
 wresult w_graphics_set_fill_rule(w_graphics *gc, int rule) {
 	wresult result = _w_graphics_check(gc, 0);

@@ -222,7 +222,8 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 			&toolkit->class_listitem);
 	W_LISTVIEWBASE_CLASS(&toolkit->class_listview)->class_column =
 			&toolkit->class_listcolumn;
-	toolkit->classes[_W_CLASS_LISTVIEW] = W_WIDGET_CLASS(&toolkit->class_listview);
+	toolkit->classes[_W_CLASS_LISTVIEW] = W_WIDGET_CLASS(
+			&toolkit->class_listview);
 }
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];

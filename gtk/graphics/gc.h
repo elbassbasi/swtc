@@ -92,6 +92,18 @@ typedef struct _w_path {
 } _w_path;
 #define _W_PATH(x) ((_w_path*)x)
 /*
+ * region
+ */
+typedef struct _w_region {
+	cairo_region_t *handle;
+} _w_region;
+#define _W_REGION(x) ((_w_region*)x)
+void _gdk_region_get_rectangles(cairo_region_t *region,
+		GdkRectangle **rectangles, int *n_rectangles);
+cairo_region_t* _gdk_region_polygon(w_point *points, size_t count,
+		int fill_rule);
+#define GDK_EVEN_ODD_RULE 0
+/*
  * graphics
  */
 #define GRAPHICS_STATE_CAIRO  (1 << 0)
@@ -128,8 +140,11 @@ typedef struct _w_graphics {
 	wuchar alpha;
 	unsigned interpolation :2;
 	unsigned xorMode :1;
+	unsigned isclippingTransform;
 	int stringWidth;
 	int stringHeight;
+	int width;
+	int height;
 	GdkRectangle clipping;
 	w_color foreground;
 	w_color background;
@@ -140,6 +155,7 @@ typedef struct _w_graphics {
 	cairo_region_t *clipRgn;
 	cairo_region_t *damageRgn;
 	cairo_matrix_t identity;
+	cairo_matrix_t clippingTransform;
 } _w_graphics;
 #define _W_GRAPHICS(x) ((_w_graphics*)x)
 #if USE_CAIRO

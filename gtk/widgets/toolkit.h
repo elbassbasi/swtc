@@ -38,13 +38,16 @@ typedef struct _w_toolkit {
 	w_tray tray;
 	w_widget *widget_free;
 	PangoTabArray *empty_tab;
-	void *libX11;
 	int exit_code;
 	unsigned exit_loop :1;
 	unsigned wake :1;
 	unsigned ISX11 :1;
 	unsigned ISWayland :1;
 	unsigned activePending :1;
+	/*
+	 * function
+	 */
+	void *libX11;
 	/*
 	 * thread
 	 */
