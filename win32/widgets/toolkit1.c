@@ -6,7 +6,6 @@
  * Licence:
  */
 #include "toolkit.h"
-#include "../graphics/gdip.h"
 void* _w_toolkit_malloc(size_t size) {
 	if ((win_toolkit->tmp_length + size) < win_toolkit->tmp_alloc) {
 		int i = win_toolkit->tmp_length;
@@ -338,10 +337,10 @@ void _w_toolkit_init_messages(_w_toolkit *toolkit) {
 
 }
 void _w_toolkit_init(_w_toolkit *toolkit) {
+	_w_toolkit_init_dll(toolkit);
 	_w_toolkit_class_init(toolkit);
 	_w_toolkit_widget_class_init(toolkit);
 	_w_toolkit_init_messages(toolkit);
-	_w_toolkit_init_dll(toolkit);
 	_w_toolkit_registre_class(toolkit);
 	_w_theme_init();
 	toolkit->thread.id = GetCurrentThreadId();

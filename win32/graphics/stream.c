@@ -106,6 +106,6 @@ IStreamVtbl swt_stream_vtbl = { swt_stream_QueryInterface, swt_stream_AddRef,
 		swt_stream_Revert, swt_stream_LockRegion, swt_stream_UnlockRegion,
 		swt_stream_Stat, swt_stream_Clone };
 void swt_stream_init(swt_stream *stream, w_stream *s) {
-	stream->stream.lpVtbl = &swt_stream_vtbl;
+	stream->lpVtbl = &swt_stream_vtbl;
 	stream->s = s;
 }

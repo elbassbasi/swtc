@@ -5,6 +5,6 @@
 		${CURRENT_DIR}/MMenu.cpp 
 		${CURRENT_DIR}/MPanel.cpp 
 		${CURRENT_DIR}/MShell.cpp 
-		${CURRENT_DIR}/TreeItems.cpp 
+		${CURRENT_DIR}/TreeItems.cpp
 		PARENT_SCOPE
 	)

@@ -151,6 +151,13 @@ wresult _w_control_dispose(w_widget *widget) {
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event) {
 	return W_FALSE;
 }
+w_cursor* _w_control_find_cursor(w_control *control, _w_control_priv *priv) {
+	if (_W_CONTROL(control)->cursor != 0)
+		return _W_CONTROL(control)->cursor;
+	w_composite *parent = _W_CONTROL(control)->parent;
+	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
+	return ppriv->find_cursor(W_CONTROL(parent), ppriv);
+}
 wresult _w_control_force_focus(w_control *control) {
 	SetFocus(_W_WIDGET(control)->handle);
 	return W_TRUE;
@@ -532,8 +539,35 @@ wresult _w_control_set_capture(w_control *control, int capture) {
 	}
 	return W_TRUE;
 }
+wresult _w_control_set_cursor_0(w_control *control, _w_control_priv *priv) {
+	LPARAM lParam = MAKELPARAM(HTCLIENT, WM_MOUSEMOVE);
+	SendMessageW(_W_WIDGET(control)->handle, WM_SETCURSOR,
+			(WPARAM) _W_WIDGET(control)->handle, lParam);
+	return W_TRUE;
+}
 wresult _w_control_set_cursor(w_control *control, w_cursor *cursor) {
-	return W_FALSE;
+	if (cursor != 0 && _W_CURSOR(cursor)->handle == 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	_W_CONTROL(control)->cursor = cursor;
+	HWND hwndCursor = GetCapture();
+	if (hwndCursor == 0) {
+		POINT pt;
+		if (!GetCursorPos(&pt))
+			return W_TRUE;
+		HWND hwnd = hwndCursor = WindowFromPoint(pt);
+		HWND handle = _W_WIDGET(control)->handle;
+		while (hwnd != 0 && hwnd != handle) {
+			hwnd = GetParent(hwnd);
+		}
+		if (hwnd == 0)
+			return W_TRUE;
+	}
+	w_control *c = (w_control*) _w_widget_find_control(hwndCursor);
+	if (c == 0)
+		c = control;
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(c);
+	priv->set_cursor_0(c, priv);
+	return W_TRUE;
 }
 wresult _w_control_set_default_font(w_control *control, _w_control_priv *priv) {
 	return W_TRUE;
@@ -802,6 +836,8 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->window_class = _w_control_window_class;
 	priv->subclass = _w_control_subclass;
 	priv->unsubclass = _w_control_unsubclass;
+	priv->set_cursor_0 = _w_control_set_cursor_0;
+	priv->find_cursor = _w_control_find_cursor;
 	/*
 	 * messages
 	 */

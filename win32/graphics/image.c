@@ -16,7 +16,7 @@ void w_image_init(w_image *image) {
 }
 void w_image_dispose(w_image *image) {
 	if (_W_IMAGE(image)->handle != 0) {
-		if (_W_IMAGE(image)->dispose) {
+		if (_W_IMAGE(image)->nodispose == 0) {
 			switch (_W_IMAGE(image)->type) {
 			case _IMAGE_HBITMAP:
 				DeleteObject((HBITMAP) _W_IMAGE(image)->handle);
@@ -38,6 +38,7 @@ wresult w_image_is_ok(w_image *image) {
 }
 void _w_image_get_hbitmap(w_image *image, _w_image_hbitmap *hbitmap) {
 	ICONINFO iconinfo;
+	memset(hbitmap, 0, sizeof(hbitmap));
 	if (_W_IMAGE(image)->handle != 0) {
 		switch (_W_IMAGE(image)->type) {
 		case _IMAGE_HBITMAP:
@@ -49,7 +50,7 @@ void _w_image_get_hbitmap(w_image *image, _w_image_hbitmap *hbitmap) {
 			hbitmap->hbmMask = iconinfo.hbmMask;
 			break;
 		case _IMAGE_GPBITMAP: {
-			GdipCreateHICONFromBitmap((GpBitmap*) _W_IMAGE(image)->handle,
+			GdipCreateHICONFromBitmap((GpImage*) _W_IMAGE(image)->handle,
 					&hbitmap->hicon);
 			if (hbitmap->hicon != 0) {
 				GetIconInfo(hbitmap->hicon, &iconinfo);
@@ -72,11 +73,11 @@ void _w_image_get_gpimage(w_image *image, GpImage **gpimage) {
 		switch (_W_IMAGE(image)->type) {
 		case _IMAGE_HBITMAP:
 			GdipCreateBitmapFromHBITMAP((HBITMAP) _W_IMAGE(image)->handle, NULL,
-					(GpBitmap**) gpimage);
+					(GpImage**) gpimage);
 			break;
 		case _IMAGE_ICON:
 			GdipCreateBitmapFromHICON((HICON) _W_IMAGE(image)->handle,
-					(GpBitmap**) gpimage);
+					(GpImage**) gpimage);
 			break;
 		case _IMAGE_GPBITMAP: {
 			*gpimage = (GpImage*) _W_IMAGE(image)->handle;
@@ -106,11 +107,12 @@ wresult w_image_create_from_file(w_image *image, const char *file, int length,
 		if (_f[i] == '/')
 			_f[i] = '\\';
 	}
-	GpBitmap *bitmap = 0;
+	GpImage *bitmap = 0;
 	GdipCreateBitmapFromFile(_f, &bitmap);
 	wresult result;
 	if (bitmap != 0) {
 		_W_IMAGE(image)->handle = bitmap;
+		_W_IMAGE(image)->type = _IMAGE_GPBITMAP;
 		result = W_TRUE;
 	} else
 		result = W_ERROR_NO_HANDLES;
@@ -164,7 +166,7 @@ wresult w_image_create_from_data(w_image *image, void *data, wuint format,
 wresult w_image_create_from_stream(w_image *image, w_stream *stream) {
 	swt_stream s;
 	swt_stream_init(&s, stream);
-	GpBitmap *bitmap = 0;
+	GpImage *bitmap = 0;
 	GdipCreateBitmapFromStream((IStream*) &s, &bitmap);
 	wresult result;
 	if (bitmap != 0) {
@@ -199,7 +201,45 @@ wresult w_image_create_from_buffer(w_image *image, const void *buffer,
 	return W_FALSE;
 }
 wresult w_image_get_size(w_image *image, w_size *size) {
-	return W_FALSE;
+	if (size == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	size->width = 0;
+	size->height = 0;
+	if (image == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (_W_IMAGE(image)->handle == 0)
+		return W_ERROR_NO_HANDLES;
+	switch (_W_IMAGE(image)->type) {
+	case _IMAGE_HBITMAP: {
+		BITMAP bm;
+		GetObjectW(_W_IMAGE(image)->handle, sizeof(BITMAP), &bm);
+		size->width = bm.bmWidth;
+		size->height = bm.bmHeight;
+		return W_TRUE;
+	}
+		break;
+	case _IMAGE_ICON: {
+		ICONINFO iconinfo;
+		if (GetIconInfo((HICON) _W_IMAGE(image)->handle, &iconinfo)) {
+			BITMAP bm;
+			GetObjectW(iconinfo.hbmColor, sizeof(BITMAP), &bm);
+			size->width = bm.bmWidth;
+			size->height = bm.bmHeight;
+			return W_TRUE;
+		}
+	}
+		break;
+	case _IMAGE_GPBITMAP: {
+		UINT t;
+		GdipGetImageWidth((GpImage*) _W_IMAGE(image)->handle, &t);
+		size->width = t;
+		GdipGetImageHeight((GpImage*) _W_IMAGE(image)->handle, &t);
+		size->height = t;
+		return W_TRUE;
+	}
+		break;
+	}
+	return W_TRUE;
 }
 wresult w_image_get_pixels(w_image *image, w_color *colors, size_t length) {
 	return W_FALSE;
@@ -217,12 +257,85 @@ wresult w_image_save_to_stream(w_image *image, w_stream *stream,
 	return W_FALSE;
 }
 wresult w_image_copy(w_image *image, w_rect *rect, w_image *destimage) {
-	return W_FALSE;
+	w_image_dispose(destimage);
+	if (rect == 0) {
+
+	}
+	return W_TRUE;
+}
+wresult w_image_resize_0(w_image *image, w_size *size, GpImage **dstimg) {
+	wresult result = W_ERROR_NO_HANDLES;
+	*dstimg = 0;
+	GpImage *img = 0;
+	switch (_W_IMAGE(image)->type) {
+	case _IMAGE_HBITMAP: {
+		GdipCreateBitmapFromHBITMAP((HBITMAP) _W_IMAGE(image)->handle,
+		NULL, &img);
+	}
+		break;
+	case _IMAGE_ICON: {
+		GdipCreateBitmapFromHICON((HICON) _W_IMAGE(image)->handle, &img);
+	}
+		break;
+	case _IMAGE_GPBITMAP: {
+		img = (GpImage*) _W_IMAGE(image)->handle;
+	}
+		break;
+	}
+	GpImage *bm2 = 0;
+	GpGraphics *gc = 0;
+	if (img != 0) {
+		GdipCreateBitmapFromScan0(size->width, size->height, 0,
+		PixelFormat32bppPARGB,
+		NULL, &bm2);
+		if (bm2 != 0) {
+			GdipGetImageGraphicsContext(bm2, &gc);
+			if (gc != 0) {
+				GdipSetInterpolationMode(gc, InterpolationModeHighQuality);
+				GdipDrawImageRect(gc, img, 0, 0, size->width, size->height);
+				GdipDeleteGraphics(gc);
+				result = W_TRUE;
+			}
+		}
+		if (img != _W_IMAGE(image)->handle)
+			GdipDisposeImage(img);
+	}
+	*dstimg = bm2;
+	return result;
 }
 wresult w_image_resize(w_image *image, w_size *size, w_image *destimage) {
 	w_rect r;
 	w_image_dispose(destimage);
-	if (_W_IMAGE(image)->handle != 0) {
+	if (w_image_is_ok(image)) {
+		w_image_get_size(image, &r.sz);
+		if (r.sz.width == size->width && r.sz.height == size->height) {
+			switch (_W_IMAGE(image)->type) {
+			case _IMAGE_HBITMAP:
+				_W_IMAGE(destimage)->handle = CopyImage(_W_IMAGE(image)->handle,
+				IMAGE_BITMAP, 0, 0, LR_DEFAULTSIZE);
+				_W_IMAGE(destimage)->type = _IMAGE_HBITMAP;
+				_W_IMAGE(destimage)->nodispose = 0;
+				break;
+			case _IMAGE_ICON:
+				_W_IMAGE(destimage)->handle = CopyIcon(
+						(HICON) _W_IMAGE(image)->handle);
+				_W_IMAGE(destimage)->type = _IMAGE_ICON;
+				_W_IMAGE(destimage)->nodispose = 0;
+				break;
+			case _IMAGE_GPBITMAP:
+				GdipCloneImage((GpImage*) _W_IMAGE(image)->handle,
+						(GpImage**) &_W_IMAGE(destimage)->handle);
+				_W_IMAGE(destimage)->type = _IMAGE_GPBITMAP;
+				_W_IMAGE(destimage)->nodispose = 0;
+				break;
+			}
+		} else {
+			GpImage *img = 0;
+			w_image_resize_0(image, size, &img);
+			_W_IMAGE(destimage)->handle = img;
+			_W_IMAGE(destimage)->type = _IMAGE_GPBITMAP;
+			_W_IMAGE(destimage)->nodispose = 0;
+		}
 		return W_TRUE;
 	} else {
 		return W_ERROR_NO_HANDLES;
@@ -284,8 +397,9 @@ wresult w_surface_create(w_surface *surface, w_size *size) {
 		DeleteDC(hdc);
 	if (_W_IMAGE(surface)->handle == 0)
 		return W_ERROR_NO_HANDLES;
-	else
-		return W_TRUE;
+	_W_IMAGE(surface)->type = _IMAGE_HBITMAP;
+	_W_IMAGE(surface)->nodispose = 0;
+	return W_TRUE;
 }
 wresult w_surface_get_image(w_surface *surface, w_image *destimage) {
 	if (destimage == 0)

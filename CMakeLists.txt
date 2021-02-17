@@ -16,6 +16,7 @@ endif()
 if (WIN32)
 	set(swtc_lib gdiplus uxtheme oleaut32 gdi32 ole32 uuid msimg32 opengl32 usp10 Imm32 comctl32)
 	add_subdirectory(win32)
+	ENABLE_LANGUAGE(RC)
 endif(WIN32)
 
 if (UNIX AND NOT APPLE)

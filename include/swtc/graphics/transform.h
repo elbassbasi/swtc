@@ -34,7 +34,7 @@ SWT_PUBLIC wresult w_transform_identity(w_transform *transform);
 SWT_PUBLIC wresult w_transform_invert(w_transform *transform);
 SWT_PUBLIC wresult w_transform_is_identity(w_transform *transform);
 SWT_PUBLIC wresult w_transform_multiply(w_transform *transform,
-		w_transformmatrix *matrix);
+		w_transform *matrix);
 SWT_PUBLIC wresult w_transform_rotate(w_transform *transform, float angle);
 SWT_PUBLIC wresult w_transform_scale(w_transform *transform, float scaleX,
 		float scaleY);

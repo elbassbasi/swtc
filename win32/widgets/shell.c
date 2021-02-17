@@ -339,6 +339,9 @@ wresult _w_shell_close(w_shell *shell) {
 	_w_shell_close_widget(shell, 0);
 	return W_TRUE;
 }
+w_cursor* _w_shell_find_cursor(w_control *control, _w_control_priv *priv) {
+	return _W_CONTROL(control)->cursor;
+}
 wresult _w_shell_force_active(w_shell *shell) {
 	return W_FALSE;
 }
@@ -638,6 +641,7 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	priv->widget_style = _w_shell_widget_style;
 	priv->subclass = _w_shell_subclass;
 	priv->unsubclass = _w_shell_unsubclass;
+	priv->find_cursor = _w_shell_find_cursor;
 	/*
 	 * messages
 	 */

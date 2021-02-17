@@ -8,19 +8,10 @@
 #ifndef WIN32_GRAPHICS_GC_H_
 #define WIN32_GRAPHICS_GC_H_
 #include "../runtime/core.h"
+#include "gdip.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct GpGraphics GpGraphics;
-typedef struct GpPen GpPen;
-typedef struct GpBrush GpBrush;
-typedef struct GpSolidFill GpSolidFill;
-typedef struct GpFont GpFont;
-typedef struct GpFontCollection GpFontCollection;
-typedef struct GpFontFamily GpFontFamily;
-typedef struct GpMatrix GpMatrix;
-typedef struct GpPath GpPath;
-typedef struct GpImage GpImage;
 /*
  * font
  */
@@ -39,7 +30,7 @@ typedef struct _w_image {
 	union {
 		struct {
 			unsigned type :2;
-			unsigned dispose :1;
+			unsigned nodispose :1;
 		};
 		int flags;
 	};
@@ -56,12 +47,20 @@ void _w_image_get_hbitmap(w_image *image, _w_image_hbitmap *hbitmap);
 void _w_image_dispose_hbitmap(w_image *image, _w_image_hbitmap *hbitmap);
 void _w_image_get_gpimage(w_image *image, GpImage **gpimage);
 void _w_image_dispose_gpimage(w_image *image, GpImage *gpimage);
+wresult w_image_resize_0(w_image *image, w_size *size, GpImage **dstimg);
 typedef struct swt_stream {
-	IStream stream;
+	void *lpVtbl;
 	w_stream *s;
 } swt_stream;
 
 void swt_stream_init(swt_stream *stream, w_stream *s);
+/*
+ * imagelist
+ */
+typedef struct _w_imagelist {
+	HIMAGELIST imagelist;
+} _w_imagelist;
+#define _W_IMAGELIST(x) ((_w_imagelist*)x)
 /*
  * cursor
  */
@@ -72,12 +71,35 @@ typedef struct _w_cursor {
 #define W_CURSOR_IS_ICON (1 << 0)
 #define _W_CURSOR(x) ((struct _w_cursor*)x)
 /*
- *
+ * pattern
  */
 typedef struct _w_pattern {
 	GpBrush *handle;
 } _w_pattern;
 #define _W_PATTERN(x) ((_w_pattern*)x)
+/*
+ * pattern
+ */
+typedef struct _w_region {
+	HRGN handle;
+} _w_region;
+#define _W_REGION(x) ((_w_region*)x)
+/*
+ * path
+ */
+typedef struct _w_path {
+	GpPath *handle;
+	GpPointF currentPoint;
+	GpPointF startPoint;
+} _w_path;
+#define _W_PATH(x) ((_w_path*)x)
+/*
+ * transform
+ */
+typedef struct _w_transform {
+	GpMatrix *handle;
+} _w_transform;
+#define _W_TRANSFORM(x) ((_w_transform*)x)
 /*
  * graphics
  */
@@ -130,23 +152,28 @@ typedef struct _w_graphics {
 	HBRUSH hBrush;
 	HBRUSH hOldBrush;
 	HFONT hGDIFont;
-	GpGraphics* gdipGraphics;
-	GpPen* gdipPen;
-	GpBrush* gdipFgBrush;
-	GpBrush* gdipBgBrush;
-	GpBrush* gdipBrush;
-	GpFont* gdipFont;
+	GpGraphics *gdipGraphics;
+	GpPen *gdipPen;
+	GpBrush *gdipFgBrush;
+	GpBrush *gdipBgBrush;
+	GpBrush *gdipBrush;
+	GpFont *gdipFont;
 	float gdipXOffset, gdipYOffset;
 	w_pattern *foregroundPattern;
 	w_pattern *backgroundPattern;
 	w_surface *image;
 	HBITMAP oldbitmap;
+	PAINTSTRUCT *ps;
 } _w_graphics;
 
 void _w_graphics_init(w_graphics *gc, HDC handle);
+wresult w_graphics_check(w_graphics *gc, int mask);
 GpBrush* _w_graphics_get_fg_brush(w_graphics *gc);
 wresult _w_graphics_init_gdip(w_graphics *gc);
 void _w_graphics_set_clipping_hrgn(w_graphics *gc, HRGN clipRgn);
+GpFont* w_graphics_create_gdip_font(HDC hDC, HFONT hFont, GpGraphics *graphics,
+		GpFontCollection *fontCollection, GpFontFamily **outFamily,
+		HFONT *outFont);
 #define _W_GRAPHICS(x) ((_w_graphics*)x)
 #ifdef __cplusplus
 }

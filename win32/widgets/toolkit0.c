@@ -300,8 +300,13 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 		return 0;
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
-	w_theme *theme = _W_TOOLKIT(toolkit)->theme;
-	return w_theme_get_font(theme);
+	_w_toolkit *t = (_w_toolkit*) toolkit;
+	if (t->systemFont.handle == 0) {
+		t->systemFont.handle = GetStockObject(DEFAULT_GUI_FONT);
+		if (t->systemFont.handle == 0)
+			t->systemFont.handle = GetStockObject(SYSTEM_FONT);
+	}
+	return (w_font*) &t->systemFont;
 }
 #ifndef OIC_HAND
 #define OIC_HAND 32513

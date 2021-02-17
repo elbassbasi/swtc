@@ -63,7 +63,18 @@ wresult _w_listitem_set_checked(w_listitem *item, int checked) {
 	return W_FALSE;
 }
 wresult _w_listitem_set_image(w_listitem *item, int image) {
-	return W_FALSE;
+	wresult result = W_FALSE;
+	LVITEMW lvItem;
+	lvItem.mask = LVIF_IMAGE;
+	lvItem.iImage = image;
+	lvItem.iItem = _W_ITEM(item)->index;
+	lvItem.iSubItem = 0;
+	w_widget *list = _W_ITEM(item)->parent;
+	if (SendMessageW(_W_WIDGET(list)->handle, LVM_SETITEMW, 0,
+			(LPARAM) &lvItem)) {
+		result = W_TRUE;
+	}
+	return result;
 }
 /*
  * listview
@@ -132,7 +143,7 @@ wresult _w_listview_create_handle(w_control *control, _w_control_priv *priv) {
 	 * create.
 	 */
 	/*HFONT hFont = GetStockObject(SYSTEM_FONT);
-	SendMessageW(handle, WM_SETFONT, (WPARAM) hFont, 0);*/
+	 SendMessageW(handle, WM_SETFONT, (WPARAM) hFont, 0);*/
 
 	/*
 	 * Bug in Windows.  When the first column is inserted

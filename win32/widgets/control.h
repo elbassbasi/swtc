@@ -72,6 +72,8 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	wresult (*compute_trim)(w_widget *widget, w_event_compute_trim *e,
 			_w_control_priv *priv);
+	wresult (*set_cursor_0)(w_control *control, _w_control_priv *priv);
+	w_cursor* (*find_cursor)(w_control *control, _w_control_priv *priv);
 };
 #define _W_CONTROL_PRIV(x) ((_w_control_priv*)x)
 #define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)_w_widget_get_priv(W_WIDGET(x)))

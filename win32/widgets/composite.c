@@ -174,7 +174,7 @@ typedef HPAINTBUFFER (WINAPI *_BeginBufferedPaint)(HDC hdcTarget,
 		const RECT *prcTarget, BP_BUFFERFORMAT dwFormat,
 		BP_PAINTPARAMS *pPaintParams, HDC *phdc);
 typedef HRESULT (WINAPI *_EndBufferedPaint)(HPAINTBUFFER hBufferedPaint,
-		BOOL fUpdateTarget);
+BOOL fUpdateTarget);
 int _w_composite_init_bufferedpaint() {
 	if (win_toolkit->_BeginBufferedPaint == 0) {
 		HMODULE module = _w_toolkit_load_library("UxTheme.dll");
@@ -200,6 +200,7 @@ wresult _COMPOSITE_WM_PAINT(w_widget *widget, _w_event_platform *e,
 	_w_graphics gc;
 	PAINTSTRUCT ps;
 	w_color forground, background;
+	w_font *font = 0;
 	int uiState, ret;
 	if ((_W_WIDGET(widget)->state & STATE_DISPOSE_SENT) != 0) {
 		e->result = 0;
@@ -302,8 +303,9 @@ wresult _COMPOSITE_WM_PAINT(w_widget *widget, _w_event_platform *e,
 				 GCData gcData = gc.getGCData();
 				 gcData.uiState = data.uiState;
 				 gc.setForeground(getForeground());
-				 gc.setBackground(getBackground());
-				 gc.setFont(getFont());*/
+				 gc.setBackground(getBackground());*/
+				w_control_get_font(W_CONTROL(widget), &font);
+				w_graphics_set_font(W_GRAPHICS(&gc), font);
 				if ((_W_WIDGET(widget)->style & W_TRANSPARENT) != 0) {
 					BitBlt(hDC, 0, 0, width, height,
 					_W_GRAPHICS(&gc)->handle, ps.rcPaint.left, ps.rcPaint.top,

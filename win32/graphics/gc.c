@@ -8,7 +8,7 @@
 #include "gc.h"
 #include "../widgets/toolkit.h"
 #include "gdip.h"
-
+GpMatrix* _w_graphics_identity(w_graphics *gc);
 void w_graphics_init(w_graphics *gc) {
 	_W_GRAPHICS(gc)->handle = 0;
 }
@@ -29,9 +29,6 @@ int _cos(int angle, int length) {
 int _sin(int angle, int length) {
 	return (int) (sinf(angle * (M_PI / 180)) * length);
 }
-GpFont* w_graphics_create_gdip_font(HDC hDC, HFONT hFont, GpGraphics *graphics,
-		GpFontCollection *fontCollection, GpFontFamily **outFamily,
-		HFONT *outFont);
 wresult w_graphics_check(w_graphics *gc, int mask) {
 	if (gc == 0 || _W_GRAPHICS(gc)->handle == 0)
 		return W_ERROR_NO_HANDLES;
@@ -81,7 +78,7 @@ wresult w_graphics_check(w_graphics *gc, int mask) {
 				int foreground = _W_GRAPHICS(gc)->foreground;
 				int rgb = ((foreground >> 16) & 0xFF) | (foreground & 0xFF00)
 						| ((foreground & 0xFF) << 16);
-				long color = _W_GRAPHICS(gc)->alpha << 24 | rgb;
+				ARGB color = _W_GRAPHICS(gc)->alpha << 24 | rgb;
 				GdipCreateSolidFill(color, &brush);
 				_W_GRAPHICS(gc)->gdipFgBrush = brush;
 			}
@@ -337,8 +334,9 @@ wresult w_graphics_check(w_graphics *gc, int mask) {
 			}
 			if ((state & GRAPHICS_STATE_LINE_STYLE) != 0) {
 				SetBkMode(_W_GRAPHICS(gc)->handle,
-						_W_GRAPHICS(gc)->line.style == W_LINE_SOLID ?
-								OPAQUE : TRANSPARENT);
+				_W_GRAPHICS(gc)->line.style == W_LINE_SOLID ?
+				OPAQUE :
+																TRANSPARENT);
 			}
 			int joinStyle = 0;
 			switch (_W_GRAPHICS(gc)->line.join) {
@@ -644,11 +642,119 @@ wresult w_graphics_draw_arc(w_graphics *gc, w_rect *rect, int startAngle,
 }
 wresult w_graphics_draw_image(w_graphics *gc, w_image *image, w_rect *src,
 		w_rect *dest, int state) {
-	return W_FALSE;
+	wresult result = w_graphics_check(gc, 0);
+	if (result < 0)
+		return result;
+	if (!w_image_is_ok(image))
+		return W_ERROR_INVALID_ARGUMENT;
+	int srcX = src->x, srcY = src->y, srcWidth = src->width, srcHeight =
+			src->height;
+	int destX = dest->x, destY = dest->y, destWidth = dest->width, destHeight =
+			dest->height;
+	if (_W_GRAPHICS(gc)->gdipGraphics != 0) {
+		GpImage *img = 0;
+		_w_image_get_gpimage(image, &img);
+		if (img != 0) {
+			UINT imgWidth;
+			UINT imgHeight;
+			GdipGetImageWidth(img, &imgWidth);
+			GdipGetImageHeight(img, &imgHeight);
+			GpRect rect;
+			rect.X = destX;
+			rect.Y = destY;
+			rect.Width = destWidth;
+			rect.Height = destHeight;
+			/*
+			 * Note that if the wrap mode is not WrapModeTileFlipXY, the scaled image
+			 * is translucent around the borders.
+			 */
+			GpImageAttributes *attrib = 0;
+			GdipCreateImageAttributes(&attrib);
+			GdipSetImageAttributesWrapMode(attrib, WrapModeTileFlipXY, 0,
+			FALSE);
+			if (_W_GRAPHICS(gc)->alpha != 0xFF) {
+				ColorMatrix matrix;
+				memset(&matrix, 0, sizeof(matrix));
+				matrix.m[0][0] = 1;
+				matrix.m[1][1] = 1;
+				matrix.m[2][2] = 1;
+				matrix.m[3][3] = _W_GRAPHICS(gc)->alpha / (float) 0xFF;
+				matrix.m[4][4] = 1;
+				GdipSetImageAttributesColorMatrix(attrib, ColorAdjustTypeBitmap,
+				FALSE, &matrix, 0, ColorMatrixFlagsDefault);
+			}
+			GraphicsState gstate = 0;
+			if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
+				GdipSaveGraphics(_W_GRAPHICS(gc)->gdipGraphics, &gstate);
+				GdipScaleWorldTransform(_W_GRAPHICS(gc)->gdipGraphics, -1, 1,
+						MatrixOrderPrepend);
+				GdipTranslateWorldTransform(_W_GRAPHICS(gc)->gdipGraphics,
+						-2 * destX - destWidth, 0, MatrixOrderPrepend);
+			}
+			GdipDrawImageRectRect(_W_GRAPHICS(gc)->gdipGraphics, img, rect.X,
+					rect.Y, rect.Width, rect.Height, srcX, srcY, srcWidth,
+					srcHeight, UnitPixel, attrib, 0, 0);
+			if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
+				GdipRestoreGraphics(_W_GRAPHICS(gc)->gdipGraphics, gstate);
+			}
+			GdipDisposeImageAttributes(attrib);
+			_w_image_dispose_gpimage(image, img);
+		}
+	} else {
+		_w_image_hbitmap img;
+		_w_image_get_hbitmap(image, &img);
+		if (img.hbmColor != 0) {
+			BITMAP bm;
+			GetObjectW(img.hbmColor, sizeof(bm), &bm);
+			int imgWidth = bm.bmWidth;
+			int imgHeight = bm.bmHeight;
+			if (srcWidth < 0 || srcWidth >= imgWidth)
+				srcWidth = imgWidth;
+			if (srcHeight < 0 || srcHeight >= imgHeight)
+				srcHeight = imgHeight;
+			if (destWidth < 0)
+				destWidth = imgWidth;
+			if (destHeight < 0)
+				destHeight = imgHeight;
+			//int mustRestore = W_FALSE;
+			HDC srcHdc = CreateCompatibleDC(_W_GRAPHICS(gc)->handle);
+			HBITMAP oldSrcBitmap = SelectObject(srcHdc, img.hbmColor);
+			if (bm.bmBitsPixel == 32) {
+				BLENDFUNCTION blend;
+				blend.BlendOp = AC_SRC_OVER;
+				blend.BlendFlags = 0;
+				blend.SourceConstantAlpha = 0xFF;
+				blend.AlphaFormat = AC_SRC_ALPHA;
+				AlphaBlend(_W_GRAPHICS(gc)->handle, destX, destY, destWidth,
+						destHeight, srcHdc, srcX, srcY, srcWidth, srcHeight,
+						blend);
+			} else {
+				int rop2 = 0;
+				rop2 = GetROP2(_W_GRAPHICS(gc)->handle);
+				int dwRop = rop2 == R2_XORPEN ? SRCINVERT : SRCCOPY;
+				if (srcWidth != destWidth || srcHeight != destHeight) {
+					int mode = 0;
+					mode = SetStretchBltMode(_W_GRAPHICS(gc)->handle,
+					COLORONCOLOR);
+					StretchBlt(_W_GRAPHICS(gc)->handle, destX, destY, destWidth,
+							destHeight, srcHdc, srcX, srcY, srcWidth, srcHeight,
+							dwRop);
+					SetStretchBltMode(_W_GRAPHICS(gc)->handle, mode);
+				} else {
+					BitBlt(_W_GRAPHICS(gc)->handle, destX, destY, destWidth,
+							destHeight, srcHdc, srcX, srcY, dwRop);
+				}
+			}
+			SelectObject(srcHdc, oldSrcBitmap);
+			DeleteDC(srcHdc);
+		}
+		_w_image_dispose_hbitmap(image, &img);
+	}
+	return result;
 }
 wresult w_graphics_draw_surface(w_graphics *gc, w_surface *surface, w_rect *src,
 		w_rect *dest) {
-	return W_FALSE;
+	return w_graphics_draw_image(gc, (w_image*) surface, src, dest, 0);
 }
 wresult w_graphics_draw_line(w_graphics *gc, w_point *pt1, w_point *pt2) {
 	wresult result = w_graphics_check(gc, GRAPHICS_STATE_DRAW);
@@ -702,7 +808,26 @@ wresult w_graphics_draw_oval(w_graphics *gc, w_rect *rect) {
 	return result;
 }
 wresult w_graphics_draw_path(w_graphics *gc, w_path *path) {
-	return W_FALSE;
+	if (gc == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (_W_GRAPHICS(gc)->handle == 0)
+		return W_ERROR_NO_HANDLES;
+	if (path == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (_W_PATH(path)->handle == 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	_w_graphics_init_gdip(gc);
+	wresult result = w_graphics_check(gc, GRAPHICS_STATE_DRAW);
+	if (result > 0) {
+		_w_graphics *_gc = _W_GRAPHICS(gc);
+		GpGraphics *gdipGraphics = _gc->gdipGraphics;
+		GdipTranslateWorldTransform(gdipGraphics, _gc->gdipXOffset,
+				_gc->gdipYOffset, MatrixOrderPrepend);
+		GdipDrawPath(gdipGraphics, _gc->gdipPen, _W_PATH(path)->handle);
+		GdipTranslateWorldTransform(gdipGraphics, -_gc->gdipXOffset,
+				-_gc->gdipYOffset, MatrixOrderPrepend);
+	}
+	return result;
 }
 wresult w_graphics_draw_point(w_graphics *gc, w_point *pt) {
 	wresult result = w_graphics_check(gc, 0);
@@ -722,7 +847,8 @@ wresult w_graphics_draw_point(w_graphics *gc, w_point *pt) {
 	}
 	return result;
 }
-wresult w_graphics_draw_polygon(w_graphics *gc, w_point *pointArray, int count) {
+wresult w_graphics_draw_polygon(w_graphics *gc, w_point *pointArray,
+		int count) {
 	wresult result = w_graphics_check(gc, GRAPHICS_STATE_DRAW);
 	if (result > 0) {
 		if (_W_GRAPHICS(gc)->gdipGraphics != 0) {
@@ -794,7 +920,8 @@ wresult w_graphics_draw_polygonv(w_graphics *gc, int count, va_list args) {
 	}
 	return result;
 }
-wresult w_graphics_draw_polyline(w_graphics *gc, w_point *pointArray, int count) {
+wresult w_graphics_draw_polyline(w_graphics *gc, w_point *pointArray,
+		int count) {
 	wresult result = w_graphics_check(gc, GRAPHICS_STATE_DRAW);
 	if (result > 0) {
 		if (_W_GRAPHICS(gc)->gdipGraphics != 0) {
@@ -1011,7 +1138,7 @@ wresult _w_graphics_use_gdip(HDC hdc, WCHAR *text, size_t length) {
 	WORD *glyphs = _w_toolkit_malloc(length * sizeof(WORD));
 	if (glyphs != 0) {
 		GetGlyphIndicesW(hdc, text, length, glyphs,
-				GGI_MARK_NONEXISTING_GLYPHS);
+		GGI_MARK_NONEXISTING_GLYPHS);
 		for (int i = 0; i < length; i++) {
 			if (glyphs[i] == -1) {
 				switch (text[i]) {
@@ -1044,7 +1171,7 @@ float _w_graphics_measure_space(GpGraphics *gdipGraphics, GpFont *font,
 
 wresult _w_graphics_draw_text_gdip(w_graphics *gc, GpGraphics *gdipGraphics,
 		WCHAR *text, size_t length, w_rect *rect, int flags, wresult draw,
-		w_point *size) {
+		w_size *size) {
 	wresult needsBounds = !draw || (flags & W_DRAW_TRANSPARENT) == 0;
 	wresult reset_buffer = W_FALSE;
 	WCHAR text_tmp[3];
@@ -1136,8 +1263,8 @@ wresult _w_graphics_draw_text_gdip(w_graphics *gc, GpGraphics *gdipGraphics,
 		length = 0;
 	}
 	if (size != 0) {
-		size->x = (int) ceil(bounds.Width);
-		size->y = (int) ceil(bounds.Height);
+		size->width = (int) ceil(bounds.Width);
+		size->height = (int) ceil(bounds.Height);
 	}
 	return W_TRUE;
 }
@@ -1172,13 +1299,13 @@ GpRectF* w_graphics_draw_text_1(w_graphics *gc, GpGraphics *gdipGraphics,
 	if (mem != 0) {
 		memset(mem, 0, mem_size);
 		mem_i = mem;
-		result.lpDx = mem_i;
+		result.lpDx = (int*) mem_i;
 		mem_i += nGlyphs * sizeof(int);
-		result.lpGlyphs = mem_i;
+		result.lpGlyphs = (LPWSTR) mem_i;
 		mem_i += nGlyphs * sizeof(WCHAR);
 		int dwFlags = GCP_GLYPHSHAPE | GCP_REORDER | GCP_LIGATE;
 		if (drawMnemonic) {
-			result.lpOrder = mem_i;
+			result.lpOrder = (UINT*) mem_i;
 			mem_i += nGlyphs * sizeof(int);
 		}
 		HDC hdc;
@@ -1300,7 +1427,7 @@ GpRectF* w_graphics_draw_text_1(w_graphics *gc, GpGraphics *gdipGraphics,
 	return bounds;
 }
 wresult _w_graphics_draw_text_0(w_graphics *gc, GpGraphics *gdipGraphics,
-		WCHAR *text, size_t length, w_rect *rect, int flags, w_point *size) {
+		WCHAR *text, size_t length, w_rect *rect, int flags, w_size *size) {
 	GpRectF r;
 	HDC hdc = 0;
 	GdipGetDC(gdipGraphics, &hdc);
@@ -1386,8 +1513,8 @@ wresult _w_graphics_draw_text_0(w_graphics *gc, GpGraphics *gdipGraphics,
 	if (size != 0) {
 		drawR.y += ceil(bounds->Height);
 		width = WMAX(width, drawR.x + (int ) ceil(bounds->Width));
-		size->x = width;
-		size->y = drawR.y;
+		size->width = width;
+		size->height = drawR.y;
 	}
 	return W_TRUE;
 }
@@ -1451,7 +1578,8 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 				rop2 = GetROP2(_W_GRAPHICS(gc)->handle);
 				int oldBkMode = SetBkMode(_W_GRAPHICS(gc)->handle,
 						(flags & W_DRAW_TRANSPARENT) != 0 ?
-								TRANSPARENT : OPAQUE);
+						TRANSPARENT :
+															OPAQUE);
 				result = w_graphics_check(gc,
 						GRAPHICS_STATE_FONT | GRAPHICS_STATE_FOREGROUND_TEXT
 								| GRAPHICS_STATE_BACKGROUND_TEXT);
@@ -1476,7 +1604,7 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 							SetTextColor(memDC, foreground);
 							SelectObject(memDC,
 									GetCurrentObject(_W_GRAPHICS(gc)->handle,
-											OBJ_FONT));
+									OBJ_FONT));
 							SetRect(&r, 0, 0, 0x7FFF, 0x7FFF);
 							DrawTextW(memDC, s, newlength, &r, uFormat);
 							BitBlt(_W_GRAPHICS(gc)->handle, rect->x, rect->y,
@@ -1694,7 +1822,26 @@ wresult w_graphics_fill_oval(w_graphics *gc, w_rect *rect) {
 	return result;
 }
 wresult w_graphics_fill_path(w_graphics *gc, w_path *path) {
-	return W_FALSE;
+	if (gc == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (_W_GRAPHICS(gc)->handle == 0)
+		return W_ERROR_NO_HANDLES;
+	if (path == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (_W_PATH(path)->handle == 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	_w_graphics_init_gdip(gc);
+	wresult result = w_graphics_check(gc, GRAPHICS_STATE_FILL);
+	if (result > 0) {
+		_w_graphics *_gc = _W_GRAPHICS(gc);
+		GpGraphics *gdipGraphics = _gc->gdipGraphics;
+		GpFillMode mode =
+				GetPolyFillMode(_gc->handle) == WINDING ?
+						FillModeWinding : FillModeAlternate;
+		GdipSetPathFillMode( _W_PATH(path)->handle, mode);
+		GdipFillPath(gdipGraphics, _gc->gdipBrush, _W_PATH(path)->handle);
+	}
+	return result;
 }
 wresult w_graphics_fill_polygon(w_graphics *gc, w_point *points, int count) {
 	wresult result = w_graphics_check(gc, GRAPHICS_STATE_FILL);
@@ -1925,11 +2072,127 @@ int w_graphics_get_char_width(w_graphics *gc, int ch) {
 	}
 	return 0;
 }
-wresult w_graphics_get_clipping_rect(w_graphics *gc, w_rect *rect) {
-	return W_FALSE;
+wresult w_graphics_get_clipping_rect(w_graphics *gc, w_rect *r) {
+	wresult result = w_graphics_check(gc, 0);
+	if (result > 0) {
+		GpGraphics *gdipGraphics = _W_GRAPHICS(gc)->gdipGraphics;
+		if (gdipGraphics != 0) {
+			GpRectF rect;
+			GdipSetPixelOffsetMode(gdipGraphics, PixelOffsetModeNone);
+			GdipGetVisibleClipBounds(gdipGraphics, &rect);
+			GdipSetPixelOffsetMode(gdipGraphics, PixelOffsetModeHalf);
+			r->x = rect.X;
+			r->y = rect.Y;
+			r->width = rect.Width;
+			r->height = rect.Height;
+		} else {
+			RECT rect;
+			GetClipBox(_W_GRAPHICS(gc)->handle, &rect);
+			r->x = rect.left;
+			r->y = rect.top;
+			r->width = rect.right - rect.left;
+			r->height = rect.bottom - rect.top;
+		}
+	}
+	return result;
 }
 wresult w_graphics_get_clipping_region(w_graphics *gc, w_region *region) {
-	return W_FALSE;
+	wresult result = w_graphics_check(gc, 0);
+	if (result > 0) {
+		if (region == 0)
+			return W_ERROR_NULL_ARGUMENT;
+		if (_W_REGION(region)->handle == 0) {
+			_W_REGION(region)->handle = CreateRectRgn(0, 0, 0, 0);
+		}
+		GpGraphics *gdipGraphics = _W_GRAPHICS(gc)->gdipGraphics;
+		if (gdipGraphics != 0) {
+			GpRegion *rgn = 0;
+			GdipCreateRegion(&rgn);
+			GdipGetClip(gdipGraphics, rgn);
+			BOOL ret = FALSE;
+			GdipIsInfiniteRegion(rgn, gdipGraphics, &ret);
+			if (ret) {
+				GpRectF rect;
+				GdipSetPixelOffsetMode(gdipGraphics, PixelOffsetModeNone);
+				GdipGetVisibleClipBounds(gdipGraphics, &rect);
+				GdipSetPixelOffsetMode(gdipGraphics, PixelOffsetModeHalf);
+				SetRectRgn(_W_REGION(region)->handle, rect.X, rect.Y,
+						rect.X + rect.Width, rect.Y + rect.Height);
+			} else {
+				GpMatrix *matrix = 0;
+				GpMatrix *identity = 0;
+				GdipCreateMatrix2(1, 0, 0, 1, 0, 0, &matrix);
+				GdipCreateMatrix2(1, 0, 0, 1, 0, 0, &identity);
+				GdipGetWorldTransform(gdipGraphics, matrix);
+				GdipSetWorldTransform(gdipGraphics, identity);
+				HRGN hRgn = 0;
+				GdipGetRegionHRgn(rgn, gdipGraphics, &hRgn);
+				GdipSetWorldTransform(gdipGraphics, matrix);
+				GdipDeleteMatrix(identity);
+				GdipDeleteMatrix(matrix);
+				POINT pt;
+				GetWindowOrgEx(_W_GRAPHICS(gc)->handle, &pt);
+				OffsetRgn(hRgn, pt.x, pt.y);
+				CombineRgn(_W_REGION(region)->handle, hRgn, 0, RGN_COPY);
+				DeleteObject(hRgn);
+			}
+			GdipDeleteRegion(rgn);
+		} else {
+			POINT pt;
+			GetWindowOrgEx(_W_GRAPHICS(gc)->handle, &pt);
+			int result = GetClipRgn(_W_GRAPHICS(gc)->handle,
+			_W_REGION(region)->handle);
+			if (result != 1) {
+				RECT rect;
+				GetClipBox(_W_GRAPHICS(gc)->handle, &rect);
+				SetRectRgn(_W_REGION(region)->handle, rect.left, rect.top,
+						rect.right, rect.bottom);
+			} else {
+				OffsetRgn(_W_REGION(region)->handle, pt.x, pt.y);
+			}
+			HRGN metaRgn = CreateRectRgn(0, 0, 0, 0);
+			if (GetMetaRgn(_W_GRAPHICS(gc)->handle, metaRgn) != 0) {
+				OffsetRgn(metaRgn, pt.x, pt.y);
+				CombineRgn(_W_REGION(region)->handle, metaRgn,
+				_W_REGION(region)->handle, RGN_AND);
+				DeleteObject(metaRgn);
+				HWND hwnd = _W_GRAPHICS(gc)->hwnd;
+				if (hwnd != 0 && _W_GRAPHICS(gc)->ps != 0) {
+					HRGN sysRgn = CreateRectRgn(0, 0, 0, 0);
+					if (GetRandomRgn(_W_GRAPHICS(gc)->handle, sysRgn, SYSRGN)
+							== 1) {
+						if (WIN32_VERSION >= VERSION(4, 10)) {
+							if ((GetLayout(_W_GRAPHICS(gc)->handle) & LAYOUT_RTL)
+									!= 0) {
+								int nBytes = GetRegionData(sysRgn, 0, 0);
+								RGNDATA *lpRgnData = _w_toolkit_malloc(
+										nBytes / 4);
+								GetRegionData(sysRgn, nBytes, lpRgnData);
+								XFORM xf;
+								xf.eM11 = -1;
+								xf.eM12 = 0;
+								xf.eM21 = 0;
+								xf.eM22 = 1;
+								xf.eDx = 0;
+								xf.eDy = 0;
+								HRGN newSysRgn = ExtCreateRegion(&xf, nBytes,
+										lpRgnData);
+								_w_toolkit_free(lpRgnData, nBytes / 4);
+								DeleteObject(sysRgn);
+								sysRgn = newSysRgn;
+							}
+						}
+						MapWindowPoints(0, hwnd, &pt, 1);
+						OffsetRgn(sysRgn, pt.x, pt.y);
+						CombineRgn(_W_REGION(region)->handle, sysRgn,
+						_W_REGION(region)->handle, RGN_AND);
+					}
+					DeleteObject(sysRgn);
+				}
+			}
+		}
+	}
+	return result;
 }
 int w_graphics_get_fill_rule(w_graphics *gc) {
 	wresult result = w_graphics_check(gc, 0);
@@ -1951,7 +2214,8 @@ w_font* w_graphics_get_font(w_graphics *gc) {
 	}
 	return 0;
 }
-wresult w_graphics_get_font_metrics(w_graphics *gc, w_fontmetrics *fontMetrics) {
+wresult w_graphics_get_font_metrics(w_graphics *gc,
+		w_fontmetrics *fontMetrics) {
 	wresult result = w_graphics_check(gc, GRAPHICS_STATE_FONT);
 	if (result > 0) {
 		GetTextMetricsW(_W_GRAPHICS(gc)->handle, (TEXTMETRICW*) fontMetrics);
@@ -2052,8 +2316,35 @@ int w_graphics_get_text_antialias(w_graphics *gc) {
 	}
 	return W_DEFAULT;
 }
-wresult w_graphics_get_transform(w_graphics *gc, w_transform *Transform) {
-	return W_FALSE;
+wresult w_graphics_get_transform(w_graphics *gc, w_transform *transform) {
+	wresult result = w_graphics_check(gc, 0);
+	if (result > 0) {
+		if (transform == 0)
+			return W_ERROR_NULL_ARGUMENT;
+		if (_W_TRANSFORM(transform)->handle == 0) {
+			w_transform_create(transform, 0);
+		}
+		GpGraphics *gdipGraphics = _W_GRAPHICS(gc)->gdipGraphics;
+		if (gdipGraphics != 0) {
+			GdipGetWorldTransform(gdipGraphics,
+			_W_TRANSFORM(transform)->handle);
+			GpMatrix *identity = _w_graphics_identity(gc);
+			GdipInvertMatrix(identity);
+			GdipMultiplyMatrix(_W_TRANSFORM(transform)->handle, identity,
+					MatrixOrderAppend);
+			GdipDeleteMatrix(identity);
+		} else {
+			w_transformmatrix matrix;
+			matrix.m11 = 1;
+			matrix.m12 = 0;
+			matrix.m21 = 0;
+			matrix.m22 = 1;
+			matrix.dx = 0;
+			matrix.dy = 0;
+			w_transform_set_elements(transform, &matrix);
+		}
+	}
+	return result;
 }
 wresult w_graphics_get_xor_mode(w_graphics *gc) {
 	wresult result = w_graphics_check(gc, 0);
@@ -2085,7 +2376,7 @@ GpMatrix* _w_graphics_identity(w_graphics *gc) {
 					width = rect.right - rect.left;
 				} else {
 					HBITMAP hBitmap = GetCurrentObject(_W_GRAPHICS(gc)->handle,
-							OBJ_BITMAP);
+					OBJ_BITMAP);
 					BITMAP bm;
 					GetObjectW(hBitmap, sizeof(bm), &bm);
 					width = bm.bmWidth;
@@ -2292,13 +2583,42 @@ void _w_graphics_set_clipping_hrgn(w_graphics *gc, HRGN clipRgn) {
 	}
 }
 wresult w_graphics_set_clipping_path(w_graphics *gc, w_path *path) {
-	return W_FALSE;
+	wresult result = w_graphics_check(gc, 0);
+	if (result > 0) {
+		if (path != 0 && _W_PATH(path)->handle == 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		_w_graphics_set_clipping_hrgn(gc, 0);
+		if (path != 0) {
+			_w_graphics_init_gdip(gc);
+			GpFillMode mode =
+					GetPolyFillMode(_W_GRAPHICS(gc)->handle) == WINDING ?
+							FillModeWinding : FillModeAlternate;
+			GdipSetPathFillMode(_W_PATH(path)->handle, mode);
+			GdipSetClipPath(_W_GRAPHICS(gc)->gdipGraphics,
+			_W_PATH(path)->handle, CombineModeReplace);
+		}
+	}
+	return result;
 }
 wresult w_graphics_set_clipping_rect(w_graphics *gc, w_rect *rect) {
-	return W_FALSE;
+	wresult result = w_graphics_check(gc, 0);
+	if (result > 0) {
+		HRGN hRgn = CreateRectRgn(rect->x, rect->y, rect->x + rect->width,
+				rect->y + rect->height);
+		_w_graphics_set_clipping_hrgn(gc, hRgn);
+		DeleteObject(hRgn);
+	}
+	return result;
 }
 wresult w_graphics_set_clipping_region(w_graphics *gc, w_region *region) {
-	return W_FALSE;
+	wresult result = w_graphics_check(gc, 0);
+	if (result > 0) {
+		if (region != 0 && _W_REGION(region)->handle == 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		HRGN hRgn = region != 0 ? _W_REGION(region)->handle : 0;
+		_w_graphics_set_clipping_hrgn(gc, hRgn);
+	}
+	return result;
 }
 wresult w_graphics_set_fill_rule(w_graphics *gc, int rule) {
 	wresult result = w_graphics_check(gc, 0);
@@ -2629,10 +2949,63 @@ wresult w_graphics_set_text_antialias(w_graphics *gc, int antialias) {
 	}
 	return result;
 }
-wresult w_graphics_set_transform(w_graphics *gc, w_transform *Transform) {
-	return W_FALSE;
+wresult w_graphics_set_transform(w_graphics *gc, w_transform *transform) {
+	wresult result = w_graphics_check(gc, 0);
+	if (result > 0) {
+		if (transform != 0 && _W_TRANSFORM(transform)->handle == 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		if (_W_GRAPHICS(gc)->gdipGraphics == 0 && transform == 0)
+			return result;
+		_w_graphics_init_gdip(gc);
+		GpMatrix *identity = _w_graphics_identity(gc);
+		if (transform != 0) {
+			GdipMultiplyMatrix(identity, _W_TRANSFORM(transform)->handle,
+					MatrixOrderPrepend);
+		}
+		GdipSetWorldTransform(_W_GRAPHICS(gc)->gdipGraphics, identity);
+		GdipDeleteMatrix(identity);
+		_W_GRAPHICS(gc)->state &= ~GRAPHICS_STATE_DRAW_OFFSET;
+	}
+	return result;
 }
-wresult w_graphics_text_extent(w_graphics *gc, const char *string, int length,
+wresult w_graphics_text_extent(w_graphics *gc, const char *text, int length,
 		w_size *size, int flags, int enc) {
-	return W_FALSE;
+	memset(size, 0, sizeof(w_size));
+	if (text == 0)
+		return W_FALSE;
+	wresult result = w_graphics_check(gc, GRAPHICS_STATE_FONT);
+	if (result > 0) {
+		size_t newlength;
+		WCHAR *s = _win_text_fix(text, length, &newlength, enc);
+		if (s != 0) {
+			if (_W_GRAPHICS(gc)->gdipGraphics != 0) {
+				_w_graphics_draw_text_0(gc, _W_GRAPHICS(gc)->gdipGraphics, s,
+						newlength, 0, flags, size);
+			} else {
+				if (length == 0) {
+					SIZE _size;
+					WCHAR c = ' ';
+					GetTextExtentPoint32W(_W_GRAPHICS(gc)->handle, &c, 1,
+							&_size);
+					size->width = _size.cx;
+					size->height = _size.cy;
+				} else {
+					RECT rect;
+					int uFormat = DT_LEFT | DT_CALCRECT;
+					if ((flags & W_DRAW_DELIMITER) == 0)
+						uFormat |= DT_SINGLELINE;
+					if ((flags & W_DRAW_TAB) != 0)
+						uFormat |= DT_EXPANDTABS;
+					if ((flags & W_DRAW_MNEMONIC) == 0)
+						uFormat |= DT_NOPREFIX;
+					DrawTextW(_W_GRAPHICS(gc)->handle, s, length, &rect,
+							uFormat);
+					size->width = rect.right;
+					size->height = rect.bottom;
+				}
+			}
+			_win_text_free(text, s, newlength);
+		}
+	}
+	return result;
 }

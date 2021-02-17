@@ -53,7 +53,8 @@ wresult _w_listviewbase_get_header_visible(w_listviewbase *list) {
 }
 wresult _w_listviewbase_get_imagelist(w_listviewbase *list,
 		w_imagelist **imagelist) {
-	return W_FALSE;
+	*imagelist = _W_LISTVIEWBASE(list)->imagelist;
+	return W_TRUE;
 }
 wresult _w_listviewbase_get_item_height(w_listviewbase *list) {
 	return W_FALSE;
@@ -90,7 +91,28 @@ wresult _w_listviewbase_set_header_visible(w_listviewbase *list, int show) {
 }
 wresult _w_listviewbase_set_imagelist(w_listviewbase *list,
 		w_imagelist *imagelist) {
-	return W_FALSE;
+	HIMAGELIST hImageList;
+	wresult ret = W_TRUE;
+	if (imagelist == 0) {
+		hImageList = 0;
+	} else {
+		hImageList = _W_IMAGELIST(imagelist)->imagelist;
+		if (hImageList == 0) {
+			imagelist = 0;
+			ret = W_ERROR_INVALID_ARGUMENT;
+		}
+	}
+	_W_LISTVIEWBASE(list)->imagelist = imagelist;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(list);
+	UINT msg;
+	if (clazz->class_id == _W_CLASS_TREEVIEW) {
+		msg = TVM_SETIMAGELIST;
+	} else {
+		msg = LVM_SETIMAGELIST;
+	}
+	SendMessageW(_W_WIDGET(list)->handle, msg, LVSIL_NORMAL,
+			(LPARAM) hImageList);
+	return ret;
 }
 wresult _w_listviewbase_set_item_height(w_listviewbase *list, int itemHeight) {
 	return W_FALSE;

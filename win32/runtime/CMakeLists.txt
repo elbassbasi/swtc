@@ -10,5 +10,6 @@
 		${CURRENT_DIR}/mutex.c
 		${CURRENT_DIR}/semaphore.c
 		${CURRENT_DIR}/thread.c
+		${CURRENT_DIR}/swt.rc
 		PARENT_SCOPE
 	)

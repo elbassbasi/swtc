@@ -193,7 +193,17 @@ wresult _w_treeitem_set_has_children(w_treeitem *item) {
 		return W_TRUE;
 }
 wresult _w_treeitem_set_image(w_treeitem *item, int image) {
-	return W_FALSE;
+	TVITEMW tvItem;
+	tvItem.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+	tvItem.iImage = image;
+	tvItem.iSelectedImage = image;
+	tvItem.hItem = _W_TREEITEM(item)->htreeitem;
+	HRESULT result = SendMessageW(_W_WIDGET(_W_ITEM(item)->parent)->handle,
+	TVM_SETITEMW, 0, (LPARAM) &tvItem);
+	if (result == 0)
+		return W_FALSE;
+	else
+		return W_TRUE;
 }
 wresult _w_treeitem_set_item_count(w_treeitem *item, int count) {
 	return W_FALSE;
@@ -295,7 +305,8 @@ DWORD _w_treeview_widget_style(w_control *control, _w_control_priv *priv) {
 //	bits |= TVS_NOTOOLTIPS | TVS_DISABLEDRAGDROP;
 	return bits | TVS_DISABLEDRAGDROP;
 }
-const char* _w_treeview_window_class(w_control *control, _w_control_priv *priv) {
+const char* _w_treeview_window_class(w_control *control,
+		_w_control_priv *priv) {
 	return WC_TREEVIEWA;
 }
 wresult _w_treeview_clear(w_treeview *tree, w_treeitem *item) {
@@ -483,7 +494,7 @@ wresult _TREE_WM_NOTIFY_SELCHANGED(w_widget *widget, _w_event_platform *e,
 	memset(&event, 0, sizeof(event));
 	event.event.type = W_EVENT_ITEM_SELECTION;
 	event.event.widget = widget;
-	event.item =W_ITEM(&item);
+	event.item = W_ITEM(&item);
 	_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(widget);
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;

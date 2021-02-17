@@ -170,6 +170,20 @@ wresult _CONTROL_WM_PAINT(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_SETCURSOR(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	int hitTest = LOWORD(e->lparam);
+	if (hitTest == HTCLIENT) {
+		w_control *control = (w_control*) _w_widget_find_control(
+				(HWND) e->wparam);
+		if (control == 0)
+			return W_FALSE;
+		_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
+		w_cursor *cursor = cpriv->find_cursor(control, cpriv);
+		if (cursor != 0) {
+			SetCursor((HICON) _W_CURSOR(cursor)->handle);
+			e->result = 1;
+			return W_TRUE;
+		}
+	}
 	return W_FALSE;
 }
 wresult _CONTROL_WM_SIZE(w_widget *widget, _w_event_platform *e,
