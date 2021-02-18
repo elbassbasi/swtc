@@ -85,6 +85,9 @@ wresult _w_menuitem_set_id(w_menuitem *item, wushort id) {
 wresult _w_menuitem_set_image(w_menuitem *item, w_image *image) {
 	return W_FALSE;
 }
+wresult _w_menuitem_set_image_index(w_menuitem *item, int index){
+	return W_FALSE;
+}
 wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {
 	return W_FALSE;
 }
@@ -92,6 +95,9 @@ wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {
  * menu
  */
 wresult _w_menu_get_bounds(w_menu *menu, w_rect *bounds) {
+	return W_FALSE;
+}
+wresult _w_menu_get_imagelist(w_menu *menu, w_imagelist **imagelist){
 	return W_FALSE;
 }
 wresult _w_menu_get_root(w_menu *menu, w_menuitem *rootitem) {
@@ -113,6 +119,9 @@ wresult _w_menu_get_visible(w_menu *menu) {
 	return W_FALSE;
 }
 wresult _w_menu_is_visible(w_menu *menu) {
+	return W_FALSE;
+}
+wresult _w_menu_set_imagelist(w_menu *menu, w_imagelist *imagelist){
 	return W_FALSE;
 }
 wresult _w_menu_set_location(w_menu *menu, w_point *location) {
@@ -143,11 +152,13 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	W_WIDGET_CLASS(clazz)->create = _w_menu_create;
 	W_WIDGET_CLASS(clazz)->post_event = _w_menu_post_event;
 	clazz->get_bounds = _w_menu_get_bounds;
+	clazz->get_imagelist = _w_menu_get_imagelist;
 	clazz->get_root = _w_menu_get_root;
 	clazz->get_orientation = _w_menu_get_orientation;
 	clazz->get_parent = _w_menu_get_parent;
 	clazz->get_visible = _w_menu_get_visible;
 	clazz->is_visible = _w_menu_is_visible;
+	clazz->set_imagelist = _w_menu_set_imagelist;
 	clazz->set_location = _w_menu_set_location;
 	clazz->set_orientation = _w_menu_set_orientation;
 	clazz->set_visible = _w_menu_set_visible;
@@ -179,5 +190,6 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	item->set_enabled = _w_menuitem_set_enabled;
 	item->set_id = _w_menuitem_set_id;
 	item->set_image = _w_menuitem_set_image;
+	item->set_image_index = _w_menuitem_set_image_index;
 	item->set_selection = _w_menuitem_set_selection;
 }

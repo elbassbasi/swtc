@@ -30,7 +30,7 @@ wresult w_transform_is_identity(w_transform *transform) {
 	return W_FALSE;
 }
 wresult w_transform_multiply(w_transform *transform,
-		w_transformmatrix *matrix) {
+		w_transform *matrix) {
 	return W_FALSE;
 }
 wresult w_transform_rotate(w_transform *transform, float angle) {
