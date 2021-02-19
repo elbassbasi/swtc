@@ -8,6 +8,6 @@
 
 #ifndef GTK_CONTROLS_CONTROLS_H_
 #define GTK_CONTROLS_CONTROLS_H_
-
 #include "treeview.h"
+#include "sash.h"
 #endif /* GTK_CONTROLS_CONTROLS_H_ */

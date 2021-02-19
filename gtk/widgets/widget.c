@@ -7,6 +7,23 @@
  */
 #include "widget.h"
 #include "toolkit.h"
+GdkWindow* _gdk_window_get_device_position(GdkWindow *window, gint *x, gint *y,
+		GdkModifierType *mask) {
+#if GTK3
+	GdkDisplay *display = 0;
+	if (window != 0) {
+		display = gdk_window_get_display(window);
+	} else {
+		window = gdk_get_default_root_window();
+		display = gdk_window_get_display(window);
+	}
+	GdkDeviceManager *device_manager = gdk_display_get_device_manager(display);
+	GdkDevice *pointer = gdk_device_manager_get_client_pointer(device_manager);
+	return gdk_window_get_device_position(window, pointer, x, y, mask);
+#else
+		return gdk_window_get_pointer(window, x, y, mask);
+#endif
+}
 _w_widget_priv* _w_widget_get_priv(w_widget *widget) {
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(widget);
 	while (clazz->toolkit != W_TOOLKIT(gtk_toolkit)) {
@@ -106,6 +123,22 @@ wresult _w_widget_send_event(w_widget *widget, w_event *event) {
 	} else {
 		return w_widget_default_post_event(widget, event);
 	}
+}
+int _w_widget_set_input_state(int state) {
+	int statemask = 0;
+	if ((state & GDK_MOD1_MASK) != 0)
+		statemask |= W_ALT;
+	if ((state & GDK_SHIFT_MASK) != 0)
+		statemask |= W_SHIFT;
+	if ((state & GDK_CONTROL_MASK) != 0)
+		statemask |= W_CTRL;
+	if ((state & GDK_BUTTON1_MASK) != 0)
+		statemask |= W_BUTTON1;
+	if ((state & GDK_BUTTON2_MASK) != 0)
+		statemask |= W_BUTTON2;
+	if ((state & GDK_BUTTON3_MASK) != 0)
+		statemask |= W_BUTTON3;
+	return statemask;
 }
 /*
  * signals

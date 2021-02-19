@@ -99,7 +99,30 @@ wresult _w_control_get_border_width(w_control *control) {
 }
 wresult _w_control_get_bounds(w_control *control, w_point *location,
 		w_size *size) {
-	return W_FALSE;
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	GtkWidget *topHandle = priv->widget.handle_top(W_WIDGET(control), priv);
+	GtkAllocation allocation;
+	gtk_widget_get_allocation(topHandle, &allocation);
+	int width =
+			(_W_WIDGET(control)->state & STATE_ZERO_WIDTH) != 0 ?
+					0 : allocation.width;
+	if (size != 0) {
+		size->width = width;
+		size->height =
+				(_W_WIDGET(control)->state & STATE_ZERO_HEIGHT) != 0 ?
+						0 : allocation.height;
+	}
+	if (location != 0) {
+		location->x = allocation.x;
+		location->y = allocation.y;
+		w_control *parent = W_CONTROL(_W_CONTROL(control)->parent);
+		if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
+			_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
+			location->x = ppriv->get_client_width(parent, ppriv) - width
+					- location->x;
+		}
+	}
+	return W_TRUE;
 }
 wresult _w_control_get_cursor(w_control *control, w_cursor **cursor) {
 	return W_FALSE;
@@ -630,6 +653,10 @@ wresult _w_control_traverse(w_control *control, int traversal,
 		w_event_key *event) {
 	return W_FALSE;
 }
+wresult _w_control_update_0(w_control *control, int flags,
+		_w_control_priv *priv) {
+	return W_FALSE;
+}
 wresult _w_control_update(w_control *control) {
 	return W_FALSE;
 }
@@ -760,6 +787,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->set_zorder = _w_control_set_zorder;
 	priv->update_layout = _w_control_update_layout;
 	priv->set_cursor_0 = _w_control_set_cursor_0;
+	priv->update_0 = _w_control_update_0;
 	/*
 	 * signals
 	 */

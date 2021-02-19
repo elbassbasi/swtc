@@ -170,9 +170,9 @@ public:
 	 *
 	 * @param matrix the matrix to multiply the receiver by
 	 */
-	bool Multiply(WTransformMatrix &matrix) {
-		return w_transform_multiply(W_TRANSFORM(this),
-				(w_transformmatrix*) &matrix) > 0;
+	bool Multiply(WTransform &matrix) {
+		return w_transform_multiply(W_TRANSFORM(this), (w_transform*) &matrix)
+				> 0;
 	}
 
 	/**

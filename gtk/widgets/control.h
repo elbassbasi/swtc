@@ -48,6 +48,11 @@
 #define REDRAW_ALL (1 << 1)
 #define REDRAW_TRIM (1 << 2)
 /*
+ * update
+ */
+#define UPDATE_ALL (1 << 0)
+#define UPDATE_FLUSH (1 << 1)
+/*
  * control
  */
 typedef struct _w_control {
@@ -60,6 +65,9 @@ typedef struct _w_control {
 		_w_font _font;
 	};
 	GdkPixbuf *backgroundImage;
+	w_dragsource *dragsource;
+	w_droptarget *droptarget;
+	w_point lastInput;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)
 /*
@@ -122,6 +130,7 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	void (*redraw_widget)(w_control *control, w_rect *rect, int flags,
 			_w_control_priv *priv);
+	void (*update_0)(w_control *control, int flags, _w_control_priv *priv);
 };
 /*
  * functions

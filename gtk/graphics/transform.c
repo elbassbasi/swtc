@@ -66,17 +66,13 @@ wresult w_transform_is_identity(w_transform *transform) {
 	return mat->xx == 1 && mat->yx == 0 && mat->xy == 0 && mat->yy == 1
 			&& mat->x0 == 0 && mat->y0 == 0;
 }
-wresult w_transform_multiply(w_transform *transform,
-		w_transformmatrix *matrix) {
+wresult w_transform_multiply(w_transform *transform, w_transform *matrix) {
 	if (transform == 0 || _W_TRANSFORM(transform)->is_created == 0)
 		return W_ERROR_NO_HANDLES;
 	if (matrix == 0)
 		return W_ERROR_NULL_ARGUMENT;
 	cairo_matrix_t *handle = &_W_TRANSFORM(transform)->handle;
-	cairo_matrix_t mat;
-	cairo_matrix_init(&mat, matrix->m11, matrix->m12, matrix->m21, matrix->m22,
-			matrix->dx, matrix->dy);
-	cairo_matrix_multiply(handle, &mat, handle);
+	cairo_matrix_multiply(handle, &_W_TRANSFORM(matrix)->handle, handle);
 	return W_TRUE;
 }
 wresult w_transform_rotate(w_transform *transform, float angle) {

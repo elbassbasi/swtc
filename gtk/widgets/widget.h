@@ -79,6 +79,8 @@ struct _w_widget_priv {
 /*
  * functions
  */
+GdkWindow* _gdk_window_get_device_position(GdkWindow *window, gint *x, gint *y,
+		GdkModifierType *mask);
 _w_widget_priv* _w_widget_get_priv(w_widget *widget);
 void _w_widget_set_control(void *handle, w_widget *widget);
 w_widget* _w_widget_find_control(void *handle);
@@ -99,6 +101,7 @@ wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 wresult _w_widget_send_event(w_widget *widget, w_event *event);
 void _w_widget_connect(GtkWidget *widget, wushort signal, wushort signal_id,
 		gboolean after);
+int _w_widget_set_input_state(int state);
 void _w_widget_class_init(struct _w_widget_class *clazz);
 /*
  * widgetdata

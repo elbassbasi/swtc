@@ -194,9 +194,24 @@ w_color _w_toolkit_get_system_color(w_toolkit *toolkit, wuint id) {
 	w_theme *theme = _W_TOOLKIT(toolkit)->theme;
 	return w_theme_get_color(theme, id);
 }
+wuchar cursorshapes[] = { GDK_LEFT_PTR, GDK_WATCH, GDK_CROSS, 0,
+		GDK_QUESTION_ARROW, GDK_FLEUR, GDK_SIZING, GDK_DOUBLE_ARROW, GDK_SIZING,
+		GDK_SB_H_DOUBLE_ARROW, GDK_TOP_SIDE, GDK_BOTTOM_SIDE, GDK_RIGHT_SIDE,
+		GDK_LEFT_SIDE, GDK_TOP_RIGHT_CORNER, GDK_BOTTOM_RIGHT_CORNER,
+		GDK_BOTTOM_LEFT_CORNER, GDK_TOP_LEFT_CORNER, GDK_SB_UP_ARROW, GDK_XTERM,
+		GDK_X_CURSOR, GDK_HAND2 };
 w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 	if (style <= W_CURSOR_HAND) {
-		return W_CURSOR(&_W_TOOLKIT(toolkit)->cursors[style]);
+		_w_cursor *cursor = &_W_TOOLKIT(toolkit)->cursors[style];
+		if (cursor->handle == 0) {
+			GdkCursorType shape = cursorshapes[style];
+			if (shape == 0 && style == W_CURSOR_APPSTARTING) {
+			} else {
+				_W_CURSOR(cursor)->handle = gdk_cursor_new_for_display(
+						gdk_display_get_default(), shape);
+			}
+		}
+		return W_CURSOR(cursor);
 	} else
 		return 0;
 }

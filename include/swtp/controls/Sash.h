@@ -10,6 +10,7 @@
 #include "../widgets/Control.h"
 class WSashEvent: public WEvent {
 public:
+	int detail;
 	WRect bounds;
 };
 

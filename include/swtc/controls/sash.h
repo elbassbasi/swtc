@@ -21,6 +21,7 @@ struct _w_sash_class {
 };
 typedef struct w_event_sash {
 	w_event event;
+	int detail;
 	w_rect bounds;
 }w_event_sash;
 SWT_PUBLIC wresult w_sash_create(w_sash *sash, struct w_toolkit *toolkit,

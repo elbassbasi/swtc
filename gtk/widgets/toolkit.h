@@ -38,12 +38,14 @@ typedef struct _w_toolkit {
 	w_tray tray;
 	w_widget *widget_free;
 	PangoTabArray *empty_tab;
+	w_control* currentControl;
 	int exit_code;
 	unsigned exit_loop :1;
 	unsigned wake :1;
 	unsigned ISX11 :1;
 	unsigned ISWayland :1;
 	unsigned activePending :1;
+	unsigned clickCount :2;
 	/*
 	 * function
 	 */
@@ -107,6 +109,11 @@ typedef struct _w_toolkit {
 	_w_listview_priv class_listview_priv;
 	struct _w_listitem_class class_listitem;
 	struct _w_columnitem_class class_listcolumn;
+	/*
+	 * shell
+	 */
+	struct _w_shell_class class_sash;
+	_w_sash_priv class_sash_priv;
 	/*
 	 * internal memory
 	 */

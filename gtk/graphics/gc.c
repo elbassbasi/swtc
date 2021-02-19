@@ -1461,7 +1461,7 @@ void _w_graphics_identity(w_graphics *gc, cairo_matrix_t *identity) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	if ((_gc->state & W_MIRRORED) != 0) {
 		int w = 0, h = 0;
-		//getSize(w, h);
+		w_graphics_get_size(gc, &w, &h);
 		cairo_matrix_init(identity, -1, 0, 0, 1, w, 0);
 	} else {
 		cairo_matrix_init_identity(identity);

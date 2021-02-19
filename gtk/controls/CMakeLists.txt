@@ -4,5 +4,6 @@
 		${CURRENT_DIR}/listview.c
 		${CURRENT_DIR}/listviewbase.c
 		${CURRENT_DIR}/treeview.c
+		${CURRENT_DIR}/sash.c
 		PARENT_SCOPE
 	)

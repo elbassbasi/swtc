@@ -1,0 +1,25 @@
+/*
+ * Name:        sash.h
+ * Author:      Azeddine EL Bassbasi
+ * Created:     19 févr. 2021
+ * Copyright:   (c) 2020 Azeddine EL Bassbasi
+ * Licence:
+ */
+#ifndef GTK_CONTROLS_SASH_H_
+#define GTK_CONTROLS_SASH_H_
+#include "../widgets/shell.h"
+#define STATE_SASH_DRAGGING (1 << (STATE_CONTROL_END + 1))
+typedef struct _w_sash {
+	struct _w_control control;
+	int startX, startY, lastX, lastY;
+} _w_sash;
+
+typedef struct _w_sash_priv {
+	_w_control_priv control;
+
+} _w_sash_priv;
+#define _W_SASH(x) ((_w_sash*)x)
+#define _W_SASH_PRIV(x) ((struct _w_sash_priv*)x)
+void _w_sash_class_init(struct _w_sash_class *clazz);
+
+#endif /* GTK_CONTROLS_SASH_H_ */

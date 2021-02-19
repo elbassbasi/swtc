@@ -296,7 +296,7 @@ wresult _w_listviewbase_set_imagelist(w_listviewbase *list,
 			_W_IMAGELIST(imagelist)->images->height);
 		}
 	}
-	//_w_control_update(W_CONTROL(list));
+	W_CONTROL_GET_CLASS(list)->update(W_CONTROL(list));
 	return W_TRUE;
 }
 wresult _w_listviewbase_set_item_height(w_listviewbase *list, int itemHeight) {
