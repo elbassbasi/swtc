@@ -8,25 +8,26 @@
 #include "MMenu.h"
 #include "MApp.h"
 WMenuItems MMenu::menuitems[] = { //
-				{ W_CASCADE, 0, "File", 0 },	//
-				{ W_PUSH, 0, "NewPlatform", W_ACTION(MMenu::NewPlatformShell) },//
-				{ W_PUSH, 0, "NewCustom", W_ACTION(MMenu::NewCustomShell) },//
-				{ W_SEPARATOR, 0, 0, 0 },	//
-				{ W_PUSH, W_ALT | 'Q', "Exit", W_ACTION(MMenu::Exit) },	//
-				{ W_CASCADE_END, 0, 0, 0 },	//
-				{ W_CASCADE, 0, "Dialogs", 0 },	//
-				{ W_PUSH, 0, "MessageBox", W_ACTION(MMenu::MessageBox) },	//
-				{ W_PUSH, 0, "FileDialog", W_ACTION(MMenu::FileDialog) },	//
-				{ W_PUSH, 0, "DirectoryDialog", W_ACTION(MMenu::DirectoryDialog) },	//
-				{ W_PUSH, 0, "FontDialog", W_ACTION(MMenu::FontDialog) },	//
-				{ W_PUSH, 0, "ColorDialog", W_ACTION(MMenu::ColorDialog) },	//
-				{ W_CASCADE_END, 0, 0, 0 },	//
-				{ W_CASCADE, 0, "Source", 0 },	//
-				{ W_CASCADE_END, 0, 0, 0 },	//
+				{ W_CASCADE, 0,IMAGELIST_FILE, "File", 0 },	//
+				{ W_PUSH, 0,IMAGELIST_ADD, "NewPlatform", W_ACTION(MMenu::NewPlatformShell) },//
+				{ W_PUSH, 0,-1, "NewCustom", W_ACTION(MMenu::NewCustomShell) },//
+				{ W_SEPARATOR, 0,-1, 0, 0 },	//
+				{ W_PUSH, W_ALT | 'Q',-1, "Exit", W_ACTION(MMenu::Exit) },	//
+				{ W_CASCADE_END, 0,-1, 0, 0 },	//
+				{ W_CASCADE, 0,-1, "Dialogs", 0 },	//
+				{ W_PUSH, 0,-1, "MessageBox", W_ACTION(MMenu::MessageBox) },	//
+				{ W_PUSH, 0,-1, "FileDialog", W_ACTION(MMenu::FileDialog) },	//
+				{ W_PUSH, 0,-1, "DirectoryDialog", W_ACTION(MMenu::DirectoryDialog) },	//
+				{ W_PUSH, 0,-1, "FontDialog", W_ACTION(MMenu::FontDialog) },	//
+				{ W_PUSH, 0,-1, "ColorDialog", W_ACTION(MMenu::ColorDialog) },	//
+				{ W_CASCADE_END, 0,-1, 0, 0 },	//
+				{ W_CASCADE, 0,-1, "Source", 0 },	//
+				{ W_CASCADE_END, 0,-1, 0, 0 },	//
 				{ 0, 0, 0, 0 },	//
 		};
 bool MMenu::Create(WShell *parent) {
 	WMenu::CreateBar(parent);
+	SetImagelist(MApp::Get()->GetImageList16());
 	CreateItems(MMenu::menuitems);
 	parent->SetMenuBar(this);
 	return true;

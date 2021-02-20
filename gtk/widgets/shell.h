@@ -35,6 +35,7 @@ struct _w_shell {
 	_w_shell *next;
 	_w_shell *prev;
 	w_menu *menubar;
+	GtkAccelGroup *accelGroup;
 	GtkWindowGroup *group;
 	unsigned center :1;
 	unsigned fullScreen :1;
@@ -64,6 +65,8 @@ struct _w_shell_priv {
  */
 wresult _w_shell_close(w_shell *shell);
 void _w_shell_close_widget(w_shell *shell, _w_event_platform *e);
+GtkAccelGroup* _w_shell_create_accel_group(w_shell *shell);
+void _w_shell_destroy_accel_group(w_shell *shell);
 void _w_shell_class_init(struct _w_shell_class *clazz);
 /*
  * signals

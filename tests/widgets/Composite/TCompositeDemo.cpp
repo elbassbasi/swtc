@@ -7,21 +7,21 @@
 
 #include "TCompositeDemo.h"
 WMenuItems TCompositeDemo::menuitems[] = { //
-		{ W_CASCADE, 0, "File", 0 },	//
-				{ W_PUSH, 0, "NewPlatform", 0 },	//
-				{ W_PUSH, 0, "NewCustom", 0 },	//
-				{ W_SEPARATOR, 0, 0, 0 },	//
-				{ W_PUSH, W_ALT | 'Q', "Exit", 0 },	//
-				{ W_CASCADE_END, 0, 0, 0 },	//
-				{ W_CASCADE, 0, "Dialogs", 0 },	//
-				{ W_PUSH, 0, "MessageBox", 0 },	//
-				{ W_PUSH, 0, "FileDialog", 0 },	//
-				{ W_PUSH, 0, "DirectoryDialog", 0 },	//
-				{ W_PUSH, 0, "FontDialog", 0 },	//
-				{ W_PUSH, 0, "ColorDialog", 0 },	//
-				{ W_CASCADE_END, 0, 0, 0 },	//
-				{ W_CASCADE, 0, "Source", 0 },	//
-				{ W_CASCADE_END, 0, 0, 0 },	//
+		{ W_CASCADE, 0,-1, "File", 0 },	//
+				{ W_PUSH, 0,-1, "NewPlatform", 0 },	//
+				{ W_PUSH, 0,-1, "NewCustom", 0 },	//
+				{ W_SEPARATOR, 0,-1, 0, 0 },	//
+				{ W_PUSH, W_ALT | 'Q',-1, "Exit", 0 },	//
+				{ W_CASCADE_END, 0,-1, 0, 0 },	//
+				{ W_CASCADE, 0,-1, "Dialogs", 0 },	//
+				{ W_PUSH, 0,-1, "MessageBox", 0 },	//
+				{ W_PUSH, 0,-1, "FileDialog", 0 },	//
+				{ W_PUSH, 0,-1, "DirectoryDialog", 0 },	//
+				{ W_PUSH, 0,-1, "FontDialog", 0 },	//
+				{ W_PUSH, 0,-1, "ColorDialog", 0 },	//
+				{ W_CASCADE_END, 0,-1, 0, 0 },	//
+				{ W_CASCADE, 0,-1, "Source", 0 },	//
+				{ W_CASCADE_END, 0,-1, 0, 0 },	//
 		};
 void TCompositeDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Demonstrates", new TCompositeDemo());

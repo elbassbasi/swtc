@@ -77,6 +77,27 @@ struct _w_widget_priv {
 #define _W_WIDGET_PRIV(x) ((_w_widget_priv*)x)
 #define _W_WIDGET_GET_PRIV(x) ((_w_widget_priv*)_w_widget_get_priv(W_WIDGET(x)))
 /*
+ * find
+ */
+typedef struct _w_widget_find_child {
+	int index;
+	int count;
+	GtkWidget *widget;
+	GtkWidget *prev;
+	GtkWidget *next;
+} _w_widget_find_child;
+typedef struct _w_widget_handles {
+	GtkWidget *handle;
+	GtkWidget *box;
+	GtkWidget *label;
+	GtkWidget *image;
+	GtkWidget *arrow;
+} _w_widget_handles;
+void _w_widget_find_children(GtkWidget *widget, gpointer data);
+void _w_widget_children_count(GtkWidget *widget, gpointer data);
+void _w_widget_get_handles_callback(GtkWidget *widget, gpointer data);
+void _w_widget_get_handles(GtkWidget* handle,_w_widget_handles *handles);
+/*
  * functions
  */
 GdkWindow* _gdk_window_get_device_position(GdkWindow *window, gint *x, gint *y,
@@ -102,34 +123,7 @@ wresult _w_widget_send_event(w_widget *widget, w_event *event);
 void _w_widget_connect(GtkWidget *widget, wushort signal, wushort signal_id,
 		gboolean after);
 int _w_widget_set_input_state(int state);
+int _w_translate_key(int key);
+int _w_untranslate_key(int key);
 void _w_widget_class_init(struct _w_widget_class *clazz);
-/*
- * widgetdata
- */
-typedef struct _w_widgetdata {
-	struct _w_widgetdata_class *clazz;
-} _w_widgetdata;
-#define _W_WIDGETDATA(x) ((_w_widgetdata*)x)
-wresult _w_widgetdata_is_ok(w_widgetdata *obj);
-wresult _w_widgetdata_close(w_widgetdata *obj);
-wresult _w_widgetdata_copy(w_widgetdata *from, w_widgetdata *to);
-wresult _w_widgetdata_equals(w_widgetdata *obj1, w_widgetdata *obj2);
-void _w_widgetdata_class_init(struct _w_widgetdata_class *clazz);
-/*
- * item
- */
-typedef struct _w_item {
-	_w_widgetdata widgetdata;
-	w_widget *parent;
-	wuint index;
-} _w_item;
-#define _W_ITEM(x) ((_w_item*)x)
-wresult _w_item_copy(w_widgetdata *from, w_widgetdata *to);
-wresult _w_item_get_parent_widget(w_item *item, w_widget **parent);
-wresult _w_item_get_data(w_item *item, void **data);
-wresult _w_item_get_index(w_item *item);
-wresult _w_item_get_text(w_item *item, w_alloc alloc, void *user_data, int enc);
-wresult _w_item_set_data(w_item *item, void *data);
-wresult _w_item_set_text(w_item *item, const char *text, int length, int enc);
-void _w_item_class_init(struct _w_item_class *clazz);
 #endif /* GTK_WIDGETS_WIDGET_H_ */

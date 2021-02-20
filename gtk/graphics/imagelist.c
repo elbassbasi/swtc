@@ -110,6 +110,15 @@ wresult w_imagelist_remove(w_imagelist *imagelist, int index) {
 wresult w_imagelist_remove_all(w_imagelist *imagelist) {
 	return W_FALSE;
 }
+GdkPixbuf* w_imagelist_get_pixbuf(w_imagelist *imagelist, int index) {
+	if (imagelist == 0 || _W_IMAGELIST(imagelist)->images == 0)
+		return 0;
+	_w_imagelist_images *images = _W_IMAGELIST(imagelist)->images;
+	if (images->count > index) {
+		return images->images[index];
+	}
+	return 0;
+}
 wresult w_imagelist_get_image(w_imagelist *imagelist, int index, int copy,
 		w_image *image) {
 	return W_FALSE;

@@ -84,6 +84,28 @@ wresult _w_shell_create_embedded(w_widget *widget, w_widget *parent,
 	}
 	return result;
 }
+GtkAccelGroup* _w_shell_create_accel_group(w_shell *shell) {
+	if (_W_SHELL(shell)->accelGroup == 0) {
+		_W_SHELL(shell)->accelGroup = gtk_accel_group_new();
+		if (_W_SHELL(shell)->accelGroup == 0)
+			return 0;
+		GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+		gtk_window_add_accel_group(GTK_WINDOW(shellHandle),
+		_W_SHELL(shell)->accelGroup);
+	}
+	return _W_SHELL(shell)->accelGroup;
+}
+
+void _w_shell_destroy_accel_group(w_shell *shell) {
+	if (_W_SHELL(shell)->accelGroup == 0)
+		return;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	gtk_window_remove_accel_group(GTK_WINDOW(shellHandle),
+	_W_SHELL(shell)->accelGroup);
+//TEMPORARY CODE
+	g_object_unref(_W_SHELL(shell)->accelGroup);
+	_W_SHELL(shell)->accelGroup = 0;
+}
 wresult _w_shell_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
 	return _w_shell_create_embedded(widget, parent, style, post_event, 0,
@@ -490,7 +512,38 @@ wresult _w_shell_set_maximized(w_shell *shell, int maximized) {
 	return W_FALSE;
 }
 wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
-	return W_FALSE;
+	if (_W_SHELL(shell)->menubar == menu)
+		return W_TRUE;
+	int both = menu != 0 && _W_SHELL(shell)->menubar != 0;
+	if (menu != 0) {
+		if (!w_widget_is_ok(W_WIDGET(menu)))
+			return W_ERROR_INVALID_ARGUMENT;
+		if ((_W_WIDGET(menu)->style & W_BAR) == 0)
+			return W_ERROR_MENU_NOT_BAR;
+		if (_W_MENU(menu)->parent != W_CONTROL(shell))
+			return W_ERROR_INVALID_PARENT;
+	}
+	if (_W_SHELL(shell)->menubar != 0) {
+		GtkWidget *menuHandle =
+		_W_WIDGET(_W_SHELL(shell)->menubar)->handle;
+		gtk_widget_hide(menuHandle);
+		//_w_shell_destroy_accel_group(shell);
+	}
+	_W_SHELL(shell)->menubar = menu;
+	if (_W_SHELL(shell)->menubar != 0) {
+		GtkWidget *menuHandle =
+		_W_WIDGET(_W_SHELL(shell)->menubar)->handle;
+		gtk_widget_show(menuHandle);
+		//_w_shell_create_accel_group(shell);
+		//menuBar.addAccelerators (accelGroup);
+	}
+	GtkWidget *vboxHandle = _W_SHELL_VBOX(shell);
+	GtkAllocation allocation;
+	gtk_widget_get_allocation(vboxHandle, &allocation);
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(shell);
+	_w_shell_resize_bounds(W_CONTROL(shell), allocation.width,
+			allocation.height, !both, priv);
+	return W_TRUE;
 }
 wresult _w_shell_set_minimized(w_shell *shell, int minimized) {
 	return W_FALSE;

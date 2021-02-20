@@ -140,6 +140,168 @@ int _w_widget_set_input_state(int state) {
 		statemask |= W_BUTTON3;
 	return statemask;
 }
+int KeyTable[][2] = {
+
+/* Keyboard and Mouse Masks */
+{ GDK_KEY_Alt_L, W_ALT }, //
+		{ GDK_KEY_Alt_R, W_ALT }, //
+		{ GDK_KEY_Meta_L, W_ALT }, //
+		{ GDK_KEY_Meta_R, W_ALT }, //
+		{ GDK_KEY_Shift_L, W_SHIFT }, //
+		{ GDK_KEY_Shift_R, W_SHIFT }, //
+		{ GDK_KEY_Control_L, W_CTRL }, //
+		{ GDK_KEY_Control_R, W_CTRL }, //
+		{ GDK_KEY_ISO_Level3_Shift, W_ALT }, //
+//		{OS.GDK_KEY_????,		W_COMMAND},
+//		{OS.GDK_KEY_????,		W_COMMAND},
+
+		/* Non-Numeric Keypad Keys */
+		{ GDK_KEY_Up, W_ARROW_UP }, //
+		{ GDK_KEY_KP_Up, W_ARROW_UP }, //
+		{ GDK_KEY_Down, W_ARROW_DOWN }, //
+		{ GDK_KEY_KP_Down, W_ARROW_DOWN }, //
+		{ GDK_KEY_Left, W_ARROW_LEFT }, //
+		{ GDK_KEY_KP_Left, W_ARROW_LEFT }, //
+		{ GDK_KEY_Right, W_ARROW_RIGHT }, //
+		{ GDK_KEY_KP_Right, W_ARROW_RIGHT }, //
+		{ GDK_KEY_Page_Up, W_PAGE_UP }, //
+		{ GDK_KEY_KP_Page_Up, W_PAGE_UP }, //
+		{ GDK_KEY_Page_Down, W_PAGE_DOWN }, //
+		{ GDK_KEY_KP_Page_Down, W_PAGE_DOWN }, //
+		{ GDK_KEY_Home, W_HOME }, //
+		{ GDK_KEY_KP_Home, W_HOME }, //
+		{ GDK_KEY_End, W_END }, //
+		{ GDK_KEY_KP_End, W_END }, //
+		{ GDK_KEY_Insert, W_INSERT }, //
+		{ GDK_KEY_KP_Insert, W_INSERT }, //
+
+		/* Virtual and Ascii Keys */
+		{ GDK_KEY_BackSpace, W_BS }, //
+		{ GDK_KEY_Return, W_CR }, //
+		{ GDK_KEY_Delete, W_DEL }, //
+		{ GDK_KEY_KP_Delete, W_DEL }, //
+		{ GDK_KEY_Escape, W_ESC }, //
+		{ GDK_KEY_Linefeed, W_LF }, //
+		{ GDK_KEY_Tab, W_TAB }, //
+		{ GDK_KEY_ISO_Left_Tab, W_TAB }, //
+
+		/* Functions Keys */
+		{ GDK_KEY_F1, W_F1 }, //
+		{ GDK_KEY_F2, W_F2 }, //
+		{ GDK_KEY_F3, W_F3 }, //
+		{ GDK_KEY_F4, W_F4 }, //
+		{ GDK_KEY_F5, W_F5 }, //
+		{ GDK_KEY_F6, W_F6 }, //
+		{ GDK_KEY_F7, W_F7 }, //
+		{ GDK_KEY_F8, W_F8 }, //
+		{ GDK_KEY_F9, W_F9 }, //
+		{ GDK_KEY_F10, W_F10 }, //
+		{ GDK_KEY_F11, W_F11 }, //
+		{ GDK_KEY_F12, W_F12 }, //
+		{ GDK_KEY_F13, W_F13 }, //
+		{ GDK_KEY_F14, W_F14 }, //
+		{ GDK_KEY_F15, W_F15 }, //
+		{ GDK_KEY_F16, W_F16 }, //
+		{ GDK_KEY_F17, W_F17 }, //
+		{ GDK_KEY_F18, W_F18 }, //
+		{ GDK_KEY_F19, W_F19 }, //
+		{ GDK_KEY_F20, W_F20 }, //
+
+		/* Numeric Keypad Keys */
+		{ GDK_KEY_KP_Multiply, W_KEYPAD_MULTIPLY }, //
+		{ GDK_KEY_KP_Add, W_KEYPAD_ADD }, //
+		{ GDK_KEY_KP_Enter, W_KEYPAD_CR }, //
+		{ GDK_KEY_KP_Subtract, W_KEYPAD_SUBTRACT }, //
+		{ GDK_KEY_KP_Decimal, W_KEYPAD_DECIMAL }, //
+		{ GDK_KEY_KP_Divide, W_KEYPAD_DIVIDE }, //
+		{ GDK_KEY_KP_0, W_KEYPAD_0 }, //
+		{ GDK_KEY_KP_1, W_KEYPAD_1 }, //
+		{ GDK_KEY_KP_2, W_KEYPAD_2 }, //
+		{ GDK_KEY_KP_3, W_KEYPAD_3 }, //
+		{ GDK_KEY_KP_4, W_KEYPAD_4 }, //
+		{ GDK_KEY_KP_5, W_KEYPAD_5 }, //
+		{ GDK_KEY_KP_6, W_KEYPAD_6 }, //
+		{ GDK_KEY_KP_7, W_KEYPAD_7 }, //
+		{ GDK_KEY_KP_8, W_KEYPAD_8 }, //
+		{ GDK_KEY_KP_9, W_KEYPAD_9 }, //
+		{ GDK_KEY_KP_Equal, W_KEYPAD_EQUAL }, //
+
+		/* Other keys */
+		{ GDK_KEY_Caps_Lock, W_CAPS_LOCK }, //
+		{ GDK_KEY_Num_Lock, W_NUM_LOCK }, //
+		{ GDK_KEY_Scroll_Lock, W_SCROLL_LOCK }, //
+		{ GDK_KEY_Pause, W_PAUSE }, //
+		{ GDK_KEY_Break, W_BREAK }, //
+		{ GDK_KEY_Print, W_PRINT_SCREEN }, //
+		{ GDK_KEY_Help, W_HELP }, //
+
+		};
+int _w_translate_key(int key) {
+	for (int i = 0; i < (int) (sizeof(KeyTable) / sizeof(KeyTable[0])); i++) {
+		if (KeyTable[i][0] == key)
+			return KeyTable[i][1];
+	}
+	return 0;
+}
+
+int _w_untranslate_key(int key) {
+	for (int i = 0; i < (int) (sizeof(KeyTable) / sizeof(KeyTable[0])); i++) {
+		if (KeyTable[i][1] == key)
+			return KeyTable[i][0];
+	}
+	return 0;
+}
+void _w_widget_find_children(GtkWidget *widget, gpointer data) {
+	_w_widget_find_child *i = (_w_widget_find_child*) data;
+	if (i->index >= 0) {
+		if (i->count == i->index) {
+			i->widget = widget;
+		}
+		if (i->count == i->index - 1) {
+			i->prev = widget;
+		}
+		if (i->count == i->index + 1) {
+			i->next = widget;
+		}
+	} else {
+		i->prev = i->widget;
+		i->widget = widget;
+	}
+	i->count++;
+}
+void _w_widget_children_count(GtkWidget *widget, gpointer data) {
+	((_w_widget_find_child*) data)->count++;
+}
+void _w_widget_get_handles_callback(GtkWidget *widget, gpointer data) {
+	if (GTK_IS_BOX(widget)) {
+		((_w_widget_handles*) data)->box = widget;
+		return;
+	}
+	if (GTK_IS_IMAGE(widget)) {
+		((_w_widget_handles*) data)->image = widget;
+		return;
+	}
+	if (GTK_IS_LABEL(widget)) {
+		((_w_widget_handles*) data)->label = widget;
+		return;
+	}
+	if (GTK_IS_ARROW(widget)) {
+		((_w_widget_handles*) data)->arrow = widget;
+		return;
+	}
+}
+void _w_widget_get_handles(GtkWidget *handle, _w_widget_handles *handles) {
+	memset(handles, 0, sizeof(_w_widget_handles));
+	handles->handle = handle;
+	if (GTK_IS_CONTAINER(handles->handle)) {
+		gtk_container_forall(GTK_CONTAINER(handles->handle),
+				_w_widget_get_handles_callback, handles);
+	}
+	if (handles->box != 0) {
+		gtk_container_forall(GTK_CONTAINER(handles->box),
+				_w_widget_get_handles_callback, handles);
+	}
+}
 /*
  * signals
  */
@@ -344,66 +506,4 @@ void _w_widget_class_init(struct _w_widget_class *clazz) {
 		priv->signals[SIGNAL_EXPOSE_EVENT] = _gtk_widget_expose;
 		priv->signals[SIGNAL_EXPOSE_EVENT_INVERSE] = _gtk_widget_expose_inverse;
 	}
-}
-/*
- * widgetdata
- */
-wresult _w_widgetdata_is_ok(w_widgetdata *obj) {
-	return W_TRUE;
-}
-wresult _w_widgetdata_close(w_widgetdata *obj) {
-	return W_TRUE;
-}
-wresult _w_widgetdata_copy(w_widgetdata *from, w_widgetdata *to) {
-	return W_FALSE;
-}
-wresult _w_widgetdata_equals(w_widgetdata *obj1, w_widgetdata *obj2) {
-	return obj1 == obj2;
-}
-void _w_widgetdata_class_init(struct _w_widgetdata_class *clazz) {
-	clazz->is_ok = _w_widgetdata_is_ok;
-	clazz->close = _w_widgetdata_close;
-	clazz->copy = _w_widgetdata_copy;
-	clazz->equals = _w_widgetdata_equals;
-	clazz->toolkit = W_TOOLKIT(gtk_toolkit);
-}
-/*
- * item
- */
-wresult _w_item_copy(w_widgetdata *from, w_widgetdata *to) {
-	_W_WIDGETDATA(to)->clazz = _W_WIDGETDATA(from)->clazz;
-	_W_ITEM(to)->parent = _W_ITEM(from)->parent;
-	_W_ITEM(to)->index = _W_ITEM(from)->index;
-	return W_TRUE;
-}
-wresult _w_item_get_parent_widget(w_item *item, w_widget **parent) {
-	*parent = _W_ITEM(item)->parent;
-	return W_TRUE;
-}
-wresult _w_item_get_data(w_item *item, void **data) {
-	*data = 0;
-	return W_TRUE;
-}
-wresult _w_item_get_index(w_item *item) {
-	return _W_ITEM(item)->index;
-}
-wresult _w_item_get_text(w_item *item, w_alloc alloc, void *user_data,
-		int enc) {
-	return W_FALSE;
-}
-wresult _w_item_set_data(w_item *item, void *data) {
-	return W_FALSE;
-}
-wresult _w_item_set_text(w_item *item, const char *text, int length, int enc) {
-	return W_FALSE;
-}
-void _w_item_class_init(struct _w_item_class *clazz) {
-	_w_widgetdata_class_init(W_WIDGETDATA_CLASS(clazz));
-	W_WIDGETDATA_CLASS(clazz)->copy = _w_item_copy;
-	clazz->get_parent_widget = _w_item_get_parent_widget;
-	clazz->get_data = _w_item_get_data;
-	clazz->get_index = _w_item_get_index;
-	clazz->get_text = _w_item_get_text;
-	clazz->set_data = _w_item_set_data;
-	clazz->set_text = _w_item_set_text;
 }

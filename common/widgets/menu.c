@@ -159,6 +159,14 @@ wresult w_menuitem_set_image(w_menuitem *item, w_image *image) {
 		return result;
 	}
 }
+wresult w_menuitem_set_image_index(w_menuitem *item, int index) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_MENUITEM_GET_CLASS(item)->set_image_index(item, index);
+	} else {
+		return result;
+	}
+}
 wresult w_menuitem_set_selection(w_menuitem *item, int selected) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
@@ -186,6 +194,15 @@ wresult w_menu_get_bounds(w_menu *menu, w_rect *bounds) {
 		return W_MENU_GET_CLASS(menu)->get_bounds(menu, bounds);
 	} else {
 		memset(bounds, 0, sizeof(w_rect));
+		return result;
+	}
+}
+wresult w_menu_get_imagelist(w_menu *menu, w_imagelist **imagelist) {
+	*imagelist = 0;
+	wresult result = W_WIDGET_CHECK0(menu);
+	if (result > 0) {
+		return W_MENU_GET_CLASS(menu)->get_imagelist(menu, imagelist);
+	} else {
 		return result;
 	}
 }
@@ -238,6 +255,14 @@ wresult w_menu_is_visible(w_menu *menu) {
 	wresult result = W_WIDGET_CHECK0(menu);
 	if (result > 0) {
 		return W_MENU_GET_CLASS(menu)->is_visible(menu);
+	} else {
+		return result;
+	}
+}
+wresult w_menu_set_imagelist(w_menu *menu, w_imagelist *imagelist) {
+	wresult result = W_WIDGET_CHECK0(menu);
+	if (result > 0) {
+		return W_MENU_GET_CLASS(menu)->set_imagelist(menu, imagelist);
 	} else {
 		return result;
 	}

@@ -23,7 +23,7 @@ typedef struct _gtk_theme {
 
 } _gtk_theme;
 enum {
-	SWT_GQUARK_WIDGET = 0, SWT_GQUARK_LAST
+	SWT_GQUARK_WIDGET = 0, SWT_GQUARK_LAST = 3
 };
 extern const char *_gtk_signal_names[SIGNAL_LAST];
 typedef struct _w_toolkit {
@@ -38,7 +38,7 @@ typedef struct _w_toolkit {
 	w_tray tray;
 	w_widget *widget_free;
 	PangoTabArray *empty_tab;
-	w_control* currentControl;
+	w_control *currentControl;
 	int exit_code;
 	unsigned exit_loop :1;
 	unsigned wake :1;

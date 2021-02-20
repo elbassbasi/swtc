@@ -60,6 +60,7 @@ typedef struct _w_imagelist {
 	_w_imagelist_images *images;
 } _w_imagelist;
 #define _W_IMAGELIST(x) ((_w_imagelist*)x)
+GdkPixbuf* w_imagelist_get_pixbuf(w_imagelist *imagelist, int index);
 /*
  * cursor
  */

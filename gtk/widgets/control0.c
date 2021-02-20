@@ -25,7 +25,6 @@ wresult _w_control_check_subwindow(w_control *control, _w_control_priv *priv) {
 }
 wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
-	wresult ret;
 	if (parent == 0)
 		return W_ERROR_NULL_ARGUMENT;
 	if (!w_widget_is_ok(parent))

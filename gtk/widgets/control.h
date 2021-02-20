@@ -7,7 +7,7 @@
  */
 #ifndef GTK_WIDGETS_CONTROL_H_
 #define GTK_WIDGETS_CONTROL_H_
-#include "widget.h"
+#include "item.h"
 /*
  * states
  */
@@ -130,7 +130,7 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	void (*redraw_widget)(w_control *control, w_rect *rect, int flags,
 			_w_control_priv *priv);
-	void (*update_0)(w_control *control, int flags, _w_control_priv *priv);
+	wresult (*update_0)(w_control *control, int flags, _w_control_priv *priv);
 };
 /*
  * functions

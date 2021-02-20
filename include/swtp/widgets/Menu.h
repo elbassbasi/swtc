@@ -312,6 +312,10 @@ public:
 		_set_image(&image);
 		return *this;
 	}
+	WMenuItem& SetImageIndex(int image) {
+		_set_image_index(image);
+		return *this;
+	}
 	/**
 	 * Sets the selection state of the receiver.
 	 * <p>
@@ -481,6 +485,9 @@ public:
 	WResult _set_image(const WImage *image) {
 		return w_menuitem_set_image(W_MENUITEM(this), W_IMAGE(image));
 	}
+	WResult _set_image_index(int index) {
+		return w_menuitem_set_image_index(W_MENUITEM(this), index);
+	}
 	WResult _set_selection(int selected) {
 		return w_menuitem_set_selection(W_MENUITEM(this), selected);
 	}
@@ -607,6 +614,11 @@ public:
 		WRect bounds;
 		return GetBounds(bounds);
 	}
+	WImageList* GetImagelist() {
+		WImageList *imagelist;
+		_get_imagelist(&imagelist);
+		return imagelist;
+	}
 	/**
 	 * Returns the root item at the given, zero-relative index in the
 	 * receiver. Throws an exception if the index is out of range.
@@ -681,6 +693,9 @@ public:
 	bool IsVisible() {
 		return _WReturnBool(_is_visible());
 	}
+	bool SetImagelist(WImageList *imagelist) {
+		return _WReturnBool(_set_imagelist(imagelist));
+	}
 	/**
 	 * Sets the location of the receiver, which must be a popup,
 	 * to the point specified by the arguments which are relative
@@ -749,6 +764,9 @@ public:
 	WResult _get_bounds(WRect *bounds) {
 		return w_menu_get_bounds(W_MENU(this), (w_rect*) bounds);
 	}
+	WResult _get_imagelist(WImageList **imagelist) {
+		return w_menu_get_imagelist(W_MENU(this), (w_imagelist**) imagelist);
+	}
 	WResult _get_root(WMenuItem *rootitem) {
 		return w_menu_get_root(W_MENU(this), (w_menuitem*) rootitem);
 	}
@@ -767,6 +785,9 @@ public:
 	WResult _is_visible() {
 		return w_menu_is_visible(W_MENU(this));
 	}
+	WResult _set_imagelist(WImageList *imagelist) {
+		return w_menu_set_imagelist(W_MENU(this), W_IMAGELIST(imagelist));
+	}
 	WResult _set_location(const WPoint *location) {
 		return w_menu_set_location(W_MENU(this), (w_point*) location);
 	}
@@ -782,6 +803,7 @@ private:
 struct WMenuItems {
 	int style;
 	int accelerator;
+	int image;
 	const char *name;
 	WControl::SelectionAction action;
 };

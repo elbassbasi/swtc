@@ -391,6 +391,9 @@ bool WMenu::CreateSubItems(WMenuItem &parent, size_t &start) {
 		if (items[start].accelerator != 0) {
 			item.SetAccelerator(items[start].accelerator);
 		}
+		if (items[start].image >= 0) {
+			item.SetImageIndex(items[start].image);
+		}
 		if (items[start].style & W_CASCADE) {
 			start++;
 			CreateSubItems(item, start);
