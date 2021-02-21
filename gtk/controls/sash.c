@@ -486,7 +486,7 @@ void _w_sash_class_init(struct _w_sash_class *clazz) {
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_sash);
 	W_WIDGET_CLASS(clazz)->object_used_size = sizeof(_w_sash);
 	/*
-	 * reserved
+	 * private
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	_W_WIDGET_PRIV(priv)->handle_top = _w_widget_h;

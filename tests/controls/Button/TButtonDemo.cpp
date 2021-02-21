@@ -8,7 +8,7 @@
 #include "TButtonDemo.h"
 
 void TButtonDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TButtonDemo());
+	ITreeItem::Regitre(parent, "Demo", new TButtonDemo());
 
 }
 int TButtonDemo::styles[] = { W_PUSH, W_CHECK, W_TOGGLE, W_RADIO, W_FLAT };

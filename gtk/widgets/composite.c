@@ -206,21 +206,59 @@ wresult _w_composite_get_client_area(w_widget *widget, w_event_client_area *e,
  * iterator of children control
  */
 typedef struct _w_composite_children {
-	w_basic_iterator iter;
+	w_basic_iterator base;
 	w_composite *composite;
-	int count;
+	_w_fixed *first;
+	_w_fixed *i;
+	size_t count;
+	int tablist;
 } _w_composite_children;
+_w_fixed* _w_composite_iterator_find_next(_w_fixed *fixed, w_control **control,
+		int tablist) {
+	w_widget *c;
+	if (tablist) {
+		_w_fixed *i = fixed;
+		while (i != 0) {
+			c = _w_widget_find_control(i);
+			if (c == 0) {
+				*control = 0;
+				return 0;
+			}
+			if (_W_WIDGET(c)->state & STATE_TAB_LIST) {
+				*control = W_CONTROL(c);
+				return i->next;
+			}
+			i = i->next;
+		}
+		return 0;
+	} else {
+		*control = (w_control*) _w_widget_find_control(fixed);
+		if (*control == 0) {
+			return 0;
+		}
+		return fixed->next;
+	}
+}
 wresult _w_composite_children_close(w_iterator *it) {
 	return W_TRUE;
 }
 wresult _w_composite_children_next(w_iterator *it, void *obj) {
 	_w_composite_children *iter = (_w_composite_children*) it;
-	return W_TRUE;
+	if (iter->i != 0) {
+		iter->i = _w_composite_iterator_find_next(iter->i, (w_control**) obj,
+				iter->tablist);
+		if (*((w_control**) obj) == 0)
+			return W_FALSE;
+		return W_TRUE;
+	} else {
+		*((w_control**) obj) = 0;
+		return W_FALSE;
+	}
 }
 wresult _w_composite_children_reset(w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
+	iter->i = iter->first;
 	return W_TRUE;
-
 }
 wresult _w_composite_children_remove(w_iterator *it) {
 	return W_ERROR_NOT_IMPLEMENTED;
@@ -228,8 +266,6 @@ wresult _w_composite_children_remove(w_iterator *it) {
 }
 size_t _w_composite_children_get_count(w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
-	if (iter->count < 0) {
-	}
 	return iter->count;
 }
 _w_iterator_class _w_composite_children_class = { //
@@ -241,9 +277,15 @@ _w_iterator_class _w_composite_children_class = { //
 		};
 wresult _w_composite_get_children(w_composite *composite, w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
-	it->base.clazz = &_w_composite_children_class;
+	iter->base.clazz = &_w_composite_children_class;
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(composite);
+	_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
+			W_WIDGET(composite), priv);
 	iter->composite = composite;
-	iter->count = -1;
+	iter->first = fixed->first;
+	iter->i = fixed->first;
+	iter->count = fixed->count;
+	iter->tablist = 0;
 	return W_TRUE;
 }
 wresult _w_composite_get_layout(w_composite *composite, w_layout **layout) {
@@ -308,8 +350,20 @@ void _w_composite_mark_layout(w_control *control, int flags,
 		}
 	}
 }
+wresult _w_composite_set_bounds_0(w_control *control, w_point *location,
+		w_size *size, _w_control_priv *priv) {
+	int result = _w_control_set_bounds_0(control, location, size, priv);
+	if (result < 0)
+		return result;
+	if (result & 2) { // widget is resized
+		priv->mark_layout(control, 0, priv);
+		priv->update_layout(control, 0, priv);
+	}
+	return result;
+}
 wresult _w_composite_set_layout(w_composite *composite, w_layout *layout) {
-	return W_FALSE;
+	_W_COMPOSITE(composite)->layout = layout;
+	return W_TRUE;
 }
 wresult _w_composite_set_layout_deferred(w_composite *composite, int defer) {
 	return W_FALSE;
@@ -379,6 +433,7 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	priv->handle_fixed = _w_composite_handle_fixed;
 	priv->mark_layout = _w_composite_mark_layout;
 	priv->update_layout = _w_composite_update_layout;
+	priv->set_bounds_0 = _w_composite_set_bounds_0;
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_composite_handle_scrolled;
 	_W_COMPOSITE_PRIV(priv)->has_border = _w_composite_has_border;
 	_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_composite_handle_parenting;

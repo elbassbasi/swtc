@@ -45,10 +45,10 @@ wresult w_button_get_selection(w_button *button) {
 	} else
 		return result;
 }
-wresult w_button_get_text(w_button *button, w_alloc alloc, void *user_data) {
+wresult w_button_get_text(w_button *button, w_alloc alloc, void *user_data,int enc) {
 	wresult result = W_WIDGET_CHECK0(button);
 	if (result >= 0) {
-		return W_BUTTON_GET_CLASS(button)->get_text(button, alloc, user_data);
+		return W_BUTTON_GET_CLASS(button)->get_text(button, alloc, user_data,enc);
 	} else
 		return result;
 }
@@ -80,10 +80,10 @@ wresult w_button_set_selection(w_button *button, int selected) {
 	} else
 		return result;
 }
-wresult w_button_set_text(w_button *button, const char *string,size_t length) {
+wresult w_button_set_text(w_button *button, const char *string,size_t length,int enc) {
 	wresult result = W_WIDGET_CHECK0(button);
 	if (result >= 0) {
-		return W_BUTTON_GET_CLASS(button)->set_text(button, string,length);
+		return W_BUTTON_GET_CLASS(button)->set_text(button, string,length,enc);
 	} else
 		return result;
 }

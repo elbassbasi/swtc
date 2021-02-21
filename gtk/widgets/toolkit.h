@@ -110,10 +110,15 @@ typedef struct _w_toolkit {
 	struct _w_listitem_class class_listitem;
 	struct _w_columnitem_class class_listcolumn;
 	/*
-	 * shell
+	 * sash
 	 */
-	struct _w_shell_class class_sash;
+	struct _w_sash_class class_sash;
 	_w_sash_priv class_sash_priv;
+	/*
+	 * button
+	 */
+	struct _w_button_class class_button;
+	_w_button_priv class_button_priv;
 	/*
 	 * internal memory
 	 */
@@ -141,6 +146,10 @@ void _w_toolkit_class_init(_w_toolkit *toolkit);
 void _w_theme_init();
 void _w_toolkit_put_gdk_events(int event, ...);
 void _w_toolkit_remove_gdk_events();
+/*
+ * dialogs
+ */
+wresult _w_messagebox_open(w_toolkit *toolkit, w_messagebox *messagebox);
 /**
  * public function
  */

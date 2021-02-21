@@ -225,13 +225,21 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 	toolkit->classes[_W_CLASS_LISTVIEW] = W_WIDGET_CLASS(
 			&toolkit->class_listview);
 	/*
-	 * shell
+	 * sash
 	 */
 	W_WIDGET_CLASS(&toolkit->class_sash)->init_class =
 			(w_widget_init_class) _w_sash_class_init;
 	W_WIDGET_CLASS(&toolkit->class_sash)->reserved[0] =
 			&toolkit->class_sash_priv;
 	toolkit->classes[_W_CLASS_SASH] = W_WIDGET_CLASS(&toolkit->class_sash);
+	/*
+	 * button
+	 */
+	W_WIDGET_CLASS(&toolkit->class_button)->init_class =
+			(w_widget_init_class) _w_button_class_init;
+	W_WIDGET_CLASS(&toolkit->class_button)->reserved[0] =
+			&toolkit->class_button_priv;
+	toolkit->classes[_W_CLASS_BUTTON] = W_WIDGET_CLASS(&toolkit->class_button);
 }
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];

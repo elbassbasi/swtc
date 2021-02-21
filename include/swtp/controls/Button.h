@@ -168,7 +168,7 @@ public:
 	 */
 	WString GetText() {
 		w_string_ref *ref = 0;
-		_get_text(w_alloc_string_ref, &ref);
+		_get_text(w_alloc_string_ref, &ref, W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -264,7 +264,7 @@ public:
 		return SetText(text, -1);
 	}
 	bool SetText(const char *text, size_t length) {
-		return _WReturnBool(_set_text(text, length));
+		return _WReturnBool(_set_text(text, length, W_ENCODING_UTF8));
 	}
 public:
 #if __cplusplus >= 201103L
@@ -295,8 +295,8 @@ public:
 	WResult _get_selection() {
 		return w_button_get_selection(W_BUTTON(this));
 	}
-	WResult _get_text(w_alloc alloc, void *user_data) {
-		return w_button_get_text(W_BUTTON(this), alloc, user_data);
+	WResult _get_text(w_alloc alloc, void *user_data, int enc) {
+		return w_button_get_text(W_BUTTON(this), alloc, user_data, enc);
 	}
 	WResult _set_alignment(int alignment) {
 		return w_button_set_alignment(W_BUTTON(this), alignment);
@@ -310,8 +310,8 @@ public:
 	WResult _set_selection(bool selected) {
 		return w_button_set_selection(W_BUTTON(this), selected);
 	}
-	WResult _set_text(const char *text, size_t length) {
-		return w_button_set_text(W_BUTTON(this), text, length);
+	WResult _set_text(const char *text, size_t length, int enc) {
+		return w_button_set_text(W_BUTTON(this), text, length, enc);
 	}
 private:
 	void *handles[(sizeof(w_button) - sizeof(w_control)) / sizeof(void*)];

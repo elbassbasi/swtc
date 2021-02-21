@@ -408,4 +408,5 @@ void _w_toolkit_class_init(_w_toolkit *toolkit) {
 	clazz->timer_exec = _w_toolkit_timer_exec;
 	clazz->update = _w_toolkit_update;
 	clazz->wake = _w_toolkit_wake;
+	clazz->messagebox_open = _w_messagebox_open;
 }

@@ -131,16 +131,20 @@ struct _w_control_priv {
 	void (*redraw_widget)(w_control *control, w_rect *rect, int flags,
 			_w_control_priv *priv);
 	wresult (*update_0)(w_control *control, int flags, _w_control_priv *priv);
+	void (*force_resize)(w_control *control, _w_control_priv *priv);
 };
 /*
  * functions
  */
+void gtk_widget_set_align(GtkWidget *widget, GtkAlign hAlign, GtkAlign vAlign);
 void _w_control_check_background(w_control *control, _w_control_priv *priv);
 void _w_control_check_border(w_control *control, _w_control_priv *priv);
 void _w_control_check_buffered(w_control *control, _w_control_priv *priv);
 void _w_control_check_foreground(w_control *control, _w_control_priv *priv);
 void _w_control_check_mirrored(w_control *control, _w_control_priv *priv);
 wresult _w_control_check_subwindow(w_control *control, _w_control_priv *priv);
+wresult _w_control_compute_native_size(w_widget *widget, GtkWidget *h,
+		w_event_compute_size *e, _w_control_priv *priv);
 wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event);
 wresult _w_control_create_dragsource(w_control *control,
@@ -174,6 +178,7 @@ wresult _w_control_get_region(w_control *control, w_region *region);
 wresult _w_control_get_shell(w_control *control, w_shell **shell);
 wresult _w_control_get_tab(w_control *control);
 wresult _w_control_get_text_direction(w_control *control);
+void _w_control_get_thickness(GtkWidget *widget, w_point *thickness);
 wresult _w_control_get_tooltip_text(w_control *control, w_alloc alloc,
 		void *user_data, int enc);
 wresult _w_control_get_touch_enabled(w_control *control);
@@ -244,6 +249,8 @@ void _w_control_class_init(struct _w_control_class *clazz);
 /*
  * signals
  */
+gboolean _w_control_contained_in_region(w_widget *widget,w_point* input,
+		_w_control_priv *priv);
 gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 		_w_control_priv *priv);
 gboolean _gtk_control_button_press_event_0(w_widget *widget,

@@ -10,7 +10,7 @@
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-gboolean _w_control_contained_in_region(w_widget *widget, int x, int y,
+gboolean _w_control_contained_in_region(w_widget *widget, w_point *input,
 		_w_control_priv *priv) {
 	GtkWidget *topHandle = priv->widget.handle_top(widget, priv);
 	GdkWindow *window = gtk_widget_get_window(topHandle);
@@ -32,12 +32,10 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 	w_event_mouse event;
 	_W_CONTROL(widget)->lastInput.x = (int) gdkEvent->x;
 	_W_CONTROL(widget)->lastInput.y = (int) gdkEvent->y;
-	if (_w_control_contained_in_region(widget, _W_CONTROL(widget)->lastInput.x,
-	_W_CONTROL(widget)->lastInput.y, priv))
+	if (_w_control_contained_in_region(widget, &_W_CONTROL(widget)->lastInput, priv))
 		return FALSE;
 	if (gdkEvent->type == GDK_3BUTTON_PRESS)
 		return 0;
-
 	/*
 	 * When a shell is created with SWT.ON_TOP and SWT.NO_FOCUS,
 	 * do not activate the shell when the user clicks on the
@@ -186,8 +184,8 @@ gboolean _gtk_control_button_release_event(w_widget *widget,
 	w_event_mouse event;
 	_W_CONTROL(widget)->lastInput.x = (int) gdkEvent->x;
 	_W_CONTROL(widget)->lastInput.y = (int) gdkEvent->y;
-	if (_w_control_contained_in_region(widget, _W_CONTROL(widget)->lastInput.x,
-	_W_CONTROL(widget)->lastInput.y, priv))
+	if (_w_control_contained_in_region(widget, &_W_CONTROL(widget)->lastInput,
+			priv))
 		return FALSE;
 	memset(&event, 0, sizeof(event));
 	event.event.type = W_EVENT_MOUSEUP;
@@ -303,8 +301,8 @@ gboolean _gtk_control_motion_notify_event(w_widget *widget,
 	GdkEventMotion *gdkEvent = (GdkEventMotion*) e->args[0];
 	_W_CONTROL(widget)->lastInput.x = (int) gdkEvent->x;
 	_W_CONTROL(widget)->lastInput.y = (int) gdkEvent->y;
-	if (_w_control_contained_in_region(widget, _W_CONTROL(widget)->lastInput.x,
-	_W_CONTROL(widget)->lastInput.y, priv))
+	if (_w_control_contained_in_region(widget, &_W_CONTROL(widget)->lastInput,
+			priv))
 		return FALSE;
 	/*
 	 * Feature in GTK: DND detection for X.11 & Wayland support is done through motion notify event

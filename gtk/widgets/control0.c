@@ -10,6 +10,10 @@
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+void gtk_widget_set_align(GtkWidget *widget, GtkAlign hAlign, GtkAlign vAlign) {
+	gtk_widget_set_halign(widget, hAlign);
+	gtk_widget_set_valign(widget, vAlign);
+}
 void _w_control_check_background(w_control *control, _w_control_priv *priv) {
 }
 void _w_control_check_border(w_control *control, _w_control_priv *priv) {
@@ -22,6 +26,33 @@ void _w_control_check_mirrored(w_control *control, _w_control_priv *priv) {
 }
 wresult _w_control_check_subwindow(w_control *control, _w_control_priv *priv) {
 	return W_FALSE;
+}
+wresult _w_control_compute_native_size(w_widget *widget, GtkWidget *h,
+		w_event_compute_size *e, _w_control_priv *priv) {
+	int width = e->wHint, height = e->hHint;
+#if GTK3
+	if (e->wHint == W_DEFAULT && e->hHint == W_DEFAULT) {
+		GtkRequisition requisition;
+		gtk_widget_get_preferred_size(h, NULL, &requisition);
+		width = requisition.width;
+		height = requisition.height;
+	} else if (e->wHint == W_DEFAULT || e->hHint == W_DEFAULT) {
+		int natural_size;
+		if (e->wHint == W_DEFAULT) {
+			gtk_widget_get_preferred_width_for_height(h, height, NULL,
+					&natural_size);
+			width = natural_size;
+		} else {
+			gtk_widget_get_preferred_height_for_width(h, width, NULL,
+					&natural_size);
+			height = natural_size;
+		}
+	}
+	e->size->width = width;
+	e->size->height = height;
+	return W_TRUE;
+#else
+#endif
 }
 wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
@@ -82,6 +113,9 @@ w_control* _w_control_find_background_control(w_control *control,
 }
 wresult _w_control_force_focus(w_control *control) {
 	return W_FALSE;
+}
+void _w_control_force_resize(w_control *control, _w_control_priv *priv) {
+
 }
 wresult _w_control_get_accessible(w_control *control,
 		w_accessible **accessible) {
@@ -145,7 +179,13 @@ wresult _w_control_get_graphics(w_control *control, w_graphics *gc) {
 	return W_FALSE;
 }
 wresult _w_control_get_layout_data(w_control *control, void **data) {
-	return W_FALSE;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
+	if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
+		*data = *((void**) &((char*) control)[clazz->object_used_size]);
+	} else {
+		*data = (void*) &((char*) control)[clazz->object_used_size];
+	}
+	return W_TRUE;
 }
 wresult _w_control_get_menu(w_control *control, w_menu **menu) {
 	return W_FALSE;
@@ -169,6 +209,34 @@ wresult _w_control_get_tab(w_control *control) {
 }
 wresult _w_control_get_text_direction(w_control *control) {
 	return W_FALSE;
+}
+void _w_control_get_thickness(GtkWidget *widget, w_point *thickness) {
+#if GTK3
+	thickness->x = 0, thickness->y = 0;
+	GtkBorder tmp;
+	GtkStyleContext *context = gtk_widget_get_style_context(widget);
+
+	if (GTK_VERSION < VERSION(3, 18, 0)) {
+		gtk_style_context_get_padding(context, GTK_STATE_FLAG_NORMAL, &tmp);
+	} else {
+		gtk_style_context_get_padding(context,
+				gtk_widget_get_state_flags(widget), &tmp);
+	}
+	gtk_style_context_save(context);
+	gtk_style_context_add_class(context, GTK_STYLE_CLASS_FRAME);
+	thickness->x += tmp.left;
+	thickness->y += tmp.top;
+	if (GTK_VERSION < VERSION(3, 18, 0)) {
+		gtk_style_context_get_border(context, GTK_STATE_FLAG_NORMAL, &tmp);
+	} else {
+		gtk_style_context_get_border(context,
+				gtk_widget_get_state_flags(widget), &tmp);
+	}
+	thickness->x += tmp.left;
+	thickness->y += tmp.top;
+	gtk_style_context_restore(context);
+	return;
+#endif
 }
 wresult _w_control_get_tooltip_text(w_control *control, w_alloc alloc,
 		void *user_data, int enc) {
@@ -317,7 +385,25 @@ void _w_control_move_handle(w_control *control, w_point *position,
 }
 wresult _w_control_new_layout_data(w_control *control, void **data,
 		size_t size) {
-	return W_FALSE;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
+	if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
+		void *layout_data =
+				*((void**) &((char*) control)[clazz->object_used_size]);
+		if (layout_data != 0) {
+			free(layout_data);
+		}
+	}
+	if ((clazz->object_used_size + size) < clazz->object_total_size) {
+		_W_WIDGET(control)->state |= STATE_LAYOUT_DATA_LOCALE;
+		*data = (void*) &((char*) control)[clazz->object_used_size];
+	} else {
+		_W_WIDGET(control)->state &= ~STATE_LAYOUT_DATA_LOCALE;
+		*data = malloc(size);
+		if (*data == 0)
+			return W_ERROR_NO_MEMORY;
+		*((void**) &((char*) control)[clazz->object_used_size]) = *data;
+	}
+	return W_TRUE;
 }
 wresult _w_control_pack(w_control *control, int flags) {
 	return W_FALSE;
@@ -787,6 +873,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->update_layout = _w_control_update_layout;
 	priv->set_cursor_0 = _w_control_set_cursor_0;
 	priv->update_0 = _w_control_update_0;
+	priv->force_resize = _w_control_force_resize;
 	/*
 	 * signals
 	 */

@@ -10,4 +10,5 @@
 #define GTK_CONTROLS_CONTROLS_H_
 #include "treeview.h"
 #include "sash.h"
+#include "button.h"
 #endif /* GTK_CONTROLS_CONTROLS_H_ */
