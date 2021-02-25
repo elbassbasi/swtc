@@ -63,6 +63,53 @@ void _w_toolkit_registre_class(int _id, Class clazz, ns_get_widget funct) {
 		mac_toolkit->_ns_get_widget[_id] = funct;
 	}
 }
+IMP oldCursorSetProc;
+void* _w_toolkit_oldcursor_set_proc_call(void *id, void *sel) {
+	return ((void* (*)(void*, void*)) oldCursorSetProc)(id, sel);
+}
+void* _w_toolkit_cursor_set_proc(NSObject *id, SEL sel) {
+	if (mac_toolkit->lockCursor) {
+		w_control *currentControl = mac_toolkit->currentControl;
+		if (w_widget_is_ok(W_WIDGET(currentControl)) > 0) {
+			_w_control_priv *priv = _W_CONTROL_GET_PRIV(currentControl);
+			w_cursor *cursor = priv->find_cursor(W_WIDGET(currentControl),
+					priv);
+			if (cursor != 0 && _W_CURSOR(cursor)->handle != id)
+				return 0;
+		}
+	}
+	return _w_toolkit_oldcursor_set_proc_call(id, sel);
+}
+void NSCursor_init() {
+	Class cls = objc_lookUpClass("NSCursor");
+	SEL sel = sel_getUid("set");
+	Method method = class_getInstanceMethod(cls, sel);
+	if (method != 0)
+		oldCursorSetProc = method_setImplementation(method,
+				(IMP) _w_toolkit_cursor_set_proc);
+}
+void _w_toolkit_set_cursor(w_control *control) {
+	w_cursor *cursor = 0;
+	if (w_widget_is_ok(W_WIDGET(control)) > 0) {
+		_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+		cursor = priv->find_cursor(control, priv);
+	}
+	if (cursor == 0) {
+		NSWindow *window = NSApplication_keyWindow(mac_toolkit->application);
+		if (window != 0) {
+			if (NSWindow_areCursorRectsEnabled(window)) {
+				NSWindow_disableCursorRects(window);
+				NSWindow_enableCursorRects(window);
+			}
+			return;
+		}
+		cursor = _w_toolkit_get_system_cursor(W_TOOLKIT(mac_toolkit),
+				W_CURSOR_ARROW);
+	}
+	mac_toolkit->lockCursor = W_FALSE;
+	NSCursor_set(_W_CURSOR(cursor)->handle);
+	mac_toolkit->lockCursor = W_TRUE;
+}
 void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 	/*
 	 * shell
@@ -129,8 +176,8 @@ void _w_toolkit_init(_w_toolkit *toolkit) {
 	NSFont *font = NSFont_systemFontOfSize(systemFontSize);
 	NSObject_retain(NSOBJECT(font));
 	toolkit->systemFont.handle = font;
-	toolkit->systemFont.desc = calloc(1, sizeof(_w_font_desc));
 	NSApp_Init();
+	NSCursor_init();
 }
 void _w_toolkit_dispose(w_disposable *disposable) {
 	_w_toolkit *toolkit = _W_TOOLKIT(disposable);

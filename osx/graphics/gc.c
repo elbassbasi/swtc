@@ -36,6 +36,61 @@ wresult _w_graphics_check(w_graphics *gc, int mask) {
 		return W_ERROR_NULL_ARGUMENT;
 	if (_gc->handle == 0)
 		return W_ERROR_NO_HANDLES;
+	if (_gc->flippedContext != 0
+			&& _gc->handle != NSGraphicsContext_currentContext()) {
+		_gc->restoreContext = W_TRUE;
+		NSGraphicsContext_static_saveGraphicsState();
+		NSGraphicsContext_setCurrentContext(_gc->handle);
+	}
+	if ((mask & (GRAPHICS_STATE_CLIPPING | GRAPHICS_STATE_TRANSFORM)) != 0) {
+		NSView *view = _gc->view;
+		if ((_gc->state & GRAPHICS_STATE_CLIPPING) == 0
+				|| (_gc->state & GRAPHICS_STATE_TRANSFORM) == 0
+				|| (_gc->state & GRAPHICS_STATE_VISIBLE_REGION) == 0) {
+			int antialias = NSGraphicsContext_shouldAntialias(_gc->handle);
+			NSGraphicsContext_restoreGraphicsState(_gc->handle);
+			NSGraphicsContext_saveGraphicsState(_gc->handle);
+			NSGraphicsContext_setShouldAntialias(_gc->handle, antialias);
+			if (view != 0 && (!_gc->ispaintRect || !NSView_isFlipped(view))) {
+				NSAffineTransform *transform = NSAffineTransform_transform();
+				NSRect rect, bounds;
+				NSView_bounds(view, &bounds);
+				NSView_convertRect_toView_(view, &rect, &bounds, 0);
+				if (_gc->ispaintRect == 0) {
+					NSAffineTransform_translateXBy(transform, rect.x,
+							rect.y + rect.height);
+				} else {
+					NSAffineTransform_translateXBy(transform, 0, rect.height);
+				}
+				NSAffineTransform_scaleXBy(transform, 1, -1);
+				NSAffineTransform_concat(transform);
+				if (_gc->visibleRgn != 0) {
+					if (_gc->visiblePath == 0
+							|| (_gc->state & GRAPHICS_STATE_VISIBLE_REGION)
+									== 0) {
+						if (_gc->visiblePath != 0) {
+							NSObject_release(NSOBJECT(_gc->visiblePath));
+						}
+						//_gc->visiblePath = 0;
+					}
+					NSBezierPath_addClip(_gc->visiblePath);
+					_gc->state |= GRAPHICS_STATE_VISIBLE_REGION;
+				}
+			}
+			if (_gc->clipPath != 0) {
+				NSBezierPath_addClip(_gc->clipPath);
+			}
+			if (_gc->transform != 0) {
+				NSAffineTransform_concat(_gc->transform);
+			}
+			mask &= ~(GRAPHICS_STATE_TRANSFORM | GRAPHICS_STATE_CLIPPING);
+			_gc->state |= GRAPHICS_STATE_TRANSFORM | GRAPHICS_STATE_CLIPPING;
+			_gc->state &= ~(GRAPHICS_STATE_BACKGROUND
+					| GRAPHICS_STATE_FOREGROUND);
+		}
+	}
+
+	//CGContextSetBlendMode(NSGraphicsContext_graphicsPort(_gc->handle), _gc->xorMode ? kCGBlendModeDifference : kCGBlendModeNormal);
 	int state = _gc->state;
 	if ((state & mask) == mask)
 		return W_TRUE;
@@ -320,7 +375,8 @@ wresult w_graphics_draw_arc(w_graphics *gc, w_rect *rect, int startAngle,
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -331,9 +387,54 @@ wresult w_graphics_draw_arc(w_graphics *gc, w_rect *rect, int startAngle,
 	}
 	return result;
 }
-wresult w_graphics_draw_image(w_graphics *gc, w_image *image, w_rect *src,
+wresult w_graphics_draw_image_0(w_graphics *gc, w_image *image,w_surface* surface, w_rect *src,
 		w_rect *dest, int state) {
-	return W_FALSE;
+	NSImage* imageHandle =(NSImage*) _W_IMAGE(image)->handle;
+	NSSize size;
+	NSImage_size(imageHandle, &size);
+ 	int imgWidth = (int)size.width;
+ 	int imgHeight = (int)size.height;
+	int srcX = src->x, srcY = src->y, srcWidth = src->width, srcHeight =
+			src->height;
+	int destX = dest->x, destY = dest->y, destWidth = dest->width, destHeight =
+			dest->height;
+	if (srcWidth < 0)
+		srcWidth = imgWidth;
+	if (srcHeight < 0)
+		srcHeight = imgHeight;
+	if (destWidth < 0)
+		destWidth = imgWidth;
+	if (destHeight < 0)
+		destHeight = imgHeight;
+ 	wresult result = _w_graphics_check(gc, GRAPHICS_STATE_CLIPPING | GRAPHICS_STATE_TRANSFORM);
+ 	if(result > 0){
+		if (surface != 0) {
+			//srcImage.createAlpha();
+		}
+		NSGraphicsContext_saveGraphicsState(_W_GRAPHICS(gc)->handle);
+		NSAffineTransform* transform = NSAffineTransform_transform();
+		NSAffineTransform_scaleXBy(transform, 1, -1);
+		NSAffineTransform_translateXBy(transform,0, -(destHeight + 2 * destY));
+		NSAffineTransform_concat(transform);
+		NSRect srcRect;
+		srcRect.x = srcX;
+		srcRect.y = imgHeight - (srcY + srcHeight);
+		srcRect.width = srcWidth;
+		srcRect.height = srcHeight;
+		NSRect destRect;
+		destRect.x = destX;
+		destRect.y = destY;
+		destRect.width = destWidth;
+		destRect.height = destHeight;
+		NSImage_drawInRect(imageHandle, &destRect, &srcRect,NSCompositeSourceOver, _W_GRAPHICS(gc)->alpha / 255.0);
+		NSGraphicsContext_restoreGraphicsState(_W_GRAPHICS(gc)->handle);
+		_w_graphics_uncheck(gc);
+ 	}
+ 	return result;
+}
+wresult w_graphics_draw_image(w_graphics *gc, w_image *image, w_rect *src,
+		w_rect *dest, int state){
+	return w_graphics_draw_image_0(gc, image,0, src, dest, state);
 }
 wresult w_graphics_draw_surface(w_graphics *gc, w_surface *surface, w_rect *src,
 		w_rect *dest) {
@@ -354,7 +455,8 @@ wresult w_graphics_draw_line(w_graphics *gc, w_point *pt1, w_point *pt2) {
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -388,7 +490,8 @@ wresult w_graphics_draw_oval(w_graphics *gc, w_rect *rect) {
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -445,7 +548,8 @@ wresult w_graphics_draw_polygon(w_graphics *gc, w_point *pointArray,
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -477,7 +581,8 @@ wresult w_graphics_draw_polygonv(w_graphics *gc, int count, va_list args) {
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -511,7 +616,8 @@ wresult w_graphics_draw_polyline(w_graphics *gc, w_point *pointArray,
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -542,7 +648,8 @@ wresult w_graphics_draw_polylinev(w_graphics *gc, int count, va_list args) {
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -576,7 +683,8 @@ wresult w_graphics_draw_rectangle(w_graphics *gc, w_rect *rect) {
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -605,7 +713,8 @@ wresult w_graphics_draw_roundrectangle(w_graphics *gc, w_rect *rect,
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_stroke_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_stroke(path);
@@ -664,7 +773,8 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 			w_pattern *pattern = _gc->backgroundPattern;
 			if (pattern != 0)
 				_w_graphics_set_pattern_phase(gc, pattern);
-			if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+			if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+					&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 				NSBezierPath *path = NSBezierPath_bezierPathWithRect(&r);
 				_w_graphics_fill_pattern(gc, path, pattern);
 			} else {
@@ -726,7 +836,8 @@ wresult w_graphics_fill_arc(w_graphics *gc, w_rect *rect, int startAngle,
 		w_pattern *pattern = _gc->backgroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_fill_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_fill(path);
@@ -818,7 +929,8 @@ wresult w_graphics_fill_oval(w_graphics *gc, w_rect *rect) {
 		w_pattern *pattern = _gc->backgroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_fill_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_fill(path);
@@ -831,6 +943,111 @@ wresult w_graphics_fill_oval(w_graphics *gc, w_rect *rect) {
 void _w_graphics_fill_pattern(w_graphics *gc, NSBezierPath *path,
 		w_pattern *pattern) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
+	NSGraphicsContext_saveGraphicsState(_gc->handle);
+	NSBezierPath_addClip(path);
+	_w_pattern_gradient *gradient = _W_PATTERN(pattern)->gradient;
+	NSRect bounds;
+	NSBezierPath_bounds(path, &bounds);
+	NSPoint start;
+	start.x = gradient->pt1.x;
+	start.y = gradient->pt1.y;
+	NSPoint end;
+	end.x = gradient->pt2.x;
+	end.y = gradient->pt2.y;
+	CGFloat difx = end.x - start.x;
+	CGFloat dify = end.y - start.y;
+	if (difx == 0 && dify == 0) {
+		w_color color = gradient->color1;
+		NSColor *c = NSColor_colorWithDeviceRed(W_RED(color), W_GREEN(color),
+				W_BLUE(color), W_ALPHA(color) / 255.);
+		NSColor_setFill(c);
+		NSBezierPath_fill(path);
+		NSGraphicsContext_restoreGraphicsState(_gc->handle);
+		return;
+	}
+	CGFloat startx, starty, endx, endy;
+	if (difx == 0 || dify == 0) {
+		startx = bounds.x;
+		starty = bounds.y;
+		endx = bounds.x + bounds.width;
+		endy = bounds.y + bounds.height;
+		if (difx < 0 || dify < 0) {
+			startx = endx;
+			starty = endy;
+			endx = bounds.x;
+			endy = bounds.y;
+		}
+	} else {
+		CGFloat m = (end.y - start.y) / (end.x - start.x);
+		CGFloat b = end.y - (m * end.x);
+		CGFloat m2 = -1 / m; //perpendicular slope
+		CGFloat b2 = bounds.y - (m2 * bounds.x);
+		startx = endx = (b - b2) / (m2 - m);
+		b2 = (bounds.y + bounds.height) - (m2 * bounds.x);
+		CGFloat x2 = (b - b2) / (m2 - m);
+		if (difx > 0) {
+			startx = WMIN(startx, x2);
+		} else {
+			startx = WMAX(startx, x2);
+		}
+		if (difx < 0) {
+			endx = WMIN(endx, x2);
+		} else {
+			endx = WMAX(endx, x2);
+		}
+		b2 = bounds.y - (m2 * (bounds.x + bounds.width));
+		x2 = (b - b2) / (m2 - m);
+		if (difx > 0) {
+			startx = WMIN(startx, x2);
+		} else {
+			startx = WMAX(startx, x2);
+		}
+		if (difx < 0) {
+			endx = WMIN(endx, x2);
+		} else {
+			endx = WMAX(endx, x2);
+		}
+		b2 = (bounds.y + bounds.height) - (m2 * (bounds.x + bounds.width));
+		x2 = (b - b2) / (m2 - m);
+		if (difx > 0) {
+			startx = WMIN(startx, x2);
+		} else {
+			startx = WMAX(startx, x2);
+		}
+		if (difx < 0) {
+			endx = WMIN(endx, x2);
+		} else {
+			endx = WMAX(endx, x2);
+		}
+		starty = (m * startx) + b;
+		endy = (m * endx) + b;
+	}
+	if (difx != 0) {
+		while ((difx > 0 && start.x >= startx)
+				|| (difx < 0 && start.x <= startx)) {
+			start.x -= difx;
+			start.y -= dify;
+		}
+	} else {
+		while ((dify > 0 && start.y >= starty)
+				|| (dify < 0 && start.y <= starty)) {
+			start.x -= difx;
+			start.y -= dify;
+		}
+	}
+	end.x = start.x;
+	end.y = start.y;
+	do {
+		end.x += difx;
+		end.y += dify;
+		NSGradient_drawFromPoint(gradient->gradient, &start, &end, 0);
+		start.x = end.x;
+		start.y = end.y;
+	} while ((difx > 0 && end.x <= endx) || (difx < 0 && end.x >= endx)
+			|| (difx == 0
+					&& ((dify > 0 && end.y <= endy)
+							|| (dify < 0 && end.y >= endy))));
+	NSGraphicsContext_restoreGraphicsState(_gc->handle);
 
 }
 wresult w_graphics_fill_path(w_graphics *gc, w_path *path) {
@@ -859,7 +1076,8 @@ wresult w_graphics_fill_polygon(w_graphics *gc, w_point *pointArray,
 		w_pattern *pattern = _gc->backgroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_fill_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_fill(path);
@@ -889,7 +1107,8 @@ wresult w_graphics_fill_polygonv(w_graphics *gc, int count, va_list args) {
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_fill_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_fill(path);
@@ -923,7 +1142,8 @@ wresult w_graphics_fill_rectangle(w_graphics *gc, w_rect *rect) {
 		w_pattern *pattern = _gc->backgroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_fill_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_fill(path);
@@ -952,7 +1172,8 @@ wresult w_graphics_fill_roundrectangle(w_graphics *gc, w_rect *rect,
 		w_pattern *pattern = _gc->backgroundPattern;
 		if (pattern != 0)
 			_w_graphics_set_pattern_phase(gc, pattern);
-		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0) {
+		if (pattern != 0 && _W_PATTERN(pattern)->gradient != 0
+				&& _W_PATTERN(pattern)->is_color == W_FALSE) {
 			_w_graphics_fill_pattern(gc, path, pattern);
 		} else {
 			NSBezierPath_fill(path);
@@ -1059,8 +1280,9 @@ wresult w_graphics_get_font_metrics(w_graphics *gc,
 		w_font *font = _gc->font;
 		if (font == 0)
 			return W_ERROR_NO_HANDLES;
-		_w_font_desc *desc = _W_FONT(font)->desc;
-		if (desc->height == 0) {
+		_w_font_metrics *m = (_w_font_metrics*) fontMetrics;
+		_w_font *desc = _W_FONT(font);
+		if (desc->isMetrics == 0) {
 			NSRange range;
 			NSRect rect;
 			const char *s =
@@ -1069,7 +1291,7 @@ wresult w_graphics_get_font_metrics(w_graphics *gc,
 			NSMutableDictionary_setObject(dict,
 					(NSObject*) _W_FONT(font)->handle,
 					(NSObject*) _NSFontAttributeName);
-			//_w_font_add_traits(font,dict);
+			_w_font_add_traits_1(font, dict);
 			NSString *str = NSString_stringWithUTF8String(s);
 			NSAttributedString *attribStr = NSAttributedString_initWithString_0(
 					str, (NSDictionary*) dict);
@@ -1082,19 +1304,23 @@ wresult w_graphics_get_font_metrics(w_graphics *gc,
 					_gc->textContainer, &range);
 			NSLayoutManager_usedRectForTextContainer(layoutManager,
 					_gc->textContainer, &rect);
-			desc->avgWidth = ceil(rect.width) / strlen(s);
-			desc->ascent = NSLayoutManager_defaultBaselineOffsetForFont(
+			int avgWidth = ceil(rect.width) / strlen(s);
+			int ascent = NSLayoutManager_defaultBaselineOffsetForFont(
 					layoutManager, _W_FONT(font)->handle);
-			desc->height = NSLayoutManager_defaultLineHeightForFont(
-					layoutManager,
-					_W_FONT(font)->handle);
+			int height = NSLayoutManager_defaultLineHeightForFont(layoutManager,
+			_W_FONT(font)->handle);
+			m->ascent = ascent;
+			m->descent = height - ascent;
+			m->averageCharWidth = avgWidth;
+			m->leading = 0;
+			m->height = height;
+		} else {
+			m->ascent = desc->ascent;
+			m->descent = desc->height - desc->ascent;
+			m->averageCharWidth = desc->avgWidth;
+			m->leading = 0;
+			m->height = desc->height;
 		}
-		_w_font_metrics *m = (_w_font_metrics*) fontMetrics;
-		m->ascent = desc->ascent;
-		m->descent = desc->height - desc->ascent;
-		m->averageCharWidth = desc->avgWidth;
-		m->leading = 0;
-		m->height = desc->height;
 		_w_graphics_uncheck(gc);
 	}
 	return result;
@@ -1302,17 +1528,54 @@ wresult w_graphics_set_background_pattern(w_graphics *gc, w_pattern *pattern) {
 	}
 	return result;
 }
+void w_graphics_set_clipping_path_0(w_graphics *gc, NSBezierPath *path) {
+	_w_graphics *_gc = _W_GRAPHICS(gc);
+	if (_gc->clipPath != 0) {
+		NSObject_release(NSOBJECT(_gc->clipPath));
+		_gc->clipPath = 0;
+	}
+	if (path != 0) {
+		_gc->clipPath = path;
+		if (_gc->transform != 0) {
+			NSBezierPath_transformUsingAffineTransform(path, _gc->transform);
+		}
+	}
+	_gc->state &= ~GRAPHICS_STATE_CLIPPING;
+}
 wresult w_graphics_set_clipping_path(w_graphics *gc, w_path *path) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	wresult result = _w_graphics_check(gc, 0);
 	if (result > 0) {
+		if (path != 0 && _W_PATH(path)->handle == 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		NSBezierPath *copy = 0;
+		if (path != 0) {
+			NSObject_copy((NSObject*) _W_PATH(path)->handle);
+		}
+		w_graphics_set_clipping_path_0(gc, copy);
 	}
 	return result;
 }
-wresult w_graphics_set_clipping_rect(w_graphics *gc, w_rect *rect) {
+wresult w_graphics_set_clipping_rect(w_graphics *gc, w_rect *_rect) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	wresult result = _w_graphics_check(gc, 0);
 	if (result > 0) {
+		NSRect rect;
+		rect.x = _rect->x;
+		rect.y = _rect->y;
+		rect.width = _rect->width;
+		rect.height = _rect->height;
+		if (rect.width < 0) {
+			rect.x = rect.x + rect.width;
+			rect.width = -rect.width;
+		}
+		if (rect.height < 0) {
+			rect.y = rect.y + rect.height;
+			rect.height = -rect.height;
+		}
+		NSBezierPath *path = NSBezierPath_bezierPathWithRect(&rect);
+		NSObject_retain(NSOBJECT(path));
+		w_graphics_set_clipping_path_0(gc, path);
 	}
 	return result;
 }
@@ -1320,8 +1583,13 @@ wresult w_graphics_set_clipping_region(w_graphics *gc, w_region *region) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	wresult result = _w_graphics_check(gc, 0);
 	if (result > 0) {
-		if (region != 0 && w_region_is_ok(region) <= 0)
+		if (region != 0 && _W_REGION(region)->handle == 0)
 			return W_ERROR_INVALID_ARGUMENT;
+		NSBezierPath *copy = 0;
+		if (region != 0) {
+			NSObject_copy((NSObject*) _W_REGION(region)->handle);
+		}
+		w_graphics_set_clipping_path_0(gc, copy);
 	}
 	return result;
 }
@@ -1633,7 +1901,31 @@ wresult w_graphics_set_line_width(w_graphics *gc, float lineWidth) {
 }
 void _w_graphics_set_pattern_phase(w_graphics *gc, w_pattern *pattern) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
-
+	if (_W_PATTERN(pattern)->is_color == W_FALSE)
+		return;
+	NSPoint phase;
+	NSRect bounds;
+	phase.x = 0;
+	phase.y = 0;
+	if (_gc->image != 0) {
+		NSImageRep *imageRep = (NSImageRep*) _gc->image;
+		NSInteger h = NSImageRep_pixelsHigh((NSImageRep*) imageRep);
+		phase.y += h - _W_PATTERN(pattern)->height;
+	} else if (_gc->view != 0) {
+		NSView *view = _gc->view;
+		if (!NSView_isFlipped(view)) {
+			NSView_bounds(view, &bounds);
+			phase.y = bounds.height;
+		}
+		NSWindow *window = NSView_window(view);
+		NSView *contentView = NSWindow_contentView(window);
+		NSView_convertPoint_toView_(view, &phase, &phase, contentView);
+		NSView_bounds(contentView, &bounds);
+		phase.y = bounds.height - phase.y;
+	} else if (_gc->issize != 0) {
+		phase.y += _gc->size.height - _W_PATTERN(pattern)->height;
+	}
+	NSGraphicsContext_setPatternPhase(_gc->handle, &phase);
 }
 wresult w_graphics_set_xor_mode(w_graphics *gc, int _xor) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);

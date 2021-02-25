@@ -263,7 +263,8 @@ enum {
 	}\
     return (NSView *)e.result._id;\
 }
-#define _NSMETHOD_EVENT_3(superclass) _NSMETHOD_mouseDown(superclass) \
+#define _NSMETHOD_EVENT_3(superclass)\
+_NSMETHOD_mouseDown(superclass) \
 _NSMETHOD_mouseUp(superclass) \
 _NSMETHOD_scrollWheel(superclass) \
 _NSMETHOD_rightMouseDown(superclass) \

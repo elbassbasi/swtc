@@ -66,26 +66,74 @@ wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event) {
 	return W_FALSE;
 }
+wresult _w_control_init_graphics(w_widget *widget, _w_graphics *gc,
+		_w_control_priv *priv) {
+	NSView *view = gc->view;
+	NSGraphicsContext *graphicsContext = 0;
+	if (gc->ispaintRect != 0) {
+		graphicsContext = NSGraphicsContext_currentContext();
+		if (!NSView_isFlipped(view))
+			gc->state &= ~GRAPHICS_STATE_VISIBLE_REGION;
+	}
+	if (graphicsContext == 0) {
+		NSWindow *window = NSView_window(view);
+		/*
+		 * Force the device to be created before attempting
+		 * to create a GC on a deferred NSWindow.
+		 */
+		if (NSWindow_windowNumber(window) <= 0) {
+			CGFloat alpha = NSWindow_alphaValue(window);
+			NSWindow_setAlphaValue(window, 0);
+			NSWindow_orderBack(window, 0);
+			NSWindow_orderOut(window, 0);
+			NSWindow_setAlphaValue(window, alpha);
+		}
+		graphicsContext = NSGraphicsContext_graphicsContextWithWindow(window);
+		NSGraphicsContext *flippedContext =
+				NSGraphicsContext_graphicsContextWithGraphicsPort(
+						NSGraphicsContext_graphicsPort(graphicsContext),
+						W_TRUE);
+		graphicsContext = flippedContext;
+		gc->flippedContext = flippedContext;
+		gc->state &= ~GRAPHICS_STATE_VISIBLE_REGION;
+		//gc->visibleRgn = getVisibleRegion();
+		//display.addContext (data);
+	}
+	int mask = W_LEFT_TO_RIGHT | W_RIGHT_TO_LEFT;
+	if ((gc->style & mask) == 0) {
+		gc->style |= _W_WIDGET(widget)->style & (mask | W_MIRRORED);
+	}
+	gc->font = W_FONT(&mac_toolkit->systemFont);
+	return W_TRUE;
+}
 wresult _w_control_draw_widget(w_widget *widget, NSView *view,
-NSGraphicsContext *context, NSRect *rect, _w_control_priv *priv) {
+		NSGraphicsContext *context, NSRect *rect, _w_control_priv *priv) {
 	/* Send paint event */
 	w_event_paint e;
 	_w_graphics gc;
-	_w_graphics_init(W_GRAPHICS(&gc), context,0);
-	gc.font =W_FONT(&mac_toolkit->systemFont);
+	_w_graphics_init(W_GRAPHICS(&gc), context, 0);
+	gc.view = view;
+	_w_control_init_graphics(widget, &gc, priv);
 	e.event.type = W_EVENT_PAINT;
 	e.event.platform_event = 0;
 	e.event.time = 0;
 	e.event.widget = widget;
 	e.event.data = 0;
 	e.gc = W_GRAPHICS(&gc);
-    e.bounds.x = rect->origin.x;
-    e.bounds.y = rect->origin.y;
-    e.bounds.width = rect->size.width;
-    e.bounds.height = rect->size.height;
+	e.bounds.x = rect->origin.x;
+	e.bounds.y = rect->origin.y;
+	e.bounds.width = rect->size.width;
+	e.bounds.height = rect->size.height;
 	wresult result = _w_widget_send_event(widget, W_EVENT(&e));
 	w_graphics_dispose(W_GRAPHICS(&gc));
 	return result;
+}
+w_cursor* _w_control_find_cursor(w_control *control, _w_control_priv *priv) {
+	if (_W_CONTROL(control)->cursor != 0)
+		return _W_CONTROL(control)->cursor;
+	w_composite *p = _W_CONTROL(control)->parent;
+	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(p);
+	return ppriv->find_cursor(W_CONTROL(p), ppriv);
 }
 wresult _w_control_force_focus(w_control *control) {
 	return W_FALSE;
@@ -252,7 +300,18 @@ wresult _w_control_set_capture(w_control *control, int capture) {
 	return W_FALSE;
 }
 wresult _w_control_set_cursor(w_control *control, w_cursor *cursor) {
-	return W_FALSE;
+	if (cursor != 0 && _W_CURSOR(cursor)->handle == 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	_W_CONTROL(control)->cursor = cursor;
+	wresult enabled = W_CONTROL_GET_CLASS(control)->is_enabled(control);
+	if (enabled <= 0)
+		return W_TRUE;
+	NSView *view = _W_WIDGET(control)->handle;
+	NSWindow *window = NSView_window(view);
+	if (!NSWindow_areCursorRectsEnabled(window))
+		return W_TRUE;
+	_w_toolkit_set_cursor(mac_toolkit->currentControl);
+	return W_TRUE;
 }
 wresult _w_control_set_default_font(w_widget *widget, _w_control_priv *priv) {
 	return W_FALSE;
@@ -439,4 +498,5 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->has_border = _w_control_has_border;
 	priv->mark_layout = _w_control_mark_layout;
 	priv->update_layout = _w_control_update_layout;
+	priv->find_cursor = _w_control_find_cursor;
 }

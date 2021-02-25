@@ -10,6 +10,7 @@
 		${CURRENT_DIR}/NSDictionary.m
 		${CURRENT_DIR}/NSFont.m
 		${CURRENT_DIR}/NSGraphicsContext.m
+		${CURRENT_DIR}/NSImage.m
 		${CURRENT_DIR}/NSLayoutManager.m
 		${CURRENT_DIR}/NSObject.m
 		${CURRENT_DIR}/NSOutlineView.m

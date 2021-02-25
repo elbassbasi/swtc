@@ -70,6 +70,7 @@ void NSObject_retain(NSObject *object);
 void NSObject_release(NSObject *object);
 void NSObject_autorelease(NSObject *object);
 NSUInteger NSObject_retainCount(NSObject *object);
+NSObject* NSObject_copy(NSObject *object);
 /*
  *  NSNumber
  */

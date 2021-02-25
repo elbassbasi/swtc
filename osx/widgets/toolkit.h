@@ -25,17 +25,19 @@ typedef struct _w_toolkit {
 	w_tray tray;
 	w_thread thread;
 	w_widget *widget_free;
-	w_control* ignoreFocusControl;
+	w_control *ignoreFocusControl;
 	NSApplication *application;
 	NSAutoreleasePool *pool;
-	NSMutableArray* isPainting;
-	NSMutableArray* needsDisplay;
-	NSNumber* SYNTHETIC_BOLD;
-	NSNumber* SYNTHETIC_ITALIC;
+	NSMutableArray *isPainting;
+	NSMutableArray *needsDisplay;
+	NSNumber *SYNTHETIC_BOLD;
+	NSNumber *SYNTHETIC_ITALIC;
 	_w_font systemFont;
+	w_toolkit* currentControl;
 	int exit_code;
 	unsigned exit_loop :1;
 	unsigned sheet :1;
+	unsigned lockCursor :1;
 	/*
 	 * shell
 	 */

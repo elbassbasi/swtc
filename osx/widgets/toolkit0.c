@@ -206,8 +206,7 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 		return 0;
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
-	w_theme *theme = _W_TOOLKIT(toolkit)->theme;
-	return w_theme_get_font(theme);
+	return (w_font*)&_W_TOOLKIT(toolkit)->systemFont;
 }
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {

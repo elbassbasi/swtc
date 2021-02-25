@@ -11,6 +11,7 @@
 #include "NSColor.h"
 #include "NSAffineTransform.h"
 #include "NSAttributedString.h"
+#include "NSImage.h"
 typedef struct NSGraphicsContext NSGraphicsContext;
 typedef struct NSCompositingOperation NSCompositingOperation;
 typedef struct NSBitmapImageRep NSBitmapImageRep;
@@ -31,7 +32,7 @@ void NSGraphicsContext_saveGraphicsState(NSGraphicsContext* graphicsContext);
 void NSGraphicsContext_setCompositingOperation(NSGraphicsContext* graphicsContext,NSCompositingOperation* operation);
 void NSGraphicsContext_setCurrentContext(NSGraphicsContext *context);
 void NSGraphicsContext_setImageInterpolation(NSGraphicsContext* graphicsContext,NSUInteger interpolation);
-void NSGraphicsContext_setPatternPhase(NSGraphicsContext* graphicsContext,w_point* phase);
+void NSGraphicsContext_setPatternPhase(NSGraphicsContext* graphicsContext,NSPoint* phase);
 void NSGraphicsContext_setShouldAntialias(NSGraphicsContext* graphicsContext,int antialias);
 int NSGraphicsContext_shouldAntialias(NSGraphicsContext* graphicsContext);
 #endif /* OSX_OBJC_NSGRAPHICSCONTEXT_H_ */

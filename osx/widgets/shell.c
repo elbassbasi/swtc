@@ -142,7 +142,7 @@ wresult _w_shell_create_handle(w_widget *widget, _w_control_priv *priv) {
 		}
 		if (screen == 0)
 			screen = primaryScreen;
-		memset(&frame,0,sizeof(frame));
+		memset(&frame, 0, sizeof(frame));
 		window = NSWindow_initWithContentRect_0(window, &frame, styleMask,
 				NSBackingStoreBuffered,
 				(_W_WIDGET(widget)->style & W_ON_TOP) != 0, screen);
@@ -370,6 +370,9 @@ wresult _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 wresult _w_shell_close(w_shell *shell) {
 	_w_shell_close_widget(shell, 0);
 	return W_TRUE;
+}
+w_cursor* _w_shell_find_cursor(w_control *control, _w_control_priv *priv) {
+	return _W_CONTROL(control)->cursor;
 }
 wresult _w_shell_force_active(w_shell *shell) {
 	return W_FALSE;
@@ -787,6 +790,7 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	_W_WIDGET_PRIV(priv)->create_handle = _w_shell_create_handle;
 	_W_WIDGET_PRIV(priv)->get_client_area = _w_shell_get_client_area;
 	priv->set_zorder = _w_shell_set_zorder;
+	priv->find_cursor = _w_shell_find_cursor;
 	_W_COMPOSITE_PRIV(priv)->find_deferred_control =
 			_w_shell_find_deferred_control;
 	/*

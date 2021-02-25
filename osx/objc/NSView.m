@@ -6,9 +6,9 @@
 }
 @end
 @implementation SWTView
-//_NSMETHOD_EVENT_3(NSView)
-//_NSMETHOD_EVENT_2(NSView)
-//_NSMETHOD_setNeedsDisplayInRect(NSView)
+_NSMETHOD_EVENT_3(NSView)
+_NSMETHOD_EVENT_2(NSView)
+_NSMETHOD_setNeedsDisplayInRect(NSView)
 _NSMETHOD_drawRect(NSView)
 //_NSMETHOD_hitTest(NSView)
 @end

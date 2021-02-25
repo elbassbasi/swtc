@@ -7,21 +7,110 @@
  */
 #include "gc.h"
 void w_imagelist_init(w_imagelist *imagelist) {
+	_W_IMAGELIST(imagelist)->images = 0;
 }
 void w_imagelist_dispose(w_imagelist *imagelist) {
+	if (_W_IMAGELIST(imagelist)->images == 0)
+		return;
+	struct _w_imagelist_images *images = _W_IMAGELIST(imagelist)->images;
+	int i, count = images->count;
+	for (i = 0; i < count; i++) {
+		NSImage *image = images->images[i];
+		if (image != 0)
+			NSObject_release(NSOBJECT(image));
+	}
+	free(images);
+	_W_IMAGELIST(imagelist)->images = 0;
 }
 wresult w_imagelist_create(w_imagelist *imagelist, w_size *size,
 		int initialCount) {
-	return W_FALSE;
+	if (initialCount == 0)
+		initialCount = 4;
+	_W_IMAGELIST(imagelist)->images = (struct _w_imagelist_images*) malloc(
+			sizeof(struct _w_imagelist_images)
+					+ initialCount * sizeof(struct _w_imagelist_image*));
+	if (_W_IMAGELIST(imagelist)->images == 0) {
+		return W_ERROR_NO_HANDLES;
+	}
+	_W_IMAGELIST(imagelist)->images->alloc = initialCount;
+	_W_IMAGELIST(imagelist)->images->count = 0;
+	_W_IMAGELIST(imagelist)->images->width = size->width;
+	_W_IMAGELIST(imagelist)->images->height = size->height;
+	_W_IMAGELIST(imagelist)->images->reserved = 0;
+	return W_TRUE;
 }
 int w_imagelist_add(w_imagelist *imagelist, w_image *image) {
-	return W_FALSE;
+	if (_W_IMAGELIST(imagelist)->images == 0)
+		return W_ERROR_NO_HANDLES;
+	if (image == 0 || _W_IMAGE(image)->handle == 0) {
+		return W_ERROR_INVALID_ARGUMENT;
+	}
+	struct _w_imagelist_images *images = _W_IMAGELIST(imagelist)->images;
+	if (images->count >= images->alloc) {
+		size_t new_alloc = images->alloc + 4;
+		struct _w_imagelist_images *newimages = realloc(images,
+				sizeof(struct _w_imagelist_images)
+						+ new_alloc * sizeof(struct _w_imagelist_image*));
+		if (newimages == 0) {
+			return W_ERROR_NO_MEMORY;
+		}
+		newimages->alloc = new_alloc;
+		_W_IMAGELIST(imagelist)->images = newimages;
+	}
+	NSImage *imageidx;
+	NSSize sz;
+	NSImage_size(_W_IMAGE(image)->handle, &sz);
+	int width = sz.width;
+	int heigth = sz.height;
+	imageidx =(NSImage*)NSObject_copy(NSOBJECT(_W_IMAGE(image)->handle));
+	if (width == images->width && heigth == images->height) {
+		//imageidx = NSObject_copy(NSOBJECT(_W_IMAGE(image)->handle));
+	} else {
+		//NSImage_setScalesWhenResized(imageidx, IMAge)
+		sz.width = images->width;
+		sz.height = images->height;
+		NSImage_setSize(imageidx, &sz);
+	}
+	if (imageidx == 0) {
+		return W_ERROR_NO_MEMORY;
+	} else {
+		images->images[images->count] = imageidx;
+	}
+	images->count++;
+	return W_TRUE;
 }
 wresult w_imagelist_is_ok(w_imagelist *imagelist) {
-	return W_FALSE;
+	return imagelist != 0 && _W_IMAGELIST(imagelist)->images != 0;
 }
 wresult w_imagelist_replace(w_imagelist *imagelist, int index, w_image *image) {
-	return W_FALSE;
+	if (_W_IMAGELIST(imagelist)->images == 0)
+		return W_ERROR_NO_HANDLES;
+	if (image == 0 || _W_IMAGE(image)->handle == 0) {
+		return W_ERROR_INVALID_ARGUMENT;
+	}
+	_w_imagelist_images *images = _W_IMAGELIST(imagelist)->images;
+	if (images->count > index) {
+		NSImage *imageidx, *imagelast;
+		imagelast = images->images[index];
+		NSSize sz;
+		NSImage_size(_W_IMAGE(image)->handle, &sz);
+		int width = sz.width;
+		int heigth = sz.height;
+		imageidx =(NSImage*) NSObject_copy(NSOBJECT(_W_IMAGE(image)->handle));
+		if (width == images->width && heigth == images->height) {
+		} else {
+			sz.width = images->width;
+			sz.height = images->height;
+			NSImage_setSize(imageidx, &sz);
+		}
+		if (imageidx == 0)
+			return W_ERROR_NO_HANDLES;
+		images->images[images->count] = imageidx;
+		NSObject_release(NSOBJECT(imagelast));
+		return W_TRUE;
+	} else {
+		return w_imagelist_add(imagelist, image);
+	}
 }
 wresult w_imagelist_remove(w_imagelist *imagelist, int index) {
 	return W_FALSE;
@@ -34,16 +123,57 @@ wresult w_imagelist_get_image(w_imagelist *imagelist, int index, int copy,
 	return W_FALSE;
 }
 wresult w_imagelist_get_size(w_imagelist *imagelist, w_size *size) {
-	return W_FALSE;
+	if (imagelist == 0 || _W_IMAGELIST(imagelist)->images == 0)
+		return W_ERROR_NO_HANDLES;
+	size->width = _W_IMAGELIST(imagelist)->images->width;
+	size->height = _W_IMAGELIST(imagelist)->images->height;
+	return W_TRUE;
 }
 int w_imagelist_get_count(w_imagelist *imagelist) {
-	return W_FALSE;
+	if (imagelist == 0 || _W_IMAGELIST(imagelist)->images == 0)
+		return 0;
+	return _W_IMAGELIST(imagelist)->images->count;
 }
 wresult w_imagelist_draw(w_imagelist *imagelist, w_graphics *graphics,
 		int index, w_point *pt, int state) {
-	return W_FALSE;
+	return w_imagelist_draw_ex(imagelist, graphics, index, pt, state, 0, 0);
 }
 wresult w_imagelist_draw_ex(w_imagelist *imagelist, w_graphics *graphics,
 		int index, w_point *pt, int state, w_color bg, w_color fg) {
-	return W_FALSE;
+	if (imagelist == 0 || _W_IMAGELIST(imagelist)->images == 0)
+		return W_ERROR_NO_HANDLES;
+	if (graphics == 0 || _W_GRAPHICS(graphics)->handle == 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	if (index < 0 || index >= _W_IMAGELIST(imagelist)->images->count)
+		return W_ERROR_INVALID_RANGE;
+	w_image img;
+	_W_IMAGE(&img)->handle = _W_IMAGELIST(imagelist)->images->images[index];
+	w_rect src, dest;
+	src.x = 0;
+	src.y = 0;
+	src.width = -1;
+	src.height = -1;
+	dest.x = pt->x;
+	dest.y = pt->y;
+	dest.width = -1;
+	dest.height = -1;
+	w_color last_bg, last_fg;
+	if (state & W_DISABLED) {
+		if (bg != 0) {
+			last_bg = w_graphics_get_background(graphics);
+			w_graphics_set_background(graphics, bg);
+		}
+		if (fg != 0) {
+			last_fg = w_graphics_get_foreground(graphics);
+			w_graphics_set_foreground(graphics, fg);
+		}
+	}
+	w_graphics_draw_image(graphics, &img, &src, &dest, state);
+	if (state & W_DISABLED) {
+		if (bg != 0)
+			w_graphics_set_background(graphics, last_bg);
+		if (fg != 0)
+			w_graphics_set_foreground(graphics, last_fg);
+	}
+	return W_TRUE;
 }

@@ -58,9 +58,8 @@ void NSGraphicsContext_setImageInterpolation(NSGraphicsContext* graphicsContext,
     [graphicsContext setImageInterpolation:interpolation];
 }
 
-void NSGraphicsContext_setPatternPhase(NSGraphicsContext* graphicsContext,w_point* phase) {
-    NSPoint _phase = NSMakePoint(phase->x, phase->y);
-    [graphicsContext setPatternPhase:_phase];
+void NSGraphicsContext_setPatternPhase(NSGraphicsContext* graphicsContext,NSPoint* phase) {
+    [graphicsContext setPatternPhase:*phase];
 }
 
 void NSGraphicsContext_setShouldAntialias(NSGraphicsContext* graphicsContext,int antialias) {

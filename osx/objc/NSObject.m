@@ -1,10 +1,4 @@
 #import "swt.h"
-void NSCursor_init(){
-    /*Class cls = objc_lookUpClass("NSCursor");
-    SEL sel = sel_getUid("set");
-    Method method = class_getInstanceMethod(cls, sel);
-    if (method != 0) oldCursorSetProc = method_setImplementation(method, (IMP)_w_toolkit_cursor_set_proc);*/
-}
 /*
  * NSObject
  */
@@ -22,6 +16,9 @@ void NSObject_autorelease(NSObject* object){
 }
 NSUInteger NSObject_retainCount(NSObject* object){
     return [object retainCount];
+}
+NSObject* NSObject_copy(NSObject *object){
+    return [object copy];
 }
 /*
  *  NSNumber

@@ -68,26 +68,26 @@ wresult w_fontdata_set_style(w_fontdata *fontdata, int style) {
  */
 void _w_font_add_traits_0(w_font *font, NSMutableAttributedString *attrStr,
 		NSRange *range) {
-	_w_font_desc *desc = _W_FONT(font)->desc;
-	if ((desc->extraTraits & NSBoldFontMask) != 0) {
+	_w_font *desc = _W_FONT(font);
+	if (desc->isBold) {
 		NSMutableAttributedString_addAttribute(attrStr,
 				(NSString*) _NSStrokeWidthAttributeName,
 				(NSObject*) mac_toolkit->SYNTHETIC_BOLD, range);
 	}
-	if ((desc->extraTraits & NSItalicFontMask) != 0) {
+	if (desc->isItalic) {
 		NSMutableAttributedString_addAttribute(attrStr,
 				(NSString*) _NSObliquenessAttributeName,
 				(NSObject*) mac_toolkit->SYNTHETIC_ITALIC, range);
 	}
 }
 void _w_font_add_traits_1(w_font *font, NSMutableDictionary *dict) {
-	_w_font_desc *desc = _W_FONT(font)->desc;
-	if ((desc->extraTraits & NSBoldFontMask) != 0) {
+	_w_font *desc = _W_FONT(font);
+	if (desc->isBold) {
 		NSMutableDictionary_setObject(dict,
 				(NSObject*) mac_toolkit->SYNTHETIC_BOLD,
 				(NSObject*) _NSStrokeWidthAttributeName);
 	}
-	if ((desc->extraTraits & NSItalicFontMask) != 0) {
+	if (desc->isItalic) {
 		NSMutableDictionary_setObject(dict,
 				(NSObject*) mac_toolkit->SYNTHETIC_ITALIC,
 				(NSObject*) _NSObliquenessAttributeName);
@@ -95,15 +95,11 @@ void _w_font_add_traits_1(w_font *font, NSMutableDictionary *dict) {
 }
 void w_font_init(w_font *font) {
 	_W_FONT(font)->handle = 0;
-	_W_FONT(font)->desc = 0;
 }
 void w_font_dispose(w_font *font) {
 	if (_W_FONT(font)->handle != 0) {
 		NSObject_release(NSOBJECT(_W_FONT(font)->handle));
-		if (_W_FONT(font)->desc != 0)
-			free(_W_FONT(font)->desc);
 		_W_FONT(font)->handle = 0;
-		_W_FONT(font)->desc = 0;
 	}
 }
 wresult w_font_is_ok(w_font *font) {
@@ -113,6 +109,7 @@ wresult w_font_create_0(w_font *font, NSString *family, int style, int height,
 		NSString *nsName) {
 	if (height < 0)
 		return W_ERROR_INVALID_ARGUMENT;
+	memset(font, 0, sizeof(w_font));
 	float size = height;
 	NSFont *handle = 0;
 	if (nsName != 0) {
@@ -122,10 +119,7 @@ wresult w_font_create_0(w_font *font, NSString *family, int style, int height,
 		if (nsFont == 0)
 			nsFont = NSFont_systemFontOfSize(size);
 		NSFontManager *manager = NSFontManager_sharedFontManager();
-		_w_font_desc *desc = calloc(1, sizeof(_w_font_desc));
-		if (desc == 0)
-			return W_ERROR_NO_MEMORY;
-		_W_FONT(font)->desc = desc;
+		_w_font *desc = _W_FONT(font);
 		if (nsFont != 0) {
 			if ((style & (W_BOLD | W_ITALIC)) == 0) {
 				handle = nsFont;
@@ -165,12 +159,12 @@ wresult w_font_create_0(w_font *font, NSString *family, int style, int height,
 		if ((style & W_ITALIC) != 0
 				&& (NSFontManager_traitsOfFont(manager, handle)
 						& NSItalicFontMask) == 0) {
-			desc->extraTraits |= NSItalicFontMask;
+			desc->isItalic = W_TRUE;
 		}
 		if ((style & W_BOLD) != 0
 				&& (NSFontManager_traitsOfFont(manager, handle) & NSBoldFontMask)
 						== 0) {
-			desc->extraTraits |= NSBoldFontMask;
+			desc->isBold = W_TRUE;
 		}
 	}
 	if (handle == 0) {
@@ -199,7 +193,7 @@ wresult w_font_create_from_fontdata(w_font *font, w_fontdata *fontdata) {
 }
 wresult w_font_get_fontdata(w_font *font, w_fontdata *fontdata) {
 	NSFont *handle = _W_FONT(font)->handle;
-	_w_font_desc *desc = _W_FONT(font)->desc;
+	_w_font *desc = _W_FONT(font);
 	_w_fontdata *d = (_w_fontdata*) fontdata;
 	NSString *family = NSFont_familyName(handle);
 	d->nsName = NSFont_fontName(handle);
@@ -210,9 +204,9 @@ wresult w_font_get_fontdata(w_font *font, w_fontdata *fontdata) {
 		style |= W_ITALIC;
 	if ((traits & NSBoldFontMask) != 0)
 		style |= W_BOLD;
-	if ((desc->extraTraits & NSItalicFontMask) != 0)
+	if (desc->isItalic)
 		style |= W_ITALIC;
-	if ((desc->extraTraits & NSBoldFontMask) != 0)
+	if (desc->isBold)
 		style |= W_BOLD;
 	d->style = style;
 	d->height = NSFont_pointSize(handle);
