@@ -117,6 +117,7 @@ void _w_toolkit_add_item(NSMenu *menu, char *title, char *action, char *key) {
 	NSString *_title = NSString_stringWithUTF8String(title);
 	NSMenu_addItemWithTitle(menu, _title, 0, mac_toolkit->emptyString);
 }
+id objc_msgSend(id self, SEL op, ...);
 void _w_toolkit_create_mainmenu() {
 	NSString *empty;
 	NSMenu *mainMenu = NSMenu_initWithTitle(empty); // `title` really doesn't matter.
