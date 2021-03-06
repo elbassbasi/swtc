@@ -91,6 +91,7 @@ NSString* NSString_initWithBytes_utf8(const void *bytes,int length){
     }
 }
 NSString* NSString_new(const void *bytes,int length, int encoding){
+    if(bytes == 0) return 0;
     if(encoding == W_ENCODING_UNICODE){
         return NSString_stringWithCharacters((const wchar_t*)bytes,length);
     }else{

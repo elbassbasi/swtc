@@ -9,6 +9,7 @@
 #ifndef OSX_CONTROLS_CONTROLS_H_
 #define OSX_CONTROLS_CONTROLS_H_
 
+#include "button.h"
 #include "treeview.h"
 
 #endif /* OSX_CONTROLS_CONTROLS_H_ */

@@ -13,7 +13,6 @@
  */
 typedef struct NSWindow NSWindow;
 typedef struct NSButtonCell NSButtonCell;
-typedef struct NSText NSText;
 typedef struct NSResponder NSResponder;
 typedef struct NSURL NSURL;
 typedef struct NSToolbar NSToolbar;

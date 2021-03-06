@@ -26,14 +26,18 @@ typedef struct _w_toolkit {
 	w_thread thread;
 	w_widget *widget_free;
 	w_control *ignoreFocusControl;
+	w_control *currentControl;
 	NSApplication *application;
 	NSAutoreleasePool *pool;
 	NSMutableArray *isPainting;
 	NSMutableArray *needsDisplay;
 	NSNumber *SYNTHETIC_BOLD;
 	NSNumber *SYNTHETIC_ITALIC;
+	NSString *emptyString;
 	_w_font systemFont;
-	w_toolkit* currentControl;
+	w_menu appMenuBar;
+	w_menu *menuBar;
+	NSWindow* screenWindow, *keyWindow;
 	int exit_code;
 	unsigned exit_loop :1;
 	unsigned sheet :1;
@@ -77,12 +81,29 @@ typedef struct _w_toolkit {
 	_w_menu_priv class_menu_priv;
 	struct _w_menuitem_class class_menuitem;
 	/*
-	 * tree
+	 * treeview
 	 */
 	struct _w_treeview_class class_treeview;
 	_w_treeview_priv class_treeview_priv;
 	struct _w_treeitem_class class_treeitem;
 	struct _w_columnitem_class class_treecolumn;
+	/*
+	 * listview
+	 */
+	struct _w_listview_class class_listview;
+	_w_listview_priv class_listview_priv;
+	struct _w_listitem_class class_listitem;
+	struct _w_columnitem_class class_listcolumn;
+	/*
+	 * sash
+	 */
+	/*struct _w_sash_class class_sash;
+	_w_sash_priv class_sash_priv;*/
+	/*
+	 * button
+	 */
+	struct _w_button_class class_button;
+	_w_button_priv class_button_priv;
 	/*
 	 * internal memory
 	 */
@@ -110,6 +131,8 @@ void _w_toolkit_init(_w_toolkit *toolkit);
 void _w_toolkit_dispose(w_disposable *disposable);
 void _w_toolkit_class_init(_w_toolkit *toolkit);
 void _w_theme_init();
+void _w_toolkit_set_cursor(w_control *control);
+void _w_toolkit_set_menubar(w_menu *menu);
 /**
  * public function
  */

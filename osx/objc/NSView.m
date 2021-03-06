@@ -300,4 +300,97 @@ void NSView_visibleRect(NSView* view,NSRect* result) {
 NSWindow* NSView_window(NSView* view) {
     return [view window];;
 }
+/*
+ *  NSControl
+ */
+NSInteger NSControl_abortEditing(NSControl* control) {
+    return [control abortEditing];
+}
 
+SEL NSControl_action(NSControl* control) {
+    return [control action];
+}
+
+NSCell* NSControl_cell(NSControl* control) {
+    return [control cell];
+}
+
+Class NSControl_cellClass(NSControl* control) {
+    return [NSControl cellClass];
+}
+
+NSText* NSControl_currentEditor(NSControl* control) {
+    return [control currentEditor];
+}
+
+double NSControl_doubleValue(NSControl* control) {
+    return [control doubleValue];
+}
+
+NSFont* NSControl_font(NSControl* control) {
+    return [control font];
+}
+
+NSInteger NSControl_isEnabled(NSControl* control) {
+    return [control isEnabled];
+}
+
+NSInteger NSControl_sendAction(NSControl* control,SEL theAction, NSObject* theTarget) {
+    return [control sendAction:theAction to:theTarget];
+}
+
+void NSControl_setAction(NSControl* control,SEL aSelector) {
+    [control setAction:aSelector];
+}
+
+void NSControl_setAlignment(NSControl* control,NSInteger mode) {
+    [control setAlignment:mode];
+}
+
+void NSControl_setBaseWritingDirection(NSControl* control,NSInteger writingDirection) {
+    [control setBaseWritingDirection:writingDirection];
+}
+
+void NSControl_setCell(NSControl* control,NSCell* aCell) {
+    [control setCell:aCell];
+}
+
+void NSControl_setCellClass(Class factoryId) {
+    [NSControl setCellClass:factoryId];
+}
+
+void NSControl_setDoubleValue(NSControl* control,double aDouble) {
+    [control setDoubleValue:aDouble];
+}
+
+void NSControl_setEnabled(NSControl* control,NSInteger flag) {
+    [control setEnabled:flag];
+}
+
+void NSControl_setFont(NSControl* control,NSFont* fontObj) {
+    [control setFont:fontObj];
+}
+
+void NSControl_setFormatter(NSControl* control,NSFormatter* newFormatter) {
+    [control setFormatter:newFormatter];
+}
+
+void NSControl_setStringValue(NSControl* control,NSString* aString) {
+    [control setStringValue:aString];
+}
+
+void NSControl_setTarget(NSControl* control,NSObject* anObject) {
+    [control setTarget:anObject];
+}
+
+void NSControl_sizeToFit(NSControl* control) {
+    [control sizeToFit];
+}
+
+NSString* NSControl_stringValue(NSControl* control) {
+    return [control stringValue];
+}
+
+NSObject* NSControl_target(NSControl* control) {
+    return [control target];
+}

@@ -174,7 +174,13 @@ wresult _w_control_get_graphics(w_control *control, w_graphics *gc) {
 	return W_FALSE;
 }
 wresult _w_control_get_layout_data(w_control *control, void **data) {
-	return W_FALSE;
+    struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
+    if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
+        *data = *((void**) &((char*) control)[clazz->object_used_size]);
+    } else {
+        *data = (void*) &((char*) control)[clazz->object_used_size];
+    }
+    return W_TRUE;
 }
 wresult _w_control_get_menu(w_control *control, w_menu **menu) {
 	return W_FALSE;
@@ -244,7 +250,25 @@ wresult _w_control_move_below(w_control *control, w_control *_control) {
 }
 wresult _w_control_new_layout_data(w_control *control, void **data,
 		size_t size) {
-	return W_FALSE;
+	    struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
+    if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
+        void *layout_data =
+                *((void**) &((char*) control)[clazz->object_used_size]);
+        if (layout_data != 0) {
+            free(layout_data);
+        }
+    }
+    if ((clazz->object_used_size + size) < clazz->object_total_size) {
+        _W_WIDGET(control)->state |= STATE_LAYOUT_DATA_LOCALE;
+        *data = (void*) &((char*) control)[clazz->object_used_size];
+    } else {
+        _W_WIDGET(control)->state &= ~STATE_LAYOUT_DATA_LOCALE;
+        *data = malloc(size);
+        if (*data == 0)
+            return W_ERROR_NO_MEMORY;
+        *((void**) &((char*) control)[clazz->object_used_size]) = *data;
+    }
+    return W_TRUE;
 }
 wresult _w_control_pack(w_control *control, int flags) {
 	return W_FALSE;

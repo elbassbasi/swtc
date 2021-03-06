@@ -63,6 +63,31 @@ wresult _w_toolkit_beep(w_toolkit *toolkit) {
 	return W_FALSE;
 }
 w_shell* _w_toolkit_get_active_shell(w_toolkit *toolkit) {
+	NSWindow *window =
+			_W_TOOLKIT(toolkit)->keyWindow != 0 ?
+					_W_TOOLKIT(toolkit)->keyWindow :
+					NSApplication_keyWindow(mac_toolkit->application);
+	if (window != 0) {
+		NSView *contentView = NSWindow_contentView(window);
+		w_widget *widget = _w_widget_find_control(contentView);
+		if (w_widget_class_id(widget) == _W_CLASS_SHELL) {
+			return (w_shell*) widget;
+		}
+
+		// Embedded shell test: If the NSWindow isn't an SWTWindow walk up the
+		// hierarchy from the hit view to see if some view maps to a Shell.
+		NSPoint windowLocation;
+		NSWindow_mouseLocationOutsideOfEventStream(window, &windowLocation);
+		NSView *hitView = NSView_hitTest(contentView, &windowLocation);
+		while (hitView != 0) {
+			widget = _w_widget_find_control(hitView);
+			if (w_widget_class_id(widget) == _W_CLASS_SHELL) {
+				break;
+			}
+			hitView = NSView_superview(hitView);
+		}
+		return (w_shell*) widget;
+	}
 	return 0;
 }
 w_menu* _w_toolkit_get_menubar(w_toolkit *toolkit) {
@@ -206,7 +231,7 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 		return 0;
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
-	return (w_font*)&_W_TOOLKIT(toolkit)->systemFont;
+	return (w_font*) &_W_TOOLKIT(toolkit)->systemFont;
 }
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {
@@ -247,34 +272,36 @@ wresult _w_toolkit_post_quit(w_toolkit *toolkit, int quit) {
 	return W_TRUE;
 }
 wresult _w_toolkit_dispatch(w_toolkit *toolkit) {
-    NSRunLoop* loop = NSRunLoop_currentRunLoop();
-    NSRunLoop_runMode(loop, NSDefaultRunLoopMode, NSDate_distantFuture());
-    return W_TRUE;
+	NSRunLoop *loop = NSRunLoop_currentRunLoop();
+	NSRunLoop_runMode(loop, NSDefaultRunLoopMode, NSDate_distantFuture());
+	return W_TRUE;
 }
 wresult _w_toolkit_read(w_toolkit *toolkit) {
-    NSEvent* event = NSApplication_nextEventMatchingMask(_W_TOOLKIT(toolkit)->application, NSAnyEventMask, 0, NSDefaultRunLoopMode, W_TRUE);
-        if ((event != 0) && (_W_TOOLKIT(toolkit)->application != 0)) {
-            NSApplication_sendEvent(_W_TOOLKIT(toolkit)->application, event);
-        }
-    w_event _e;
-    w_widget *widget = ((_w_toolkit*) toolkit)->widget_free, *next;
-    while (widget != 0) {
-        w_widget_post_event_proc _proc =
-                (w_widget_post_event_proc) widget->post_event;
-        next = (w_widget*) widget->handle; //widget = widget->next
-        if (_proc != 0) {
-            _e.type = W_EVENT_FREE_MEMORY;
-            _e.platform_event = 0;
-            _e.data = 0;
-            _e.widget = widget;
-            _proc(widget, &_e);
-        } else {
-            free(widget);
-        }
-        widget = next; //widget = widget->next
-    }
-    ((_w_toolkit*) toolkit)->widget_free = 0;
-    return W_TRUE;
+	NSEvent *event = NSApplication_nextEventMatchingMask(
+			_W_TOOLKIT(toolkit)->application, NSAnyEventMask, 0,
+			NSDefaultRunLoopMode, W_TRUE);
+	if ((event != 0) && (_W_TOOLKIT(toolkit)->application != 0)) {
+		NSApplication_sendEvent(_W_TOOLKIT(toolkit)->application, event);
+	}
+	w_event _e;
+	w_widget *widget = ((_w_toolkit*) toolkit)->widget_free, *next;
+	while (widget != 0) {
+		w_widget_post_event_proc _proc =
+				(w_widget_post_event_proc) widget->post_event;
+		next = (w_widget*) widget->handle; //widget = widget->next
+		if (_proc != 0) {
+			_e.type = W_EVENT_FREE_MEMORY;
+			_e.platform_event = 0;
+			_e.data = 0;
+			_e.widget = widget;
+			_proc(widget, &_e);
+		} else {
+			free(widget);
+		}
+		widget = next; //widget = widget->next
+	}
+	((_w_toolkit*) toolkit)->widget_free = 0;
+	return W_TRUE;
 }
 wresult _w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *point) {
 	return W_FALSE;

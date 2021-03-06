@@ -1,17 +1,15 @@
 #import "swt.h"
 @interface AppDelegate : NSObject <NSApplicationDelegate>
-- (void)applicationDidFinishLaunching:(NSNotification *)aNotification;
-- (void)applicationWillTerminate:(NSNotification *)aNotification;
 @end
 @implementation AppDelegate
-
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    // Insert code here to initialize your application
+    _w_toolkit_notify(_NS_applicationDidFinishLaunching,aNotification);
 }
-
-
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
-    // Insert code here to tear down your application
+     _w_toolkit_notify(_NS_applicationWillTerminate,aNotification);
+}
+- (void)applicationDidBecomeActive:(NSNotification *)aNotification{
+    _w_toolkit_notify(_NS_applicationDidBecomeActive,aNotification);
 }
 @end
 void NSApp_Init(){
@@ -149,43 +147,43 @@ int NSRunLoop_runMode(NSRunLoop* runloop,NSString* mode, NSDate* limitDate) {
     return [application setActivationPolicy:activationPolicy];
 }
 
- void NSApplication_setApplicationIconImage(NSApplication *application,NSImage* applicationIconImage) {
+void NSApplication_setApplicationIconImage(NSApplication *application,NSImage* applicationIconImage) {
      [application setApplicationIconImage:applicationIconImage];
 }
 
- void NSApplication_setDelegate(NSApplication *application,NSObject* delegate) {
+void NSApplication_setDelegate(NSApplication *application,NSObject* delegate) {
  [application setDelegate:delegate];
 }
 
- void NSApplication_setHelpMenu(NSApplication *application,NSMenu* helpMenu) {
+void NSApplication_setHelpMenu(NSApplication *application,NSMenu* helpMenu) {
   [application setHelpMenu:helpMenu];
 }
 
- void NSApplication_setMainMenu(NSApplication *application,NSMenu* mainMenu) {
+void NSApplication_setMainMenu(NSApplication *application,NSMenu* mainMenu) {
   [application setMainMenu:mainMenu];
 }
 
- void NSApplication_setServicesMenu(NSApplication *application,NSMenu* servicesMenu) {
+void NSApplication_setServicesMenu(NSApplication *application,NSMenu* servicesMenu) {
  [application setServicesMenu:servicesMenu];
 }
 
- NSApplication* NSApplication_sharedApplication() {
+NSApplication* NSApplication_sharedApplication() {
     return  [NSApplication sharedApplication];
 }
 
- void NSApplication_stop(NSApplication *application,NSObject* sender) {
+void NSApplication_stop(NSApplication *application,NSObject* sender) {
     [application stop:sender];
 }
 
- void NSApplication_stopModal(NSApplication *application) {
+void NSApplication_stopModal(NSApplication *application) {
      [application stopModal];
 }
 
- void NSApplication_terminate(NSApplication *application,NSObject* sender) {
+void NSApplication_terminate(NSApplication *application,NSObject* sender) {
      [application terminate:sender];
 }
 
- void NSApplication_unhideAllApplications(NSApplication *application,NSObject* sender) {
+void NSApplication_unhideAllApplications(NSApplication *application,NSObject* sender) {
      [application unhideAllApplications:sender];
 }
 NSWindow* NSApplication_windowWithWindowNumber(NSApplication *application,int windowNum) {

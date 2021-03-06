@@ -11,6 +11,15 @@
 /*
  * menuitem
  */
+NSMenu* _w_menuitem_submenu(w_menuitem *item) {
+	NSMenuItem *_i = _W_MENUITEM(item)->handle;
+	if (_i == 0) {
+		w_widget *_p = _W_ITEM(item)->parent;
+		return (NSMenu*) _W_WIDGET(_p)->handle;
+	} else {
+		return NSMenuItem_submenu(_i);
+	}
+}
 wresult _w_menuitem_copy(w_widgetdata *from, w_widgetdata *to) {
 	_w_item_copy(from, to);
 	return W_TRUE;
@@ -27,11 +36,49 @@ wresult _w_menuitem_set_data(w_item *item, void *data) {
 }
 wresult _w_menuitem_set_text(w_item *item, const char *text, int length,
 		int enc) {
-	return W_FALSE;
+    NSMenuItem* nsitem = _W_MENUITEM(item)->handle;
+    NSString* str = NSString_new(text, length, enc);
+    if(str == 0) str = mac_toolkit->emptyString;
+    NSMenuItem_setTitle(nsitem, str);
+    return W_TRUE;
 }
 wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 		int index) {
-	return W_FALSE;
+	NSMenu *menu = _w_menuitem_submenu(parent);
+	if (menu == 0)
+		return W_ERROR_ITEM_NOT_ADDED;
+	int add = W_TRUE;
+	NSMenuItem *nsItem = 0;
+	if ((style & W_SEPARATOR) != 0) {
+		nsItem = NSMenuItem_separatorItem();
+		NSObject_retain(nsItem);
+	} else {
+		NSString *empty = mac_toolkit->emptyString;
+		nsItem = NSMenuItem_initWithTitle(empty, 0, empty);
+		//NSMenuItem_setTarget(nsItem, NSOBJECT(nsItem));
+		/*NSMenuItem_setAction(nsItem, aSelector);
+		 nsItem.setAction(OS.sel_sendSelection);*/
+		if (style & W_CASCADE) {
+			NSMenu *submenu = NSMenu_initWithTitle(mac_toolkit->emptyString);
+			NSMenuItem_setSubmenu(nsItem, submenu);
+		}
+	}
+	if (add) {
+        int count = NSMenu_numberOfItems(menu);
+        if(index < 0 || index >= count){
+            NSMenu_addItem(menu, nsItem);
+            index = count;
+        }else{
+            NSMenu_insertItem(menu, nsItem, index);
+        }
+	}
+	if (item != 0) {
+		_W_WIDGETDATA(item)->clazz = _W_WIDGETDATA(parent)->clazz;
+		_W_ITEM(item)->parent = _W_ITEM(parent)->parent;
+		_W_ITEM(item)->index = index;
+		_W_MENUITEM(item)->handle = nsItem;
+	}
+	return W_TRUE;
 }
 wresult _w_menuitem_get_accelerator(w_menuitem *item) {
 	return W_FALSE;
@@ -85,7 +132,7 @@ wresult _w_menuitem_set_id(w_menuitem *item, wushort id) {
 wresult _w_menuitem_set_image(w_menuitem *item, w_image *image) {
 	return W_FALSE;
 }
-wresult _w_menuitem_set_image_index(w_menuitem *item, int index){
+wresult _w_menuitem_set_image_index(w_menuitem *item, int index) {
 	return W_FALSE;
 }
 wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {
@@ -97,13 +144,14 @@ wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {
 wresult _w_menu_get_bounds(w_menu *menu, w_rect *bounds) {
 	return W_FALSE;
 }
-wresult _w_menu_get_imagelist(w_menu *menu, w_imagelist **imagelist){
+wresult _w_menu_get_imagelist(w_menu *menu, w_imagelist **imagelist) {
 	return W_FALSE;
 }
 wresult _w_menu_get_root(w_menu *menu, w_menuitem *rootitem) {
 	_W_WIDGETDATA(rootitem)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 	_W_ITEM(rootitem)->parent = W_WIDGET(menu);
 	_W_ITEM(rootitem)->index = -1;
+	_W_MENUITEM(rootitem)->handle = 0;
 	return W_TRUE;
 }
 wresult _w_menu_get_orientation(w_menu *menu) {
@@ -121,7 +169,7 @@ wresult _w_menu_get_visible(w_menu *menu) {
 wresult _w_menu_is_visible(w_menu *menu) {
 	return W_FALSE;
 }
-wresult _w_menu_set_imagelist(w_menu *menu, w_imagelist *imagelist){
+wresult _w_menu_set_imagelist(w_menu *menu, w_imagelist *imagelist) {
 	return W_FALSE;
 }
 wresult _w_menu_set_location(w_menu *menu, w_point *location) {
@@ -135,7 +183,14 @@ wresult _w_menu_set_visible(w_menu *menu, int visible) {
 }
 wresult _w_menu_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
-	return W_FALSE;
+	NSMenu *nsMenu = NSMenu_initWithTitle(mac_toolkit->emptyString);
+	NSMenu_setAutoenablesItems(nsMenu, W_FALSE);
+	//NSMenu_setDelegate(nsMenu,(NSObject*) nsMenu);
+	_W_WIDGET(widget)->handle = (NSView*) nsMenu;
+	_W_MENU(widget)->parent = (w_control*) parent;
+	_W_WIDGET(widget)->style = style;
+	_W_WIDGET(widget)->post_event = post_event;
+	return W_TRUE;
 }
 wresult _w_menu_post_event(w_widget *widget, w_event *e) {
 	return W_FALSE;

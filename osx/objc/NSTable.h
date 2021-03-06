@@ -11,7 +11,6 @@
 typedef struct NSTableView NSTableView;
 typedef struct NSTableHeaderView NSTableHeaderView;
 typedef struct NSTableColumn NSTableColumn;
-typedef struct NSCell NSCell;
 void NSTableView_setHeaderView(NSTableView* tableView,NSTableHeaderView *headerView);
 void NSTableView_addTableColumn(NSTableView* tableView,NSTableColumn* column);
 NSUInteger NSTableView_selectedRow(NSTableView* tableView);

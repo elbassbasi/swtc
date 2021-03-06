@@ -253,6 +253,14 @@ wresult _w_shell_create_handle(w_widget *widget, _w_control_priv *priv) {
 	}
 	return W_TRUE;
 }
+void _w_shell_bring_totop(w_shell *shell, int force) {
+	//if (getMinimized ()) return;
+	if (force) {
+		_w_shell_force_active(shell);
+	} else {
+		_w_shell_set_active(shell);
+	}
+}
 void _w_shell_center(w_shell *shell) {
 	if (_W_CONTROL(shell)->parent == 0)
 		return;
@@ -375,7 +383,13 @@ w_cursor* _w_shell_find_cursor(w_control *control, _w_control_priv *priv) {
 	return _W_CONTROL(control)->cursor;
 }
 wresult _w_shell_force_active(w_shell *shell) {
-	return W_FALSE;
+	//if (_w_shell_is_visible(W_CONTROL(shell))) return W_TRUE;
+	if (_W_SHELL(shell)->window == 0)
+		return W_TRUE;
+	_w_shell_make_key_and_order_front(shell);
+	NSApplication *application = NSApplication_sharedApplication();
+	NSApplication_activateIgnoringOtherApps(application, W_TRUE);
+	return W_TRUE;
 }
 wresult _w_shell_get_default_button(w_shell *shell, w_button **button) {
 	return W_FALSE;
@@ -429,8 +443,10 @@ void _w_shell_make_key_and_order_front(w_shell *shell) {
 	 */
 	if (_W_CONTROL(shell)->parent != 0) {
 		NSWindow *parentWindow = _w_shell_parent_window(shell);
-		if (NSWindow_isMiniaturized(parentWindow)) {
-			NSWindow_deminiaturize(parentWindow, 0);
+		if (parentWindow != 0) {
+			if (NSWindow_isMiniaturized(parentWindow)) {
+				NSWindow_deminiaturize(parentWindow, 0);
+			}
 		}
 	}
 	NSWindow_makeKeyAndOrderFront(_W_SHELL(shell)->window, 0);
@@ -539,11 +555,16 @@ wresult _w_shell_set_window_visible(w_shell *shell, int visible, int key,
 }
 wresult _w_shell_open(w_shell *shell) {
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(shell);
+	//_w_shell_bring_totop(shell, W_FALSE);
 	_w_shell_set_window_visible(shell, W_TRUE, W_TRUE, priv);
 	return W_TRUE;
 }
 wresult _w_shell_set_active(w_shell *shell) {
-	return W_FALSE;
+	if (_W_SHELL(shell)->window == 0)
+		return W_TRUE;
+	//if (!isVisible()) return;
+	_w_shell_make_key_and_order_front(shell);
+	return W_TRUE;
 }
 wresult _w_shell_set_alpha(w_shell *shell, int alpha) {
 	return W_FALSE;
@@ -629,7 +650,22 @@ wresult _w_shell_set_maximized(w_shell *shell, int maximized) {
 	return W_FALSE;
 }
 wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
-	return W_FALSE;
+	if (_W_SHELL(shell)->menubar == menu)
+		return W_TRUE;
+	if (menu != 0) {
+		if (w_widget_is_ok(W_WIDGET(menu)) <= 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		if ((_W_WIDGET(menu)->style & W_BAR) == 0)
+			return W_ERROR_MENU_NOT_BAR;
+		if (_W_MENU(menu)->parent != W_CONTROL(shell))
+			return W_ERROR_INVALID_PARENT;
+	}
+	_W_SHELL(shell)->menubar = menu;
+	w_shell *activeshell = _w_toolkit_get_active_shell(W_TOOLKIT(mac_toolkit));
+	if (activeshell == shell) {
+		_w_toolkit_set_menubar(menu);
+	}
+	return W_TRUE;
 }
 wresult _w_shell_set_minimized(w_shell *shell, int minimized) {
 	return W_FALSE;
@@ -690,6 +726,27 @@ wresult _ns_shell_viewWillMoveToWindow(w_widget *widget, _w_event_platform *e,
 }
 wresult _ns_shell_windowDidBecomeKey(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (_W_SHELL(widget)->window != 0) {
+		_w_toolkit_set_menubar(_W_SHELL(widget)->menubar);
+	}
+	/*sendEvent (SWT.Activate);
+	if (isDisposed ()) return;
+	if (!restoreFocus () && !traverseGroup (true)) setFocus ();
+	if (isDisposed ()) return;
+	if ((window.collectionBehavior() & OS.NSWindowCollectionBehaviorFullScreenPrimary) == 0) {
+		Shell parentShell = this;
+		while (parentShell.parent != null) {
+			parentShell = (Shell) parentShell.parent;
+			if (parentShell._getFullScreen ()) {
+				break;
+			}
+		}
+		if (!parentShell._getFullScreen () || menuBar != null) {
+			updateSystemUIMode ();
+		} else {
+			parentShell.updateSystemUIMode ();
+		}
+	}*/
 	return W_FALSE;
 }
 wresult _ns_shell_windowDidDeminiturize(w_widget *widget, _w_event_platform *e,
@@ -798,7 +855,7 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	 */
 	dispatch_message *msgs = _W_WIDGET_PRIV(priv)->msgs;
 	msgs[_NS_WILL_MOVE_TO_WINDOW] = _ns_shell_viewWillMoveToWindow;
-	msgs[_NS_WINDOW_DID_BECOME_KEY] = _ns_shell_windowDidBecomeKey;
+	msgs[_NS_windowDidBecomeKey] = _ns_shell_windowDidBecomeKey;
 	msgs[_NS_WINDOW_DID_DEMINITURIZE] = _ns_shell_windowDidDeminiturize;
 	msgs[_NS_WINDOW_DID_MINITURIZE] = _ns_shell_windowDidMiniturize;
 	msgs[_NS_WINDOW_DID_MOVE] = _ns_shell_windowDidMove;

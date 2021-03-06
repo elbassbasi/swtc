@@ -9,12 +9,16 @@
 #define OSX_OBJC_NSVIEW_H_
 #include "NSGraphicsContext.h"
 typedef struct NSView NSView;
+typedef struct NSControl NSControl;
 typedef struct NSEvent NSEvent;
 typedef struct NSBitmapImageRep NSBitmapImageRep;
 typedef struct NSMenu NSMenu;
 typedef struct NSPasteboard NSPasteboard;
 typedef struct NSTrackingArea NSTrackingArea;
 typedef struct NSClipView NSClipView;
+typedef struct NSCell NSCell;
+typedef struct NSText NSText;
+typedef struct NSFormatter NSFormatter;
 /*
  * messages
  */
@@ -92,5 +96,32 @@ void NSView_viewDidMoveToWindow(NSView* view);
 void NSView_viewWillMoveToWindow(NSView* view,NSWindow* newWindow);
 void NSView_visibleRect(NSView* view,NSRect* result);
 NSWindow* NSView_window(NSView* view);
+/*
+ *  NSControl
+ */
+NSInteger NSControl_abortEditing(NSControl* control);
+SEL NSControl_action(NSControl* control);
+NSCell* NSControl_cell(NSControl* control);
+Class NSControl_cellClass(NSControl* control);
+NSText* NSControl_currentEditor(NSControl* control);
+double NSControl_doubleValue(NSControl* control);
+NSFont* NSControl_font(NSControl* control);
+NSInteger NSControl_isEnabled(NSControl* control);
+NSInteger NSControl_sendAction(NSControl* control,SEL theAction, NSObject* theTarget);
+void NSControl_setAction(NSControl* control,SEL aSelector);
+void NSControl_setAlignment(NSControl* control,NSInteger mode);
+void NSControl_setBaseWritingDirection(NSControl* control,NSInteger writingDirection);
+void NSControl_setCell(NSControl* control,NSCell* aCell);
+void NSControl_setCellClass(Class factoryId);
+void NSControl_setDoubleValue(NSControl* control,double aDouble);
+void NSControl_setEnabled(NSControl* control,NSInteger flag);
+void NSControl_setFont(NSControl* control,NSFont* fontObj);
+void NSControl_setFormatter(NSControl* control,NSFormatter* newFormatter);
+void NSControl_setStringValue(NSControl* control,NSString* aString);
+void NSControl_setTarget(NSControl* control,NSObject* anObject);
+void NSControl_sizeToFit(NSControl* control);
+NSString* NSControl_stringValue(NSControl* control);
+NSObject* NSControl_target(NSControl* control);
+
 
 #endif /* OSX_OBJC_NSVIEW_H_ */

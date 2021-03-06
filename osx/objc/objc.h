@@ -14,5 +14,7 @@
 #include "NSWindow.h"
 #include "NSScrollView.h"
 #include "NSOutlineView.h"
+#include "NSMenu.h"
+#include "NSButton.h"
 
 #endif /* OSX_OBJC_OBJC_H_ */

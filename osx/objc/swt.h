@@ -41,6 +41,7 @@ typedef struct _w_event_platform {
 void _w_event_platform_init(_w_event_platform *e, w_widget *widget,
 		void *handle, int msg);
 wresult _w_widget_send_event(w_widget *widget, w_event *event);
+wresult _w_toolkit_notify(int msg,void* obj);
 enum {
 	_NS_CLASS_VIEW,
 	_NS_CLASS_SCROLLVIEW,
@@ -107,9 +108,13 @@ enum {
 	_NS_outlineViewItemWillCollapse,
 	_NS_outlineViewItemDidCollapse,
 	/*
+	 *
+	 */
+	_NS_selection,
+	/*
 	 window
 	 */
-	_NS_WINDOW_DID_BECOME_KEY,
+	_NS_windowDidBecomeKey,
 	_NS_WINDOW_DID_DEMINITURIZE,
 	_NS_WINDOW_DID_MINITURIZE,
 	_NS_WINDOW_DID_MOVE,
@@ -118,7 +123,10 @@ enum {
 	_NS_WINDOW_SEND_EVENT,
 	_NS_windowWillClose,
 	_NS_windowShouldClose,
-	_NS_LAST_MSG
+	_NS_LAST_MSG,
+    _NS_applicationDidFinishLaunching=1,
+    _NS_applicationWillTerminate,
+    _NS_applicationDidBecomeActive,
 
 };
 #define _NSMETHOD_EVENT(superclass,method) -(void)method:(NSEvent *)event{\

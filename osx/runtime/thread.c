@@ -17,14 +17,14 @@ void w_thread_init(w_thread *thread) {
 	thread->start_proc = 0;
 }
 wresult w_threadid_equal(w_threadid thread1, w_threadid thread2) {
-	return pthread_equal(thread1, thread2);
+	return pthread_equal((pthread_t)thread1, (pthread_t)thread2);
 }
 wresult w_thread_equal(w_thread *thread1, w_thread *thread2) {
-	return pthread_equal(thread1->id, thread2->id);
+	return pthread_equal((pthread_t)thread1->id,(pthread_t) thread2->id);
 }
 void w_thread_dispose(w_thread *thread) {
 	if (thread != 0 && thread->id != 0) {
-		pthread_cancel(thread->id);
+		pthread_cancel((pthread_t)thread->id);
 		thread->id = 0;
 	}
 }
@@ -94,14 +94,14 @@ wresult w_thread_create(w_thread *thread,size_t stackSize) {
 }
 wresult w_thread_cancel(w_thread *thread) {
 	if (thread->id != 0) {
-		pthread_cancel(thread->id);
+		pthread_cancel((pthread_t)thread->id);
 		return W_TRUE;
 	} else
 		return W_ERROR_NO_HANDLES;
 }
 wresult w_thread_join(w_thread *thread) {
 	if (thread->id != 0) {
-		pthread_join(thread->id, NULL);
+		pthread_join((pthread_t)thread->id, NULL);
 		return W_TRUE;
 	} else
 		return W_ERROR_NO_HANDLES;
@@ -133,10 +133,10 @@ w_thread* w_thread_get_current() {
 	return (w_thread*) pthread_getspecific(_pthread_key);
 }
 w_threadid w_thread_get_current_id() {
-	return pthread_self();
+	return (w_threadid)pthread_self();
 }
 wresult w_thread_is_current(w_thread *thread) {
-	return pthread_equal(pthread_self(), thread->id);
+	return pthread_equal((pthread_t)pthread_self(),(pthread_t) thread->id);
 }
 void w_thread_yield() {
 	sleep(0);

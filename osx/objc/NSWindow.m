@@ -2,9 +2,6 @@
 @interface SWTWindowDelegate : NSObject <NSWindowDelegate> {
 @public w_widget* widget;
 }
-- (BOOL)windowShouldClose:(NSWindow *)sender;
-- (void)windowWillClose:(NSNotification *)notification;
-- (void)windowDidResize:(NSNotification *)notification;
 @end
 @implementation SWTWindowDelegate
 - (BOOL)windowShouldClose:(NSWindow *)sender{
@@ -21,6 +18,11 @@
 - (void)windowDidResize:(NSNotification *)notification{
     _w_event_platform e;
     _w_event_platform_init(&e, widget, self, _NS_windowDidResize);
+    _w_widget_send_event(widget,W_EVENT(&e));
+}
+- (void)windowDidBecomeKey:(NSNotification *)notification{
+    _w_event_platform e;
+    _w_event_platform_init(&e, widget, self, _NS_windowDidBecomeKey);
     _w_widget_send_event(widget,W_EVENT(&e));
 }
 @end

@@ -165,8 +165,9 @@ wresult _w_composite_get_children(w_composite *composite, w_iterator *it) {
 	NSView *view = priv->get_view(W_WIDGET(composite));
 	it->base.clazz = &_w_composite_children_class;
 	iter->composite = composite;
-	iter->count = NSArray_count(iter->views);
 	iter->views = NSView_subviews(view);
+    iter->count = NSArray_count(iter->views);
+    iter->i = 0;
 	return W_TRUE;
 }
 wresult _w_composite_get_layout(w_composite *composite, w_layout **layout) {
@@ -189,6 +190,17 @@ wresult _w_composite_layout_changed(w_composite *_this, w_control **changed,
 		size_t length, int flags) {
 	return W_FALSE;
 }
+wresult _w_composite_set_bounds(w_control *control,w_point* location,w_size* size) {
+    wresult ret = _w_control_set_bounds(control, location,size);
+    if (size != 0) {
+    	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+		//if (layout != null) {
+		priv->mark_layout(control, 0, priv);
+		priv->update_layout(control, 0, priv);
+		//}
+    }
+    return ret;
+}
 wresult _w_composite_set_layout(w_composite *composite, w_layout *layout) {
 	_W_COMPOSITE(composite)->layout = layout;
 	return W_FALSE;
@@ -208,6 +220,7 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	/*
 	 * functions
 	 */
+	W_CONTROL_CLASS(clazz)->set_bounds = _w_composite_set_bounds;
 	clazz->get_children = _w_composite_get_children;
 	clazz->get_layout = _w_composite_get_layout;
 	clazz->get_layout_deferred = _w_composite_get_layout_deferred;

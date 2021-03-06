@@ -66,11 +66,11 @@ typedef struct NSValue NSValue;
  */
 #define NSOBJECT(x) ((NSObject*)x)
 Class NSObject_class(NSObject *object);
-void NSObject_retain(NSObject *object);
-void NSObject_release(NSObject *object);
-void NSObject_autorelease(NSObject *object);
-NSUInteger NSObject_retainCount(NSObject *object);
-NSObject* NSObject_copy(NSObject *object);
+void NSObject_retain(void *object);
+void NSObject_release(void *object);
+void NSObject_autorelease(void *object);
+NSUInteger NSObject_retainCount(void *object);
+NSObject* NSObject_copy(void *object);
 /*
  *  NSNumber
  */

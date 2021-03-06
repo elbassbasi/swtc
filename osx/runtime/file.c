@@ -6,6 +6,7 @@
  */
 #include <swtc.h>
 #include <dirent.h>
+#include <stdio.h>
 FILE* w_fopen(const char *file, const char *mode) {
 	FILE *f = fopen(file, mode);
 	return f;

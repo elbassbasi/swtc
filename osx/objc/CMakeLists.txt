@@ -6,12 +6,14 @@
 		${CURRENT_DIR}/NSArray.m
 		${CURRENT_DIR}/NSAttributedString.m
 		${CURRENT_DIR}/NSBezierPath.m
+		${CURRENT_DIR}/NSButton.m
 		${CURRENT_DIR}/NSColor.m
 		${CURRENT_DIR}/NSDictionary.m
 		${CURRENT_DIR}/NSFont.m
 		${CURRENT_DIR}/NSGraphicsContext.m
 		${CURRENT_DIR}/NSImage.m
 		${CURRENT_DIR}/NSLayoutManager.m
+		${CURRENT_DIR}/NSMenu.m
 		${CURRENT_DIR}/NSObject.m
 		${CURRENT_DIR}/NSOutlineView.m
 		${CURRENT_DIR}/NSScrollView.m

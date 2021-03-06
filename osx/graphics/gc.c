@@ -387,13 +387,13 @@ wresult w_graphics_draw_arc(w_graphics *gc, w_rect *rect, int startAngle,
 	}
 	return result;
 }
-wresult w_graphics_draw_image_0(w_graphics *gc, w_image *image,w_surface* surface, w_rect *src,
-		w_rect *dest, int state) {
-	NSImage* imageHandle =(NSImage*) _W_IMAGE(image)->handle;
+wresult w_graphics_draw_image_0(w_graphics *gc, w_image *image,
+		w_surface *surface, w_rect *src, w_rect *dest, int state) {
+	NSImage *imageHandle = (NSImage*) _W_IMAGE(image)->handle;
 	NSSize size;
 	NSImage_size(imageHandle, &size);
- 	int imgWidth = (int)size.width;
- 	int imgHeight = (int)size.height;
+	int imgWidth = (int) size.width;
+	int imgHeight = (int) size.height;
 	int srcX = src->x, srcY = src->y, srcWidth = src->width, srcHeight =
 			src->height;
 	int destX = dest->x, destY = dest->y, destWidth = dest->width, destHeight =
@@ -406,15 +406,16 @@ wresult w_graphics_draw_image_0(w_graphics *gc, w_image *image,w_surface* surfac
 		destWidth = imgWidth;
 	if (destHeight < 0)
 		destHeight = imgHeight;
- 	wresult result = _w_graphics_check(gc, GRAPHICS_STATE_CLIPPING | GRAPHICS_STATE_TRANSFORM);
- 	if(result > 0){
+	wresult result = _w_graphics_check(gc,
+			GRAPHICS_STATE_CLIPPING | GRAPHICS_STATE_TRANSFORM);
+	if (result > 0) {
 		if (surface != 0) {
 			//srcImage.createAlpha();
 		}
 		NSGraphicsContext_saveGraphicsState(_W_GRAPHICS(gc)->handle);
-		NSAffineTransform* transform = NSAffineTransform_transform();
+		NSAffineTransform *transform = NSAffineTransform_transform();
 		NSAffineTransform_scaleXBy(transform, 1, -1);
-		NSAffineTransform_translateXBy(transform,0, -(destHeight + 2 * destY));
+		NSAffineTransform_translateXBy(transform, 0, -(destHeight + 2 * destY));
 		NSAffineTransform_concat(transform);
 		NSRect srcRect;
 		srcRect.x = srcX;
@@ -426,15 +427,16 @@ wresult w_graphics_draw_image_0(w_graphics *gc, w_image *image,w_surface* surfac
 		destRect.y = destY;
 		destRect.width = destWidth;
 		destRect.height = destHeight;
-		NSImage_drawInRect(imageHandle, &destRect, &srcRect,NSCompositeSourceOver, _W_GRAPHICS(gc)->alpha / 255.0);
+		NSImage_drawInRect(imageHandle, &destRect, &srcRect,
+				NSCompositeSourceOver, _W_GRAPHICS(gc)->alpha / 255.0);
 		NSGraphicsContext_restoreGraphicsState(_W_GRAPHICS(gc)->handle);
 		_w_graphics_uncheck(gc);
- 	}
- 	return result;
+	}
+	return result;
 }
 wresult w_graphics_draw_image(w_graphics *gc, w_image *image, w_rect *src,
-		w_rect *dest, int state){
-	return w_graphics_draw_image_0(gc, image,0, src, dest, state);
+		w_rect *dest, int state) {
+	return w_graphics_draw_image_0(gc, image, 0, src, dest, state);
 }
 wresult w_graphics_draw_surface(w_graphics *gc, w_surface *surface, w_rect *src,
 		w_rect *dest) {
@@ -1557,24 +1559,28 @@ wresult w_graphics_set_clipping_path(w_graphics *gc, w_path *path) {
 	return result;
 }
 wresult w_graphics_set_clipping_rect(w_graphics *gc, w_rect *_rect) {
+
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	wresult result = _w_graphics_check(gc, 0);
 	if (result > 0) {
-		NSRect rect;
-		rect.x = _rect->x;
-		rect.y = _rect->y;
-		rect.width = _rect->width;
-		rect.height = _rect->height;
-		if (rect.width < 0) {
-			rect.x = rect.x + rect.width;
-			rect.width = -rect.width;
+		NSBezierPath *path = 0;
+		if (_rect != 0) {
+			NSRect rect;
+			rect.x = _rect->x;
+			rect.y = _rect->y;
+			rect.width = _rect->width;
+			rect.height = _rect->height;
+			if (rect.width < 0) {
+				rect.x = rect.x + rect.width;
+				rect.width = -rect.width;
+			}
+			if (rect.height < 0) {
+				rect.y = rect.y + rect.height;
+				rect.height = -rect.height;
+			}
+			NSBezierPath *path = NSBezierPath_bezierPathWithRect(&rect);
+			NSObject_retain(NSOBJECT(path));
 		}
-		if (rect.height < 0) {
-			rect.y = rect.y + rect.height;
-			rect.height = -rect.height;
-		}
-		NSBezierPath *path = NSBezierPath_bezierPathWithRect(&rect);
-		NSObject_retain(NSOBJECT(path));
 		w_graphics_set_clipping_path_0(gc, path);
 	}
 	return result;

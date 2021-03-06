@@ -259,7 +259,7 @@ wresult _ns_treeview_outlineViewSelectionDidChange(w_widget *widget,
 		_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(widget);
 		_W_ITEM(&item)->parent = widget;
 		_W_TREEITEM(&item)->handle = handle;
-		NSOutlineView *view = priv->get_view(widget);
+		NSOutlineView *view = (NSOutlineView *)priv->get_view(widget);
 		_W_TREEITEM(&item)->view = view;
 	}
 	_w_widget_send_event(widget, (w_event*) &event);

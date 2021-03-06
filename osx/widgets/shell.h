@@ -41,5 +41,8 @@ struct _w_shell_priv {
 /*
  * functions
  */
+wresult _w_shell_force_active(w_shell *shell);
+void _w_shell_make_key_and_order_front(w_shell *shell);
+wresult _w_shell_set_active(w_shell *shell);
 void _w_shell_class_init(struct _w_shell_class *clazz);
 #endif /* OSX_WIDGETS_SHELL_H_ */

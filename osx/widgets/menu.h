@@ -27,6 +27,7 @@ struct _w_menu {
  */
 typedef struct _w_menuitem {
 	_w_item item;
+	NSMenuItem* handle;
 } _w_menuitem;
 #define _W_MENUITEM(x) ((_w_menuitem*)x)
 /*
