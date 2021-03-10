@@ -79,8 +79,8 @@ typedef struct _w_pattern {
  * transform
  */
 typedef struct _w_transform {
-	unsigned is_created :1;
 	cairo_matrix_t handle;
+	unsigned is_created :1;
 } _w_transform;
 #define _W_TRANSFORM(x) ((_w_transform*)x)
 /*

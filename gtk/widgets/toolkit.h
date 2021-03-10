@@ -120,6 +120,16 @@ typedef struct _w_toolkit {
 	struct _w_button_class class_button;
 	_w_button_priv class_button_priv;
 	/*
+	 * label
+	 */
+	struct _w_label_class class_label;
+	_w_label_priv class_label_priv;
+	/*
+	 * textedit
+	 */
+	struct _w_textedit_class class_textedit;
+	_w_textedit_priv class_textedit_priv;
+	/*
 	 * internal memory
 	 */
 	size_t tmp_alloc;

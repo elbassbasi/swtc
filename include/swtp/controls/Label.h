@@ -78,8 +78,8 @@ public:
 	 *
 	 * @return the receiver's image
 	 */
-	bool GetImage(WImage& image) {
-		return w_label_get_image(W_LABEL(this),W_IMAGE(&image))>0;
+	bool GetImage(WImage &image) {
+		return w_label_get_image(W_LABEL(this), W_IMAGE(&image)) > 0;
 	}
 	/**
 	 * Returns the receiver's text, which will be an empty
@@ -90,12 +90,14 @@ public:
 	 */
 	WString GetText() {
 		w_string_ref *ref = 0;
-		w_label_get_text(W_LABEL(this),w_alloc_string_ref, &ref);
+		w_label_get_text(W_LABEL(this), w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
 		return ref;
 	}
 	char* GetTextChars() {
 		char *buffer = 0;
-		w_label_get_text(W_LABEL(this),w_alloc_buffer_new, &buffer);
+		w_label_get_text(W_LABEL(this), w_alloc_buffer_new, &buffer,
+				W_ENCODING_UTF8);
 		return buffer;
 	}
 	/**
@@ -127,7 +129,7 @@ public:
 	 * @param string the new text
 	 */
 	bool SetText(const char *string) {
-		return w_label_set_text(W_LABEL(this), string) > 0;
+		return w_label_set_text(W_LABEL(this), string, -1, W_ENCODING_UTF8) > 0;
 	}
 protected:
 	w_class_id _GetClassID();

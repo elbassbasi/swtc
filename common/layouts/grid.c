@@ -867,6 +867,8 @@ void w_grid_move_control(w_grid *grid, w_layout_grid *layout, w_rect *r) {
 					cellWidth += grid->columns[j + k].widths;
 				}
 				for (int k = 0, l = 0; k < vSpan; l++) {
+					if ((i + l) > rowCount)
+						break;
 					cellHeight += grid->rows[i + l].heights;
 					k += grid->rows[i + l].vSpan;
 				}

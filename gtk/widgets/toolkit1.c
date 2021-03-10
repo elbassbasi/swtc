@@ -240,6 +240,23 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 	W_WIDGET_CLASS(&toolkit->class_button)->reserved[0] =
 			&toolkit->class_button_priv;
 	toolkit->classes[_W_CLASS_BUTTON] = W_WIDGET_CLASS(&toolkit->class_button);
+	/*
+	 * label
+	 */
+	W_WIDGET_CLASS(&toolkit->class_label)->init_class =
+			(w_widget_init_class) _w_label_class_init;
+	W_WIDGET_CLASS(&toolkit->class_label)->reserved[0] =
+			&toolkit->class_label_priv;
+	toolkit->classes[_W_CLASS_LABEL] = W_WIDGET_CLASS(&toolkit->class_label);
+	/*
+	 * textedit
+	 */
+	W_WIDGET_CLASS(&toolkit->class_textedit)->init_class =
+			(w_widget_init_class) _w_textedit_class_init;
+	W_WIDGET_CLASS(&toolkit->class_textedit)->reserved[0] =
+			&toolkit->class_textedit_priv;
+	toolkit->classes[_W_CLASS_TEXTEDIT] = W_WIDGET_CLASS(
+			&toolkit->class_textedit);
 }
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];

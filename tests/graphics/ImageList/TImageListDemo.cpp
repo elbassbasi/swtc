@@ -21,7 +21,21 @@ void TImageListDemo::CreateControl(WComposite *parent) {
 
 bool TImageListDemo::OnPaint(WPaintEvent &e) {
 	MShell *shell = (MShell*) GetShell();
+	WRect r;
+	WSize sz;
+	int x = 0, y = 0;
+	GetClientArea(r);
 	WImageList *imagelist = shell->GetImageList32();
-	imagelist->DrawNormal(*e.gc, IMAGELIST_ADD, 0, 0);
+	int count = imagelist->GetCount();
+	imagelist->GetSize(sz);
+	count = WMAX(count, 1);
+	for (int i = 0; i < count; i++) {
+		imagelist->DrawNormal(*e.gc, i, x, y);
+		x += sz.width + 1;
+		if ((x + sz.width) > r.width) {
+			x = 0;
+			y += sz.height + 1;
+		}
+	}
 	return true;
 }

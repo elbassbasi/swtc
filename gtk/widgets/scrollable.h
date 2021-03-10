@@ -27,6 +27,8 @@ typedef struct _w_scrollable {
 typedef struct _w_scrollable_priv _w_scrollable_priv;
 struct _w_scrollable_priv {
 	_w_control_priv control;
+	int (*apply_theme_background)(w_scrollable *scrollable,
+			_w_control_priv *priv);
 	GtkWidget* (*handle_scrolled)(w_widget *control, _w_control_priv *priv);
 };
 #define _W_SCROLLABLE_PRIV(x) ((_w_scrollable_priv*)x)
@@ -34,6 +36,14 @@ struct _w_scrollable_priv {
 /*
  * functions
  */
+int _w_scrollable_hscrollbar_width(w_scrollable *scrollable,
+		_w_control_priv *priv);
+int _w_scrollable_vscrollbar_width(w_scrollable *scrollable,
+		_w_control_priv *priv);
+wresult _w_scrollable_compute_trim(w_widget *widget, w_event_compute_trim *e,
+		_w_control_priv *priv);
+int _w_scrollable_apply_theme_background(w_scrollable *scrollable,
+		_w_control_priv *priv);
 void _w_scrollable_hook_events(w_widget *widget, _w_control_priv *priv);
 wresult _w_scrollable_get_client_area(w_widget *widget, w_event_client_area *e,
 		_w_control_priv *priv);

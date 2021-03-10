@@ -68,6 +68,7 @@ typedef struct _w_control {
 	w_dragsource *dragsource;
 	w_droptarget *droptarget;
 	w_point lastInput;
+	int backgroundAlpha;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)
 /*
