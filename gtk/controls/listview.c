@@ -53,7 +53,12 @@ wresult _w_listitem_set_checked(w_listitem *item, int checked) {
 	return W_FALSE;
 }
 wresult _w_listitem_set_image(w_listitem *item, int image) {
-	return W_FALSE;
+	w_widget *tree = _W_ITEM(item)->parent;
+	GtkWidget *handle = _W_WIDGET(tree)->handle;
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(GTK_TREE_VIEW(handle));
+	gtk_list_store_set(GTK_LIST_STORE(modelHandle), &_W_TREEITEM(item)->iter,
+			COLUMN_IMAGE, image, -1);
+	return W_TRUE;
 }
 /*
  * listview
@@ -124,7 +129,7 @@ wresult _w_listview_insert_item(w_listview *list, w_listitem *item, int index) {
 	if (index < 0) {
 		gtk_list_store_append(GTK_LIST_STORE(modelHandle), handle);
 	} else {
-		gtk_list_store_insert(GTK_LIST_STORE(modelHandle), handle,index);
+		gtk_list_store_insert(GTK_LIST_STORE(modelHandle), handle, index);
 	}
 	if (item != 0) {
 		_W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(list);

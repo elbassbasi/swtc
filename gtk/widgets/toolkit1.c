@@ -257,6 +257,15 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 			&toolkit->class_textedit_priv;
 	toolkit->classes[_W_CLASS_TEXTEDIT] = W_WIDGET_CLASS(
 			&toolkit->class_textedit);
+	/*
+	 * progressbar
+	 */
+	W_WIDGET_CLASS(&toolkit->class_progressbar)->init_class =
+			(w_widget_init_class) _w_progressbar_class_init;
+	W_WIDGET_CLASS(&toolkit->class_progressbar)->reserved[0] =
+			&toolkit->class_progressbar_priv;
+	toolkit->classes[_W_CLASS_PROGRESSBAR] = W_WIDGET_CLASS(
+			&toolkit->class_progressbar);
 }
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];

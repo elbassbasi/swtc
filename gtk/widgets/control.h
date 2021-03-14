@@ -55,6 +55,11 @@
 /*
  * control
  */
+typedef struct _w_control_timer {
+	w_control *control;
+	struct _w_control_timer *next;
+	wushort id;
+} _w_control_timer;
 typedef struct _w_control {
 	_w_widget widget;
 	w_composite *parent;
@@ -64,6 +69,7 @@ typedef struct _w_control {
 		w_font *font;
 		_w_font _font;
 	};
+	_w_control_timer timer;
 	GdkPixbuf *backgroundImage;
 	w_dragsource *dragsource;
 	w_droptarget *droptarget;
@@ -250,7 +256,7 @@ void _w_control_class_init(struct _w_control_class *clazz);
 /*
  * signals
  */
-gboolean _w_control_contained_in_region(w_widget *widget,w_point* input,
+gboolean _w_control_contained_in_region(w_widget *widget, w_point *input,
 		_w_control_priv *priv);
 gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 		_w_control_priv *priv);

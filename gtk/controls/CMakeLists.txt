@@ -5,6 +5,7 @@
 		${CURRENT_DIR}/label.c
 		${CURRENT_DIR}/listview.c
 		${CURRENT_DIR}/listviewbase.c
+		${CURRENT_DIR}/progressbar.c
 		${CURRENT_DIR}/sash.c
 		${CURRENT_DIR}/textedit.c
 		${CURRENT_DIR}/treeview.c

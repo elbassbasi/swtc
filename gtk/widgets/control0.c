@@ -54,6 +54,11 @@ wresult _w_control_compute_native_size(w_widget *widget, GtkWidget *h,
 #else
 #endif
 }
+wresult _w_control_compute_size(w_widget *widget, w_event_compute_size *e,
+		_w_control_priv *priv) {
+	return _w_control_compute_native_size(widget, _W_WIDGET(widget)->handle, e,
+			priv);
+}
 wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
 	if (parent == 0)
@@ -360,7 +365,44 @@ wresult _w_control_is_reparentable(w_control *control) {
 wresult _w_control_is_visible(w_control *control) {
 	return W_FALSE;
 }
+void _w_control_kill_all_timer(w_control *control) {
+	_w_control_timer *timer, *next;
+	timer = &_W_CONTROL(control)->timer;
+	if (timer->control != 0) {
+		g_source_remove_by_user_data(timer);
+	}
+	timer = timer->next;
+	while (timer != 0) {
+		g_source_remove_by_user_data(timer);
+		next = timer->next;
+		free(timer);
+		timer = next;
+	}
+}
 wresult _w_control_kill_timer(w_control *control, wushort id) {
+	_w_control_timer *timer, *last;
+	timer = &_W_CONTROL(control)->timer;
+	if (timer->control == 0) {
+		last = timer;
+		timer = timer->next;
+	}
+	while (timer != 0) {
+		if (timer->id == id)
+			break;
+		last = timer;
+		timer = timer->next;
+	}
+	if (timer != 0) {
+		g_source_remove_by_user_data(timer);
+		if (timer == &_W_CONTROL(control)->timer) {
+			timer->control = 0;
+		} else {
+			if (last != 0)
+				last->next = timer->next;
+			free(timer);
+		}
+		return W_TRUE;
+	}
 	return W_FALSE;
 }
 void _w_control_mark_layout(w_control *control, int flags,
@@ -682,8 +724,45 @@ wresult _w_control_set_tab(w_control *control, int tab) {
 wresult _w_control_set_text_direction(w_control *control, int textDirection) {
 	return W_FALSE;
 }
+gboolean _w_timer_listenner(gpointer user_data) {
+	_w_control_timer *timer = (_w_control_timer*) user_data;
+	w_event_time e;
+	e.event.type = W_EVENT_TIMER;
+	e.event.platform_event = 0;
+	e.event.time = 0;
+	e.event.widget = W_WIDGET(timer->control);
+	e.event.data = 0;
+	_w_widget_send_event(W_WIDGET(timer->control), (w_event*) &e);
+	return TRUE;
+}
 wresult _w_control_set_timer(w_control *control, wint64 ms, wushort id) {
-	return W_FALSE;
+	_w_control_timer *timer, *last;
+	if (_W_CONTROL(control)->timer.control == 0) {
+		_W_CONTROL(control)->timer.control = control;
+		_W_CONTROL(control)->timer.id = id;
+		timer = &_W_CONTROL(control)->timer;
+	} else {
+		timer = &_W_CONTROL(control)->timer;
+		while (timer != 0) {
+			if (timer->id == id)
+				break;
+			last = timer;
+			timer = timer->next;
+		}
+		if (timer == 0) {
+			timer = malloc(sizeof(_w_control_timer));
+			if (timer == 0)
+				return W_ERROR_NO_MEMORY;
+			last->next = timer;
+			timer->next = 0;
+			timer->control = control;
+			timer->id = id;
+		} else {
+			g_source_remove_by_user_data(timer);
+		}
+	}
+	g_timeout_add(ms, _w_timer_listenner, timer);
+	return W_TRUE;
 }
 wresult _w_control_set_tooltip_text(w_control *control, const char *text,
 		int length, int enc) {
