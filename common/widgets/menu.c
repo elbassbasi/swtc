@@ -199,15 +199,6 @@ wresult w_menu_get_bounds(w_menu *menu, w_rect *bounds) {
 		return result;
 	}
 }
-wresult w_menu_get_imagelist(w_menu *menu, w_imagelist **imagelist) {
-	*imagelist = 0;
-	wresult result = W_WIDGET_CHECK0(menu);
-	if (result > 0) {
-		return W_MENU_GET_CLASS(menu)->get_imagelist(menu, imagelist);
-	} else {
-		return result;
-	}
-}
 wresult w_menu_get_root(w_menu *menu, w_menuitem *rootitem) {
 	w_widgetdata_close(W_WIDGETDATA(rootitem));
 	wresult result = W_WIDGET_CHECK0(menu);

@@ -52,7 +52,6 @@ struct _w_menu_class {
 	struct _w_widget_class widget;
 	struct _w_menuitem_class *class_menuitem;
 	wresult (*get_bounds)(w_menu *menu, w_rect *bounds);
-	wresult (*get_imagelist)(w_menu *menu, w_imagelist **imagelist);
 	wresult (*get_root)(w_menu *menu, w_menuitem *rootitem);
 	wresult (*get_orientation)(w_menu *menu);
 	wresult (*get_parent)(w_menu *menu, w_control **parent);
@@ -98,7 +97,6 @@ SWT_PUBLIC wresult w_menu_create(w_menu *menu, w_control *parent, wuint64 style,
 SWT_PUBLIC w_menu* w_menu_new(struct w_control *parent, wuint64 style,
 		w_widget_post_event_proc post_event);
 SWT_PUBLIC wresult w_menu_get_bounds(w_menu *menu, w_rect *bounds);
-SWT_PUBLIC wresult w_menu_get_imagelist(w_menu *menu, w_imagelist **imagelist);
 SWT_PUBLIC wresult w_menu_get_root(w_menu *menu, w_menuitem *rootitem);
 SWT_PUBLIC wresult w_menu_get_orientation(w_menu *menu);
 SWT_PUBLIC wresult w_menu_get_parent(w_menu *menu, w_control **parent);

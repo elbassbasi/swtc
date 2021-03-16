@@ -36,11 +36,12 @@ wresult _w_menuitem_set_data(w_item *item, void *data) {
 }
 wresult _w_menuitem_set_text(w_item *item, const char *text, int length,
 		int enc) {
-    NSMenuItem* nsitem = _W_MENUITEM(item)->handle;
-    NSString* str = NSString_new(text, length, enc);
-    if(str == 0) str = mac_toolkit->emptyString;
-    NSMenuItem_setTitle(nsitem, str);
-    return W_TRUE;
+	NSMenuItem *nsitem = _W_MENUITEM(item)->handle;
+	NSString *str = NSString_new(text, length, enc);
+	if (str == 0)
+		str = mac_toolkit->emptyString;
+	NSMenuItem_setTitle(nsitem, str);
+	return W_TRUE;
 }
 wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 		int index) {
@@ -64,13 +65,13 @@ wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 		}
 	}
 	if (add) {
-        int count = NSMenu_numberOfItems(menu);
-        if(index < 0 || index >= count){
-            NSMenu_addItem(menu, nsItem);
-            index = count;
-        }else{
-            NSMenu_insertItem(menu, nsItem, index);
-        }
+		int count = NSMenu_numberOfItems(menu);
+		if (index < 0 || index >= count) {
+			NSMenu_addItem(menu, nsItem);
+			index = count;
+		} else {
+			NSMenu_insertItem(menu, nsItem, index);
+		}
 	}
 	if (item != 0) {
 		_W_WIDGETDATA(item)->clazz = _W_WIDGETDATA(parent)->clazz;
@@ -132,7 +133,8 @@ wresult _w_menuitem_set_id(w_menuitem *item, wushort id) {
 wresult _w_menuitem_set_image(w_menuitem *item, w_image *image) {
 	return W_FALSE;
 }
-wresult _w_menuitem_set_image_index(w_menuitem *item, int index) {
+wresult _w_menuitem_set_image_index(w_menuitem *item, w_imagelist *imagelist,
+		int index) {
 	return W_FALSE;
 }
 wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {
@@ -207,13 +209,11 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	W_WIDGET_CLASS(clazz)->create = _w_menu_create;
 	W_WIDGET_CLASS(clazz)->post_event = _w_menu_post_event;
 	clazz->get_bounds = _w_menu_get_bounds;
-	clazz->get_imagelist = _w_menu_get_imagelist;
 	clazz->get_root = _w_menu_get_root;
 	clazz->get_orientation = _w_menu_get_orientation;
 	clazz->get_parent = _w_menu_get_parent;
 	clazz->get_visible = _w_menu_get_visible;
 	clazz->is_visible = _w_menu_is_visible;
-	clazz->set_imagelist = _w_menu_set_imagelist;
 	clazz->set_location = _w_menu_set_location;
 	clazz->set_orientation = _w_menu_set_orientation;
 	clazz->set_visible = _w_menu_set_visible;

@@ -615,11 +615,6 @@ public:
 		WRect bounds;
 		return GetBounds(bounds);
 	}
-	WImageList* GetImagelist() {
-		WImageList *imagelist;
-		_get_imagelist(&imagelist);
-		return imagelist;
-	}
 	/**
 	 * Returns the root item at the given, zero-relative index in the
 	 * receiver. Throws an exception if the index is out of range.
@@ -761,9 +756,6 @@ public:
 	}
 	WResult _get_bounds(WRect *bounds) {
 		return w_menu_get_bounds(W_MENU(this), (w_rect*) bounds);
-	}
-	WResult _get_imagelist(WImageList **imagelist) {
-		return w_menu_get_imagelist(W_MENU(this), (w_imagelist**) imagelist);
 	}
 	WResult _get_root(WMenuItem *rootitem) {
 		return w_menu_get_root(W_MENU(this), (w_menuitem*) rootitem);

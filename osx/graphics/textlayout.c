@@ -20,8 +20,7 @@ wresult w_textlayout_create(w_textlayout *textlayout) {
 	return W_FALSE;
 }
 wresult w_textlayout_draw(w_textlayout *textlayout, w_graphics *gc, int x,
-		int y, int selectionStart, int selectionEnd,
-		w_color selectionForeground, w_color selectionBackground, int flags) {
+		int y, w_text_selection *selection, int flags) {
 	return W_FALSE;
 }
 void w_textlayout_draw_border(w_textlayout *textlayout, w_graphics *gc, int x,
