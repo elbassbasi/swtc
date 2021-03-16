@@ -133,8 +133,9 @@ wresult _w_control_create_widget(w_control *control, _w_control_priv *priv) {
 }
 HWND _w_control_create_window(DWORD dwExStyle, const char *lpClassName,
 		DWORD dwStyle, HWND hWndParent, LPVOID lpParam) {
-	size_t newlength;
-	WCHAR *clazz = _win_text_fix(lpClassName, -1, &newlength, W_ENCODING_UTF8);
+	int newlength;
+	WCHAR *clazz;
+	_win_text_fix(lpClassName, -1, W_ENCODING_UTF8, &clazz, &newlength);
 	HWND hwnd = CreateWindowExW(dwExStyle, clazz, 0, dwStyle, CW_USEDEFAULT, 0,
 	CW_USEDEFAULT, 0, hWndParent, 0, hinst, lpParam);
 	_win_text_free(lpClassName, clazz, newlength);
@@ -570,6 +571,8 @@ wresult _w_control_set_cursor(w_control *control, w_cursor *cursor) {
 	return W_TRUE;
 }
 wresult _w_control_set_default_font(w_control *control, _w_control_priv *priv) {
+	HFONT hFont = win_toolkit->systemFont.handle;
+	SendMessageW(_W_WIDGET(control)->handle, WM_SETFONT, (WPARAM) hFont, 0);
 	return W_TRUE;
 }
 wresult _w_control_set_drag_detect(w_control *control, int dragDetect) {

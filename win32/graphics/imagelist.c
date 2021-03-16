@@ -6,6 +6,101 @@
  * Licence:
  */
 #include "gc.h"
+typedef struct IImageList {
+	struct IImageListVtbl *lpVtbl;
+} IImageList;
+typedef struct IImageListVtbl {
+	/*** IUnknown methods ***/
+	HRESULT (STDMETHODCALLTYPE *QueryInterface)(IImageList *This,
+	REFIID riid, void **ppvObject);
+
+	ULONG (STDMETHODCALLTYPE *AddRef)(IImageList *This);
+
+	ULONG (STDMETHODCALLTYPE *Release)(IImageList *This);
+
+	/*** IImageList methods ***/
+	HRESULT (STDMETHODCALLTYPE *Add)(IImageList *This, HBITMAP hbmImage,
+			HBITMAP hbmMask, int *pi);
+
+	HRESULT (STDMETHODCALLTYPE *ReplaceIcon)(IImageList *This, int i,
+			HICON hicon, int *pi);
+
+	HRESULT (STDMETHODCALLTYPE *SetOverlayImage)(IImageList *This, int iImage,
+			int iOverlay);
+
+	HRESULT (STDMETHODCALLTYPE *Replace)(IImageList *This, int i,
+			HBITMAP hbmImage, HBITMAP hbmMask);
+
+	HRESULT (STDMETHODCALLTYPE *AddMasked)(IImageList *This, HBITMAP hbmImage,
+			COLORREF crMask, int *pi);
+
+	HRESULT (STDMETHODCALLTYPE *Draw)(IImageList *This,
+			IMAGELISTDRAWPARAMS *pimldp);
+
+	HRESULT (STDMETHODCALLTYPE *Remove)(IImageList *This, int i);
+
+	HRESULT (STDMETHODCALLTYPE *GetIcon)(IImageList *This, int i, UINT flags,
+			HICON *picon);
+
+	HRESULT (STDMETHODCALLTYPE *GetImageInfo)(IImageList *This, int i,
+			IMAGEINFO *pImageInfo);
+
+	HRESULT (STDMETHODCALLTYPE *Copy)(IImageList *This, int iDst,
+			IUnknown *punkSrc, int iSrc, UINT uFlags);
+
+	HRESULT (STDMETHODCALLTYPE *Merge)(IImageList *This, int i1,
+			IUnknown *punk2, int i2, int dx, int dy,
+			REFIID riid, void **ppv);
+
+	HRESULT (STDMETHODCALLTYPE *Clone)(IImageList *This,
+	REFIID riid, void **ppv);
+
+	HRESULT (STDMETHODCALLTYPE *GetImageRect)(IImageList *This, int i,
+			RECT *prc);
+
+	HRESULT (STDMETHODCALLTYPE *GetIconSize)(IImageList *This, int *cx,
+			int *cy);
+
+	HRESULT (STDMETHODCALLTYPE *SetIconSize)(IImageList *This, int cx, int cy);
+
+	HRESULT (STDMETHODCALLTYPE *GetImageCount)(IImageList *This, int *pi);
+
+	HRESULT (STDMETHODCALLTYPE *SetImageCount)(IImageList *This,
+			UINT uNewCount);
+
+	HRESULT (STDMETHODCALLTYPE *SetBkColor)(IImageList *This, COLORREF clrBk,
+			COLORREF *pclr);
+
+	HRESULT (STDMETHODCALLTYPE *GetBkColor)(IImageList *This, COLORREF *pclr);
+
+	HRESULT (STDMETHODCALLTYPE *BeginDrag)(IImageList *This, int iTrack,
+			int dxHotspot, int dyHotspot);
+
+	HRESULT (STDMETHODCALLTYPE *EndDrag)(IImageList *This);
+
+	HRESULT (STDMETHODCALLTYPE *DragEnter)(IImageList *This, HWND hwndLock,
+			int x, int y);
+
+	HRESULT (STDMETHODCALLTYPE *DragLeave)(IImageList *This, HWND hwndLock);
+
+	HRESULT (STDMETHODCALLTYPE *DragMove)(IImageList *This, int x, int y);
+
+	HRESULT (STDMETHODCALLTYPE *SetDragCursorImage)(IImageList *This,
+			IUnknown *punk, int iDrag, int dxHotspot, int dyHotspot);
+
+	HRESULT (STDMETHODCALLTYPE *DragShowNolock)(IImageList *This,
+			WINBOOL fShow);
+
+	HRESULT (STDMETHODCALLTYPE *GetDragImage)(IImageList *This, POINT *ppt,
+			POINT *pptHotspot,
+			REFIID riid, void **ppv);
+
+	HRESULT (STDMETHODCALLTYPE *GetItemFlags)(IImageList *This, int i,
+			DWORD *dwFlags);
+
+	HRESULT (STDMETHODCALLTYPE *GetOverlayImage)(IImageList *This, int iOverlay,
+			int *piIndex);
+} IImageListVtbl;
 void w_imagelist_init(w_imagelist *imagelist) {
 	_W_IMAGELIST(imagelist)->imagelist = 0;
 }
@@ -15,15 +110,89 @@ void w_imagelist_dispose(w_imagelist *imagelist) {
 		_W_IMAGELIST(imagelist)->imagelist = 0;
 	}
 }
+IImageListVtbl w_IImageListVtbl;
+typedef HRESULT (STDMETHODCALLTYPE *__Draw)(IImageList *This,
+		IMAGELISTDRAWPARAMS *pimldp);
+__Draw last_Draw = 0;
+HRESULT STDMETHODCALLTYPE w_IImageList_Draw(IImageList *This,
+		IMAGELISTDRAWPARAMS *pimldp) {
+	IMAGEINFO imageInfo;
+	HRESULT res = This->lpVtbl->GetImageInfo(This, pimldp->i, &imageInfo);
+	if (res == S_OK) {
+		BITMAP bm, bm2;
+		INT cx, cy;
+		INT _cx, _cy;
+		GetObjectW(imageInfo.hbmImage, sizeof(bm), &bm);
+		if (bm.bmBitsPixel == 32) {
+			ImageList_GetIconSize(pimldp->himl, &cx, &cy);
+			if (pimldp->cx != 0)
+				_cx = pimldp->cx;
+			else
+				_cx = cx;
+			if (pimldp->cy != 0)
+				_cy = pimldp->cy;
+			else
+				_cy = cy;
+			BLENDFUNCTION blend;
+			blend.BlendOp = AC_SRC_OVER;
+			blend.BlendFlags = 0;
+			blend.SourceConstantAlpha = 0xFF;
+			blend.AlphaFormat = AC_SRC_ALPHA;
+			HDC srcHdc = CreateCompatibleDC(NULL);
+			BITMAPINFO bmi;
+			memset(&bmi, 0, sizeof(bmi));
+			bmi.bmiHeader.biSize = sizeof(BITMAPINFO);
+			bmi.bmiHeader.biWidth = cx;
+			bmi.bmiHeader.biHeight = cy;
+			bmi.bmiHeader.biPlanes = 1;
+			bmi.bmiHeader.biBitCount = 32;
+			bmi.bmiHeader.biCompression = BI_RGB;
+			VOID *pBits;
+			HBITMAP hbmp = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBits,
+			NULL, 0);
+			void *src = bm.bmBits
+					+ (bm.bmHeight - imageInfo.rcImage.top - cy)
+							* bm.bmWidthBytes + imageInfo.rcImage.left * 4,
+					*dst = pBits;
+			GetObjectW(hbmp, sizeof(bm2), &bm2);
+			for (int j = 0; j < cy; j++) {
+				memcpy(dst, src, cy * 4);
+				dst += bm2.bmWidthBytes;
+				src += bm.bmWidthBytes;
+			}
+			HBITMAP oldSrcBitmap = SelectObject(srcHdc, hbmp);
+			BOOL ret = AlphaBlend(pimldp->hdcDst, pimldp->x, pimldp->y, _cx,
+					_cy, srcHdc, 0, 0, _cx, _cy, blend);
+			SelectObject(srcHdc, oldSrcBitmap);
+			DeleteDC(srcHdc);
+			DeleteObject(hbmp);
+			return S_OK;
+		}
+	}
+	return last_Draw(This, pimldp);
+}
 wresult w_imagelist_create(w_imagelist *imagelist, w_size *size,
 		int initialCount) {
 	w_imagelist_dispose(imagelist);
 	_W_IMAGELIST(imagelist)->imagelist = ImageList_Create(size->width,
-			size->height, ILC_COLOR32 | ILC_MASK, initialCount, 4);
+			size->height,
+			ILC_COLOR32, initialCount, 4);
 	if (_W_IMAGELIST(imagelist)->imagelist == 0) {
 		return W_FALSE;
-	} else
+	} else {
+		IImageList *list = (IImageList*) _W_IMAGELIST(imagelist)->imagelist;
+		/*HIMAGELIST_QueryInterface(_W_IMAGELIST(imagelist)->imagelist,
+		 &IID_IImageList, (void**) &list);*/
+		if (list != 0) {
+			if (w_IImageListVtbl.QueryInterface == 0) {
+				memcpy(&w_IImageListVtbl, list->lpVtbl, sizeof(IImageListVtbl));
+				last_Draw = w_IImageListVtbl.Draw;
+				w_IImageListVtbl.Draw = w_IImageList_Draw;
+			}
+			list->lpVtbl = &w_IImageListVtbl;
+		}
 		return W_TRUE;
+	}
 }
 wresult w_imagelist_replace_hbitmap(w_imagelist *imagelist, int index,
 		int *newindex, HBITMAP hbitmap, HBITMAP mask) {
@@ -39,15 +208,6 @@ wresult w_imagelist_replace_hbitmap(w_imagelist *imagelist, int index,
 wresult w_imagelist_replace_gpimage(w_imagelist *imagelist, int index,
 		int *newindex, GpImage *img) {
 	wresult result = W_FALSE;
-	/*HICON hicon = 0;
-	 GdipCreateHICONFromBitmap(img, &hicon);
-	 if (hicon != 0) {
-	 ICONINFO info;
-	 GetIconInfo(hicon, &info);
-	 result = w_imagelist_replace_hbitmap(imagelist, index, newindex,
-	 info.hbmColor, info.hbmMask);
-	 DestroyIcon(hicon);
-	 }*/
 	HBITMAP bitmap;
 	GdipCreateHBITMAPFromBitmap(img, &bitmap, 0);
 	if (bitmap != 0) {
@@ -136,17 +296,17 @@ wresult w_imagelist_get_image(w_imagelist *imagelist, int index, int copy,
 		return W_ERROR_NO_HANDLES;
 	HICON icon = ImageList_GetIcon(_W_IMAGELIST(imagelist)->imagelist, index,
 	ILD_NORMAL | ILD_TRANSPARENT);
-	if (copy) {
-		_W_IMAGE(image)->handle = CopyIcon(icon);
-		_W_IMAGE(image)->type = _IMAGE_ICON;
-		_W_IMAGE(image)->nodispose = 0;
-		if (_W_IMAGE(image)->handle == 0)
-			return W_ERROR_NO_HANDLES;
-	} else {
-		_W_IMAGE(image)->handle = icon;
-		_W_IMAGE(image)->type = _IMAGE_ICON;
-		_W_IMAGE(image)->nodispose = 1;
-	}
+	/*if (copy) {
+	 _W_IMAGE(image)->handle = CopyIcon(icon);
+	 _W_IMAGE(image)->type = _IMAGE_ICON;
+	 _W_IMAGE(image)->nodispose = 0;
+	 if (_W_IMAGE(image)->handle == 0)
+	 return W_ERROR_NO_HANDLES;
+	 } else {*/
+	_W_IMAGE(image)->handle = icon;
+	_W_IMAGE(image)->type = _IMAGE_ICON;
+	_W_IMAGE(image)->nodispose = 1;
+	//}
 	return W_TRUE;
 }
 wresult w_imagelist_get_size(w_imagelist *imagelist, w_size *size) {
@@ -171,22 +331,34 @@ wresult w_imagelist_draw_ex(w_imagelist *imagelist, w_graphics *graphics,
 		int index, w_point *pt, int state, w_color bg, w_color fg) {
 	if (imagelist == 0 || _W_IMAGELIST(imagelist)->imagelist == 0)
 		return W_ERROR_NO_HANDLES;
-	UINT fStyle;
+	IMAGELISTDRAWPARAMS imldp;
+	memset(&imldp, 0, sizeof(imldp));
+	imldp.cbSize = sizeof(imldp);
+	imldp.himl = _W_IMAGELIST(imagelist)->imagelist;
+	imldp.hdcDst = _W_GRAPHICS(graphics)->handle;
+	imldp.i = index;
+	imldp.x = pt->x;
+	imldp.y = pt->y;
+	imldp.fState = ILS_ALPHA | ILS_SATURATE;
+	imldp.rgbBk = CLR_NONE;
+	imldp.rgbFg = CLR_NONE;
+	imldp.dwRop = SRCCOPY;
+	imldp.Frame = 0xFF;
 	switch (state) {
 	case W_IMAGELIST_DRAW_TRANSPARENT:
-		fStyle = ILD_NORMAL | ILD_TRANSPARENT;
+		imldp.fStyle = ILD_NORMAL | ILD_TRANSPARENT;
 		break;
 	case W_IMAGELIST_DRAW_SELECTED:
-		fStyle = ILD_SELECTED;
+		imldp.fStyle = ILD_SELECTED;
 		break;
 	case W_IMAGELIST_DRAW_FOCUSED:
-		fStyle = ILD_FOCUS;
+		imldp.fStyle = ILD_FOCUS;
 		break;
 	case W_IMAGELIST_DRAW_NORMAL:
 	default:
-		fStyle = ILD_NORMAL;
+		imldp.fStyle = ILD_NORMAL;
 		break;
 	}
-	return ImageList_Draw(_W_IMAGELIST(imagelist)->imagelist, index,
-	_W_GRAPHICS(graphics)->handle, pt->x, pt->y, fStyle);
+	ImageList_DrawIndirect(&imldp);
+	return W_TRUE;
 }

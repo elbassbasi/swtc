@@ -323,6 +323,9 @@ wresult _w_shell_get_shell(w_control *control, w_shell **shell) {
 	*shell = W_SHELL(control);
 	return W_TRUE;
 }
+void _w_shell_bring_totop(w_shell* shell){
+
+}
 void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	wuint64 style = w_widget_get_style(W_WIDGET(shell));
 	w_event event;

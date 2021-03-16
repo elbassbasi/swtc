@@ -159,10 +159,12 @@ wresult w_menuitem_set_image(w_menuitem *item, w_image *image) {
 		return result;
 	}
 }
-wresult w_menuitem_set_image_index(w_menuitem *item, int index) {
+wresult w_menuitem_set_image_index(w_menuitem *item, w_imagelist *imagelist,
+		int index) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
-		return W_MENUITEM_GET_CLASS(item)->set_image_index(item, index);
+		return W_MENUITEM_GET_CLASS(item)->set_image_index(item, imagelist,
+				index);
 	} else {
 		return result;
 	}
@@ -255,14 +257,6 @@ wresult w_menu_is_visible(w_menu *menu) {
 	wresult result = W_WIDGET_CHECK0(menu);
 	if (result > 0) {
 		return W_MENU_GET_CLASS(menu)->is_visible(menu);
-	} else {
-		return result;
-	}
-}
-wresult w_menu_set_imagelist(w_menu *menu, w_imagelist *imagelist) {
-	wresult result = W_WIDGET_CHECK0(menu);
-	if (result > 0) {
-		return W_MENU_GET_CLASS(menu)->set_imagelist(menu, imagelist);
 	} else {
 		return result;
 	}

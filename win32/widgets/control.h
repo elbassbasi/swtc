@@ -7,7 +7,7 @@
  */
 #ifndef WIN32_WIDGETS_CONTROL_H_
 #define WIN32_WIDGETS_CONTROL_H_
-#include "widget.h"
+#include "item.h"
 /*
  * states
  */
@@ -20,6 +20,7 @@
 #define STATE_PARENT_BACKGROUND (1 << (STATE_WIDGET_END + 6))
 #define STATE_DISABLED (1 << (STATE_WIDGET_END + 7))
 #define STATE_HIDDEN (1 << (STATE_WIDGET_END + 8))
+#define STATE_DRAW_BACKGROUND (1 << (STATE_WIDGET_END + 9))
 #define STATE_CONTROL_END (STATE_WIDGET_END + 8)
 /*
  * control

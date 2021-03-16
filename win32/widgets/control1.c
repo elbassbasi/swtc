@@ -100,10 +100,33 @@ wresult _CONTROL_WM_CHANGEUISTATE(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_COMMAND(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (e->lparam != 0) {
+		w_widget *control = _w_widget_find_control((HWND) e->lparam);
+		if (control != 0) {
+			_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
+			return cpriv->messages[_WM_COMMANDCHILD](control, e, cpriv);
+		}
+	} else {
+		/*
+		 * When the WM_COMMAND message is sent from a
+		 * menu, the HWND parameter in LPARAM is zero.
+		 */
+
+	}
 	return W_FALSE;
 }
 wresult _CONTROL_WM_DRAWITEM(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	DRAWITEMSTRUCT *st = (DRAWITEMSTRUCT*) e->lparam;
+	if (st->CtlType == ODT_MENU) {
+		return _MENU_WM_DRAWITEM(widget, e, priv);
+	} else {
+		w_widget *control = _w_widget_find_control(st->hwndItem);
+		if (control != 0) {
+			_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
+			return cpriv->messages[_WM_DRAWCHILD](control, e, cpriv);
+		}
+	}
 	return W_FALSE;
 }
 wresult _CONTROL_WM_ERASEBKGND(w_widget *widget, _w_event_platform *e,
@@ -124,7 +147,12 @@ wresult _CONTROL_WM_HELP(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_HSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	w_widget *control = _w_widget_find_control((HWND) e->lparam);
+	if (control != 0) {
+		_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
+		return cpriv->messages[_WM_SCROLLCHILD](control, e, cpriv);
+	} else
+		return W_FALSE;
 }
 wresult _CONTROL_WM_INPUTLANGCHANGE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -132,6 +160,17 @@ wresult _CONTROL_WM_INPUTLANGCHANGE(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	MEASUREITEMSTRUCT *st = (MEASUREITEMSTRUCT*) e->lparam;
+	if (st->CtlType == ODT_MENU) {
+		return _MENU_WM_MEASUREITEM(widget, e, priv);
+	} else {
+		HWND hwnd = GetDlgItem(_W_WIDGET(widget)->handle, st->CtlID);
+		w_widget *control = _w_widget_find_control(hwnd);
+		if (control != 0) {
+			_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
+			return cpriv->messages[_WM_MEASURECHILD](control, e, cpriv);
+		}
+	}
 	return W_FALSE;
 }
 wresult _CONTROL_WM_MENUCHAR(w_widget *widget, _w_event_platform *e,

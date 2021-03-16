@@ -123,6 +123,7 @@ wresult _w_composite_layout_changed(w_composite *_this, w_control **changed,
 	return W_FALSE;
 }
 wresult _w_composite_set_layout(w_composite *composite, w_layout *layout) {
+	_W_COMPOSITE(composite)->layout = layout;
 	return W_FALSE;
 }
 wresult _w_composite_set_layout_deferred(w_composite *composite, int defer) {

@@ -22,7 +22,9 @@ void* _w_toolkit_malloc_all(size_t *size) {
 	return &win_toolkit->tmp[i];
 }
 void _w_toolkit_free(void *ptr, size_t size) {
-	wintptr diff = (char*)ptr - (char*) win_toolkit->tmp;
+	if (ptr == 0)
+		return;
+	wintptr diff = (char*) ptr - (char*) win_toolkit->tmp;
 	if (diff >= 0 && diff < win_toolkit->tmp_alloc) {
 		win_toolkit->tmp_length -= size;
 	} else
@@ -55,6 +57,147 @@ void _w_toolkit_remove_shell(_w_shell *shell) {
 		shell->prev->next = shell->next;
 	}
 	win_toolkit->shells_count--;
+}
+wresult _w_toolkit_messagebox_open(w_toolkit *toolkit,
+		w_messagebox *messagebox) {
+	if (messagebox->parent != 0) {
+		if (w_widget_is_ok(W_WIDGET(messagebox->parent)) < 0)
+			return W_ERROR_INVALID_ARGUMENT;
+	}
+	/* Compute the MessageBox style */
+	int buttonBits = 0;
+	wuint64 style = messagebox->style;
+	if ((style & W_OK) == W_OK)
+		buttonBits = MB_OK;
+	if ((style & (W_OK | W_CANCEL)) == (W_OK | W_CANCEL))
+		buttonBits = MB_OKCANCEL;
+	if ((style & (W_YES | W_NO)) == (W_YES | W_NO))
+		buttonBits = MB_YESNO;
+	if ((style & (W_YES | W_NO | W_CANCEL)) == (W_YES | W_NO | W_CANCEL))
+		buttonBits = MB_YESNOCANCEL;
+	if ((style & (W_RETRY | W_CANCEL)) == (W_RETRY | W_CANCEL))
+		buttonBits = MB_RETRYCANCEL;
+	if ((style & (W_ABORT | W_RETRY | W_IGNORE))
+			== (W_ABORT | W_RETRY | W_IGNORE))
+		buttonBits = MB_ABORTRETRYIGNORE;
+	if (buttonBits == 0)
+		buttonBits = MB_OK;
+
+	int iconBits = 0;
+	if ((style & W_ICON_ERROR) != 0)
+		iconBits = MB_ICONERROR;
+	if ((style & W_ICON_INFORMATION) != 0)
+		iconBits = MB_ICONINFORMATION;
+	if ((style & W_ICON_QUESTION) != 0)
+		iconBits = MB_ICONQUESTION;
+	if ((style & W_ICON_WARNING) != 0)
+		iconBits = MB_ICONWARNING;
+	if ((style & W_ICON_WORKING) != 0)
+		iconBits = MB_ICONINFORMATION;
+
+	/* Only MB_APPLMODAL is supported on WinCE */
+	int modalBits = 0;
+	if ((style & W_PRIMARY_MODAL) != 0)
+		modalBits = MB_APPLMODAL;
+	if ((style & W_APPLICATION_MODAL) != 0)
+		modalBits = MB_TASKMODAL;
+	if ((style & W_SYSTEM_MODAL) != 0)
+		modalBits = MB_SYSTEMMODAL;
+
+	int bits = buttonBits | iconBits | modalBits;
+	if ((style & W_RIGHT_TO_LEFT) != 0)
+		bits |= MB_RTLREADING | MB_RIGHT;
+	if ((style & (W_LEFT_TO_RIGHT | W_RIGHT_TO_LEFT)) == 0) {
+		if (messagebox->parent != 0
+				&& (_W_WIDGET(messagebox->parent)->style & W_MIRRORED) != 0) {
+			bits |= MB_RTLREADING | MB_RIGHT;
+		}
+	}
+
+	/*
+	 * Feature in Windows.  System modal is not supported
+	 * on Windows 95 and NT.  The fix is to convert system
+	 * modal to task modal.
+	 */
+	if ((bits & MB_SYSTEMMODAL) != 0) {
+		bits |= MB_TASKMODAL;
+		bits &= ~MB_SYSTEMMODAL;
+		/* Force a system modal message box to the front */
+		bits |= MB_TOPMOST;
+	}
+
+	/*
+	 * Feature in Windows.  In order for MB_TASKMODAL to work,
+	 * the parent HWND of the MessageBox () call must be NULL.
+	 * If the parent is not NULL, MB_TASKMODAL behaves the
+	 * same as MB_APPLMODAL.  The fix to set the parent HWND
+	 * anyway and not rely on MB_MODAL to work by making the
+	 * parent be temporarily modal.
+	 */
+	HWND hwndOwner = messagebox->parent != 0 ?
+	_W_WIDGET(messagebox->parent)->handle :
+												0;
+	/*Display display = parent != null ? parent.getDisplay (): Display.getCurrent ();
+	 Dialog oldModal = null;
+	 if ((bits & MB_TASKMODAL) != 0) {
+	 oldModal = display.getModalDialog ();
+	 display.setModalDialog (this);
+	 }*/
+
+	/* Use the character encoding for the default locale */
+	WCHAR *message;
+	WCHAR *title;
+	int message_length, title_length;
+	_win_text_fix(messagebox->message, -1, W_ENCODING_UTF8, &message,
+			&message_length);
+	_win_text_fix(messagebox->title, -1, W_ENCODING_UTF8, &title,
+			&title_length);
+	int code = MessageBoxW(hwndOwner, message, title, bits);
+	_win_text_free(messagebox->title, title, title_length);
+	_win_text_free(messagebox->message, message, message_length);
+
+	/* Clear the temporarily dialog modal parent */
+	if ((bits & MB_TASKMODAL) != 0) {
+		//display.setModalDialog (oldModal);
+	}
+
+	/*
+	 * This code is intentionally commented.  On some
+	 * platforms, the owner window is repainted right
+	 * away when a dialog window exits.  This behavior
+	 * is currently unspecified.
+	 */
+//	if (hwndOwner != 0) UpdateWindow (hwndOwner);
+	/* Compute and return the result */
+	if (code != 0) {
+		int type = bits & 0x0F;
+		if (type == MB_OK)
+			return W_OK;
+		if (type == MB_OKCANCEL) {
+			return (code == IDOK) ? W_OK : W_CANCEL;
+		}
+		if (type == MB_YESNO) {
+			return (code == IDYES) ? W_YES : W_NO;
+		}
+		if (type == MB_YESNOCANCEL) {
+			if (code == IDYES)
+				return W_YES;
+			if (code == IDNO)
+				return W_NO;
+			return W_CANCEL;
+		}
+		if (type == MB_RETRYCANCEL) {
+			return (code == IDRETRY) ? W_RETRY : W_CANCEL;
+		}
+		if (type == MB_ABORTRETRYIGNORE) {
+			if (code == IDRETRY)
+				return W_RETRY;
+			if (code == IDABORT)
+				return W_ABORT;
+			return W_IGNORE;
+		}
+	}
+	return W_CANCEL;
 }
 typedef struct _DLLVERSIONINFO {
 	DWORD cbSize;
@@ -227,6 +370,39 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 			&toolkit->class_listcolumn;
 	toolkit->classes[_W_CLASS_LISTVIEW] = W_WIDGET_CLASS(
 			&toolkit->class_listview);
+	/*
+	 * sash
+	 */
+	W_WIDGET_CLASS(&toolkit->class_sash)->init_class =
+			(w_widget_init_class) _w_sash_class_init;
+	W_WIDGET_CLASS(&toolkit->class_sash)->reserved[0] =
+			&toolkit->class_sash_priv;
+	toolkit->classes[_W_CLASS_SASH] = W_WIDGET_CLASS(&toolkit->class_sash);
+	/*
+	 * button
+	 */
+	W_WIDGET_CLASS(&toolkit->class_button)->init_class =
+			(w_widget_init_class) _w_button_class_init;
+	W_WIDGET_CLASS(&toolkit->class_button)->reserved[0] =
+			&toolkit->class_button_priv;
+	toolkit->classes[_W_CLASS_BUTTON] = W_WIDGET_CLASS(&toolkit->class_button);
+	/*
+	 * label
+	 */
+	W_WIDGET_CLASS(&toolkit->class_label)->init_class =
+			(w_widget_init_class) _w_label_class_init;
+	W_WIDGET_CLASS(&toolkit->class_label)->reserved[0] =
+			&toolkit->class_label_priv;
+	toolkit->classes[_W_CLASS_LABEL] = W_WIDGET_CLASS(&toolkit->class_label);
+	/*
+	 * textedit
+	 */
+	W_WIDGET_CLASS(&toolkit->class_textedit)->init_class =
+			(w_widget_init_class) _w_textedit_class_init;
+	W_WIDGET_CLASS(&toolkit->class_textedit)->reserved[0] =
+			&toolkit->class_textedit_priv;
+	toolkit->classes[_W_CLASS_TEXTEDIT] = W_WIDGET_CLASS(
+			&toolkit->class_textedit);
 }
 wushort _wm_msg[] = { //
 		[_WM_ACTIVATE] = WM_ACTIVATE, //

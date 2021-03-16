@@ -27,9 +27,10 @@ wresult _w_listitem_set_data(w_item *item, void *data) {
 }
 wresult _w_listitem_set_text(w_item *item, const char *text, int length,
 		int enc) {
-	size_t newlength;
+	int newlength;
 	wresult result = W_FALSE;
-	WCHAR *s = _win_text_fix(text, length, &newlength, enc);
+	WCHAR *s;
+	_win_text_fix(text, length, enc, &s, &newlength);
 	if (s != 0) {
 		LVITEMW lvItem;
 		w_widget *list = _W_ITEM(item)->parent;
@@ -161,9 +162,11 @@ wresult _w_listview_create_handle(w_control *control, _w_control_priv *priv) {
 	SendMessageW(handle, LVM_INSERTCOLUMNW, 0, (LPARAM) &lvColumn);
 
 	/* Set the extended style bits */
-	int bits1 = LVS_EX_LABELTIP;
+	DWORD bits1 = LVS_EX_LABELTIP;
 	if ((_W_WIDGET(control)->style & W_FULL_SELECTION) != 0)
 		bits1 |= LVS_EX_FULLROWSELECT;
+	if ((_W_WIDGET(control)->style & W_CHECK) != 0)
+		bits1 |= LVS_EX_CHECKBOXES;
 	if (_COMCTL32_VERSION < VERSION(6, 0))
 		bits1 |= LVS_EX_DOUBLEBUFFER;
 	SendMessageW(handle, LVM_SETEXTENDEDLISTVIEWSTYLE, bits1, bits1);

@@ -91,9 +91,10 @@ wresult _w_treeitem_set_data(w_item *item, void *data) {
 }
 wresult _w_treeitem_set_text(w_item *item, const char *text, int length,
 		int enc) {
-	size_t newlength;
+	int newlength;
 	wresult result = W_FALSE;
-	WCHAR *s = _win_text_fix(text, length, &newlength, enc);
+	WCHAR *s;
+	_win_text_fix(text, length, enc, &s, &newlength);
 	if (s != 0) {
 		TVITEMW tvItem;
 		w_widget *tree = _W_ITEM(item)->parent;

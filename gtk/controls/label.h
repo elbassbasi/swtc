@@ -9,7 +9,7 @@
 #define GTK_CONTROLS_LABEL_H_
 #include "../widgets/shell.h"
 typedef struct _w_label {
-	struct _w_control control;
+	_w_control control;
 }_w_label;
 
 typedef struct _w_label_priv {

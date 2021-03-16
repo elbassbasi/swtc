@@ -10,7 +10,8 @@ w_toolkit* w_toolkit_get_default() {
 	return w_app_get_default_toolkit(w_app_get());
 }
 wresult w_toolkit_set_default(w_toolkit *toolkit) {
-	return w_app_set_default_toolkit(w_app_get(),toolkit);
+	w_app_set_default_toolkit(w_app_get(),toolkit);
+	return W_TRUE;
 }
 struct _w_widget_class* w_toolkit_get_class(w_toolkit *toolkit,
 		wushort clazz_id) {

@@ -312,8 +312,8 @@ public:
 		_set_image(&image);
 		return *this;
 	}
-	WMenuItem& SetImageIndex(int image) {
-		_set_image_index(image);
+	WMenuItem& SetImageIndex(WImageList *imagelist, int image) {
+		_set_image_index(imagelist, image);
 		return *this;
 	}
 	/**
@@ -485,8 +485,9 @@ public:
 	WResult _set_image(const WImage *image) {
 		return w_menuitem_set_image(W_MENUITEM(this), W_IMAGE(image));
 	}
-	WResult _set_image_index(int index) {
-		return w_menuitem_set_image_index(W_MENUITEM(this), index);
+	WResult _set_image_index(WImageList *imagelist, int index) {
+		return w_menuitem_set_image_index(W_MENUITEM(this),
+				W_IMAGELIST(imagelist), index);
 	}
 	WResult _set_selection(int selected) {
 		return w_menuitem_set_selection(W_MENUITEM(this), selected);
@@ -693,9 +694,6 @@ public:
 	bool IsVisible() {
 		return _WReturnBool(_is_visible());
 	}
-	bool SetImagelist(WImageList *imagelist) {
-		return _WReturnBool(_set_imagelist(imagelist));
-	}
 	/**
 	 * Sets the location of the receiver, which must be a popup,
 	 * to the point specified by the arguments which are relative
@@ -785,9 +783,6 @@ public:
 	WResult _is_visible() {
 		return w_menu_is_visible(W_MENU(this));
 	}
-	WResult _set_imagelist(WImageList *imagelist) {
-		return w_menu_set_imagelist(W_MENU(this), W_IMAGELIST(imagelist));
-	}
 	WResult _set_location(const WPoint *location) {
 		return w_menu_set_location(W_MENU(this), (w_point*) location);
 	}
@@ -814,15 +809,26 @@ public:
 		this->items_length = 0;
 		this->notifyControl = 0;
 	}
-	bool CreateItems(WControl *notify, WMenuItems *items, size_t length);
+	bool CreateItems(WControl *notify, WImageList *imagelist, WMenuItems *items,
+			size_t length);
+	bool CreateItems(WImageList *imagelist, WMenuItems *items, size_t length) {
+		return CreateItems(GetParent(), imagelist, items, length);
+	}
 	bool CreateItems(WMenuItems *items, size_t length) {
-		return CreateItems(GetParent(), items, length);
+		return CreateItems(0, items, length);
+	}
+	bool CreateItems(WControl *notify, WImageList *imagelist,
+			WMenuItems *items) {
+		return CreateItems(GetParent(), imagelist, items, -1);
 	}
 	bool CreateItems(WControl *notify, WMenuItems *items) {
-		return CreateItems(notify, items, -1);
+		return CreateItems(notify, 0, items);
+	}
+	bool CreateItems(WImageList *imagelist, WMenuItems *items) {
+		return CreateItems(GetParent(), imagelist, items, -1);
 	}
 	bool CreateItems(WMenuItems *items) {
-		return CreateItems(GetParent(), items, -1);
+		return CreateItems(GetParent(), 0, items, -1);
 	}
 	WControl* GetNotifyControl() {
 		return this->notifyControl;
@@ -842,7 +848,8 @@ protected:
 	bool OnItemAdded(WMenuEvent &e);
 	bool Notify(WEvent &e);
 protected:
-	bool CreateSubItems(WMenuItem &parent, size_t &start);
+	bool CreateSubItems(WMenuItem &parent, WImageList *imagelist,
+			size_t &start);
 	WMenuItems *items;
 	size_t items_length;
 	WControl *notifyControl;

@@ -98,6 +98,26 @@ typedef struct _w_toolkit {
 	struct _w_listitem_class class_listitem;
 	struct _w_columnitem_class class_listcolumn;
 	/*
+	 * sash
+	 */
+	struct _w_sash_class class_sash;
+	_w_sash_priv class_sash_priv;
+	/*
+	 * button
+	 */
+	struct _w_button_class class_button;
+	_w_button_priv class_button_priv;
+	/*
+	 * label
+	 */
+	struct _w_label_class class_label;
+	_w_label_priv class_label_priv;
+	/*
+	 * textedit
+	 */
+	struct _w_textedit_class class_textedit;
+	_w_textedit_priv class_textedit_priv;
+	/*
 	 * internal memory
 	 */
 	size_t tmp_alloc;
@@ -184,4 +204,6 @@ wresult _w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
 		w_thread_start function, void *args);
 wresult _w_toolkit_update(w_toolkit *toolkit);
 wresult _w_toolkit_wake(w_toolkit *toolkit);
+wresult _w_toolkit_messagebox_open(w_toolkit *toolkit,
+		w_messagebox *messagebox);
 #endif /* WIN32_WIDGETS_TOOLKIT_H_ */

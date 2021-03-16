@@ -10,7 +10,7 @@
 #include "TTextEditDemo.h"
 
 void TTextEdits::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Text", new TTextEdits());
+	ITreeItem::Regitre(parent, "TextEdit", new TTextEdits());
 }
 
 bool TTextEdits::Expand(WTreeItem &item) {

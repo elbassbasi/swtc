@@ -34,6 +34,7 @@ struct _w_shell_priv {
 /*
  * functions
  */
+void _w_shell_bring_totop(w_shell* shell);
 void _w_shell_class_init(struct _w_shell_class *clazz);
 /*
  * messages

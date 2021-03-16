@@ -349,12 +349,16 @@ bool WMenu::OnItemAdded(WMenuEvent &e) {
 
 bool WMenu::Notify(WEvent &e) {
 	WControl *c = this->GetParent();
+	WComposite *composite;
 	if (WComposite::IsComposite(c)) {
-		return WComposite::_Notify((WComposite*) c, e);
+		composite = (WComposite*) c;
 	} else {
-		WComposite *composite = c->GetParent();
-		return WComposite::_Notify((WComposite*) composite, e);
+		composite = c->GetParent();
 	}
+	if (composite->IsOk()) {
+		return WComposite::_Notify(composite, e);
+	} else
+		return false;
 }
 
 void WMenu::OnDispose(WEvent &e) {
@@ -362,20 +366,22 @@ void WMenu::OnDispose(WEvent &e) {
 	this->items = 0;
 }
 
-bool WMenu::CreateItems(WControl *notify, WMenuItems *items, size_t length) {
+bool WMenu::CreateItems(WControl *notify, WImageList *imagelist,
+		WMenuItems *items, size_t length) {
 	WMenuItem item;
 	this->notifyControl = notify;
 	GetRoot(item);
 	size_t start = 0;
 	this->items = items;
 	this->items_length = length;
-	bool ret = CreateSubItems(item, start);
+	bool ret = CreateSubItems(item, imagelist, start);
 	if (length == -1) {
 		this->items_length = start;
 	}
 	return ret;
 }
-bool WMenu::CreateSubItems(WMenuItem &parent, size_t &start) {
+bool WMenu::CreateSubItems(WMenuItem &parent, WImageList *imagelist,
+		size_t &start) {
 	WMenuItem item;
 	while (1) {
 		if (start >= items_length)
@@ -392,11 +398,11 @@ bool WMenu::CreateSubItems(WMenuItem &parent, size_t &start) {
 			item.SetAccelerator(items[start].accelerator);
 		}
 		if (items[start].image >= 0) {
-			item.SetImageIndex(items[start].image);
+			item.SetImageIndex(imagelist, items[start].image);
 		}
 		if (items[start].style & W_CASCADE) {
 			start++;
-			CreateSubItems(item, start);
+			CreateSubItems(item, imagelist, start);
 		} else
 			start++;
 	}

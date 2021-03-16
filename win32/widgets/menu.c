@@ -8,8 +8,25 @@
 #include "shell.h"
 #include "menu.h"
 #include "toolkit.h"
-#define MENU_CHECK  1 << 31
-#define MENU_HAS_ACCELERATOR  1 << 30
+#define MENU_CHECK  (1 << 31)
+#define MENU_HAS_ACCELERATOR  (1 << 30)
+#define MENU_CUSTOM_DATA  (1 << 29)
+w_menu* _w_menu_get_top(HMENU menu) {
+	HMENU m = menu;
+	MENUINFO info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIM_MENUDATA | MIM_HELPID;
+	while (1) {
+		if (!GetMenuInfo(m, &info)) {
+			return 0;
+		}
+		if (info.dwContextHelpID == (DWORD) -1) {
+			return (w_menu*) info.dwMenuData;
+		}
+		m = (HMENU) info.dwMenuData;
+	}
+	return 0;
+}
 /*
  * menuitem
  */
@@ -34,22 +51,63 @@ HMENU _w_menuitem_get_submenu(w_menuitem *item) {
 	}
 }
 wresult _w_menuitem_get_data(w_item *item, void **data) {
-	return W_FALSE;
+	*data = 0;
+	if (_W_ITEM(item)->index < 0)
+		return 0;
+	MENUITEMINFOW info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIIM_DATA | MIIM_ID;
+	if (GetMenuItemInfoW(_W_MENUITEM(item)->menu,
+	_W_ITEM(item)->index, TRUE, &info)) {
+		if (info.wID & MENU_CUSTOM_DATA) {
+			if (info.dwItemData != 0) {
+				*data = ((_w_menuitem_data*) info.dwItemData)->userdata;
+			}
+		} else {
+			*data = (void*) info.dwItemData;
+		}
+		return W_TRUE;
+	} else {
+		return W_FALSE;
+	}
 }
 wresult _w_menuitem_get_text(w_item *item, w_alloc alloc, void *user_data,
 		int enc) {
 	return W_FALSE;
 }
 wresult _w_menuitem_set_data(w_item *item, void *data) {
-	return W_FALSE;
+	if (_W_ITEM(item)->index < 0)
+		return W_FALSE;
+	wresult result = W_FALSE;
+	MENUITEMINFOW info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIIM_DATA | MIIM_ID;
+	if (GetMenuItemInfoW(_W_MENUITEM(item)->menu,
+	_W_ITEM(item)->index, TRUE, &info)) {
+		if (info.wID & MENU_CUSTOM_DATA) {
+			if (info.dwItemData != 0) {
+				((_w_menuitem_data*) info.dwItemData)->userdata = data;
+				result = W_TRUE;
+			}
+		} else {
+			info.fMask = MIIM_DATA;
+			info.dwItemData = (ULONG_PTR) data;
+			if (SetMenuItemInfoW(_W_MENUITEM(item)->menu,
+			_W_ITEM(item)->index, TRUE, &info)) {
+				result = W_TRUE;
+			}
+		}
+	}
+	return result;
 }
 wresult _w_menuitem_set_text(w_item *item, const char *text, int length,
 		int enc) {
 	if (_W_ITEM(item)->index == -1)
 		return W_FALSE;
-	size_t newlength;
+	int newlength;
 	wresult result = W_FALSE;
-	WCHAR *s = _win_text_fix(text, length, &newlength, enc);
+	WCHAR *s;
+	_win_text_fix(text, length, enc, &s, &newlength);
 	MENUITEMINFOW info;
 	if (s != 0) {
 		info.cbSize = sizeof(info);
@@ -134,7 +192,20 @@ wresult _w_menuitem_get_items(w_menuitem *item, w_iterator *items) {
 	return W_FALSE;
 }
 wresult _w_menuitem_get_id(w_menuitem *item) {
-	return W_FALSE;
+	if (_W_ITEM(item)->index < 0)
+		return 0;
+	MENUITEMINFOW info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIIM_ID;
+	if (GetMenuItemInfoW(_W_MENUITEM(item)->menu,
+	_W_ITEM(item)->index, TRUE, &info)) {
+		int id = info.wID & 0x1FFFF;
+		if (id < 0x100)
+			return 0;
+		else
+			return id - 0x100;
+	} else
+		return 0;
 }
 wresult _w_menuitem_get_image(w_menuitem *item, w_image *image) {
 	return W_FALSE;
@@ -164,10 +235,91 @@ wresult _w_menuitem_set_enabled(w_menuitem *item, int enabled) {
 	return W_FALSE;
 }
 wresult _w_menuitem_set_id(w_menuitem *item, wushort id) {
+	if (_W_ITEM(item)->index < 0)
+		return W_FALSE;
+	MENUITEMINFOW info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIIM_ID;
+	info.wID = 0;
+	if (GetMenuItemInfoW(_W_MENUITEM(item)->menu,
+	_W_ITEM(item)->index, TRUE, &info)) {
+		int _id = (id & 0xFFFF) + 0x100;
+		info.wID = (info.wID & 0xFFFE0000) | _id;
+		if (SetMenuItemInfoW(_W_MENUITEM(item)->menu,
+		_W_ITEM(item)->index, TRUE, &info)) {
+			return W_TRUE;
+		}
+	}
 	return W_FALSE;
 }
 wresult _w_menuitem_set_image(w_menuitem *item, w_image *image) {
-	return W_FALSE;
+	if (WIN32_VERSION < VERSION(4, 10))
+		return W_FALSE;
+	if (_W_ITEM(item)->index < 0)
+		return W_FALSE;
+	wresult result = W_FALSE;
+	MENUITEMINFOW info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIIM_DATA | MIIM_ID | MIIM_BITMAP;
+	HBITMAP hbmpItemLast = 0, hbmpItem = 0;
+	if (GetMenuItemInfoW(_W_MENUITEM(item)->menu,
+	_W_ITEM(item)->index, TRUE, &info)) {
+		hbmpItemLast = info.hbmpItem;
+		if (WIN32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
+			if (image != 0) {
+				hbmpItem = _w_image_create_32bit_dib(image);
+			}
+			info.hbmpItem = hbmpItem;
+		} else {
+			info.hbmpItem = image != 0 ? HBMMENU_CALLBACK : 0;
+		}
+		_w_menuitem_data *d = 0;
+		if (info.wID & MENU_CUSTOM_DATA) {
+			if (info.dwItemData != 0) {
+				info.fMask = MIIM_BITMAP;
+				info.hbmpItem = HBMMENU_CALLBACK;
+				d = (_w_menuitem_data*) info.dwItemData;
+				d->image = hbmpItem;
+				result = W_TRUE;
+			}
+		} else {
+			if (info.hbmpItem == HBMMENU_CALLBACK) {
+				d = malloc(sizeof(_w_menuitem_data));
+				if (d == 0)
+					return W_ERROR_NO_MEMORY;
+				d->userdata = (void*) info.dwItemData;
+				d->image = hbmpItem;
+				info.fMask = MIIM_DATA | MIIM_ID | MIIM_BITMAP;
+				info.dwItemData = (ULONG_PTR) d;
+				info.wID |= MENU_CUSTOM_DATA;
+				result = W_TRUE;
+			} else {
+				info.fMask = MIIM_BITMAP;
+				result = W_TRUE;
+			}
+		}
+		if (SetMenuItemInfoW(_W_MENUITEM(item)->menu,
+		_W_ITEM(item)->index, TRUE, &info)) {
+			result = W_TRUE;
+		}
+	}
+	if (hbmpItemLast != 0) {
+		DeleteObject(hbmpItemLast);
+	}
+	return result;
+}
+wresult _w_menuitem_set_image_index(w_menuitem *item, w_imagelist *imagelist,
+		int index) {
+	wresult result = W_FALSE;
+	w_widget *menu = _W_ITEM(item)->parent;
+	if (w_imagelist_is_ok(imagelist) > 0) {
+		w_image img;
+		w_image_init(&img);
+		w_imagelist_get_image(imagelist, index, TRUE, &img);
+		result = _w_menuitem_set_image(item, &img);
+		w_image_dispose(&img);
+	}
+	return result;
 }
 wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {
 	return W_FALSE;
@@ -189,7 +341,8 @@ wresult _w_menu_get_orientation(w_menu *menu) {
 	return W_FALSE;
 }
 wresult _w_menu_get_parent(w_menu *menu, w_control **parent) {
-	return W_FALSE;
+	*parent = _W_MENU(menu)->parent;
+	return W_TRUE;
 }
 wresult _w_menu_get_shell(w_menu *menu, w_shell **shell) {
 	return W_FALSE;
@@ -237,6 +390,139 @@ wresult _w_menu_create(w_widget *widget, w_widget *parent, wuint64 style,
 	return W_TRUE;
 }
 wresult _w_menu_post_event(w_widget *widget, w_event *e) {
+	return W_FALSE;
+}
+wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	w_menu *menu = _w_menu_get_top((HMENU) e->lparam);
+	if (menu == 0)
+		return W_FALSE;
+	_w_event_platform *ee = (_w_event_platform*) e;
+	_w_menuitem item;
+	w_event_menu ei;
+	MENUITEMINFOW info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_CHECKMARKS;
+	WINBOOL success = GetMenuItemInfoW((HMENU) ee->lparam, ee->wparam,
+	TRUE, &info);
+	if (!success)
+		return W_TRUE;
+	if ((info.fType & MFT_RADIOCHECK) != 0) {
+		UINT last_state = info.fState;
+		int i = ee->wparam - 1;
+		WINBOOL stop = FALSE;
+		while (i >= 0 && !stop) {
+			info.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID;
+			success = GetMenuItemInfoW((HMENU) ee->lparam, i,
+			TRUE, &info);
+			if (success) {
+				if ((info.fType & MFT_RADIOCHECK) != 0) {
+					info.fMask = MIIM_STATE;
+					info.fState &= ~MFS_CHECKED;
+					success = SetMenuItemInfoW((HMENU) ee->lparam, i,
+					TRUE, &info);
+				} else
+					stop = TRUE;
+			} else
+				stop = TRUE;
+			i--;
+		}
+		i = ee->wparam + 1;
+		stop = FALSE;
+		while (i >= 0 && !stop) {
+			info.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID;
+			success = GetMenuItemInfoW((HMENU) ee->lparam, i,
+			TRUE, &info);
+			if (success) {
+				if ((info.fType & MFT_RADIOCHECK) != 0) {
+					info.fMask = MIIM_STATE;
+					info.fState &= ~MFS_CHECKED;
+					success = SetMenuItemInfoW((HMENU) ee->lparam, i,
+					TRUE, &info);
+				} else
+					stop = TRUE;
+			} else
+				stop = TRUE;
+			i++;
+		}
+		info.fMask = MIIM_STATE;
+		info.fState = last_state | MFS_CHECKED;
+		SetMenuItemInfoW((HMENU) ee->lparam, ee->wparam,
+		TRUE, &info);
+	} else {
+		if (info.wID & MENU_CHECK) {
+			if ((info.fState & MFS_CHECKED) != 0) {
+				info.fState &= ~MFS_CHECKED;
+			} else {
+				info.fState |= MFS_CHECKED;
+			}
+			info.fMask = MIIM_STATE;
+			success = SetMenuItemInfoW((HMENU) ee->lparam, ee->wparam,
+			TRUE, &info);
+		}
+	}
+	ei.event.type = W_EVENT_ITEM_SELECTION;
+	ei.event.platform_event = _EVENT_PLATFORM(ee);
+	ei.event.widget = W_WIDGET(menu);
+	ei.item = (w_menuitem*) &item;
+	_W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+	_W_ITEM(&item)->parent = W_WIDGET(menu);
+	_W_ITEM(&item)->index = ee->wparam;
+	_W_MENUITEM(&item)->menu = (HMENU) ee->lparam;
+	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
+	ee->result = FALSE;
+	return W_TRUE;
+}
+wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	return W_FALSE;
+}
+wresult _MENU_WM_UNINITMENUPOPUP(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	return W_FALSE;
+}
+wresult _MENU_WM_DRAWITEM(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	DRAWITEMSTRUCT *st = (DRAWITEMSTRUCT*) e->lparam;
+	if (st->CtlType == ODT_MENU) {
+		_w_menuitem_data *d = (_w_menuitem_data*) st->itemData;
+		if (d->image != 0) {
+			BITMAP bm;
+			GetObjectW(d->image, sizeof(bm), &bm);
+			HDC srcHdc = CreateCompatibleDC(NULL);
+			HBITMAP oldHBitmap = SelectObject(srcHdc, d->image);
+			if (bm.bmBitsPixel == 32) {
+				BLENDFUNCTION blend;
+				blend.BlendOp = AC_SRC_OVER;
+				blend.BlendFlags = 0;
+				blend.SourceConstantAlpha = 0xFF;
+				blend.AlphaFormat = AC_SRC_ALPHA;
+				AlphaBlend(st->hDC, st->rcItem.left, st->rcItem.top,
+						st->rcItem.right - st->rcItem.left,
+						st->rcItem.bottom - st->rcItem.top, srcHdc, 0, 0,
+						bm.bmWidth, bm.bmHeight, blend);
+			} else {
+				BitBlt(st->hDC, st->rcItem.left, st->rcItem.top,
+						st->rcItem.bottom - st->rcItem.left,
+						st->rcItem.right - st->rcItem.top, srcHdc, 0, 0,
+						SRCCOPY);
+			}
+		}
+	}
+	return W_FALSE;
+}
+wresult _MENU_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	MEASUREITEMSTRUCT *st = (MEASUREITEMSTRUCT*) e->lparam;
+	if (st->CtlType == ODT_MENU) {
+		_w_menuitem_data *d = (_w_menuitem_data*) st->itemData;
+		if (d->image != 0) {
+			BITMAP bm;
+			GetObjectW(d->image, sizeof(bm), &bm);
+			st->itemWidth = bm.bmWidth;
+			st->itemHeight = bm.bmHeight;
+		}
+	}
 	return W_FALSE;
 }
 void _w_menu_class_init(struct _w_menu_class *clazz) {
@@ -287,5 +573,6 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	item->set_enabled = _w_menuitem_set_enabled;
 	item->set_id = _w_menuitem_set_id;
 	item->set_image = _w_menuitem_set_image;
+	item->set_image_index = _w_menuitem_set_image_index;
 	item->set_selection = _w_menuitem_set_selection;
 }

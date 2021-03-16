@@ -88,6 +88,7 @@ void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	priv->get_client_area = _w_scrollable_get_client_area;
 	priv->compute_trim = _w_scrollable_compute_trim;
+	priv->window_class = _w_scrollable_window_class;
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_control_handle;
 	/*
 	 * messages

@@ -158,9 +158,10 @@ wresult w_path_add_string(w_path *path, const char *text, int length, int enc,
 		return W_ERROR_NULL_ARGUMENT;
 	if (_W_FONT(font)->handle == 0)
 		return W_ERROR_INVALID_ARGUMENT;
-	size_t newlength;
 	wresult result = W_TRUE;
-	WCHAR *s = _win_text_fix(text, length, &newlength, enc);
+	int newlength;
+	WCHAR *s;
+	_win_text_fix(text, length, enc, &s, &newlength);
 	if (s != 0) {
 		HDC hDC = CreateCompatibleDC(NULL);
 		GpFontFamily *family = 0;

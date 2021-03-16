@@ -1524,8 +1524,9 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 		return W_FALSE;
 	wresult result = w_graphics_check(gc, 0);
 	if (result > 0) {
-		size_t newlength;
-		WCHAR *s = _win_text_fix(text, length, &newlength, enc);
+		int newlength;
+		WCHAR *s;
+		_win_text_fix(text, length, enc, &s, &newlength);
 		if (s != 0) {
 			if (_W_GRAPHICS(gc)->gdipGraphics != 0) {
 				result = w_graphics_check(gc,
@@ -2975,8 +2976,9 @@ wresult w_graphics_text_extent(w_graphics *gc, const char *text, int length,
 		return W_FALSE;
 	wresult result = w_graphics_check(gc, GRAPHICS_STATE_FONT);
 	if (result > 0) {
-		size_t newlength;
-		WCHAR *s = _win_text_fix(text, length, &newlength, enc);
+		int newlength;
+		WCHAR *s;
+		_win_text_fix(text, length, enc, &s, &newlength);
 		if (s != 0) {
 			if (_W_GRAPHICS(gc)->gdipGraphics != 0) {
 				_w_graphics_draw_text_0(gc, _W_GRAPHICS(gc)->gdipGraphics, s,

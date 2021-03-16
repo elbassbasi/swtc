@@ -96,11 +96,58 @@ void _w_image_dispose_gpimage(w_image *image, GpImage *gpimage) {
 		}
 	}
 }
+HBITMAP _w_image_create_32bit_dib(w_image *image) {
+	if (image == 0)
+		return 0;
+	if (_W_IMAGE(image)->handle == 0)
+		return 0;
+	_w_image_hbitmap hbitmap;
+	_w_image_get_hbitmap(image, &hbitmap);
+	BITMAP bm;
+	GetObject(hbitmap.hbmColor, sizeof(bm), &bm);
+	int imgWidth = bm.bmWidth;
+	int imgHeight = bm.bmHeight;
+	HDC hDC = GetDC(0);
+	HDC srcHdc = CreateCompatibleDC(hDC);
+	HBITMAP oldSrcBitmap = SelectObject(srcHdc, hbitmap.hbmColor);
+	HDC memHdc = CreateCompatibleDC(hDC);
+	BITMAPINFO bmi;
+	memset(&bmi, 0, sizeof(bmi));
+	bmi.bmiHeader.biSize = sizeof(bmi);
+	bmi.bmiHeader.biWidth = imgWidth;
+	bmi.bmiHeader.biHeight = -imgHeight;
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = (short) 32;
+	bmi.bmiHeader.biCompression = BI_RGB;
+	PVOID pBits = 0;
+	HBITMAP memDib = CreateDIBSection(0, &bmi, DIB_RGB_COLORS, &pBits, 0, 0);
+	if (memDib != 0) {
+		HBITMAP oldMemBitmap = SelectObject(memHdc, memDib);
+		BITMAP dibBM;
+		GetObjectW(memDib, sizeof(dibBM), &dibBM);
+		int sizeInBytes = dibBM.bmWidthBytes * dibBM.bmHeight;
+		BLENDFUNCTION blend;
+		blend.BlendOp = AC_SRC_OVER;
+		blend.BlendFlags = 0;
+		blend.SourceConstantAlpha = 0xFF;
+		blend.AlphaFormat = AC_SRC_ALPHA;
+		AlphaBlend(memHdc, 0, 0, imgWidth, imgHeight, srcHdc, 0, 0, imgWidth,
+				imgHeight, blend);
+		SelectObject(memHdc, oldMemBitmap);
+	}
+	SelectObject(srcHdc, oldSrcBitmap);
+	DeleteObject(srcHdc);
+	DeleteObject(memHdc);
+	ReleaseDC(0, hDC);
+	_w_image_dispose_hbitmap(image, &hbitmap);
+	return memDib;
+}
 wresult w_image_create_from_file(w_image *image, const char *file, int length,
 		int enc) {
 	w_image_dispose(image);
-	size_t newlength;
-	WCHAR *_f = _win_text_fix(file, length, &newlength, enc);
+	int newlength;
+	WCHAR *_f;
+	_win_text_fix(file, length, enc, &_f, &newlength);
 	if (_f == 0)
 		return W_ERROR_NO_MEMORY;
 	for (int i = 0; i < newlength; i++) {
@@ -214,7 +261,11 @@ wresult w_image_get_size(w_image *image, w_size *size) {
 		BITMAP bm;
 		GetObjectW(_W_IMAGE(image)->handle, sizeof(BITMAP), &bm);
 		size->width = bm.bmWidth;
-		size->height = bm.bmHeight;
+		if (bm.bmHeight >= 0) {
+			size->height = bm.bmHeight;
+		} else {
+			size->height = -bm.bmHeight;
+		}
 		return W_TRUE;
 	}
 		break;

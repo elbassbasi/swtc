@@ -8,7 +8,7 @@
 #include "TTextEditDemo.h"
 
 void TTextEditDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TTextEditDemo());
+	ITreeItem::Regitre(parent, "Demo", new TTextEditDemo());
 }
 
 void TTextEditDemo::CreateControl(WComposite *parent) {

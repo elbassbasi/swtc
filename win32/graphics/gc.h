@@ -48,6 +48,7 @@ void _w_image_dispose_hbitmap(w_image *image, _w_image_hbitmap *hbitmap);
 void _w_image_get_gpimage(w_image *image, GpImage **gpimage);
 void _w_image_dispose_gpimage(w_image *image, GpImage *gpimage);
 wresult w_image_resize_0(w_image *image, w_size *size, GpImage **dstimg);
+HBITMAP _w_image_create_32bit_dib(w_image *image);
 typedef struct swt_stream {
 	void *lpVtbl;
 	w_stream *s;

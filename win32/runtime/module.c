@@ -7,15 +7,17 @@
  */
 #include "core.h"
 w_module* w_module_load(const char *module) {
-	size_t newlength;
-	WCHAR *s = _win_text_fix(module, -1, &newlength, W_ENCODING_UTF8);
+	int newlength;
+	WCHAR *s;
+	_win_text_fix(module, -1, W_ENCODING_UTF8, &s, &newlength);
 	w_module *hmodule = (w_module*) LoadLibraryW(s);
 	_win_text_free(module, s, newlength);
 	return hmodule;
 }
 w_module* w_module_get(const char *module) {
-	size_t newlength;
-	WCHAR *s = _win_text_fix(module, -1, &newlength, W_ENCODING_UTF8);
+	int newlength;
+	WCHAR *s;
+	_win_text_fix(module, -1, W_ENCODING_UTF8, &s, &newlength);
 	w_module *hmodule = (w_module*) GetModuleHandleW(s);
 	_win_text_free(module, s, newlength);
 	return hmodule;

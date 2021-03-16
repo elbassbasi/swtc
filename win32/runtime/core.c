@@ -7,8 +7,10 @@
  */
 #include "core.h"
 #include "../widgets/toolkit.h"
-WCHAR* _win_text_fix(const char *text, size_t text_length, size_t *newlength,
-		int enc) {
+wresult _win_text_fix(const char *text, int text_length, int enc, WCHAR **str,
+		int *newlength) {
+	*str = 0;
+	*newlength = 0;
 	if (text == 0)
 		return 0;
 	WCHAR *s;
@@ -44,7 +46,8 @@ WCHAR* _win_text_fix(const char *text, size_t text_length, size_t *newlength,
 			*newlength = l + 1;
 		}
 	}
-	return s;
+	*str = s;
+	return W_TRUE;
 }
 void _win_text_free(const char *text, WCHAR *alloc, int length) {
 	if ((WCHAR*) text == alloc || alloc == 0)

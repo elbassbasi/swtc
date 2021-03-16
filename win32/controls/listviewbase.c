@@ -87,7 +87,20 @@ wresult _w_listviewbase_select_all(w_listviewbase *list) {
 	return W_FALSE;
 }
 wresult _w_listviewbase_set_header_visible(w_listviewbase *list, int show) {
-	return W_FALSE;
+	HWND handle = _W_WIDGET(list)->handle;
+	int newBits = GetWindowLongW(handle, GWL_STYLE);
+	newBits &= ~LVS_NOCOLUMNHEADER;
+	if (!show)
+		newBits |= LVS_NOCOLUMNHEADER;
+	/*
+	 * Feature in Windows.  Setting or clearing LVS_NOCOLUMNHEADER
+	 * causes the table to scroll to the beginning.  The fix is to
+	 * save and restore the top index causing the table to scroll
+	 * to the new location.
+	 */
+	//int oldIndex = getTopIndex ();
+	SetWindowLongW(handle, GWL_STYLE, newBits);
+	return W_TRUE;
 }
 wresult _w_listviewbase_set_imagelist(w_listviewbase *list,
 		w_imagelist *imagelist) {
@@ -111,6 +124,8 @@ wresult _w_listviewbase_set_imagelist(w_listviewbase *list,
 		msg = LVM_SETIMAGELIST;
 	}
 	SendMessageW(_W_WIDGET(list)->handle, msg, LVSIL_NORMAL,
+			(LPARAM) hImageList);
+	SendMessageW(_W_WIDGET(list)->handle, msg, LVSIL_SMALL,
 			(LPARAM) hImageList);
 	return ret;
 }

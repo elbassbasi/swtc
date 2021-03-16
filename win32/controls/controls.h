@@ -8,5 +8,9 @@
 
 #ifndef WIN32_CONTROLS_CONTROLS_H_
 #define WIN32_CONTROLS_CONTROLS_H_
+#include "button.h"
+#include "label.h"
+#include "sash.h"
+#include "textedit.h"
 #include "treeview.h"
 #endif /* WIN32_CONTROLS_CONTROLS_H_ */

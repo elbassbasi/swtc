@@ -27,7 +27,7 @@ struct _w_button_class {
 	wresult (*set_grayed)(w_button *button, int grayed);
 	wresult (*set_image)(w_button *button, w_image *image);
 	wresult (*set_selection)(w_button *button, int selected);
-	wresult (*set_text)(w_button *button, const char *string,size_t length,int enc);
+	wresult (*set_text)(w_button *button, const char *string,int length,int enc);
 };
 SWT_PUBLIC wresult w_button_create(w_button *button, w_toolkit *toolkit,
 		w_composite *parent, wuint64 style, w_widget_post_event_proc post_event);

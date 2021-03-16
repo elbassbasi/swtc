@@ -7,7 +7,7 @@
  */
 #ifndef WIN32_WIDGETS_MENU_H_
 #define WIN32_WIDGETS_MENU_H_
-#include "widget.h"
+#include "item.h"
 /*
  * menu
  */
@@ -31,6 +31,11 @@ typedef struct _w_menuitem {
 	HMENU menu;
 } _w_menuitem;
 #define _W_MENUITEM(x) ((_w_menuitem*)x)
+typedef struct _w_menuitem_data {
+	void *userdata;
+	HBITMAP image;
+	WCHAR tooltip[0];
+} _w_menuitem_data;
 /*
  * private
  */

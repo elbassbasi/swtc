@@ -20,9 +20,9 @@ extern "C" {
 #define WMIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define WMAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 extern HINSTANCE hinst;
-WCHAR* _win_text_fix(const char *text, size_t text_length, size_t *newlength,
-		int enc);
-void _win_text_free(const char *text, WCHAR *alloc, int length);
+wresult _win_text_fix(const char *text, int text_length, int enc, WCHAR **str,
+		int *newlength);
+void _win_text_free(const char *text, WCHAR *str, int length);
 wresult _win_text_set(WCHAR *text, int length, w_alloc alloc, void *user_data,
 		int enc);
 #ifdef __cplusplus
