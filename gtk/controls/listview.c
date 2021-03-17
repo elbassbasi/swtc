@@ -131,6 +131,8 @@ wresult _w_listview_insert_item(w_listview *list, w_listitem *item, int index) {
 	} else {
 		gtk_list_store_insert(GTK_LIST_STORE(modelHandle), handle, index);
 	}
+	gtk_list_store_set(GTK_LIST_STORE(modelHandle), handle, COLUMN_IMAGE, -1,
+			-1);
 	if (item != 0) {
 		_W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(list);
 		_W_ITEM(item)->parent = W_WIDGET(list);

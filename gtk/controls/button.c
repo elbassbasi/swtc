@@ -385,10 +385,8 @@ void _w_button_select_radio(w_widget *widget, _w_event_platform *e,
 	_w_fixed *fixed = (_w_fixed*) priv->widget.handle_top(widget, priv);
 	_w_button_select_radio_0(fixed, e, W_FALSE);
 	_w_button_select_radio_0(fixed, e, W_TRUE);
-	if (gtk_toggle_button_get_active(
-			GTK_TOGGLE_BUTTON(_W_WIDGET(widget)->handle)) == FALSE) {
-		_w_button_set_selection(W_BUTTON(widget), W_FALSE);
-	}
+	gboolean selected = _W_WIDGET(widget)->state & STATE_BUTTON_SELECTED;
+	_w_button_set_selection(W_BUTTON(widget), !selected);
 }
 wresult _w_button_set_alignment(w_button *button, int alignment) {
 	_w_widget_handles handles;
@@ -567,6 +565,11 @@ wresult _w_button_set_selection(w_button *button, int selected) {
 	g_signal_handlers_block_matched(_W_WIDGET(button)->handle,
 			G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
 			(void*) ((intptr_t) SIGNAL_CLICKED));
+	if (selected) {
+		_W_WIDGET(button)->state |= STATE_BUTTON_SELECTED;
+	} else {
+		_W_WIDGET(button)->state &= ~STATE_BUTTON_SELECTED;
+	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(_W_WIDGET(button)->handle),
 			selected);
 	if ((_W_WIDGET(button)->style & W_CHECK) != 0) {
@@ -596,7 +599,7 @@ wresult _w_button_set_selection(w_button *button, int selected) {
 			(void*) ((intptr_t) SIGNAL_CLICKED));
 	return W_TRUE;
 }
-wresult _w_button_set_text(w_button *button, const char *text, size_t length,
+wresult _w_button_set_text(w_button *button, const char *text, int length,
 		int enc) {
 	if (text == 0)
 		return W_ERROR_NULL_ARGUMENT;
@@ -625,32 +628,30 @@ gboolean _gtk_button_clicked(w_widget *widget, _w_event_platform *e,
 	if (_w_control_contained_in_region(widget, lastInput, priv)) {
 		return FALSE;
 	}
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	if ((_W_WIDGET(widget)->style & W_RADIO) != 0) {
 		w_composite *parent;
 		w_control_get_parent(W_CONTROL(widget), &parent);
 		if ((_W_WIDGET(parent)->style & W_NO_RADIO_GROUP) != 0) {
-			_w_button_set_selection(W_BUTTON(widget),
-					gtk_toggle_button_get_active(
-							GTK_TOGGLE_BUTTON(_W_WIDGET(widget)->handle)));
+			gboolean selected = _W_WIDGET(widget)->state & STATE_BUTTON_SELECTED;
+			_w_button_set_selection(W_BUTTON(widget), !selected);
 		} else {
 			_w_button_select_radio(widget, e, priv);
 		}
 	} else {
 		if ((_W_WIDGET(widget)->style & W_CHECK) != 0) {
 			if (_W_WIDGET(widget)->state & STATE_BUTTON_GRAYED) {
-				if (gtk_toggle_button_get_active(
-						GTK_TOGGLE_BUTTON(_W_WIDGET(widget)->handle))) {
+				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(handle))) {
 					gtk_toggle_button_set_inconsistent(
-							GTK_TOGGLE_BUTTON(_W_WIDGET(widget)->handle), TRUE);
+							GTK_TOGGLE_BUTTON(handle), TRUE);
 				} else {
 					gtk_toggle_button_set_inconsistent(
-							GTK_TOGGLE_BUTTON(_W_WIDGET(widget)->handle),
+							GTK_TOGGLE_BUTTON(handle),
 							FALSE);
 				}
 			}
 		}
 	}
-
 	w_event event;
 	memset(&event, 0, sizeof(event));
 	event.type = W_EVENT_SELECTION;

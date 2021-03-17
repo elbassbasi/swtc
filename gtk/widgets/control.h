@@ -75,6 +75,8 @@ typedef struct _w_control {
 	w_droptarget *droptarget;
 	w_point lastInput;
 	int backgroundAlpha;
+	w_color foreground;
+	w_color background;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)
 /*
@@ -134,6 +136,8 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	int (*get_client_width)(w_control *control, _w_control_priv *priv);
 	w_control* (*find_background_control)(w_control *control,
+			_w_control_priv *priv);
+	void (*draw_widget)(w_control *control, w_graphics *gc,
 			_w_control_priv *priv);
 	void (*redraw_widget)(w_control *control, w_rect *rect, int flags,
 			_w_control_priv *priv);

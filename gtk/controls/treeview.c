@@ -124,8 +124,8 @@ wresult _w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
 	 items[id] = item;
 	 modelChanged = true;
 	 */
-	gtk_tree_store_set(GTK_TREE_STORE(modelHandle), handle, COLUMN_INFO, 0,
-			COLUMN_IMAGE, -1, COLUMN_TEXT, 0, COLUMN_USER_DATA, 0, -1);
+	gtk_tree_store_set(GTK_TREE_STORE(modelHandle), handle, COLUMN_IMAGE, -1,
+			-1);
 	if (subitem != 0) {
 		_W_WIDGETDATA(subitem)->clazz = _W_WIDGETDATA(item)->clazz;
 		_W_ITEM(subitem)->parent = W_WIDGET(tree);

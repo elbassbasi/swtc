@@ -141,6 +141,70 @@ wresult _w_composite_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->handle = handle;
 	return W_TRUE;
 }
+void _w_composite_minimum_size(w_composite *composite, w_size *size, int wHint,
+		int hHint, int changed) {
+	w_iterator children;
+	w_iterator_init(&children);
+	w_composite_get_children(composite, &children);
+	/*
+	 * Since getClientArea can be overridden by subclasses, we cannot
+	 * call getClientAreaInPixels directly.
+	 */
+	w_rect clientArea, rect;
+	w_scrollable_get_client_area(W_SCROLLABLE(composite), &clientArea);
+	int width = 0, height = 0;
+	w_control *child = 0;
+	while (w_iterator_next(&children, &child)) {
+		if (child != 0) {
+			w_control_get_bounds(child, &rect.pt, &rect.sz);
+			width = WMAX(width, rect.x - clientArea.x + rect.width);
+			height = WMAX(height, rect.y - clientArea.y + rect.height);
+		}
+	}
+	size->width = width;
+	size->height = height;
+}
+wresult _w_composite_compute_size(w_widget *widget, w_event_compute_size *e,
+		_w_control_priv *priv) {
+	int wHint = e->wHint;
+	int hHint = e->hHint;
+	//display.runSkin();
+	if (wHint != W_DEFAULT && wHint < 0)
+		wHint = 0;
+	if (hHint != W_DEFAULT && hHint < 0)
+		hHint = 0;
+	if (_W_COMPOSITE(widget)->layout != 0) {
+		if (wHint == W_DEFAULT || hHint == W_DEFAULT) {
+			//changed |= (state & LAYOUT_CHANGED) != 0;
+			w_layout_compute_size(_W_COMPOSITE(widget)->layout,
+					W_COMPOSITE(widget), e->size, wHint, hHint, e->changed);
+			//state &= ~LAYOUT_CHANGED;
+		} else {
+			e->size->width = wHint;
+			e->size->height = hHint;
+		}
+	} else {
+		_w_composite_minimum_size(W_COMPOSITE(widget), e->size, wHint, hHint,
+		TRUE);
+		if (e->size->width == 0)
+			e->size->width = DEFAULT_WIDTH;
+		if (e->size->height == 0)
+			e->size->height = DEFAULT_HEIGHT;
+	}
+	if (wHint != W_DEFAULT)
+		e->size->width = wHint;
+	if (hHint != W_DEFAULT)
+		e->size->height = hHint;
+	w_rect rect, trim;
+	rect.x = 0;
+	rect.y = 0;
+	rect.width = e->size->width;
+	rect.height = e->size->height;
+	w_scrollable_compute_trim(W_SCROLLABLE(widget), &trim, &rect);
+	e->size->width = trim.width;
+	e->size->height = trim.height;
+	return TRUE;
+}
 w_composite* _w_composite_find_deferred_control(w_control *composite,
 		_w_control_priv *priv) {
 	if ( _W_COMPOSITE(composite)->layoutCount > 0) {

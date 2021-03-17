@@ -351,6 +351,8 @@ int w_grid_column_next(w_grid *grid, w_grid_column **column,
 	if (grid->currentColumn < grid->columnCount) {
 		w_grid_column *col = &grid->columns[grid->currentColumn];
 		w_grid_control *c = col->currentControl;
+		if (c == 0)
+			return -1;
 		int hSpan_min = WMIN(c->data.horizontalSpan, grid->columnCount);
 		int hSpan = WMAX(1, hSpan_min);
 		int vSpan = WMAX(1, c->data.verticalSpan);

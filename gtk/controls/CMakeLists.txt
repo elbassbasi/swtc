@@ -2,6 +2,7 @@
 	set(src_gtk 
 		${src_gtk}
 		${CURRENT_DIR}/button.c
+		${CURRENT_DIR}/groupbox.c
 		${CURRENT_DIR}/label.c
 		${CURRENT_DIR}/listview.c
 		${CURRENT_DIR}/listviewbase.c

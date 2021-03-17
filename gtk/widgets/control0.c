@@ -112,6 +112,10 @@ wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event) {
 	return W_FALSE;
 }
+void _w_control_draw_widget(w_control *control, w_graphics *gc,
+		_w_control_priv *priv) {
+
+}
 w_control* _w_control_find_background_control(w_control *control,
 		_w_control_priv *priv) {
 	return 0;
@@ -918,6 +922,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	_W_WIDGET_PRIV(priv)->handle_top = _w_control_handle_top;
 	_W_WIDGET_PRIV(priv)->create_widget = _w_control_create_widget;
 	_W_WIDGET_PRIV(priv)->hook_events = _w_control_hook_events;
+	priv->draw_widget = _w_control_draw_widget;
 	priv->handle_fixed = _w_widget_h;
 	priv->handle_client = _w_widget_h;
 	priv->handle_focus = _w_widget_h;

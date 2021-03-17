@@ -19,7 +19,6 @@ struct _w_menu {
 	_w_menu *next;
 	_w_menu *prev;
 	w_control *parent;
-	w_imagelist *imagelist;
 	int x;
 	int y;
 };

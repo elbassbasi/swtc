@@ -9,6 +9,7 @@
 #define GTK_CONTROLS_BUTTON_H_
 #include "../widgets/shell.h"
 #define STATE_BUTTON_GRAYED (1 << (STATE_CONTROL_END + 1))
+#define STATE_BUTTON_SELECTED (1 << (STATE_CONTROL_END + 2))
 #define STATE_BUTTON_END (STATE_CONTROL_END + 1)
 typedef struct _w_button {
 	_w_control control;
@@ -38,7 +39,7 @@ wresult _w_button_set_alignment(w_button *button, int alignment);
 wresult _w_button_set_grayed(w_button *button, int grayed);
 wresult _w_button_set_image(w_button *button, w_image *image);
 wresult _w_button_set_selection(w_button *button, int selected);
-wresult _w_button_set_text(w_button *button, const char *text, size_t length,int enc);
+wresult _w_button_set_text(w_button *button, const char *text, int length,int enc);
 /*
  *
  */

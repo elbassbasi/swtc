@@ -8,17 +8,23 @@
 #ifndef GTK_CONTROLS_LABEL_H_
 #define GTK_CONTROLS_LABEL_H_
 #include "../widgets/shell.h"
+typedef struct _w_hyperlink {
+	PangoLayout *layout;
+	w_range selection;
+	int text_length;
+	char text[0];
+} _w_hyperlink;
 typedef struct _w_label {
 	_w_control control;
-}_w_label;
+	_w_hyperlink *hyperlink;
+} _w_label;
 
 typedef struct _w_label_priv {
 	_w_control_priv control;
 
-}_w_label_priv;
+} _w_label_priv;
 #define _W_LABEL(x) ((_w_label*)x)
 #define _W_LABEL_PRIV(x) ((_w_label_priv*)x)
 
-
-void _w_label_class_init (struct _w_label_class* clazz);
+void _w_label_class_init(struct _w_label_class *clazz);
 #endif /* GTK_CONTROLS_LABEL_H_ */

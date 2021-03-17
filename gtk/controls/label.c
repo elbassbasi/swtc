@@ -55,17 +55,25 @@ wresult _w_label_set_text(w_label *label, const char *text, int length,
 	if ((_W_WIDGET(label)->style & W_SEPARATOR) != 0)
 		return W_TRUE;
 	int newlength, mnemonic;
-	_w_widget_handles handles;
-	_w_widget_get_handles( _W_WIDGET(label)->handle, &handles);
-	if (handles.label != 0) {
+	if ((_W_WIDGET(label)->style & W_HYPERLINK) != 0) {
 		char *s = _gtk_text_fix(text, length, enc, &newlength, &mnemonic);
 		if (s != 0) {
-			gtk_label_set_text_with_mnemonic(GTK_LABEL(handles.label), s);
-			gtk_widget_show(handles.label);
+
 		}
 		_gtk_text_free(text, s, newlength);
+	} else {
+		_w_widget_handles handles;
+		_w_widget_get_handles( _W_WIDGET(label)->handle, &handles);
+		if (handles.label != 0) {
+			char *s = _gtk_text_fix(text, length, enc, &newlength, &mnemonic);
+			if (s != 0) {
+				gtk_label_set_text_with_mnemonic(GTK_LABEL(handles.label), s);
+				gtk_widget_show(handles.label);
+			}
+			_gtk_text_free(text, s, newlength);
+		}
+		//_setAlignment (style);
 	}
-	//_setAlignment (style);
 	return W_TRUE;
 }
 wuint64 _w_label_check_style(w_widget *widget, wuint64 style) {
@@ -360,6 +368,27 @@ wresult _w_label_compute_size(w_widget *widget, w_event_compute_size *e,
 	}
 	return W_TRUE;
 }
+void _w_label_draw_widget(w_control *control, w_graphics *gc,
+		_w_control_priv *priv) {
+	if (_W_WIDGET(control)->style & W_HYPERLINK) {
+		_w_hyperlink *link = _W_LABEL(control)->hyperlink;
+		if (link != 0) {
+			int selStart = link->selection.start;
+			int selEnd = link->selection.end;
+			// temporary code to disable text selection
+			selStart = selEnd = -1;
+			if ((_W_WIDGET(control)->state & STATE_DISABLED) != 0) {
+				//w_graphics_set_foreground(gc, disabledColor);
+			}
+			if (link->layout != 0) {
+				cairo_t *cairo = _W_GRAPHICS(gc)->cairo;
+				cairo_move_to(cairo, 0, 0);
+				pango_cairo_show_layout(cairo, link->layout);
+				cairo_new_path(cairo);
+			}
+		}
+	}
+}
 void _w_label_class_init(struct _w_label_class *clazz) {
 	_w_control_class_init(W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_LABEL;
@@ -383,5 +412,6 @@ void _w_label_class_init(struct _w_label_class *clazz) {
 	priv->widget.check_style = _w_label_check_style;
 	priv->widget.create_handle = _w_label_create_handle;
 	priv->widget.compute_size = _w_label_compute_size;
+	priv->draw_widget = _w_label_draw_widget;
 }
 

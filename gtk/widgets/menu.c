@@ -135,27 +135,24 @@ wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 #endif
 	}
 		break;
-	case W_CASCADE: {
-		menuItem = gtk_menu_item_new_with_mnemonic("");
-		if (menuItem != 0) {
-			sub_menu = gtk_menu_new();
-			if (sub_menu == 0) {
-				gtk_widget_destroy(menuItem);
-				menuItem = 0;
-			} else {
-				g_object_set_qdata(G_OBJECT(sub_menu), gtk_toolkit->quark[0],
-						menu);
-				gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuItem), sub_menu);
-			}
-		}
-	}
-		break;
 	default:
 #if GTK3
 		menuItem = gtk_menu_item_new();
 		if (menuItem != 0) {
 			labelHandle = gtk_accel_label_new("");
 			boxHandle = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+			if (style & W_CASCADE) {
+				sub_menu = gtk_menu_new();
+				if (sub_menu == 0) {
+					gtk_widget_destroy(menuItem);
+					menuItem = 0;
+				} else {
+					g_object_set_qdata(G_OBJECT(sub_menu),
+							gtk_toolkit->quark[0], menu);
+					gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuItem),
+							sub_menu);
+				}
+			}
 		}
 #endif
 #if GTK2
@@ -548,9 +545,9 @@ wresult _w_menuitem_set_image(w_menuitem *item, w_image *image) {
 	}
 	return _w_menuitem_set_image_0(item, pixbuf);
 }
-wresult _w_menuitem_set_image_index(w_menuitem *item, int index) {
+wresult _w_menuitem_set_image_index(w_menuitem *item, w_imagelist *imagelist,
+		int index) {
 	w_widget *menu = _W_ITEM(item)->parent;
-	w_imagelist *imagelist = _W_MENU(menu)->imagelist;
 	GdkPixbuf *pixbuf = w_imagelist_get_pixbuf(imagelist, index);
 	return _w_menuitem_set_image_0(item, pixbuf);
 }
@@ -632,10 +629,6 @@ wresult _w_menu_get_bounds(w_menu *menu, w_rect *bounds) {
 	}
 	return W_TRUE;
 }
-wresult _w_menu_get_imagelist(w_menu *menu, w_imagelist **imagelist) {
-	*imagelist = _W_MENU(menu)->imagelist;
-	return W_TRUE;
-}
 wresult _w_menu_get_root(w_menu *menu, w_menuitem *rootitem) {
 	_W_WIDGETDATA(rootitem)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 	_W_ITEM(rootitem)->parent = W_WIDGET(menu);
@@ -664,10 +657,6 @@ void _w_menu_hook_events(w_widget *widget, _w_control_priv *priv) {
 }
 wresult _w_menu_is_visible(w_menu *menu) {
 	return _w_menu_get_visible(menu);
-}
-wresult _w_menu_set_imagelist(w_menu *menu, w_imagelist *imagelist) {
-	_W_MENU(menu)->imagelist = imagelist;
-	return W_TRUE;
 }
 wresult _w_menu_set_location(w_menu *menu, w_point *location) {
 	if ((_W_WIDGET(menu)->style & (W_BAR | W_DROP_DOWN)) != 0)
@@ -851,13 +840,11 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_menu_create;
 	clazz->get_bounds = _w_menu_get_bounds;
-	clazz->get_imagelist = _w_menu_get_imagelist;
 	clazz->get_root = _w_menu_get_root;
 	clazz->get_orientation = _w_menu_get_orientation;
 	clazz->get_parent = _w_menu_get_parent;
 	clazz->get_visible = _w_menu_get_visible;
 	clazz->is_visible = _w_menu_is_visible;
-	clazz->set_imagelist = _w_menu_set_imagelist;
 	clazz->set_location = _w_menu_set_location;
 	clazz->set_orientation = _w_menu_set_orientation;
 	clazz->set_visible = _w_menu_set_visible;

@@ -8,7 +8,7 @@
 #include "TGroupBoxDemo.h"
 
 void TGroupBoxDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TGroupBoxDemo());
+	ITreeItem::Regitre(parent, "Demo", new TGroupBoxDemo());
 }
 const char *TGroupBoxDemo::RADIO_TEXTS[] = { "John", "Paul", "George", "Ringo",
 		"Barry", "Robin", "Maurice" };

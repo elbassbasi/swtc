@@ -7,6 +7,7 @@
 
 #include "TLabels.h"
 #include "TLabelDemo.h"
+#include "TLabelLink.h"
 
 void TLabels::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Label", new TLabels());
@@ -14,5 +15,6 @@ void TLabels::Registre(WTreeItem &parent) {
 
 bool TLabels::Expand(WTreeItem &item) {
 	TLabelDemo::Registre(item);
+	TLabelLink::Registre(item);
 	return true;
 }

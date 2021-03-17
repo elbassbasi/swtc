@@ -6,11 +6,10 @@
  */
 
 #include "TGroupBoxs.h"
-
 #include "TGroupBoxDemo.h"
 
 void TGroupBoxs::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Group", new TGroupBoxs());
+	ITreeItem::Regitre(parent, "GroupBox", new TGroupBoxs());
 }
 
 bool TGroupBoxs::Expand(WTreeItem &item) {

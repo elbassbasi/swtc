@@ -32,7 +32,8 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 	w_event_mouse event;
 	_W_CONTROL(widget)->lastInput.x = (int) gdkEvent->x;
 	_W_CONTROL(widget)->lastInput.y = (int) gdkEvent->y;
-	if (_w_control_contained_in_region(widget, &_W_CONTROL(widget)->lastInput, priv))
+	if (_w_control_contained_in_region(widget, &_W_CONTROL(widget)->lastInput,
+			priv))
 		return FALSE;
 	if (gdkEvent->type == GDK_3BUTTON_PRESS)
 		return 0;
@@ -254,8 +255,8 @@ gboolean _gtk_control_draw(w_widget *widget, _w_event_platform *e,
 	 w_graphics_set_background(W_GRAPHICS(&gc), background);
 	 w_color foreground;
 	 w_control_get_foreground(W_CONTROL(widget), &foreground);
-	 w_graphics_set_foreground(W_GRAPHICS(&gc), foreground);
-	 priv->draw_widget(W_CONTROL(widget), W_GRAPHICS(&gc), priv);*/
+	 w_graphics_set_foreground(W_GRAPHICS(&gc), foreground);*/
+	priv->draw_widget(W_CONTROL(widget), W_GRAPHICS(&gc), priv);
 	_w_widget_send_event(widget, (w_event*) &event);
 	w_graphics_dispose(W_GRAPHICS(&gc));
 #else

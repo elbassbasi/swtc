@@ -8,7 +8,7 @@
 #include "TProgressBarDemo.h"
 
 void TProgressBarDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TProgressBarDemo());
+	ITreeItem::Regitre(parent, "Demo", new TProgressBarDemo());
 }
 
 void TProgressBarDemo::CreateControl(WComposite *parent) {

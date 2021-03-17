@@ -19,15 +19,16 @@ w_groupbox* w_groupbox_new(struct w_toolkit *toolkit, w_composite *parent,
 }
 wresult w_groupbox_get_text(w_groupbox *group, w_alloc alloc, void *user_data,
 		int enc) {
-	wresult result = W_WIDGETDATA_CHECK0(group);
+	wresult result = W_WIDGET_CHECK0(group);
 	if (result > 0) {
-		return W_GROUPBOX_GET_CLASS(group)->get_text(group, alloc, user_data,enc);
+		return W_GROUPBOX_GET_CLASS(group)->get_text(group, alloc, user_data,
+				enc);
 	} else
 		return result;
 }
 wresult w_groupbox_set_text(w_groupbox *group, const char *text, int length,
 		int enc) {
-	wresult result = W_WIDGETDATA_CHECK0(group);
+	wresult result = W_WIDGET_CHECK0(group);
 	if (result > 0) {
 		return W_GROUPBOX_GET_CLASS(group)->set_text(group, text, length, enc);
 	} else

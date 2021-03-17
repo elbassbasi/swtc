@@ -266,6 +266,15 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 			&toolkit->class_progressbar_priv;
 	toolkit->classes[_W_CLASS_PROGRESSBAR] = W_WIDGET_CLASS(
 			&toolkit->class_progressbar);
+	/*
+	 * groupbox
+	 */
+	W_WIDGET_CLASS(&toolkit->class_groupbox)->init_class =
+			(w_widget_init_class) _w_groupbox_class_init;
+	W_WIDGET_CLASS(&toolkit->class_groupbox)->reserved[0] =
+			&toolkit->class_groupbox_priv;
+	toolkit->classes[_W_CLASS_GROUPBOX] = W_WIDGET_CLASS(
+			&toolkit->class_groupbox);
 }
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];

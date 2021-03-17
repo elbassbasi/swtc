@@ -9,6 +9,7 @@
 #ifndef GTK_CONTROLS_CONTROLS_H_
 #define GTK_CONTROLS_CONTROLS_H_
 #include "button.h"
+#include "groupbox.h"
 #include "label.h"
 #include "progressbar.h"
 #include "sash.h"
