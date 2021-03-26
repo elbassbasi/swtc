@@ -49,6 +49,27 @@ SWT_PUBLIC wresult w_font_create_from_fontdata(w_font *font,
 		w_fontdata *fontdata);
 SWT_PUBLIC wresult w_font_get_fontdata(w_font *font, w_fontdata *fontdata);
 /*
+ * fontlist
+ */
+typedef struct w_fontlist {
+	void *handle[2];
+} w_fontlist;
+#define W_FONTLIST(x) ((w_fontlist*)x)
+SWT_PUBLIC void w_fontlist_init(w_fontlist *list);
+SWT_PUBLIC void w_fontlist_dispose(w_fontlist *list);
+SWT_PUBLIC wresult w_fontlist_is_ok(w_fontlist *list);
+SWT_PUBLIC wresult w_fontlist_create(w_fontlist *list, int initialCount);
+SWT_PUBLIC wresult w_fontlist_add(w_fontlist *list, w_fontdata *fontdata);
+SWT_PUBLIC wresult w_fontlist_replace(w_fontlist *list, int index,
+		w_fontdata *fontdata);
+SWT_PUBLIC wresult w_fontlist_remove(w_fontlist *list, int index);
+SWT_PUBLIC wresult w_fontlist_remove_all(w_fontlist *list);
+SWT_PUBLIC wresult w_fontlist_get_font(w_fontlist *list, int index,
+		w_font **font);
+SWT_PUBLIC wresult w_fontlist_get_count(w_fontlist *list);
+SWT_PUBLIC wresult w_fontlist_find_font(w_fontlist *list, w_fontdata *fontdata,
+		w_font **font);
+/*
  * font metrics
  */
 typedef struct w_fontmetrics {

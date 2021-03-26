@@ -100,7 +100,8 @@ public:
 	 */
 	WString GetName() {
 		WString str;
-		w_fontdata_get_name(W_FONTDATA(this), w_alloc_string_ref, &str.ref,W_ENCODING_UTF8);
+		w_fontdata_get_name(W_FONTDATA(this), w_alloc_string_ref, &str.ref,
+				W_ENCODING_UTF8);
 		return str;
 	}
 	/**
@@ -117,7 +118,8 @@ public:
 		buffer.buffer = name;
 		buffer.size = size;
 		buffer.total_size = 0;
-		w_fontdata_get_name(W_FONTDATA(this), w_alloc_buffer_copy, &buffer,W_ENCODING_UTF8);
+		w_fontdata_get_name(W_FONTDATA(this), w_alloc_buffer_copy, &buffer,
+				W_ENCODING_UTF8);
 		return buffer.total_size;
 	}
 	/**
@@ -131,6 +133,15 @@ public:
 	 */
 	int GetStyle() {
 		return w_fontdata_get_style(W_FONTDATA(this));
+	}
+	bool IsNormal() {
+		return GetStyle() & W_NORMAL;
+	}
+	bool IsItalic() {
+		return GetStyle() & W_ITALIC;
+	}
+	bool IsBold() {
+		return GetStyle() & W_BOLD;
 	}
 	bool Set(const char *name, int height, int style) {
 		return w_fontdata_set(W_FONTDATA(this), name, -1, W_ENCODING_UTF8,
@@ -186,6 +197,14 @@ public:
 	 */
 	bool SetStyle(int style) {
 		return w_fontdata_set_style(W_FONTDATA(this), style) > 0;
+	}
+	void SetItalic() {
+		int style = GetStyle();
+		SetStyle(style | W_ITALIC);
+	}
+	void SetBold() {
+		int style = GetStyle();
+		SetStyle(style | W_BOLD);
 	}
 private:
 	char handle[sizeof(w_fontdata)];

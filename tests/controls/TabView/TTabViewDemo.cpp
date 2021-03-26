@@ -8,7 +8,7 @@
 #include "TTabViewDemo.h"
 
 void TTabViewDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TTabViewDemo());
+	ITreeItem::Regitre(parent, "Demo", new TTabViewDemo());
 }
 
 WControl* TTabViewDemo::GetControl(WComposite *parent) {

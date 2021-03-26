@@ -124,7 +124,7 @@ GRAPHICS_STATE_LINE_STYLE | GRAPHICS_STATE_LINE_CAP | GRAPHICS_STATE_LINE_JOIN\
 #define GRAPHICS_STATE_FILL  GRAPHICS_STATE_BACKGROUND
 #define GRAPHICS_STATE_MIRRORED  (1 << 11)
 #define GRAPHICS_STATE_DISPOSE_CAIRO  (1 << 12)
-#define GRAPHICS_STATE_HAS_IDENTITY  (1 << 12)
+#define GRAPHICS_STATE_HAS_IDENTITY  (1 << 13)
 typedef struct _w_graphics {
 	union {
 #if USE_CAIRO
@@ -165,6 +165,19 @@ void _w_graphics_init(w_graphics *gc, cairo_t *drawable);
 void _w_graphics_init(w_graphics* gc,GdkWindow* drawable);
 #endif
 wresult _w_graphics_check(w_graphics *gc, int mask);
+typedef struct _w_textlayout {
+	PangoLayout *layout;
+	PangoAttrList *selAttrList;
+	w_font *font;
+	int ascentInPoints;
+	int descentInPoints;
+	int indent;
+	int wrapIndent;
+	int wrapWidth;
+	int *tabs;
+	int *invalidOffsets;
+} _w_textlayout;
+#define _W_TEXTLAYOUT(x) ((_w_textlayout*)x)
 #ifdef __cplusplus
 }
 #endif

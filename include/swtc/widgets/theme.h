@@ -13,64 +13,64 @@ extern "C" {
 #endif
 /** classes  */
 enum {
-    W_THEME_CLASS_UNKNOWN =_W_CLASS_UNKNOWN,
-    //widget
-    W_THEME_CLASS_MENU =_W_CLASS_MENU,
-    //control
-    W_THEME_CLASS_BUTTON =_W_CLASS_BUTTON,
-    W_THEME_CLASS_LABEL =_W_CLASS_LABEL,
-    W_THEME_CLASS_PROGRESSBAR =_W_CLASS_PROGRESSBAR,
-    W_THEME_CLASS_SASH =_W_CLASS_SASH,
-    W_THEME_CLASS_SLIDER =_W_CLASS_SLIDER,
-    W_THEME_CLASS_SCROLLBAR =_W_CLASS_SCROLLBAR,
+	W_THEME_CLASS_UNKNOWN = _W_CLASS_UNKNOWN,
+	//widget
+	W_THEME_CLASS_MENU = _W_CLASS_MENU,
+	//control
+	W_THEME_CLASS_BUTTON = _W_CLASS_BUTTON,
+	W_THEME_CLASS_LABEL = _W_CLASS_LABEL,
+	W_THEME_CLASS_PROGRESSBAR = _W_CLASS_PROGRESSBAR,
+	W_THEME_CLASS_SASH = _W_CLASS_SASH,
+	W_THEME_CLASS_SLIDER = _W_CLASS_SLIDER,
+	W_THEME_CLASS_SCROLLBAR = _W_CLASS_SCROLLBAR,
 
-    //scrollable
-    W_THEME_CLASS_TEXTEDIT =_W_CLASS_TEXTEDIT,
+	//scrollable
+	W_THEME_CLASS_TEXTEDIT = _W_CLASS_TEXTEDIT,
 
-    //composite
-    W_THEME_CLASS_COMPOSITE = _W_CLASS_COMPOSITE,
-    W_THEME_CLASS_WEBVIEW =_W_CLASS_WEBVIEW,
-    W_THEME_CLASS_TREEVIEW =_W_CLASS_TREEVIEW,
-    W_THEME_CLASS_TABVIEW =_W_CLASS_TABVIEW,
-    W_THEME_CLASS_COMBOBOX =_W_CLASS_COMBOBOX,
-    W_THEME_CLASS_COOLBAR =_W_CLASS_COOLBAR,
-    W_THEME_CLASS_DATETIME =_W_CLASS_DATETIME,
-    W_THEME_CLASS_EXPANDBAR =_W_CLASS_EXPANDBAR,
-    W_THEME_CLASS_GROUPBOX =_W_CLASS_GROUPBOX,
-    W_THEME_CLASS_SPINNER =_W_CLASS_SPINNER,
-    W_THEME_CLASS_LISTVIEW =_W_CLASS_LISTVIEW,
-    W_THEME_CLASS_TOOLBAR =_W_CLASS_TOOLBAR,
-    // item
-    W_THEME_CLASS_TABITEM = _W_CLASS_LAST + 1,
-    W_THEME_CLASS_TOOLITEM = _W_CLASS_LAST + 2,
-    W_THEME_CLASS_LAST,
-    /*
-     * internal class
-     */
-    _W_THEME_CLASS_UNKNOWN =0,
-    _W_THEME_CLASS_MENU,
-    _W_THEME_CLASS_BUTTON,
-    _W_THEME_CLASS_LABEL,
-    _W_THEME_CLASS_PROGRESSBAR,
-    _W_THEME_CLASS_SASH,
-    _W_THEME_CLASS_SLIDER,
-    _W_THEME_CLASS_SCROLLBAR,
-    _W_THEME_CLASS_TEXTEDIT,
-    _W_THEME_CLASS_LISTVIEW,
-    _W_THEME_CLASS_COMPOSITE,
-    _W_THEME_CLASS_BROWSER,
-    _W_THEME_CLASS_TREEVIEW,
-    _W_THEME_CLASS_TABVIEW,
-    _W_THEME_CLASS_TABITEM,
-    _W_THEME_CLASS_COMBOBOX,
-    _W_THEME_CLASS_COOLBAR,
-    _W_THEME_CLASS_DATETIME,
-    _W_THEME_CLASS_EXPANDBAR,
-    _W_THEME_CLASS_GROUPBOX,
-    _W_THEME_CLASS_SPINNER,
-    _W_THEME_CLASS_TOOLBAR,
-    _W_THEME_CLASS_TOOLITEM,
-    _W_THEME_CLASS_LAST,
+	//composite
+	W_THEME_CLASS_COMPOSITE = _W_CLASS_COMPOSITE,
+	W_THEME_CLASS_WEBVIEW = _W_CLASS_WEBVIEW,
+	W_THEME_CLASS_TREEVIEW = _W_CLASS_TREEVIEW,
+	W_THEME_CLASS_TABVIEW = _W_CLASS_TABVIEW,
+	W_THEME_CLASS_COMBOBOX = _W_CLASS_COMBOBOX,
+	W_THEME_CLASS_COOLBAR = _W_CLASS_COOLBAR,
+	W_THEME_CLASS_DATETIME = _W_CLASS_DATETIME,
+	W_THEME_CLASS_EXPANDBAR = _W_CLASS_EXPANDBAR,
+	W_THEME_CLASS_GROUPBOX = _W_CLASS_GROUPBOX,
+	W_THEME_CLASS_SPINNER = _W_CLASS_SPINNER,
+	W_THEME_CLASS_LISTVIEW = _W_CLASS_LISTVIEW,
+	W_THEME_CLASS_TOOLBAR = _W_CLASS_TOOLBAR,
+	// item
+	W_THEME_CLASS_TABITEM = _W_CLASS_LAST + 1,
+	W_THEME_CLASS_TOOLITEM = _W_CLASS_LAST + 2,
+	W_THEME_CLASS_LAST,
+	/*
+	 * internal class
+	 */
+	_W_THEME_CLASS_UNKNOWN = 0,
+	_W_THEME_CLASS_MENU,
+	_W_THEME_CLASS_BUTTON,
+	_W_THEME_CLASS_LABEL,
+	_W_THEME_CLASS_PROGRESSBAR,
+	_W_THEME_CLASS_SASH,
+	_W_THEME_CLASS_SLIDER,
+	_W_THEME_CLASS_SCROLLBAR,
+	_W_THEME_CLASS_TEXTEDIT,
+	_W_THEME_CLASS_LISTVIEW,
+	_W_THEME_CLASS_COMPOSITE,
+	_W_THEME_CLASS_BROWSER,
+	_W_THEME_CLASS_TREEVIEW,
+	_W_THEME_CLASS_TABVIEW,
+	_W_THEME_CLASS_TABITEM,
+	_W_THEME_CLASS_COMBOBOX,
+	_W_THEME_CLASS_COOLBAR,
+	_W_THEME_CLASS_DATETIME,
+	_W_THEME_CLASS_EXPANDBAR,
+	_W_THEME_CLASS_GROUPBOX,
+	_W_THEME_CLASS_SPINNER,
+	_W_THEME_CLASS_TOOLBAR,
+	_W_THEME_CLASS_TOOLITEM,
+	_W_THEME_CLASS_LAST,
 };
 
 enum {
@@ -122,14 +122,14 @@ enum {
 	/** Combo parts */
 	W_THEME_COMBO_ARROW = 1,
 };
-typedef struct w_theme {
-    void *v_table; //not used in c
+struct w_theme {
+	void *v_table; //not used in c
 	struct _w_theme_class *clazz;
-} w_theme;
+};
 typedef struct w_themedata {
-    wuint clazz;
+	wuint clazz;
 	wuint state;
-    wuint64 style;
+	wuint64 style;
 	w_rect *clientArea;
 	union {
 		struct {
@@ -161,38 +161,53 @@ typedef struct w_themedata {
 typedef struct _w_theme_class {
 	void (*dispose)(w_theme *theme);
 	const char* (*get_name)(w_theme *theme);
-    void (*compute_trim)(w_theme *theme,w_themedata *data,w_graphics *gc, w_rect *result);
-    void (*draw_background)(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds);
-    void (*draw_focus)(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds);
-    void (*draw_image)(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds,
-                       w_image *image, int flags);
-    void (*draw_text)(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds,
-                      const char *text, int length, int flags);
-    void (*get_bounds)(w_theme *theme,w_themedata *data, int part,
-                       w_rect *bounds, w_rect *result);
-    int (*get_selection)(w_theme *theme,w_themedata *data, w_point *offset, w_rect *bounds);
-    int (*hit_background)(w_theme *theme,w_themedata *data, w_point *position, w_rect *bounds);
-    void (*measure_text)(w_theme *theme,w_themedata *data,w_graphics *gc, w_rect *bounds, w_rect *result,const char *text, size_t length, int flags);
-	w_color  (*get_color)(w_theme *theme,wuint colorid);
+	void (*compute_trim)(w_theme *theme, w_themedata *data, w_graphics *gc,
+			w_rect *result);
+	void (*draw_background)(w_theme *theme, w_themedata *data, w_graphics *gc,
+			w_rect *bounds);
+	void (*draw_focus)(w_theme *theme, w_themedata *data, w_graphics *gc,
+			w_rect *bounds);
+	void (*draw_image)(w_theme *theme, w_themedata *data, w_graphics *gc,
+			w_rect *bounds, w_image *image, int flags);
+	void (*draw_text)(w_theme *theme, w_themedata *data, w_graphics *gc,
+			w_rect *bounds, const char *text, int length, int flags);
+	void (*get_bounds)(w_theme *theme, w_themedata *data, int part,
+			w_rect *bounds, w_rect *result);
+	int (*get_selection)(w_theme *theme, w_themedata *data, w_point *offset,
+			w_rect *bounds);
+	int (*hit_background)(w_theme *theme, w_themedata *data, w_point *position,
+			w_rect *bounds);
+	void (*measure_text)(w_theme *theme, w_themedata *data, w_graphics *gc,
+			w_rect *bounds, w_rect *result, const char *text, size_t length,
+			int flags);
+	w_color (*get_color)(w_theme *theme, wuint colorid);
 	w_font* (*get_font)(w_theme *theme);
-    w_cursor* (*get_cursor)(w_theme *theme, wuint id);
-    w_image* (*get_image)(w_theme *theme, wuint id);
+	w_cursor* (*get_cursor)(w_theme *theme, wuint id);
+	w_image* (*get_image)(w_theme *theme, wuint id);
 } _w_theme_class;
 SWT_PUBLIC void w_theme_dispose(w_theme *theme);
 SWT_PUBLIC const char* w_theme_get_name(w_theme *theme);
-SWT_PUBLIC void w_theme_compute_trim(w_theme *theme,w_themedata *data,w_graphics *gc,
-		w_rect *result);
-SWT_PUBLIC void w_theme_draw_background(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds);
-SWT_PUBLIC void w_theme_draw_focus(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds);
-SWT_PUBLIC void w_theme_draw_image(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds,w_image *image, int flags);
-SWT_PUBLIC void w_theme_draw_text(w_theme *theme,w_themedata *data, w_graphics *gc, w_rect *bounds, const char *text, int length, int flags);
-SWT_PUBLIC void w_theme_get_bounds(w_theme *theme,w_themedata *data, int part,
-                                   w_rect *bounds,w_rect *result);
-SWT_PUBLIC int w_theme_get_selection(w_theme *theme,w_themedata *data, w_point *offset, w_rect *bounds);
-SWT_PUBLIC int w_theme_hit_background(w_theme *theme,w_themedata *data, w_point *position, w_rect *bounds);
-SWT_PUBLIC void w_theme_measure_text(w_theme *theme,w_themedata *data,w_graphics *gc, w_rect *bounds,w_rect *result, const char *text, size_t length,
+SWT_PUBLIC void w_theme_compute_trim(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *result);
+SWT_PUBLIC void w_theme_draw_background(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds);
+SWT_PUBLIC void w_theme_draw_focus(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds);
+SWT_PUBLIC void w_theme_draw_image(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds, w_image *image, int flags);
+SWT_PUBLIC void w_theme_draw_text(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds, const char *text, int length,
 		int flags);
-SWT_PUBLIC w_color  w_theme_get_color(w_theme *theme,wuint colorid);
+SWT_PUBLIC void w_theme_get_bounds(w_theme *theme, w_themedata *data, int part,
+		w_rect *bounds, w_rect *result);
+SWT_PUBLIC int w_theme_get_selection(w_theme *theme, w_themedata *data,
+		w_point *offset, w_rect *bounds);
+SWT_PUBLIC int w_theme_hit_background(w_theme *theme, w_themedata *data,
+		w_point *position, w_rect *bounds);
+SWT_PUBLIC void w_theme_measure_text(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds, w_rect *result, const char *text,
+		size_t length, int flags);
+SWT_PUBLIC w_color w_theme_get_color(w_theme *theme, wuint colorid);
 SWT_PUBLIC w_font* w_theme_get_font(w_theme *theme);
 SWT_PUBLIC w_cursor* w_theme_get_cursor(w_theme *theme, wuint id);
 SWT_PUBLIC w_image* w_theme_get_image(w_theme *theme, wuint id);

@@ -90,11 +90,13 @@ w_widget* w_widget_ref_dec(w_widget *widget) {
 	return widget;
 }
 w_toolkit* w_widget_get_toolkit(w_widget *widget) {
-	wresult result = W_WIDGET_CHECK0(widget);
-	if (result > 0) {
+	if (w_widget_is_ok(widget) > 0) {
 		return widget->clazz->toolkit;
 	} else
-		return 0;
+		return w_app_get_default_toolkit(w_app_get());
+}
+w_theme* w_widget_get_theme(w_widget *widget) {
+	return w_toolkit_get_theme(w_widget_get_toolkit(widget));
 }
 w_widget_post_event_proc w_widget_get_post_event(w_widget *widget) {
 	wresult result = W_WIDGET_CHECK0(widget);
@@ -137,8 +139,7 @@ wuint64 w_widget_get_style(w_widget *widget) {
 }
 void* w_widget_get_data(w_widget *widget, wuint index) {
 	wresult result = W_WIDGET_CHECK0(widget);
-	if (result > 0
-			&& index < sizeof(widget->data) / sizeof(widget->data[0])) {
+	if (result > 0 && index < sizeof(widget->data) / sizeof(widget->data[0])) {
 		return widget->data[index];
 	} else
 		return 0;

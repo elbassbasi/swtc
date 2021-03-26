@@ -16,9 +16,9 @@ MPanel::~MPanel() {
 }
 
 bool MPanel::Create(WComposite *parent) {
-	WTreeView::Create(parent,W_HSCROLL | W_VSCROLL);
-	sash.Create(parent,W_VERTICAL);
-	MShell* shell =(MShell*) this->GetShell();
+	WTreeView::Create(parent, W_HSCROLL | W_VSCROLL);
+	sash.Create(parent, W_VERTICAL);
+	MShell *shell = (MShell*) this->GetShell();
 	this->SetImageList(shell->GetImageList16());
 	WTreeItem root;
 	GetRootItem(root);
@@ -78,4 +78,11 @@ bool MPanel::OnItemSelection(WTreeEvent &e) {
 	return false;
 }
 
-
+bool MPanel::OnItemDispose(WTreeEvent &e) {
+	if (e.item != 0) {
+		ITreeItem *obj = (ITreeItem*) e.item->GetData();
+		if (obj != 0)
+			delete obj;
+	}
+	return WTreeView::OnItemDispose(e);
+}

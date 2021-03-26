@@ -8,7 +8,7 @@
 #include "TLabelDemo.h"
 
 void TLabelDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent,"Demonstrates",new TLabelDemo());
+	ITreeItem::Regitre(parent,"Demo",new TLabelDemo());
 }
 
 void TLabelDemo::CreateControl(WComposite *parent) {

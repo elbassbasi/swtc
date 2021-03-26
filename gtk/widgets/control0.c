@@ -270,6 +270,9 @@ GtkWidget* _w_control_handle_paint(w_widget *control, _w_control_priv *priv) {
 GtkIMContext* _w_control_handle_im(w_widget *control, _w_control_priv *priv) {
 	return 0;
 }
+wresult _w_control_has_focus(w_control *control, _w_control_priv *priv) {
+	return control == _w_toolkit_get_focus_control(W_TOOLKIT(gtk_toolkit));
+}
 void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 	/* Connect the keyboard signals */
 	GtkWidget *focusHandle = priv->handle_focus(widget, priv);
@@ -474,6 +477,10 @@ void _w_control_resize_handle(w_control *control, w_size *size,
 	_w_fixed_resize(topHandle, size->width, size->height);
 }
 wresult _w_control_set_background(w_control *control, w_color color) {
+	return W_FALSE;
+}
+wresult _w_control_set_background_pixmap(w_control *control, GdkPixbuf *image,
+		_w_control_priv *priv) {
 	return W_FALSE;
 }
 wresult _w_control_set_background_image(w_control *control, w_image *image) {
@@ -958,6 +965,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->set_cursor_0 = _w_control_set_cursor_0;
 	priv->update_0 = _w_control_update_0;
 	priv->force_resize = _w_control_force_resize;
+	priv->has_focus = _w_control_has_focus;
 	/*
 	 * signals
 	 */

@@ -8,7 +8,7 @@
 #include "TDateTimeDemo.h"
 
 void TDateTimeDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TDateTimeDemo());
+	ITreeItem::Regitre(parent, "Demo", new TDateTimeDemo());
 }
 
 void TDateTimeDemo::CreateControl(WComposite *parent) {

@@ -6,18 +6,15 @@
  */
 
 #include "TPathDemo.h"
-
+void TPathDemo::Registre(WTreeItem &parent) {
+	ITreeItem::Regitre(parent, "Demo", new TPathDemo());
+}
 TPathDemo::TPathDemo() {
 	this->rotate = 0;
 }
 
 TPathDemo::~TPathDemo() {
 }
-
-void TPathDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demo", new TPathDemo());
-}
-
 void TPathDemo::CreateControl(WComposite *parent) {
 	CanvasTreeItem::CreateControl(parent);
 	this->font.Create("Arial", W_BOLD, 30);

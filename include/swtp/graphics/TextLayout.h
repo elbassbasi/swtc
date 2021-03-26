@@ -193,6 +193,9 @@ class WTextStyleRange: public WTextStyle {
 public:
 	WRange range;
 };
+class WTextSelection: public w_text_selection {
+public:
+};
 class WTextLayout: public WResource {
 public:
 	/**
@@ -226,7 +229,7 @@ public:
 	 * @param y the y coordinate of the top left corner of the rectangular area where the text is to be drawn
 	 */
 	void Draw(WGraphics &gc, int x, int y) {
-		Draw(gc, x, y, -1, -1, 0, 0);
+		Draw(gc, x, y, 0, 0);
 	}
 
 	/**
@@ -267,9 +270,17 @@ public:
 	void Draw(WGraphics &gc, int x, int y, int selectionStart, int selectionEnd,
 			w_color selectionForeground, w_color selectionBackground,
 			int flags) {
-		w_textlayout_draw(W_TEXTLAYOUT(this), W_GRAPHICS(&gc), x, y,
-				selectionStart, selectionEnd, selectionForeground,
-				selectionBackground, flags);
+		WTextSelection selection;
+		selection.start = selectionStart;
+		selection.end = selectionEnd;
+		selection.foreground = selectionForeground;
+		selection.background = selectionForeground;
+		Draw(gc, x, y, &selection, flags);
+	}
+	void Draw(WGraphics &gc, int x, int y, WTextSelection *selection,
+			int flags) {
+		w_textlayout_draw(W_TEXTLAYOUT(this), W_GRAPHICS(&gc), x, y, selection,
+				flags);
 	}
 	/**
 	 * Returns the receiver's horizontal text alignment, which will be one

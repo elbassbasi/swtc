@@ -8,7 +8,7 @@
 #include "TWebViewDemo.h"
 
 void TWebViewDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent,"Demonstrates",new TWebViewDemo());
+	ITreeItem::Regitre(parent,"Demo",new TWebViewDemo());
 }
 
 WControl* TWebViewDemo::GetControl(WComposite *parent) {

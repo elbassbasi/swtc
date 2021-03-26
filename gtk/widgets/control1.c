@@ -479,25 +479,116 @@ gboolean _gtk_control_realize(w_widget *widget, _w_event_platform *e,
 		GdkWindow *window = gtk_widget_get_window(paintHandle);
 		gtk_im_context_set_client_window(GTK_IM_CONTEXT(imHandle), window);
 	}
-	if (_W_CONTROL(widget)->backgroundImage != 0) {
-		/*_w_control_set_background_pixmap(W_CONTROL(widget),
-		 _W_CONTROL(widget)->backgroundImage, priv);*/
+	GdkPixbuf *backgroundImage = _W_CONTROL(widget)->backgroundImage;
+	if (backgroundImage != 0) {
+		_w_control_set_background_pixmap(W_CONTROL(widget), backgroundImage,
+				priv);
 	}
 	return FALSE;
 }
 gboolean _gtk_control_scroll_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GdkEventScroll *gdkEvent = (GdkEventScroll*) e->args[0];
+	w_point *lastInput = &_W_CONTROL(widget)->lastInput;
+	lastInput->x = gdkEvent->x;
+	lastInput->y = gdkEvent->y;
+	if (_w_control_contained_in_region(widget, lastInput, priv))
+		return FALSE;
+	w_event_mouse event;
+	event.event.type = 0;
+	switch (gdkEvent->direction) {
+	case GDK_SCROLL_UP:
+		event.event.type = W_EVENT_MOUSEVERTICALWHEEL;
+		event.clickcount = 3;
+		event.detail = W_SCROLL_LINE;
+		break;
+	case GDK_SCROLL_DOWN:
+		event.event.type = W_EVENT_MOUSEVERTICALWHEEL;
+		event.clickcount = -3;
+		event.detail = W_SCROLL_LINE;
+		break;
+	case GDK_SCROLL_LEFT:
+		event.event.type = W_EVENT_MOUSEHORIZONTALWHEEL;
+		event.clickcount = 3;
+		event.detail = 0;
+		break;
+	case GDK_SCROLL_RIGHT:
+		event.event.type = W_EVENT_MOUSEHORIZONTALWHEEL;
+		event.clickcount = -3;
+		event.detail = 0;
+		break;
+	case GDK_SCROLL_SMOOTH: {
+		double delta_x = 0, delta_y = 0;
+		if (gdk_event_get_scroll_deltas((GdkEvent*) gdkEvent, &delta_x,
+				&delta_y)) {
+			if (delta_x != 0) {
+				event.event.type = W_EVENT_MOUSEHORIZONTALWHEEL;
+				event.clickcount = -3 * delta_x;
+				event.detail = 0;
+			}
+			if (delta_y != 0) {
+				event.event.type = W_EVENT_MOUSEVERTICALWHEEL;
+				event.clickcount = -3 * delta_y;
+				event.detail = W_SCROLL_LINE;
+			}
+		}
+	}
+		break;
+	}
+	if (event.event.type != 0) {
+		event.event.widget = widget;
+		event.event.platform_event = (w_event_platform*) e;
+		event.event.time = gdkEvent->time;
+		event.event.data = 0;
+		event.button = 0;
+		event.x = gdkEvent->x_root;
+		event.y = gdkEvent->y_root;
+		GdkWindow *window = priv->window_event(widget, priv);
+		int origin_x = 0, origin_y = 0;
+		gdk_window_get_origin(window, &origin_x, &origin_y);
+		event.x = event.x - origin_x;
+		event.y = event.y - origin_y;
+		if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
+			int client_width = priv->get_client_width(W_CONTROL(widget), priv);
+			event.x = client_width - event.x;
+		}
+		event.statemask = _w_widget_set_input_state(gdkEvent->state);
+		return _w_widget_send_event(widget, (w_event*) &event);
+	}
+	return FALSE;
 }
 gboolean _gtk_control_show_help(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	if (!priv->has_focus(W_CONTROL(widget), priv))
+		return FALSE;
+	w_event event;
+	w_control *control = W_CONTROL(widget);
+	while (control != 0) {
+		event.type = W_EVENT_HELP;
+		event.platform_event = (w_event_platform*) e;
+		event.time = 0;
+		event.widget = W_WIDGET(control);
+		event.data = 0;
+		if (_w_widget_send_event(W_WIDGET(control), &event)) {
+			return TRUE;
+		}
+		control = W_CONTROL(_W_CONTROL(control)->parent);
+	}
+	return FALSE;
 }
 gboolean _gtk_control_style_set(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GdkPixbuf *backgroundImage = _W_CONTROL(widget)->backgroundImage;
+	if (backgroundImage != 0) {
+		_w_control_set_background_pixmap(W_CONTROL(widget), backgroundImage,
+				priv);
+	}
+	return FALSE;
 }
 gboolean _gtk_control_unrealize(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkIMContext *imHandle = priv->handle_im(widget, priv);
+	if (imHandle != 0)
+		gtk_im_context_set_client_window(GTK_IM_CONTEXT(imHandle), 0);
+	return FALSE;
 }

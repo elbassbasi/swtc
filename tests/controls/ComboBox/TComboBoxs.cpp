@@ -6,11 +6,10 @@
  */
 
 #include "TComboBoxs.h"
-
-#include "../ComboBox/TComboDemo.h"
+#include "TComboDemo.h"
 
 void TComboBoxs::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Combo", new TComboBoxs());
+	ITreeItem::Regitre(parent, "ComboBox", new TComboBoxs());
 }
 
 bool TComboBoxs::Expand(WTreeItem &item) {

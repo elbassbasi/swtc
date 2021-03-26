@@ -143,6 +143,7 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	wresult (*update_0)(w_control *control, int flags, _w_control_priv *priv);
 	void (*force_resize)(w_control *control, _w_control_priv *priv);
+	wresult (*has_focus)(w_control *control, _w_control_priv *priv);
 };
 /*
  * functions
@@ -214,6 +215,8 @@ wresult _w_control_print(w_control *control, w_graphics *gc);
 wresult _w_control_request_layout(w_control *control);
 wresult _w_control_redraw(w_control *control, w_rect *rect, int all);
 wresult _w_control_set_background(w_control *control, w_color color);
+wresult _w_control_set_background_pixmap(w_control *control, GdkPixbuf *image,
+		_w_control_priv *priv);
 wresult _w_control_set_background_image(w_control *control, w_image *image);
 wresult _w_control_set_bounds(w_control *control, w_point *location,
 		w_size *size);

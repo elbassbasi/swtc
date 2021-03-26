@@ -235,21 +235,36 @@ public:
 	/*
 	 *
 	 */
-	WTreeItem& InsertItem(WTreeItem &item, const char *text, int index) {
+	WTreeItem& InsertItem(WTreeItem &item, int index) {
 		_insert_item(&item, index);
+		return item;
+	}
+	WTreeItem& InsertItem(WTreeItem &item, const char *text, int index) {
+		InsertItem(item, index);
 		item.SetText(text);
 		return item;
 	}
-	WTreeItem& InsertItem(const char *text, int index, const WTreeItem &item =
-			WTreeItem()) {
-		return InsertItem((WTreeItem&) item, text, index);
+	WTreeItem InsertItem(int index) {
+		WTreeItem item;
+		return InsertItem(item, index);
+	}
+	WTreeItem InsertItem(const char *text, int index) {
+		WTreeItem item;
+		return InsertItem(item, text, index);
+	}
+	WTreeItem& AppendItem(WTreeItem &item) {
+		return InsertItem(item, -1);
 	}
 	WTreeItem& AppendItem(WTreeItem &item, const char *text) {
 		return InsertItem(item, text, -1);
 	}
-	WTreeItem& AppendItem(const char *text, const WTreeItem &item =
-			WTreeItem()) {
-		return InsertItem((WTreeItem&) item, text, -1);
+	WTreeItem AppendItem(const char *text) {
+		WTreeItem item;
+		return InsertItem(item, text, -1);
+	}
+	WTreeItem AppendItem() {
+		WTreeItem item;
+		return InsertItem(item, -1);
 	}
 	/**
 	 * Removes all of the items from the receiver.
@@ -365,15 +380,16 @@ public:
 		return w_treeitem_get_prev_sibling(W_TREEITEM(this), W_TREEITEM(prev));
 	}
 	WResult _insert_item(WTreeItem *subitem, int index) {
-		return w_treeitem_insert_item(W_TREEITEM(this), W_TREEITEM(subitem), index);
+		return w_treeitem_insert_item(W_TREEITEM(this), W_TREEITEM(subitem),
+				index);
 	}
 	WResult _insert_item_after(WTreeItem *subitem, WTreeItem *after) {
-		return w_treeitem_insert_item_after(W_TREEITEM(this), W_TREEITEM(subitem),
-				W_TREEITEM(after));
+		return w_treeitem_insert_item_after(W_TREEITEM(this),
+				W_TREEITEM(subitem), W_TREEITEM(after));
 	}
 	WResult _insert_item_before(WTreeItem *subitem, WTreeItem *before) {
-		return w_treeitem_insert_item_before(W_TREEITEM(this), W_TREEITEM(subitem),
-				W_TREEITEM(before));
+		return w_treeitem_insert_item_before(W_TREEITEM(this),
+				W_TREEITEM(subitem), W_TREEITEM(before));
 	}
 	WResult _remove_all() {
 		return w_treeitem_remove_all(W_TREEITEM(this));

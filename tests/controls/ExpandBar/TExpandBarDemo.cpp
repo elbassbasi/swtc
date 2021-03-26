@@ -8,7 +8,7 @@
 #include "TExpandBarDemo.h"
 
 void TExpandBarDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TExpandBarDemo());
+	ITreeItem::Regitre(parent, "Demo", new TExpandBarDemo());
 }
 
 WControl* TExpandBarDemo::GetControl(WComposite *parent) {

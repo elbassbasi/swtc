@@ -8,7 +8,7 @@
 #include "TSliderDemo.h"
 
 void TSliderDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TSliderDemo());
+	ITreeItem::Regitre(parent, "Demo", new TSliderDemo());
 }
 
 void TSliderDemo::CreateControl(WComposite *parent) {

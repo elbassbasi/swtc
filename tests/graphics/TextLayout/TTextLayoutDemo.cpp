@@ -8,7 +8,7 @@
 #include "TTextLayoutDemo.h"
 
 void TTextLayoutDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TTextLayoutDemo());
+	ITreeItem::Regitre(parent, "Demo", new TTextLayoutDemo());
 }
 
 void TTextLayoutDemo::CreateControl(WComposite *parent) {
@@ -34,12 +34,12 @@ bool TTextLayoutDemo::OnPaint(WPaintEvent &e) {
 	style.SetForeground(W_COLOR_YELLOW);
 	style.SetStrikeout(W_COLOR_RED);
 	style.SetFont(&this->font[0]);
-	layout.SetStyle(style, 0, 8);
+	layout.SetStyle(style, 0, 10);
 	style.Init();
 	style.SetBackground(W_COLOR_GREEN);
 	style.SetForeground(W_COLOR_BLUE);
 	style.SetFont(&this->font[1]);
-	layout.SetStyle(style, 8, 15);
+	layout.SetStyle(style, 10, 15);
 	style.Init();
 	style.SetUnderline(W_UNDERLINE_DOUBLE, W_COLOR_MAGENTA);
 	style.SetBackground(W_COLOR_BLUE);

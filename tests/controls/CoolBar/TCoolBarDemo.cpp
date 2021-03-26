@@ -8,7 +8,7 @@
 #include "TCoolBarDemo.h"
 
 void TCoolBarDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TCoolBarDemo());
+	ITreeItem::Regitre(parent, "Demo", new TCoolBarDemo());
 }
 const char *asCoolItemSection[] = { "File", "Formatting", "Search" };
 void TCoolBarDemo::CreateControl(WComposite *parent) {

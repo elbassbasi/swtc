@@ -17,6 +17,7 @@ class WLayout;
 class WToolTip;
 class WControl;
 class WToolkit;
+class WTheme;
 
 class SWTP_PUBLIC IWListener: public IDestruct {
 public:
@@ -136,6 +137,9 @@ public:
 	}
 	WToolkit* GetToolkit() {
 		return (WToolkit*) w_widget_get_toolkit(W_WIDGET(this));
+	}
+	WTheme* GetTheme() {
+		return (WTheme*) w_widget_get_theme(W_WIDGET(this));
 	}
 	void AsyncExec(w_thread_start function, void *args) {
 		w_toolkit_async_exec(w_widget_get_toolkit(W_WIDGET(this)), function,

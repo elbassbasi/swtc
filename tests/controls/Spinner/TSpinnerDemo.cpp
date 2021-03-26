@@ -8,7 +8,7 @@
 #include "TSpinnerDemo.h"
 
 void TSpinnerDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TSpinnerDemo());
+	ITreeItem::Regitre(parent, "Demo", new TSpinnerDemo());
 }
 
 void TSpinnerDemo::CreateControl(WComposite *parent) {

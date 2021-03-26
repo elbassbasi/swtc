@@ -15,6 +15,7 @@ typedef struct w_toolkit w_toolkit;
 typedef struct w_control w_control;
 typedef struct w_composite w_composite;
 typedef struct w_shell w_shell;
+typedef struct w_theme w_theme;
 /*
  * w_widget
  */
@@ -62,6 +63,7 @@ SWT_PUBLIC void w_widget_ref_create(w_widget *widget);
 SWT_PUBLIC void w_widget_ref_inc(w_widget *widget);
 SWT_PUBLIC w_widget* w_widget_ref_dec(w_widget *widget);
 SWT_PUBLIC w_toolkit* w_widget_get_toolkit(w_widget *widget);
+SWT_PUBLIC w_theme* w_widget_get_theme(w_widget *widget);
 SWT_PUBLIC w_widget_post_event_proc w_widget_get_post_event(w_widget *widget);
 SWT_PUBLIC w_widget_post_event_proc w_widget_set_post_event(w_widget *widget,
 		w_widget_post_event_proc post_event);

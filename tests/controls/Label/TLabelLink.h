@@ -14,7 +14,7 @@ public:
 	TLabelLink();
 	~TLabelLink();
 	void CreateControl(WComposite *parent);
-	WGridLayout layout;
+	WFillLayoutVertical layout;
 	WLabel link[2];
 };
 

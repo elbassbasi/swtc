@@ -24,6 +24,7 @@ protected:
 	bool OnItemExpand(WTreeEvent &e);
 	bool OnItemCollapse(WTreeEvent &e);
 	bool OnItemSelection(WTreeEvent &e);
+	bool OnItemDispose(WTreeEvent &e);
 };
 
 #endif /* TESTS_MAIN_MPANEL_H_ */

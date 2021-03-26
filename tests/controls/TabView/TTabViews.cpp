@@ -11,7 +11,7 @@
 #include "TTabViewDemo.h"
 
 void TTabViews::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "TabFolder", new TTabViews());
+	ITreeItem::Regitre(parent, "TabView", new TTabViews());
 }
 
 bool TTabViews::Expand(WTreeItem &item) {

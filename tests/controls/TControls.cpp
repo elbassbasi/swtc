@@ -27,7 +27,6 @@ void TControls::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Controls", new TControls());
 }
 bool TControls::Expand(WTreeItem &item) {
-	TWebViews::Registre(item);
 	TButtons::Registre(item);
 	TComboBoxs::Registre(item);
 	TCoolBars::Registre(item);
@@ -35,15 +34,16 @@ bool TControls::Expand(WTreeItem &item) {
 	TExpandBars::Registre(item);
 	TGroupBoxs::Registre(item);
 	TLabels::Registre(item);
+	TListViews::Registre(item);
 	TProgressBars::Registre(item);
 	TSashes::Registre(item);
 	TSliders::Registre(item);
 	TSpinners::Registre(item);
 	TTabViews::Registre(item);
-	TListViews::Registre(item);
 	TTextEdits::Registre(item);
 	TToolBars::Registre(item);
 	TTreeViews::Registre(item);
+	TWebViews::Registre(item);
 	return true;
 }
 

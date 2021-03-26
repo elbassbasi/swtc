@@ -8,7 +8,7 @@
 #include "TSashDemo.h"
 
 void TSashDemo::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "Demonstrates", new TSashDemo());
+	ITreeItem::Regitre(parent, "Demo", new TSashDemo());
 }
 
 void TSashDemo::CreateControl(WComposite *parent) {

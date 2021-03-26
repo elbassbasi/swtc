@@ -216,8 +216,29 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 		return 0;
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
-	w_theme *theme = _W_TOOLKIT(toolkit)->theme;
-	return w_theme_get_font(theme);
+	if (_W_TOOLKIT(toolkit)->system_font.handle == 0) {
+		/* Initialize the system font slot */
+		PangoFontDescription *defaultFont = 0;
+#if GTK3
+		GtkStyleContext *context = gtk_widget_get_style_context(
+		_W_TOOLKIT(toolkit)->gtktheme.handle[GTK_THEME_HANDLE_SHELL]);
+		if ((GTK_VERSION < VERSION(3, 8, 0))) {
+			defaultFont = (PangoFontDescription*) gtk_style_context_get_font(
+					context, GTK_STATE_FLAG_NORMAL);
+		} else if (GTK_VERSION >= VERSION(3, 18, 0)) {
+			gtk_style_context_save(context);
+			gtk_style_context_set_state(context, GTK_STATE_FLAG_NORMAL);
+			gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font",
+					&defaultFont, NULL);
+			gtk_style_context_restore(context);
+		} else {
+			gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font",
+					&defaultFont, NULL);
+		}
+#endif
+		_W_TOOLKIT(toolkit)->system_font.handle = defaultFont;
+	}
+	return (w_font*) (&_W_TOOLKIT(toolkit)->system_font);
 }
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {

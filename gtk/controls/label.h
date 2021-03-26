@@ -8,11 +8,18 @@
 #ifndef GTK_CONTROLS_LABEL_H_
 #define GTK_CONTROLS_LABEL_H_
 #include "../widgets/shell.h"
+typedef struct _w_hyperlink_id {
+	w_range offset;
+	w_range id;
+	int mnemonic;
+} _w_hyperlink_id;
 typedef struct _w_hyperlink {
 	PangoLayout *layout;
-	w_range selection;
+	char *text;
 	int text_length;
-	char text[0];
+	int ids_length;
+	w_range selection;
+	_w_hyperlink_id ids[0];
 } _w_hyperlink;
 typedef struct _w_label {
 	_w_control control;
