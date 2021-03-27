@@ -16,7 +16,7 @@ typedef struct _w_label {
 
 typedef struct _w_label_priv {
 	_w_control_priv control;
-
+	WNDPROC def_link_proc;
 } _w_label_priv;
 #define _W_LABEL(x) ((_w_label*)x)
 #define _W_LABEL_PRIV(x) ((_w_label_priv*)x)

@@ -403,14 +403,14 @@ wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
 	MENUITEMINFOW info;
 	info.cbSize = sizeof(info);
 	info.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_CHECKMARKS;
-	WINBOOL success = GetMenuItemInfoW((HMENU) ee->lparam, ee->wparam,
+	BOOL success = GetMenuItemInfoW((HMENU) ee->lparam, ee->wparam,
 	TRUE, &info);
 	if (!success)
 		return W_TRUE;
 	if ((info.fType & MFT_RADIOCHECK) != 0) {
 		UINT last_state = info.fState;
 		int i = ee->wparam - 1;
-		WINBOOL stop = FALSE;
+		BOOL stop = FALSE;
 		while (i >= 0 && !stop) {
 			info.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID;
 			success = GetMenuItemInfoW((HMENU) ee->lparam, i,

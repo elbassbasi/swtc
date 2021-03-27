@@ -16,14 +16,21 @@ wresult _w_control_call_window_proc(w_widget *widget, _w_event_platform *e,
 		e->result = 0;
 		return W_FALSE;
 	} else {
-		if (_W_CONTROL_PRIV(priv)->def_window_proc != _w_control_window_proc) {
-			e->result = CallWindowProcW(_W_CONTROL_PRIV(priv)->def_window_proc,
-					e->hwnd, e->msg, e->wparam, e->lparam);
+		_w_control_priv *cpriv = _W_CONTROL_PRIV(priv);
+		WNDPROC def_window_proc = *cpriv->get_def_window_proc(W_CONTROL(widget),
+				cpriv);
+		if (def_window_proc != _w_control_window_proc) {
+			e->result = CallWindowProcW(def_window_proc, e->hwnd, e->msg,
+					e->wparam, e->lparam);
 		} else {
 			e->result = DefWindowProcW(e->hwnd, e->msg, e->wparam, e->lparam);
 		}
 		return W_TRUE;
 	}
+}
+WNDPROC* _w_control_get_def_window_proc(w_control *control,
+		_w_control_priv *priv) {
+	return &priv->def_window_proc;
 }
 wresult _w_control_check_background(w_control *control, _w_control_priv *priv) {
 	return W_TRUE;
@@ -655,8 +662,9 @@ wresult _w_control_set_visible(w_control *control, int visible) {
 wresult _w_control_subclass(w_control *control, _w_control_priv *priv) {
 	WNDPROC oldProc = (WNDPROC) GetWindowLongPtrW(_W_WIDGET(control)->handle,
 	GWLP_WNDPROC);
-	if (priv->def_window_proc == 0) {
-		priv->def_window_proc = oldProc;
+	WNDPROC *def_proc = priv->get_def_window_proc(control, priv);
+	if (*def_proc == 0) {
+		*def_proc = oldProc;
 	}
 	WNDPROC newProc = _w_control_window_proc;
 	if (oldProc == newProc)
@@ -678,7 +686,7 @@ wresult _w_control_traverse(w_control *control, int traversal,
 	return W_FALSE;
 }
 wresult _w_control_unsubclass(w_control *control, _w_control_priv *priv) {
-	WNDPROC newProc = priv->def_window_proc;
+	WNDPROC newProc = *priv->get_def_window_proc(control, priv);
 	WNDPROC oldProc = _w_control_window_proc;
 	if (oldProc == newProc)
 		return W_TRUE;
@@ -819,6 +827,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->check_style = _w_control_check_style;
 	priv->compute_size = _w_control_compute_size;
 	priv->get_client_area = _w_control_get_client_area;
+	priv->get_def_window_proc = _w_control_get_def_window_proc;
 	priv->compute_trim = _w_control_compute_trim;
 	priv->handle_top = _w_control_handle;
 	priv->handle_border = _w_control_handle;

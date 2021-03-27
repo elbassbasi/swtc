@@ -46,6 +46,7 @@ struct _w_control_priv {
 	_w_widget_priv widget;
 	dispatch_message messages[_WM_LAST];
 	WNDPROC def_window_proc;
+	WNDPROC* (*get_def_window_proc)(w_control *control, _w_control_priv *priv);
 	HWND (*handle_top)(w_control *control);
 	HWND (*handle_border)(w_control *control);
 	wresult (*create_widget)(w_control *control, _w_control_priv *priv);

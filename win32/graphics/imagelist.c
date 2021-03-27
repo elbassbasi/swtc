@@ -89,7 +89,7 @@ typedef struct IImageListVtbl {
 			IUnknown *punk, int iDrag, int dxHotspot, int dyHotspot);
 
 	HRESULT (STDMETHODCALLTYPE *DragShowNolock)(IImageList *This,
-			WINBOOL fShow);
+	BOOL fShow);
 
 	HRESULT (STDMETHODCALLTYPE *GetDragImage)(IImageList *This, POINT *ppt,
 			POINT *pptHotspot,
@@ -147,13 +147,14 @@ HRESULT STDMETHODCALLTYPE w_IImageList_Draw(IImageList *This,
 			bmi.bmiHeader.biPlanes = 1;
 			bmi.bmiHeader.biBitCount = 32;
 			bmi.bmiHeader.biCompression = BI_RGB;
-			VOID *pBits;
-			HBITMAP hbmp = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBits,
-			NULL, 0);
-			void *src = bm.bmBits
+			wuchar *pBits;
+			HBITMAP hbmp = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS,
+					(LPVOID*) &pBits,
+					NULL, 0);
+			wuchar *src = ((wuchar*) bm.bmBits)
 					+ (bm.bmHeight - imageInfo.rcImage.top - cy)
-							* bm.bmWidthBytes + imageInfo.rcImage.left * 4,
-					*dst = pBits;
+							* bm.bmWidthBytes + imageInfo.rcImage.left * 4;
+			wuchar *dst = pBits;
 			GetObjectW(hbmp, sizeof(bm2), &bm2);
 			for (int j = 0; j < cy; j++) {
 				memcpy(dst, src, cy * 4);

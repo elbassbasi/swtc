@@ -389,7 +389,7 @@ wresult _w_button_set_text(w_button *button, const char *text, int length,
 	int newlength;
 	wresult result = _win_text_fix(text, length, enc, &str, &newlength);
 	if (result > 0) {
-		WINBOOL rest = SetWindowTextW(_W_WIDGET(button)->handle, str);
+		BOOL rest = SetWindowTextW(_W_WIDGET(button)->handle, str);
 	}
 	_win_text_free(text, str, newlength);
 	return result;

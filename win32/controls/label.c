@@ -7,6 +7,14 @@
 #include "label.h"
 #include "../widgets/toolkit.h"
 #define MARGIN 4
+WNDPROC* _w_label_get_def_window_proc(w_control *control,
+		_w_control_priv *priv) {
+	if (_W_WIDGET(control)->style & W_HYPERLINK) {
+		return &_W_LABEL_PRIV(priv)->def_link_proc;
+	} else {
+		return &priv->def_window_proc;
+	}
+}
 wresult _w_label_get_image(w_label *label, w_image *image) {
 	if (image == 0)
 		return W_ERROR_NULL_ARGUMENT;
@@ -37,7 +45,7 @@ wresult _w_label_set_text(w_label *label, const char *text, int length,
 		text = "";
 	WCHAR *str;
 	int newlength;
-	WINBOOL result = FALSE;
+	BOOL result = FALSE;
 	_win_text_fix(text, length, enc, &str, &newlength);
 	if (str != 0) {
 		result = SetWindowTextW(_W_WIDGET(label)->handle, str);
@@ -150,24 +158,35 @@ DWORD _w_label_widget_extstyle(w_control *control, _w_control_priv *priv) {
 	return bits;
 }
 DWORD _w_label_widget_style(w_control *control, _w_control_priv *priv) {
-	int bits = _w_control_widget_style(control, priv) | SS_NOTIFY;
+	DWORD bits = _w_control_widget_style(control, priv);
 	wuint64 style = _W_WIDGET(control)->style;
-	if ((style & W_SEPARATOR) != 0)
-		return bits | SS_OWNERDRAW;
-	if (WIN32_VERSION >= VERSION(5, 0)) {
+	if (style & W_HYPERLINK) {
+		bits |= WS_TABSTOP;
+	} else {
+		bits |= SS_NOTIFY;
+		if ((style & W_SEPARATOR) != 0)
+			return bits | SS_OWNERDRAW;
+		if (WIN32_VERSION >= VERSION(5, 0)) {
+			if ((style & W_WRAP) != 0)
+				bits |= SS_EDITCONTROL;
+		}
+		if ((style & W_CENTER) != 0)
+			return bits | SS_CENTER;
+		if ((style & W_RIGHT) != 0)
+			return bits | SS_RIGHT;
 		if ((style & W_WRAP) != 0)
-			bits |= SS_EDITCONTROL;
+			return bits | SS_LEFT;
+		bits |= SS_LEFTNOWORDWRAP;
 	}
-	if ((style & W_CENTER) != 0)
-		return bits | SS_CENTER;
-	if ((style & W_RIGHT) != 0)
-		return bits | SS_RIGHT;
-	if ((style & W_WRAP) != 0)
-		return bits | SS_LEFT;
-	return bits | SS_LEFTNOWORDWRAP;
+	return bits;
 }
 const char* _w_label_window_class(w_control *control, _w_control_priv *priv) {
-	return WC_STATICA;
+	wuint64 style = _W_WIDGET(control)->style;
+	if (style & W_HYPERLINK) {
+		return "SysLink";
+	} else {
+		return WC_STATICA;
+	}
 }
 void _w_label_class_init(struct _w_label_class *clazz) {
 	_w_control_class_init(W_CONTROL_CLASS(clazz));
@@ -190,5 +209,6 @@ void _w_label_class_init(struct _w_label_class *clazz) {
 	priv->widget_extstyle = _w_label_widget_extstyle;
 	priv->widget_style = _w_label_widget_style;
 	priv->window_class = _w_label_window_class;
+	priv->get_def_window_proc = _w_label_get_def_window_proc;
 }
 
