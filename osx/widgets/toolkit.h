@@ -83,8 +83,8 @@ typedef struct _w_toolkit {
 	/*
 	 * treeview
 	 */
-	struct _w_treeview_class class_treeview;
-	_w_treeview_priv class_treeview_priv;
+	struct _w_treeview_class class_tree;
+	_w_treeview_priv class_tree_priv;
 	struct _w_treeitem_class class_treeitem;
 	struct _w_columnitem_class class_treecolumn;
 	/*
@@ -97,13 +97,33 @@ typedef struct _w_toolkit {
 	/*
 	 * sash
 	 */
-	/*struct _w_sash_class class_sash;
-	_w_sash_priv class_sash_priv;*/
+	struct _w_sash_class class_sash;
+	_w_sash_priv class_sash_priv;
 	/*
 	 * button
 	 */
 	struct _w_button_class class_button;
 	_w_button_priv class_button_priv;
+	/*
+	 * label
+	 */
+	struct _w_label_class class_label;
+	_w_label_priv class_label_priv;
+	/*
+	 * textedit
+	 */
+	struct _w_textedit_class class_textedit;
+	_w_textedit_priv class_textedit_priv;
+	/*
+	 * progressbar
+	 */
+	struct _w_progressbar_class class_progressbar;
+	_w_progressbar_priv class_progressbar_priv;
+	/*
+	 * groupbox
+	 */
+	struct _w_groupbox_class class_groupbox;
+	_w_groupbox_priv class_groupbox_priv;
 	/*
 	 * internal memory
 	 */

@@ -240,16 +240,15 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 	/*
 	 * treeview
 	 */
-	W_WIDGET_CLASS(&toolkit->class_treeview)->init_class =
+	W_WIDGET_CLASS(&toolkit->class_tree)->init_class =
 			(w_widget_init_class) _w_treeview_class_init;
-	W_WIDGET_CLASS(&toolkit->class_treeview)->reserved[0] =
-			&toolkit->class_treeview_priv;
-	W_LISTVIEWBASE_CLASS(&toolkit->class_treeview)->class_item = W_ITEM(
+	W_WIDGET_CLASS(&toolkit->class_tree)->reserved[0] =
+			&toolkit->class_tree_priv;
+	W_LISTVIEWBASE_CLASS(&toolkit->class_tree)->class_item = W_ITEM_CLASS(
 			&toolkit->class_treeitem);
-	W_LISTVIEWBASE_CLASS(&toolkit->class_treeview)->class_column =
+	W_LISTVIEWBASE_CLASS(&toolkit->class_tree)->class_column =
 			&toolkit->class_treecolumn;
-	toolkit->classes[_W_CLASS_TREEVIEW] = W_WIDGET_CLASS(
-			&toolkit->class_treeview);
+	toolkit->classes[_W_CLASS_TREEVIEW] = W_WIDGET_CLASS(&toolkit->class_tree);
 	/*
 	 * listview
 	 */
@@ -266,11 +265,11 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 	/*
 	 * sash
 	 */
-	/*W_WIDGET_CLASS(&toolkit->class_sash)->init_class =
+	W_WIDGET_CLASS(&toolkit->class_sash)->init_class =
 			(w_widget_init_class) _w_sash_class_init;
 	W_WIDGET_CLASS(&toolkit->class_sash)->reserved[0] =
 			&toolkit->class_sash_priv;
-	toolkit->classes[_W_CLASS_SASH] = W_WIDGET_CLASS(&toolkit->class_sash);*/
+	toolkit->classes[_W_CLASS_SASH] = W_WIDGET_CLASS(&toolkit->class_sash);
 	/*
 	 * button
 	 */
@@ -279,6 +278,41 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 	W_WIDGET_CLASS(&toolkit->class_button)->reserved[0] =
 			&toolkit->class_button_priv;
 	toolkit->classes[_W_CLASS_BUTTON] = W_WIDGET_CLASS(&toolkit->class_button);
+	/*
+	 * label
+	 */
+	W_WIDGET_CLASS(&toolkit->class_label)->init_class =
+			(w_widget_init_class) _w_label_class_init;
+	W_WIDGET_CLASS(&toolkit->class_label)->reserved[0] =
+			&toolkit->class_label_priv;
+	toolkit->classes[_W_CLASS_LABEL] = W_WIDGET_CLASS(&toolkit->class_label);
+	/*
+	 * textedit
+	 */
+	W_WIDGET_CLASS(&toolkit->class_textedit)->init_class =
+			(w_widget_init_class) _w_textedit_class_init;
+	W_WIDGET_CLASS(&toolkit->class_textedit)->reserved[0] =
+			&toolkit->class_textedit_priv;
+	toolkit->classes[_W_CLASS_TEXTEDIT] = W_WIDGET_CLASS(
+			&toolkit->class_textedit);
+	/*
+	 * progressbar
+	 */
+	W_WIDGET_CLASS(&toolkit->class_progressbar)->init_class =
+			(w_widget_init_class) _w_progressbar_class_init;
+	W_WIDGET_CLASS(&toolkit->class_progressbar)->reserved[0] =
+			&toolkit->class_progressbar_priv;
+	toolkit->classes[_W_CLASS_PROGRESSBAR] = W_WIDGET_CLASS(
+			&toolkit->class_progressbar);
+	/*
+	 * groupbox
+	 */
+	W_WIDGET_CLASS(&toolkit->class_groupbox)->init_class =
+			(w_widget_init_class) _w_groupbox_class_init;
+	W_WIDGET_CLASS(&toolkit->class_groupbox)->reserved[0] =
+			&toolkit->class_groupbox_priv;
+	toolkit->classes[_W_CLASS_GROUPBOX] = W_WIDGET_CLASS(
+			&toolkit->class_groupbox);
 }
 void _w_toolkit_init_thread(_w_toolkit *toolkit) {
 	toolkit->thread.id = (wintptr) pthread_self();

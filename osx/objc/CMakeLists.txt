@@ -9,6 +9,7 @@
 		${CURRENT_DIR}/NSButton.m
 		${CURRENT_DIR}/NSColor.m
 		${CURRENT_DIR}/NSDictionary.m
+		${CURRENT_DIR}/NSEvent.m
 		${CURRENT_DIR}/NSFont.m
 		${CURRENT_DIR}/NSGraphicsContext.m
 		${CURRENT_DIR}/NSImage.m

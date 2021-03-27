@@ -9,6 +9,7 @@
 #define OSX_OBJC_OBJC_H_
 #include "const.h"
 #include "NSView.h"
+#include "NSEvent.h"
 #include "NSGraphicsContext.h"
 #include "NSApplication.h"
 #include "NSWindow.h"
