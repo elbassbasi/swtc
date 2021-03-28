@@ -243,6 +243,15 @@ wresult _CONTROL_WM_TOUCH(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_TIMER(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (e->wparam >= 0x200) {
+		w_event_time event;
+		memset(&event, 0, sizeof(event));
+		event.event.platform_event = (w_event_platform*) e;
+		event.event.type = W_EVENT_TIMER;
+		event.event.widget = widget;
+		event.id = e->wparam - 0x200;
+		_w_widget_send_event(widget, (w_event*) &event);
+	}
 	return W_FALSE;
 }
 wresult _CONTROL_WM_VSCROLL(w_widget *widget, _w_event_platform *e,

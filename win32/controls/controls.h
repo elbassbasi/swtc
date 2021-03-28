@@ -9,7 +9,9 @@
 #ifndef WIN32_CONTROLS_CONTROLS_H_
 #define WIN32_CONTROLS_CONTROLS_H_
 #include "button.h"
+#include "groupbox.h"
 #include "label.h"
+#include "progressbar.h"
 #include "sash.h"
 #include "textedit.h"
 #include "treeview.h"

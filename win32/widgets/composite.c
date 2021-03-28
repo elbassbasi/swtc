@@ -25,6 +25,47 @@ wresult _w_composite_create_handle(w_control *control, _w_control_priv *priv) {
 	}
 	return result;
 }
+wresult _w_composite_compute_size(w_widget *widget, w_event_compute_size *e,
+		_w_control_priv *priv) {
+	w_size size;
+	w_layout *layout;
+	w_composite_get_layout(W_COMPOSITE(widget), &layout);
+	if (layout != 0) {
+		if (e->wHint == W_DEFAULT || e->hHint == W_DEFAULT) {
+			//changed |= (state & LAYOUT_CHANGED) != 0;
+			//state &= ~LAYOUT_CHANGED;
+			w_layout_compute_size(layout, W_COMPOSITE(widget), &size, e->wHint,
+					e->hHint, W_TRUE);
+		} else {
+			size.width = e->wHint;
+			size.height = e->hHint;
+		}
+	} else {
+		_w_composite_minimum_size(W_COMPOSITE(widget), &size, e->wHint,
+				e->hHint, TRUE);
+		if (size.width == 0)
+			size.width = DEFAULT_WIDTH;
+		if (size.height == 0)
+			size.height = DEFAULT_HEIGHT;
+	}
+	if (e->wHint != W_DEFAULT)
+		size.width = e->wHint;
+	if (e->hHint != W_DEFAULT)
+		size.height = e->hHint;
+	/*
+	 * Since computeTrim can be overridden by subclasses, we cannot
+	 * call computeTrimInPixels directly.
+	 */
+	w_rect rect, trim;
+	rect.x = 0;
+	rect.y = 0;
+	rect.width = size.width;
+	rect.height = size.height;
+	w_scrollable_compute_trim(W_SCROLLABLE(widget), &trim, &rect);
+	e->size->width = trim.width;
+	e->size->height = trim.height;
+	return TRUE;
+}
 DWORD _w_composite_widget_style(w_control *control, _w_control_priv *priv) {
 	return _w_scrollable_widget_style(control, priv) | WS_CLIPCHILDREN;
 }
@@ -121,6 +162,25 @@ wresult _w_composite_do_layout(w_composite *composite, int changed, int all) {
 wresult _w_composite_layout_changed(w_composite *_this, w_control **changed,
 		size_t length, int flags) {
 	return W_FALSE;
+}
+void _w_composite_minimum_size(w_composite *composite, w_size *result,
+		int wHint, int hHint, wresult changed) {
+	w_iterator children;
+	w_iterator_init(&children);
+	w_composite_get_children(composite, &children);
+	w_rect clientArea, rect;
+	w_scrollable_get_client_area(W_SCROLLABLE(composite), &clientArea);
+	int width = 0, height = 0;
+	w_control *child = 0;
+	while (w_iterator_next(&children, (void*) &child)) {
+		if (child != 0) {
+			w_control_get_bounds(child, &rect.pt, &rect.sz);
+			width = WMAX(width, rect.x - clientArea.x + rect.width);
+			height = WMAX(height, rect.y - clientArea.y + rect.height);
+		}
+	}
+	result->width = width;
+	result->height = height;
 }
 wresult _w_composite_set_layout(w_composite *composite, w_layout *layout) {
 	_W_COMPOSITE(composite)->layout = layout;

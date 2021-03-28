@@ -118,6 +118,16 @@ typedef struct _w_toolkit {
 	struct _w_textedit_class class_textedit;
 	_w_textedit_priv class_textedit_priv;
 	/*
+	 * progressbar
+	 */
+	struct _w_progressbar_class class_progressbar;
+	_w_progressbar_priv class_progressbar_priv;
+	/*
+	 * groupbox
+	 */
+	struct _w_groupbox_class class_groupbox;
+	_w_groupbox_priv class_groupbox_priv;
+	/*
 	 * internal memory
 	 */
 	size_t tmp_alloc;
