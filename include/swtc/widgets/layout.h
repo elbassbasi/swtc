@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 #include "control.h"
+typedef struct w_sash w_sash;
 typedef struct w_layout {
 	void *reserved; //private used in c++
 	struct _w_layout_class *clazz;
@@ -267,15 +268,14 @@ SWT_PUBLIC void w_layout_form_get_data(w_layout *layout, w_control *control,
  */
 typedef struct w_layout_sash {
 	w_layout layout;
-	struct w_sash *sashes;
+	w_sash *sashes;
 	wuint64 style;
 	size_t count;
 } w_layout_sash;
 typedef struct w_layout_sash_data {
 	w_layout_data data;
-	union {
-		wushort flags;
-	};
+	wushort flags;
+	wushort index;
 	size_t weight;
 } w_layout_sash_data;
 SWT_PUBLIC void w_layout_sash_init(w_layout_sash *layout, int style);

@@ -725,7 +725,16 @@ wresult _w_control_set_redraw(w_control *control, int redraw) {
 	return W_FALSE;
 }
 wresult _w_control_set_region(w_control *control, w_region *region) {
-	return W_FALSE;
+	if (region != 0 && w_region_is_ok(region) <= 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	GtkWidget *topHandle = _W_WIDGET_PRIV(priv)->handle_top(W_WIDGET(control),
+			priv);
+	GdkWindow *window = gtk_widget_get_window(topHandle);
+	cairo_region_t *shape_region =
+			(region == 0) ? 0 : _W_REGION(region)->handle;
+	gdk_window_shape_combine_region(window, shape_region, 0, 0);
+	return W_TRUE;
 }
 void _w_control_set_relations(w_control *control, _w_control_priv *priv) {
 }

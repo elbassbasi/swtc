@@ -8,12 +8,14 @@
 #ifndef TESTS_CONTROLS_SLIDER_TSLIDERDEMO_H_
 #define TESTS_CONTROLS_SLIDER_TSLIDERDEMO_H_
 #include "TSliders.h"
-class TSliderDemo : public CompositeTreeItem {
+class TSliderDemo: public CompositeTreeItem {
 public:
+	static const int length = 4;
+	static int styles[length];
 	static void Registre(WTreeItem &parent);
 	void CreateControl(WComposite *parent);
 	WGridLayout layout;
-	WSlider slider[2];
+	WSlider slider[length];
 };
 
 #endif /* TESTS_CONTROLS_SLIDER_TSLIDERDEMO_H_ */

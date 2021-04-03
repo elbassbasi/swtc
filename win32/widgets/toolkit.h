@@ -128,6 +128,51 @@ typedef struct _w_toolkit {
 	struct _w_groupbox_class class_groupbox;
 	_w_groupbox_priv class_groupbox_priv;
 	/*
+	 * combobox
+	 */
+	struct _w_combobox_class class_combobox;
+	_w_combobox_priv class_combobox_priv;
+	struct _w_combobox_class class_comboitem;
+	/*
+	 * coolbar
+	 */
+	struct _w_coolbar_class class_coolbar;
+	_w_coolbar_priv class_coolbar_priv;
+	struct _w_coolitem_class class_coolitem;
+	/*
+	 * datetime
+	 */
+	struct _w_datetime_class class_datetime;
+	_w_datetime_priv class_datetime_priv;
+	/*
+	 * expandbar
+	 */
+	struct _w_expandbar_class class_expandbar;
+	_w_expandbar_priv class_expandbar_priv;
+	struct _w_expanditem_class class_expanditem;
+	/*
+	 * slider
+	 */
+	struct _w_slider_class class_slider;
+	_w_slider_priv class_slider_priv;
+	/*
+	 * spinner
+	 */
+	struct _w_spinner_class class_spinner;
+	_w_spinner_priv class_spinner_priv;
+	/*
+	 * tabview
+	 */
+	struct _w_tabview_class class_tabview;
+	_w_tabview_priv class_tabview_priv;
+	struct _w_tabitem_class class_tabitem;
+	/*
+	 * toolbar
+	 */
+	struct _w_toolbar_class class_toolbar;
+	_w_toolbar_priv class_toolbar_priv;
+	struct _w_toolitem_class class_toolitem;
+	/*
 	 * internal memory
 	 */
 	size_t tmp_alloc;

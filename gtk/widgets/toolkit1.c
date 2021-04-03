@@ -275,6 +275,87 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 			&toolkit->class_groupbox_priv;
 	toolkit->classes[_W_CLASS_GROUPBOX] = W_WIDGET_CLASS(
 			&toolkit->class_groupbox);
+	/*
+	 * combobox
+	 */
+	W_WIDGET_CLASS(&toolkit->class_combobox)->init_class =
+			(w_widget_init_class) _w_combobox_class_init;
+	W_WIDGET_CLASS(&toolkit->class_combobox)->reserved[0] =
+			&toolkit->class_combobox_priv;
+	W_COMBOBOX_CLASS(&toolkit->class_combobox)->class_comboitem =
+			&toolkit->class_comboitem;
+	toolkit->classes[_W_CLASS_COMBOBOX] = W_WIDGET_CLASS(
+			&toolkit->class_combobox);
+	/*
+	 * coolbar
+	 */
+	W_WIDGET_CLASS(&toolkit->class_coolbar)->init_class =
+			(w_widget_init_class) _w_coolbar_class_init;
+	W_WIDGET_CLASS(&toolkit->class_coolbar)->reserved[0] =
+			&toolkit->class_coolbar_priv;
+	W_COOLBAR_CLASS(&toolkit->class_coolbar)->class_coolitem =
+			&toolkit->class_coolitem;
+	toolkit->classes[_W_CLASS_COOLBAR] = W_WIDGET_CLASS(
+			&toolkit->class_coolbar);
+	/*
+	 * datetime
+	 */
+	W_WIDGET_CLASS(&toolkit->class_datetime)->init_class =
+			(w_widget_init_class) _w_datetime_class_init;
+	W_WIDGET_CLASS(&toolkit->class_datetime)->reserved[0] =
+			&toolkit->class_datetime_priv;
+	toolkit->classes[_W_CLASS_DATETIME] = W_WIDGET_CLASS(
+			&toolkit->class_datetime);
+	/*
+	 * expandbar
+	 */
+	W_WIDGET_CLASS(&toolkit->class_expandbar)->init_class =
+			(w_widget_init_class) _w_expandbar_class_init;
+	W_WIDGET_CLASS(&toolkit->class_expandbar)->reserved[0] =
+			&toolkit->class_expandbar_priv;
+	W_EXPANDBAR_CLASS(&toolkit->class_expandbar)->class_expanditem =
+			&toolkit->class_expanditem;
+	toolkit->classes[_W_CLASS_EXPANDBAR] = W_WIDGET_CLASS(
+			&toolkit->class_expandbar);
+	/*
+	 * slider
+	 */
+	W_WIDGET_CLASS(&toolkit->class_slider)->init_class =
+			(w_widget_init_class) _w_slider_class_init;
+	W_WIDGET_CLASS(&toolkit->class_slider)->reserved[0] =
+			&toolkit->class_slider_priv;
+	toolkit->classes[_W_CLASS_SLIDER] = W_WIDGET_CLASS(&toolkit->class_slider);
+	/*
+	 * spinner
+	 */
+	W_WIDGET_CLASS(&toolkit->class_spinner)->init_class =
+			(w_widget_init_class) _w_spinner_class_init;
+	W_WIDGET_CLASS(&toolkit->class_spinner)->reserved[0] =
+			&toolkit->class_spinner_priv;
+	toolkit->classes[_W_CLASS_SPINNER] = W_WIDGET_CLASS(
+			&toolkit->class_spinner);
+	/*
+	 * tabview
+	 */
+	W_WIDGET_CLASS(&toolkit->class_tabview)->init_class =
+			(w_widget_init_class) _w_tabview_class_init;
+	W_WIDGET_CLASS(&toolkit->class_tabview)->reserved[0] =
+			&toolkit->class_tabview_priv;
+	W_TABVIEW_CLASS(&toolkit->class_tabview)->class_tabitem =
+			&toolkit->class_tabitem;
+	toolkit->classes[_W_CLASS_TABVIEW] = W_WIDGET_CLASS(
+			&toolkit->class_tabview);
+	/*
+	 * toolbar
+	 */
+	W_WIDGET_CLASS(&toolkit->class_toolbar)->init_class =
+			(w_widget_init_class) _w_toolbar_class_init;
+	W_WIDGET_CLASS(&toolkit->class_toolbar)->reserved[0] =
+			&toolkit->class_toolbar_priv;
+	W_TOOLBAR_CLASS(&toolkit->class_toolbar)->class_toolitem =
+			&toolkit->class_toolitem;
+	toolkit->classes[_W_CLASS_TOOLBAR] = W_WIDGET_CLASS(
+			&toolkit->class_toolbar);
 }
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];

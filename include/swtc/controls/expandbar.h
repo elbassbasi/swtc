@@ -35,7 +35,7 @@ struct _w_expanditem_class {
 };
 struct _w_expandbar_class {
 	struct _w_composite_class composite;
-	struct _w_expanditem_class *class_expandbaritem;
+	struct _w_expanditem_class *class_expanditem;
 	wresult (*get_item)(w_expandbar *expandbar, int index, w_expanditem *item);
 	int (*get_item_count)(w_expandbar *expandbar);
 	void (*get_items)(w_expandbar *expandbar, w_iterator *items);

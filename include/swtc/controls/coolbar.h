@@ -44,7 +44,7 @@ struct _w_coolitem_class {
 };
 struct _w_coolbar_class {
 	struct _w_composite_class composite;
-	struct _w_coolitem_class *class_coolbaritem;
+	struct _w_coolitem_class *class_coolitem;
 	wresult (*get_item)(w_coolbar *coolbar, int index, w_coolitem *item);
 	int (*get_item_count)(w_coolbar *coolbar);
 	void (*get_items)(w_coolbar *coolbar, w_iterator *items);

@@ -237,11 +237,11 @@ wresult _w_button_create_handle(w_widget *widget, _w_control_priv *priv) {
 		}
 	}
 	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
-	g_object_set_qdata(G_OBJECT(handle), gtk_toolkit->quark[0], widget);
-	g_object_set_qdata(G_OBJECT(imageHandle), gtk_toolkit->quark[0], widget);
-	g_object_set_qdata(G_OBJECT(boxHandle), gtk_toolkit->quark[0], widget);
-	g_object_set_qdata(G_OBJECT(labelHandle), gtk_toolkit->quark[0], widget);
-	g_object_set_qdata(G_OBJECT(fixedHandle), gtk_toolkit->quark[0], widget);
+	_w_widget_set_control(handle, widget);
+	_w_widget_set_control(imageHandle, widget);
+	_w_widget_set_control(boxHandle, widget);
+	_w_widget_set_control(labelHandle, widget);
+	_w_widget_set_control(fixedHandle, widget);
 	_W_WIDGET(widget)->handle = handle;
 	if ((style & W_ARROW) == 0) {
 		_w_button_set_alignment(W_BUTTON(widget),

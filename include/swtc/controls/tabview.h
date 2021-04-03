@@ -38,7 +38,7 @@ struct _w_tabitem_class {
 };
 struct _w_tabview_class {
 	struct _w_composite_class composite;
-	struct _w_tabitem_class *class_tabfolderitem;
+	struct _w_tabitem_class *class_tabitem;
 	wresult (*get_imagelist)(w_tabview *tabview, w_imagelist **imagelist);
 	wresult (*get_item)(w_tabview *tabview, int index, w_tabitem *item);
 	wresult (*get_item_p)(w_tabview *tabview, w_point *point, w_tabitem *item);

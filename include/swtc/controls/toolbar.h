@@ -41,7 +41,7 @@ struct _w_toolitem_class {
 };
 struct _w_toolbar_class {
 	struct _w_composite_class composite;
-	struct _w_toolitem_class *class_toolbaritem;
+	struct _w_toolitem_class *class_toolitem;
 	w_imagelist* (*get_imagelist)(w_toolbar *toolbar);
 	wresult (*get_item)(w_toolbar *toolbar, int index, w_toolitem *item);
 	wresult (*get_item_from_point)(w_toolbar *toolbar, w_point *point,

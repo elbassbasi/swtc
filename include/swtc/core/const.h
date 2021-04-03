@@ -116,6 +116,7 @@ enum {
 	W_INDETERMINATE = 1 << 11, //ProgressBar
 	W_SMOOTH = 1 << 12, //ProgressBar,Sash
 	W_BALLOON = 1 << 13, //ToolTip
+	W_SCALE = 1 << 21,
 
 	W_TOP = W_UP,
 	W_BOTTOM = W_DOWN, //

@@ -10,33 +10,38 @@ void w_layout_sash_compute_size(w_layout *layout, w_composite *composite,
 		w_size *size, int wHint, int hHint, int flushCache);
 void w_layout_sash_do_layout(w_layout *_layout, w_composite *composite,
 		int flushCache);
-_w_layout_class w_layout_sash_class = { .compute_size =
-		w_layout_sash_compute_size, .do_layout = w_layout_sash_do_layout };
+void w_layout_sash_set_data(w_layout *layout, w_control *control,
+		const w_layout_data *_data) {
+	w_layout_set_data(layout, control, _data);
+}
+void w_layout_sash_get_data(w_layout *layout, w_control *control,
+		w_layout_data *_data) {
+	void *data;
+	w_control_get_layout_data(control, &data);
+}
+_w_layout_class w_layout_sash_class = { //
+		w_layout_sash_compute_size, //
+				w_layout_flush_cache0, //
+				w_layout_sash_do_layout, //
+				w_layout_sash_set_data, //
+				w_layout_sash_get_data //
+		};
 int w_layout_sash_default_selection(w_widget *widget, w_event *event) {
 	w_event_sash *e = (w_event_sash*) event;
 	w_composite *parent;
+	w_layout_sash_data *d;
 	w_control_get_parent(W_CONTROL(widget), &parent);
 	if (parent == 0)
 		return W_FALSE;
+	w_control_get_layout_data(W_CONTROL(widget), (void**) &d);
+	if (d == 0)
+		return W_FALSE;
+	int sashIndex = d->index;
 	w_control *c, *c1 = 0, *c2 = 0;
 	w_iterator children;
 	w_iterator_init(&children);
 	w_composite_get_children(parent, &children);
 	int i = 0;
-	int sashIndex = -1;
-	while (w_iterator_next(&children, &c)) {
-		if (w_widget_class_id(W_WIDGET(c)) == _W_CLASS_SASH) {
-			if (c == W_CONTROL(widget)) {
-				sashIndex = i;
-				break;
-			}
-			i++;
-		}
-	}
-	if (sashIndex == -1)
-		return W_FALSE;
-	w_iterator_reset(&children);
-	i = 0;
 	while (w_iterator_next(&children, &c)) {
 		if (w_widget_class_id(W_WIDGET(c)) != _W_CLASS_SASH) {
 			if (i == sashIndex)
@@ -56,7 +61,6 @@ int w_layout_sash_default_selection(w_widget *widget, w_event *event) {
 	w_control_get_bounds(W_CONTROL(widget), &sashBounds.pt, &sashBounds.sz);
 	w_scrollable_get_client_area(W_SCROLLABLE(parent), &area);
 	int correction = W_FALSE, doit = W_TRUE;
-	w_layout_sash_data *d;
 	if (w_widget_get_style(widget) & W_VERTICAL) {
 		correction = b1.width < DRAG_MINIMUM || b2.width < DRAG_MINIMUM;
 		int totalWidth = b2.x + b2.width - b1.x;
@@ -126,7 +130,7 @@ int w_layout_sash_default_selection(w_widget *widget, w_event *event) {
 	}
 	return doit;
 }
-int w_layout_sash_event_proc(w_widget *widget, w_event *event) {
+wresult w_layout_sash_event_proc(w_widget *widget, w_event *event) {
 	if (event->type == W_EVENT_SELECTION) {
 		return w_layout_sash_default_selection(widget, event);
 	}
@@ -191,6 +195,7 @@ void w_layout_sash_compute_size(w_layout *layout, struct w_composite *composite,
 void w_layout_sash_do_layout(w_layout *_layout, struct w_composite *composite,
 		int flushCache) {
 	w_layout_sash *layout = (w_layout_sash*) _layout;
+	w_layout_sash_data *d;
 	w_rect area, r;
 	w_scrollable_get_client_area(W_SCROLLABLE(composite), &area);
 	if (area.width <= 1 || area.height <= 1)
@@ -230,9 +235,17 @@ void w_layout_sash_do_layout(w_layout *_layout, struct w_composite *composite,
 		sash_style = W_HORIZONTAL;
 	}
 	for (int i = 0; i < min_length; i++) {
-		if (!w_widget_is_ok(W_WIDGET(&layout->sashes[i]))) {
-			w_sash_create(&layout->sashes[i], 0, composite, sash_style,
+		w_sash *sash = &layout->sashes[i];
+		if (!w_widget_is_ok(W_WIDGET(sash))) {
+			w_sash_create(sash, 0, composite, sash_style,
 					w_layout_sash_event_proc);
+			w_control_new_layout_data(W_CONTROL(sash), (void**) &d,
+					sizeof(w_layout_sash_data));
+			if (d != 0) {
+				d->index = i;
+				d->flags = 0;
+				d->weight = 0;
+			}
 		}
 	}
 	for (unsigned int i = length; i < layout->count; i++) {
@@ -242,7 +255,6 @@ void w_layout_sash_do_layout(w_layout *_layout, struct w_composite *composite,
 	}
 	total = 0;
 	w_iterator_reset(&children);
-	w_layout_sash_data *d;
 	while (w_iterator_next(&children, &c)) {
 		if (w_widget_class_id(W_WIDGET(c)) != _W_CLASS_SASH) {
 			w_control_get_layout_data(c, (void**) &d);
@@ -321,9 +333,7 @@ void w_layout_sash_do_layout(w_layout *_layout, struct w_composite *composite,
 				r.y = y;
 				r.width = area.width;
 				r.height = height;
-				w_control_set_bounds(
-						W_CONTROL(c), &r.pt,
-						&r.sz);
+				w_control_set_bounds(W_CONTROL(c), &r.pt, &r.sz);
 				y += height;
 				length++;
 			}

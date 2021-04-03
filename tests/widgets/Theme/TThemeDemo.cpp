@@ -18,6 +18,10 @@ void TThemeDemo::Registre(WTreeItem &parent) {
 			new TThemeDemo(W_THEME_CLASS_PROGRESSBAR, W_VERTICAL));
 	ITreeItem::Regitre(parent, "ProgressBar_HORIZONTAL",
 			new TThemeDemo(W_THEME_CLASS_PROGRESSBAR, W_HORIZONTAL));
+	ITreeItem::Regitre(parent, "ComboBox",
+			new TThemeDemo(W_THEME_CLASS_COMBOBOX, 0));
+	ITreeItem::Regitre(parent, "TabItem",
+			new TThemeDemo(W_THEME_CLASS_TABITEM, 0));
 }
 
 TThemeDemo::TThemeDemo(int clazz, int style) {
@@ -34,7 +38,8 @@ bool TThemeDemo::OnPaint(WPaintEvent &e) {
 	WThemeData data;
 	WRect area, rect;
 	GetClientArea(area);
-	int height = area.height / (sizeof(states) / sizeof(states[0])) - 5;
+	const int states_length = sizeof(states) / sizeof(states[0]);
+	int height = area.height * 2 / states_length - 5;
 	int width = area.width / 2 - 5;
 	rect.x = area.x;
 	rect.y = area.y;
@@ -42,7 +47,7 @@ bool TThemeDemo::OnPaint(WPaintEvent &e) {
 	rect.height = height;
 	data.style = this->style;
 	data.clazz = this->clazz;
-	for (int i = 0; i < (sizeof(states) / sizeof(states[0])); i++) {
+	for (int i = 0; i < states_length; i++) {
 		data.state = states[i];
 		theme->DrawBackground(data, *e.gc, rect);
 		theme->DrawTextCenter(data, *e.gc, rect, texts[i]);

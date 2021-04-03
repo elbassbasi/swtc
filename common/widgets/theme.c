@@ -98,7 +98,7 @@ w_image* w_theme_get_image(w_theme *theme, wuint id) {
 	} else
 		return 0;
 }
-wuchar themeclasses0[_W_THEME_CLASS_LAST] = { W_THEME_CLASS_UNKNOWN,
+wuchar themeclasses0[_W_THEME_CLASS_INTERNAL_LAST] = { W_THEME_CLASS_UNKNOWN,
 		W_THEME_CLASS_MENU, W_THEME_CLASS_BUTTON, W_THEME_CLASS_LABEL,
 		W_THEME_CLASS_PROGRESSBAR, W_THEME_CLASS_SASH,
 		W_THEME_CLASS_SLIDER, W_THEME_CLASS_SCROLLBAR,
@@ -111,7 +111,7 @@ wuchar themeclasses0[_W_THEME_CLASS_LAST] = { W_THEME_CLASS_UNKNOWN,
 wuchar themeclasses[W_THEME_CLASS_LAST];
 wuint w_theme_internal_class_id(wuint clazz) {
 	if (themeclasses[W_THEME_CLASS_BUTTON] == 0) {
-		for (wuint i = 0; i < _W_THEME_CLASS_LAST; i++) {
+		for (wuint i = 0; i < _W_THEME_CLASS_INTERNAL_LAST; i++) {
 			themeclasses[themeclasses0[i]] = i;
 		}
 	}
