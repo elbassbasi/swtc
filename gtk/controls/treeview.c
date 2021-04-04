@@ -218,28 +218,26 @@ void _w_treeview_registre_signal(_w_treeview_priv *priv) {
 }
 void _w_treeview_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_composite_hook_events(widget, priv);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(
-			GTK_TREE_VIEW(_W_WIDGET(widget)->handle));
-	GtkTreeModel *modelHandle = gtk_tree_view_get_model(
-			GTK_TREE_VIEW(_W_WIDGET(widget)->handle));
+			GTK_TREE_VIEW(handle));
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(GTK_TREE_VIEW(handle));
 	_w_treeview_registre_signal(_W_TREEVIEW_PRIV(priv));
 	_w_widget_connect((GtkWidget*) selection, SIGNAL_CHANGED,
 	_W_TREEVIEW_PRIV(priv)->signal_changed_id, FALSE);
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_ROW_ACTIVATED,
+	_w_widget_connect(handle, SIGNAL_ROW_ACTIVATED,
 	_W_TREEVIEW_PRIV(priv)->signal_row_activated_id, FALSE);
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_TEST_EXPAND_ROW,
+	_w_widget_connect(handle, SIGNAL_TEST_EXPAND_ROW,
 	_W_TREEVIEW_PRIV(priv)->signal_test_expand_row_id, FALSE);
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_TEST_COLLAPSE_ROW,
+	_w_widget_connect(handle, SIGNAL_TEST_COLLAPSE_ROW,
 	_W_TREEVIEW_PRIV(priv)->signal_test_collapse_row_id, FALSE);
-	_w_widget_connect(_W_WIDGET(widget)->handle,
-			SIGNAL_EXPAND_COLLAPSE_CURSOR_ROW,
-			_W_TREEVIEW_PRIV(priv)->signal_expand_collapse_cursor_row_id,
-			FALSE);
+	_w_widget_connect(handle, SIGNAL_EXPAND_COLLAPSE_CURSOR_ROW,
+	_W_TREEVIEW_PRIV(priv)->signal_expand_collapse_cursor_row_id,
+	FALSE);
 	_w_widget_connect((GtkWidget*) modelHandle, SIGNAL_ROW_HAS_CHILD_TOGGLED,
 	_W_TREEVIEW_PRIV(priv)->signal_row_has_child_toggled_id, FALSE);
-	_w_widget_connect(_W_WIDGET(widget)->handle,
-			SIGNAL_START_INTERACTIVE_SEARCH,
-			_W_TREEVIEW_PRIV(priv)->signal_start_interactive_search_id, FALSE);
+	_w_widget_connect(handle, SIGNAL_START_INTERACTIVE_SEARCH,
+	_W_TREEVIEW_PRIV(priv)->signal_start_interactive_search_id, FALSE);
 	//if (fixAccessibility()) {
 	_w_widget_connect((GtkWidget*) modelHandle, SIGNAL_ROW_INSERTED,
 	_W_TREEVIEW_PRIV(priv)->signal_row_inserted_id, TRUE);
