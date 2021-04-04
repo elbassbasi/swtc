@@ -479,19 +479,31 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	_w_cell_renderer *cell = (_w_cell_renderer*) _cell;
 	_w_cell_renderer_class *clazz =
 			(_w_cell_renderer_class*) GTK_CELL_RENDERER_GET_CLASS(_cell);
-	GtkTreeModel *modelHandle = gtk_tree_view_get_model(
-			GTK_TREE_VIEW(_W_WIDGET(widget)->handle));
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(GTK_TREE_VIEW(handle));
+	GtkTreeIter *iter = &_W_TREEITEM(&cell->treeitem)->iter;
 	if (GTK_IS_CELL_RENDERER_TEXT(_cell)) {
 		const char *text = 0;
-		gtk_tree_model_get(modelHandle, &_W_TREEITEM(&cell->treeitem)->iter,
-				COLUMN_TEXT, &text, -1);
+		gtk_tree_model_get(modelHandle, iter, COLUMN_TEXT, &text, -1);
 		g_object_set(cell, "text", text, NULL);
+	}
+	if (GTK_IS_CELL_RENDERER_TOGGLE(cell)) {
+		int info = 0, b;
+		gtk_tree_model_get(modelHandle, iter, COLUMN_INFO, &info, -1);
+		if (info & COLUMN_INFO_CHECK) {
+			b = TRUE;
+		} else {
+			b = FALSE;
+		}
+		g_object_set(cell, "active", b, NULL);
+		clazz->default_render(_cell, cr, gtkwidget, background_area, cell_area,
+				flags);
+		return;
 	}
 	if (GTK_IS_CELL_RENDERER_PIXBUF(_cell)) {
 		int index;
 		GdkPixbuf *pixbuf = 0;
-		gtk_tree_model_get(modelHandle, &_W_TREEITEM(&cell->treeitem)->iter,
-				COLUMN_IMAGE, &index, -1);
+		gtk_tree_model_get(modelHandle, iter, COLUMN_IMAGE, &index, -1);
 		if (index >= 0) {
 			w_imagelist *imagelist = _W_LISTVIEWBASE(widget)->imagelist;
 			if (imagelist != 0 && _W_IMAGELIST(imagelist)->images != 0
