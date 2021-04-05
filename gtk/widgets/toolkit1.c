@@ -6,6 +6,7 @@
  * Licence:
  */
 #include "toolkit.h"
+#define INNER_BORDER 2
 void* _w_toolkit_malloc(size_t size) {
 	if ((gtk_toolkit->tmp_length + size) < gtk_toolkit->tmp_alloc) {
 		int i = gtk_toolkit->tmp_length;
@@ -61,6 +62,24 @@ void _w_toolkit_put_gdk_events(int event, ...) {
 }
 void _w_toolkit_remove_gdk_events() {
 
+}
+void _w_toolkit_get_entry_inner_border(GtkWidget *handle, GtkBorder *border) {
+	GtkBorder *gtkborder = gtk_entry_get_inner_border(GTK_ENTRY(handle));
+	if (gtkborder != 0) {
+		memcpy(border, gtkborder, sizeof(GtkBorder));
+		return;
+	}
+	gtkborder = 0;
+	gtk_widget_style_get(handle, "inner-border", &gtkborder, NULL);
+	if (gtkborder != 0) {
+		memcpy(border, gtkborder, sizeof(GtkBorder));
+		gtk_border_free(gtkborder);
+		return;
+	}
+	border->left = INNER_BORDER;
+	border->top = INNER_BORDER;
+	border->right = INNER_BORDER;
+	border->bottom = INNER_BORDER;
 }
 const char *_gtk_signal_names[SIGNAL_LAST] = { //
 		[SIGNAL_ACTIVATE]="", // //

@@ -5,6 +5,7 @@
  *      Author: azeddine
  */
 #include "treeview.h"
+#include "../widgets/toolkit.h"
 wuint64 _w_listviewbase_check_style(w_widget *widget, wuint64 style) {
 	/*
 	 * Feature in Windows.  Even when WS_HSCROLL or
@@ -204,6 +205,8 @@ wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 			gtk_tree_view_column_set_alignment(columnHandle, 0.0);
 		}
 	}
+	g_object_set_qdata(G_OBJECT(columnHandle), gtk_toolkit->quark[1],
+			textrenderer);
 	GtkWidget *_handle = _W_WIDGET(list)->handle;
 	gtk_tree_view_insert_column(GTK_TREE_VIEW(_handle), columnHandle, 0);
 	_w_widget_set_control(columnHandle, (w_widget*) ((long) 0));

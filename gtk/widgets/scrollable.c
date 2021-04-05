@@ -135,6 +135,39 @@ wresult _w_scrollable_get_client_area(w_widget *widget, w_event_client_area *e,
 	e->rect->height = allocation.height;
 	return W_TRUE;
 }
+/*
+ * signals
+ */
+wuint64 _gtk_scrollbar_style(GtkWidget *scrolledHandle, GtkWidget *adjustment) {
+	GtkWidget *scrollbar = gtk_scrolled_window_get_hscrollbar(
+			GTK_SCROLLED_WINDOW(scrolledHandle));
+	if (adjustment == scrollbar) {
+		return W_VSCROLL;
+	} else {
+		return W_HSCROLL;
+	}
+}
+gboolean _gtk_scrollbar_button_press_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv) {
+	GtkWidget *scrolledHandle = _W_SCROLLABLE_PRIV(priv)->handle_scrolled(
+			widget, priv);
+	wuint64 style = _gtk_scrollbar_style(scrolledHandle, e->widget);
+	if (style & W_VSCROLL) {
+		_W_SCROLLABLE(widget)->vdetail = GTK_SCROLL_NONE;
+		_W_WIDGET(widget)->state &= ~ STATE_VSCROLLBAR_DRAGSEND;
+	} else {
+		_W_SCROLLABLE(widget)->hdetail = GTK_SCROLL_NONE;
+		_W_WIDGET(widget)->state &= ~ STATE_HSCROLLBAR_DRAGSEND;
+	}
+	return FALSE;
+}
+gboolean _gtk_scrollable_button_press_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv) {
+	if (GTK_IS_SCROLLBAR(e->widget)) {
+		return _gtk_scrollbar_button_press_event(widget, e, priv);
+	} else
+		return _gtk_control_button_press_event(widget, e, priv);
+}
 void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
 	_w_control_class_init(W_CONTROL_CLASS(clazz));
 	/*

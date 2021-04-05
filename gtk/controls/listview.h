@@ -29,6 +29,8 @@ typedef struct _w_listviewbase {
 	_w_composite composite;
 	GtkCellRenderer *pixbufrenderer;
 	w_imagelist *imagelist;
+	unsigned rowActivated :1;
+	unsigned ignoreSize :1;
 } _w_listviewbase;
 #define _W_LISTVIEWBASE(x) ((_w_listviewbase*)x)
 #define _W_LISTVIEWBASE_GET_ITEM_CLASS(list) (W_WIDGETDATA_CLASS(W_LISTVIEWBASE_GET_CLASS(list)->class_item))
@@ -125,5 +127,6 @@ wuint64 _w_listviewbase_check_style(w_widget *widget, wuint64 style);
 wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv);
 wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 		_w_control_priv *priv);
+wresult _w_listviewbase_get_header_height(w_listviewbase *list);
 
 #endif /* SRC_SWT_GTK_CONTROLS_TABLE_H_ */

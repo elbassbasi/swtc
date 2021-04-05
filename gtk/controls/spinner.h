@@ -10,6 +10,7 @@
 #include "../widgets/shell.h"
 typedef struct _w_spinner {
 	_w_composite composite;
+	double climbRate;
 } _w_spinner;
 
 typedef struct _w_spinner_priv {

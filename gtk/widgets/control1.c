@@ -212,7 +212,69 @@ gboolean _gtk_control_enter_notify_event(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_control_event_after(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GdkEvent *event = (GdkEvent*) e->args[0];
+	switch (event->type) {
+	case GDK_BUTTON_PRESS: {
+		if (e->widget != priv->handle_event(widget, priv))
+			break;
+		/*
+		 * Pop up the context menu in the event_after signal to allow
+		 * the widget to process the button press.  This allows widgets
+		 * such as GtkTreeView to select items before a menu is shown.
+		 */
+		if ((_W_WIDGET(widget)->state & STATE_MENU) == 0) {
+			GdkEventButton *gdkEventButton = (GdkEventButton*) event;
+			if (gdkEventButton->button == 3) {
+				/*_w_control_show_menu(W_CONTROL(widget), gdkEventButton->x_root,
+				 gdkEventButton->y_root, W_MENU_MOUSE);*/
+			}
+		}
+		break;
+	}
+	case GDK_FOCUS_CHANGE: {
+		/*if (priv->is_focus_handle(W_CONTROL(widget), e->widget, priv) <= 0)
+		 break;*/
+		GdkEventFocus *gdkEventFocus = (GdkEventFocus*) event;
+
+		/*
+		 * Feature in GTK. The GTK combo box popup under some window managers
+		 * is implemented as a GTK_MENU.  When it pops up, it causes the combo
+		 * box to lose focus when focus is received for the menu.  The
+		 * fix is to check the current grab handle and see if it is a GTK_MENU
+		 * and ignore the focus event when the menu is both shown and hidden.
+		 *
+		 * NOTE: This code runs for all menus.
+		 */
+		if (gdkEventFocus->in != 0) {
+			if (gtk_toolkit->ignoreFocus) {
+				gtk_toolkit->ignoreFocus = FALSE;
+				break;
+			}
+		} else {
+			gtk_toolkit->ignoreFocus = FALSE;
+			GtkWidget *grabHandle = gtk_grab_get_current();
+			if (grabHandle != 0) {
+				if (G_OBJECT_TYPE (grabHandle) == GTK_TYPE_MENU) {
+					gtk_toolkit->ignoreFocus = TRUE;
+					break;
+				}
+			}
+		}
+		w_event event;
+		if (gdkEventFocus->in != 0) {
+			event.type = W_EVENT_FOCUSIN;
+		} else {
+			event.type = W_EVENT_FOCUSOUT;
+		}
+		event.widget = widget;
+		event.time = 0;
+		event.platform_event = (w_event_platform*) e;
+		event.data = 0;
+		_w_widget_send_event(widget, &event);
+		break;
+	}
+	}
+	return FALSE;
 }
 gboolean _gtk_control_draw(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -277,7 +339,14 @@ gboolean _gtk_control_focus_in_event(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_control_focus_out_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	// widget could be disposed at this point
+	if (_W_WIDGET(widget)->handle != 0) {
+		GtkIMContext *imHandle = priv->handle_im(widget, priv);
+		if (imHandle != 0) {
+			gtk_im_context_focus_out(imHandle);
+		}
+	}
+	return 0;
 }
 gboolean _gtk_control_key_press_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {

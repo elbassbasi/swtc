@@ -58,6 +58,7 @@ typedef struct _w_toolkit {
 	unsigned ISWayland :1;
 	unsigned activePending :1;
 	unsigned clickCount :2;
+	unsigned ignoreFocus :1;
 	/*
 	 * function
 	 */
@@ -224,6 +225,7 @@ void _w_toolkit_class_init(_w_toolkit *toolkit);
 void _w_theme_init();
 void _w_toolkit_put_gdk_events(int event, ...);
 void _w_toolkit_remove_gdk_events();
+void _w_toolkit_get_entry_inner_border(GtkWidget *handle, GtkBorder *border);
 /*
  * dialogs
  */

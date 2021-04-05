@@ -28,10 +28,11 @@ void TTreeCustom::CreateControl(WComposite *parent) {
 	WTreeItem item, tmp, root;
 	WColumnItem column;
 	char txt[50];
-	this->Create(parent, W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
+	this->Create(parent,
+			W_VIRTUAL | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
 	this->SetImageList(MShell::GetImageList32_(this));
 	this->GetColumn(0, column).SetText("id");
-	this->AppendColumn(column, "progress"); //.SetResizable(false);
+	this->AppendColumn(column, "progress").SetResizable(false);
 	this->AppendColumn(column, "int");
 	column.SetAlignment(W_CENTER);
 	this->SetHeaderVisible(true);
@@ -179,6 +180,20 @@ bool TTreeCustom::OnItemGetAttr(WTreeEvent &e) {
 	}
 	return false;
 }
+
+bool TTreeCustom::OnItemDefaultSelection(WTreeEvent &e) {
+	if (e.item->IsOk()) {
+		WRect bounds;
+		e.item->GetBounds(bounds);
+		text.item = *e.item;
+		WString str = e.item->GetText();
+		text.SetText(str);
+		text.SetBounds(bounds);
+		text.SetVisible(true);
+	}
+	return false;
+}
+
 bool TTreeCustom::OnItemDispose(WTreeEvent &e) {
 	Person *p = (Person*) e.item->GetData();
 	if (p != 0) {
@@ -187,14 +202,15 @@ bool TTreeCustom::OnItemDispose(WTreeEvent &e) {
 	return false;
 }
 
-bool TTreeCustom::OnMouseDoubleClick(WMouseEvent &e) {
-	WTreeItem item;
-	GetItem(item, e.x, e.y);
-	if (item.IsOk()) {
-		WRect bounds;
-		item.GetBounds(bounds);
-		text.SetBounds(bounds);
-		text.SetVisible(true);
-	}
-	return false;
+bool TTreeCustomEdit::OnFocusOut(WEvent &e) {
+	bool ret = WTextEdit::OnFocusOut(e);
+	WString text = this->GetText();
+	item.SetText(text);
+	SetVisible(false);
+	return ret;
+}
+
+bool TTreeCustomEdit::OnTraverse(WKeyEvent &e) {
+	bool ret = WTextEdit::OnTraverse(e);
+	return ret;
 }

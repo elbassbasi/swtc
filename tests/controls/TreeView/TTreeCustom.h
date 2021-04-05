@@ -17,6 +17,13 @@ public:
 	int j;
 	int progress;
 };
+class TTreeCustomEdit: public WTextEdit {
+public:
+	WTreeItem item;
+protected:
+	bool OnFocusOut(WEvent &e);
+	bool OnTraverse(WKeyEvent &e);
+};
 class TTreeCustom: public WTreeView, public ITreeItem {
 public:
 	static void Registre(WTreeItem &parent);
@@ -29,10 +36,10 @@ public:
 	bool OnItemPaint(WTreeEvent &e);
 	bool OnItemGetValue(WTreeEvent &e);
 	bool OnItemGetAttr(WTreeEvent &e);
-	bool OnMouseDoubleClick(WMouseEvent &e);
+	bool OnItemDefaultSelection(WTreeEvent &e);
 	bool OnItemDispose(WTreeEvent &e);
 	WFont fontBold;
-	WTextEdit text;
+	TTreeCustomEdit text;
 };
 
 #endif /* TESTS_CONTROLS_TREEVIEW_TTREECUSTOM_H_ */

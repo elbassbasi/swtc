@@ -467,8 +467,24 @@ void _w_composite_update_layout(w_control *control, int flags,
 	}
 }
 /*
- * messages
+ * signals
  */
+gboolean _gtk_composite_button_press_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv) {
+	gboolean result = _gtk_scrollable_button_press_event(widget, e, priv);
+	if (result != 0)
+		return result;
+	if ((_W_WIDGET(widget)->state & STATE_CANVAS) != 0) {
+		if ((_W_WIDGET(widget)->style & W_NO_FOCUS) == 0) {
+			GdkEventButton *gdkEvent = (GdkEventButton*) e->args[0];
+			if (gdkEvent->button == 1) {
+				//if (_w_composite_get_children_count(W_COMPOSITE(widget)) == 0)
+				//	W_CONTROL_GET_CLASS(widget)->set_focus(W_CONTROL(widget));
+			}
+		}
+	}
+	return result;
+}
 void _w_composite_class_init(struct _w_composite_class *clazz) {
 	_w_scrollable_class_init(W_SCROLLABLE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_COMPOSITE;

@@ -19,6 +19,8 @@
  */
 typedef struct _w_scrollable {
 	_w_control control;
+	int vdetail;
+	int hdetail;
 } _w_scrollable;
 #define _W_SCROLLABLE(x) ((_w_scrollable*)x)
 /*
