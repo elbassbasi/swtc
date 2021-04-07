@@ -19,6 +19,7 @@ void TComboDemo::SetItems(WComboBox &combo) {
 	WComboItem item;
 	for (int i = 0; i < sizeof(ITEMS) / sizeof(ITEMS[0]); i++) {
 		combo.Add(item, ITEMS[i]);
+		item.SetImage(i % 3);
 	}
 }
 
@@ -30,6 +31,7 @@ void TComboDemo::CreateControls(int index, const char *text, wuint64 style) {
 	btn[index].Create(this, W_PUSH);
 	btn[index].SetId(index + 1);
 	btn[index].SetText("show selected");
+	combo[1].SetImageList(MShell::GetImageList16_(0));
 }
 void TComboDemo::CreateControl(WComposite *parent) {
 	this->Create(parent, W_NONE);

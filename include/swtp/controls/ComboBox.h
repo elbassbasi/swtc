@@ -10,7 +10,26 @@
 #include "../widgets/Composite.h"
 class SWTP_PUBLIC WComboItem: public WItem {
 public:
-
+	int GetImage() {
+		return _WReturnInt(_get_image());
+	}
+	/**
+	 * Sets the image for multiple columns in the tree.
+	 *
+	 * @param images the array of new images
+	 */
+	bool SetImage(int image) {
+		return _WReturnBool(_set_image(image));
+	}
+public:
+	WResult _get_image() {
+		return w_comboitem_get_image(W_COMBOITEM(this));
+	}
+	WResult _set_image(int image) {
+		return w_comboitem_set_image(W_COMBOITEM(this), image);
+	}
+private:
+	void *handle[(sizeof(w_comboitem) - sizeof(w_item)) / sizeof(void*)];
 };
 /**
  * Instances of this class are controls that allow the user
@@ -183,6 +202,11 @@ public:
 	 */
 	bool DeselectAll() {
 		return _WReturnBool(_deselect_all());
+	}
+	WImageList* GetImageList() {
+		WImageList *imagelist;
+		_get_imagelist(&imagelist);
+		return imagelist;
 	}
 	/**
 	 * Returns the item at the given, zero-relative index in the
@@ -453,6 +477,9 @@ public:
 	bool Select(int index) {
 		return _WReturnBool(_select(index));
 	}
+	bool SetImageList(WImageList *imagelist) {
+		return _WReturnBool(_set_imagelist(imagelist));
+	}
 	/**
 	 * Sets the text of the item in the receiver's list at the given
 	 * zero-relative index to the string argument.
@@ -542,6 +569,10 @@ public:
 	WResult _deselect_all() {
 		return w_combobox_deselect_all(W_COMBOBOX(this));
 	}
+	WResult _get_imagelist(WImageList **imagelist) {
+		return w_combobox_get_imagelist(W_COMBOBOX(this),
+				(w_imagelist**) imagelist);
+	}
 	WResult _get_item(int index, WComboItem *item) {
 		return w_combobox_get_item(W_COMBOBOX(this), index, W_COMBOITEM(item));
 	}
@@ -599,6 +630,10 @@ public:
 	}
 	WResult _select(int index) {
 		return w_combobox_select(W_COMBOBOX(this), index);
+	}
+	WResult _set_imagelist(WImageList *imagelist) {
+		return w_combobox_set_imagelist(W_COMBOBOX(this),
+				W_IMAGELIST(imagelist));
 	}
 	WResult _set_list_visible(int visible) {
 		return w_combobox_set_list_visible(W_COMBOBOX(this), visible);

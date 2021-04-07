@@ -23,7 +23,11 @@ typedef struct w_comboitem {
 #define W_COMBOITEM(x) ((w_comboitem*)x)
 struct _w_comboitem_class {
 	struct _w_item_class item;
+	wresult (*get_image)(w_comboitem *item);
+	wresult (*set_image)(w_comboitem *item, int image);
 };
+SWT_PUBLIC wresult w_comboitem_get_image(w_comboitem *item);
+SWT_PUBLIC wresult w_comboitem_set_image(w_comboitem *item, int image);
 struct _w_combobox_class {
 	struct _w_composite_class composite;
 	struct _w_comboitem_class *class_comboitem;
@@ -32,6 +36,7 @@ struct _w_combobox_class {
 	wresult (*cut)(w_combobox *combo);
 	wresult (*deselect)(w_combobox *combo, int index);
 	wresult (*deselect_all)(w_combobox *combo);
+	wresult (*get_imagelist)(w_combobox *combo, w_imagelist **imagelist);
 	wresult (*get_item)(w_combobox *combo, int index, w_comboitem *item);
 	wresult (*get_item_count)(w_combobox *combo);
 	wresult (*get_item_height)(w_combobox *combo);
@@ -50,9 +55,11 @@ struct _w_combobox_class {
 	wresult (*paste)(w_combobox *combo);
 	wresult (*remove_index)(w_combobox *combo, int index);
 	wresult (*remove_range)(w_combobox *combo, int start, int end);
-	wresult (*remove_string)(w_combobox *combo, const char *string,int length, int enc);
+	wresult (*remove_string)(w_combobox *combo, const char *string, int length,
+			int enc);
 	wresult (*remove_all)(w_combobox *combo);
 	wresult (*select)(w_combobox *combo, int index);
+	wresult (*set_imagelist)(w_combobox *combo, w_imagelist *imagelist);
 	wresult (*set_list_visible)(w_combobox *combo, int visible);
 	wresult (*set_selection)(w_combobox *combo, w_point *selection);
 	wresult (*set_text)(w_combobox *combo, const char *string, int length,
@@ -73,6 +80,8 @@ SWT_PUBLIC wresult w_combobox_copy(w_combobox *combo);
 SWT_PUBLIC wresult w_combobox_cut(w_combobox *combo);
 SWT_PUBLIC wresult w_combobox_deselect(w_combobox *combo, int index);
 SWT_PUBLIC wresult w_combobox_deselect_all(w_combobox *combo);
+SWT_PUBLIC wresult w_combobox_get_imagelist(w_combobox *combo,
+		w_imagelist **imagelist);
 SWT_PUBLIC wresult w_combobox_get_item(w_combobox *combo, int index,
 		w_comboitem *item);
 SWT_PUBLIC wresult w_combobox_get_item_count(w_combobox *combo);
@@ -94,9 +103,11 @@ SWT_PUBLIC wresult w_combobox_remove_index(w_combobox *combo, int index);
 SWT_PUBLIC wresult w_combobox_remove_range(w_combobox *combo, int start,
 		int end);
 SWT_PUBLIC wresult w_combobox_remove_string(w_combobox *combo,
-		const char *string,int length, int enc);
+		const char *string, int length, int enc);
 SWT_PUBLIC wresult w_combobox_remove_all(w_combobox *combo);
 SWT_PUBLIC wresult w_combobox_select(w_combobox *combo, int index);
+SWT_PUBLIC wresult w_combobox_set_imagelist(w_combobox *combo,
+		w_imagelist *imagelist);
 SWT_PUBLIC wresult w_combobox_set_selection(w_combobox *combo,
 		w_point *selection);
 SWT_PUBLIC wresult w_combobox_set_text(w_combobox *combo, const char *text,

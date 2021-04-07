@@ -24,10 +24,11 @@ wuint64 _w_listviewbase_check_style(w_widget *widget, wuint64 style) {
 	return _w_widget_check_bits(style, W_SINGLE, W_MULTI, 0, 0, 0, 0);
 }
 GType gtk_store_types[COLUMN_COUNT] = {
-G_TYPE_INT, //
+G_TYPE_STRING, //
+		G_TYPE_POINTER, //
 		G_TYPE_INT, //
-		G_TYPE_STRING, //
-		G_TYPE_POINTER };
+		G_TYPE_INT //
+		};
 wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
 	GtkWidget *scrolledHandle = 0, *handle = 0, *fixed;
@@ -369,8 +370,6 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 #if GTK3
 	_W_LISTVIEWBASE_PRIV(priv)->renderer_get_preferred_width =
 			_w_listviewbase_renderer_get_preferred_width;
-#else
-	_W_LISTVIEWBASE_PRIV(priv)->renderer_get_preferred_width =_w_listviewbase_rendererGetSizeProc;
 #endif
 }
 /*

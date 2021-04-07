@@ -16,6 +16,20 @@ w_combobox* w_combobox_new(struct w_toolkit *toolkit, w_composite *parent,
 	return W_COMBOBOX(
 			_w_widget_new(toolkit,W_WIDGET(parent),style,_W_CLASS_COMBOBOX,post_event));
 }
+wresult w_comboitem_get_image(w_comboitem *item) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_COMBOITEM_GET_CLASS(item)->get_image(item);
+	} else
+		return result;
+}
+wresult w_comboitem_set_image(w_comboitem *item, int image) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_COMBOITEM_GET_CLASS(item)->set_image(item, image);
+	} else
+		return result;
+}
 wresult w_combobox_insert_item(w_combobox *combo, w_comboitem *item,
 		int index) {
 	wresult result = W_WIDGET_CHECK0(combo);
@@ -56,6 +70,13 @@ wresult w_combobox_deselect_all(w_combobox *combo) {
 	wresult result = W_WIDGET_CHECK0(combo);
 	if (result > 0) {
 		return W_COMBOBOX_GET_CLASS(combo)->deselect_all(combo);
+	} else
+		return result;
+}
+wresult w_combobox_get_imagelist(w_combobox *combo, w_imagelist **imagelist) {
+	wresult result = W_WIDGET_CHECK0(combo);
+	if (result > 0) {
+		return W_COMBOBOX_GET_CLASS(combo)->get_imagelist(combo, imagelist);
 	} else
 		return result;
 }
@@ -196,6 +217,13 @@ wresult w_combobox_select(w_combobox *combo, int index) {
 	wresult result = W_WIDGET_CHECK0(combo);
 	if (result > 0) {
 		return W_COMBOBOX_GET_CLASS(combo)->select(combo, index);
+	} else
+		return result;
+}
+wresult w_combobox_set_imagelist(w_combobox *combo, w_imagelist *imagelist) {
+	wresult result = W_WIDGET_CHECK0(combo);
+	if (result > 0) {
+		return W_COMBOBOX_GET_CLASS(combo)->set_imagelist(combo, imagelist);
 	} else
 		return result;
 }

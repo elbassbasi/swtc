@@ -13,12 +13,13 @@
  */
 #define STATE_TABLE_END (STATE_COMPOSITE_END + 1)
 enum {
-	COLUMN_INFO = 0, //
-	COLUMN_IMAGE, //
-	COLUMN_TEXT, //
+	COLUMN_TEXT = 0, //
 	COLUMN_USER_DATA, //
+	COLUMN_INFO, //
+	COLUMN_IMAGE, //
 	COLUMN_COUNT
 };
+extern GType gtk_store_types[COLUMN_COUNT];
 #define COLUMN_INFO_CHECK (1 << 1)
 #define COLUMN_INFO_GRAYED (1 << 2)
 #define COLUMN_INFO_HAS_CHILDREN (1 << 3)
@@ -44,7 +45,6 @@ typedef struct _w_listview {
  */
 typedef struct _w_listviewbase_priv {
 	_w_composite_priv composite;
-	int signal_toggled_id;
 	void (*renderer_render)(w_widget *widget, _w_control_priv *priv,
 			GtkCellRenderer *cell, cairo_t *cr, GtkWidget *gtkwidget,
 			const GdkRectangle *background_area, const GdkRectangle *cell_area,
@@ -53,11 +53,8 @@ typedef struct _w_listviewbase_priv {
 	void (*renderer_get_preferred_width)(w_widget *widget,
 			_w_control_priv *priv, GtkCellRenderer *cell, GtkWidget *gtkwidget,
 			gint *minimum_size, gint *natural_size);
-#else
-	void (*rendererGetSizeProc)(w_widget* widget,_w_control_priv *priv, GtkCellRenderer *cell,
-			GtkWidget *widget, const GdkRectangle *cell_area, gint *x_offset,
-			gint *y_offset, gint *width, gint *height);
 #endif
+	int signal_toggled_id;
 } _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
 #define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_w_widget_get_priv(W_WIDGET(x)))
