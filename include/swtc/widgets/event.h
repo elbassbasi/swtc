@@ -11,6 +11,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef struct w_toolkit w_toolkit;
+typedef struct w_control w_control;
+typedef struct w_composite w_composite;
+typedef struct w_shell w_shell;
+typedef struct w_theme w_theme;
+typedef struct w_widget w_widget;
+typedef struct w_menu w_menu;
 enum {
 	/*
 	 * event type
@@ -126,8 +133,8 @@ enum {
 	W_HIGH = 2,
 };
 typedef struct w_event {
-	unsigned int type;
-	unsigned int time;
+	wuint type;
+	wuint time;
 	struct w_event_platform *platform_event;
 	struct w_widget *widget;
 	void *data; //reserved
@@ -145,7 +152,7 @@ typedef struct w_event_mouse {
 	w_event event;
 	union {
 		struct {
-			unsigned doit : 1;
+			unsigned doit :1;
 		};
 		int detail;
 	};
@@ -159,7 +166,7 @@ typedef struct w_event_key {
 	w_event event;
 	union {
 		struct {
-			unsigned doit : 1;
+			unsigned doit :1;
 		};
 		int detail;
 	};
@@ -168,10 +175,15 @@ typedef struct w_event_key {
 	int keycode;
 	int keylocation;
 } w_event_key;
-typedef struct w_event_item {
+typedef struct w_event_selection {
 	w_event event;
-	struct w_item *item;
-} w_event_item;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+} w_event_selection;
 typedef struct w_event_compute_size {
 	w_event event;
 	w_size *size;
@@ -186,13 +198,13 @@ typedef struct w_event_paint {
 } w_event_paint;
 typedef struct w_event_time {
 	w_event event;
-	unsigned short id;
+	wushort id;
 } w_event_time;
 typedef struct w_event_menu_detect {
 	w_event event;
 	w_point location;
 	int detail;
-	struct w_menu *menu;
+	w_menu *menu;
 } w_event_menu_detect;
 #ifdef __cplusplus
 }

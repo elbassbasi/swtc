@@ -48,6 +48,7 @@ private:
 };
 class SWTP_PUBLIC WItem: public WWidgetData {
 protected:
+	friend class WWidget;
 	WWidget* GetParentWidget() {
 		WWidget *parent;
 		_get_parent_widget(&parent);
@@ -61,7 +62,6 @@ protected:
 	void SetListenerFunction(const WListenerFunction &function);
 	void SetSelectionFunction(const WSelectionItemFunction &function);
 #endif
-public:
 	/**
 	 * Returns the application defined widget data associated
 	 * with the receiver, or null if it has not been set. The
@@ -79,9 +79,7 @@ public:
 	 * @see #SetData(void*)
 	 */
 	void* GetData() {
-		void *data;
-		_get_data(&data);
-		return data;
+		return WWidget::GetItemData(this);
 	}
 	/**
 	 * Sets the application defined widget data associated
@@ -100,11 +98,9 @@ public:
 	 * @see #getData()
 	 */
 	bool SetData(void *data) {
-		return _WReturnBool(_set_data(data));
+		return WWidget::SetItemData(this, data);
 	}
-	bool SetDataAsID(wuint id) {
-		return SetData((void*) ((intptr_t) id));
-	}
+public:
 	int GetIndex() {
 		return _WReturnInt(_get_index());
 	}

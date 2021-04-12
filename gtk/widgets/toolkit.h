@@ -35,7 +35,7 @@ typedef struct _gtk_theme {
 
 } _gtk_theme;
 enum {
-	SWT_GQUARK_WIDGET = 0, SWT_GQUARK_LAST = 3
+	SWT_GQUARK_WIDGET = 0, SWT_GQUARK_LAST = 4
 };
 extern const char *_gtk_signal_names[SIGNAL_LAST];
 typedef struct _w_toolkit {

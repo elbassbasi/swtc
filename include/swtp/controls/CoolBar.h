@@ -153,7 +153,9 @@ public:
 	 * @return the control that is contained by the receiver
 	 */
 	WControl* GetControl() {
-		return (WControl*) w_coolitem_get_control(W_COOLITEM(this));
+		WControl *c;
+		w_coolitem_get_control(W_COOLITEM(this), (w_control**) &c);
+		return c;
 	}
 	/**
 	 * Returns the minimum size that the cool item can

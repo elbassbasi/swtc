@@ -49,8 +49,13 @@ int _w_scrollable_apply_theme_background(w_scrollable *scrollable,
 void _w_scrollable_hook_events(w_widget *widget, _w_control_priv *priv);
 wresult _w_scrollable_get_client_area(w_widget *widget, w_event_client_area *e,
 		_w_control_priv *priv);
-void _w_scrollable_class_init(struct _w_scrollable_class *clazz);
 /*
- * messages
+ * signals
  */
+wuint64 _gtk_scrollbar_style(GtkWidget *scrolledHandle, GtkWidget *adjustment);
+gboolean _gtk_scrollbar_button_press_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_scrollable_button_press_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+void _w_scrollable_class_init(struct _w_scrollable_class *clazz);
 #endif /* GTK_WIDGETS_SCROLLABLE_H_ */

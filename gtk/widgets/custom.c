@@ -393,7 +393,8 @@ gboolean _w_image_widget_draw(GtkWidget *widget, cairo_t *cr) {
 	_w_image_widget *image = _W_IMAGE_WIDGET(widget);
 	if (image->index >= 0) {
 		int i = image->index;
-		w_imagelist *imagelist = image->get_image_list(image->parent);
+		w_imagelist *imagelist = 0;
+		image->get_image_list(image->parent, &imagelist);
 		if (imagelist != 0) {
 			if (i < _W_IMAGELIST(imagelist)->images->count && i >= 0) {
 				pixbuf = _W_IMAGELIST(imagelist)->images->images[i];
@@ -406,7 +407,8 @@ gboolean _w_image_widget_draw(GtkWidget *widget, cairo_t *cr) {
 void _w_image_widget_get_preferred_width(GtkWidget *widget, gint *minimum,
 		gint *natural) {
 	_w_image_widget *image = _W_IMAGE_WIDGET(widget);
-	w_imagelist *imagelist = image->get_image_list(image->parent);
+	w_imagelist *imagelist = 0;
+	image->get_image_list(image->parent, &imagelist);
 	if (imagelist != 0) {
 		if (minimum) {
 			*minimum = _W_IMAGELIST(imagelist)->images->width;
@@ -425,7 +427,8 @@ void _w_image_widget_get_preferred_width(GtkWidget *widget, gint *minimum,
 void _w_image_widget_get_preferred_height(GtkWidget *widget, gint *minimum,
 		gint *natural) {
 	_w_image_widget *image = _W_IMAGE_WIDGET(widget);
-	w_imagelist *imagelist = image->get_image_list(image->parent);
+	w_imagelist *imagelist = 0;
+	image->get_image_list(image->parent, &imagelist);
 	if (imagelist != 0) {
 		if (minimum) {
 			*minimum = _W_IMAGELIST(imagelist)->images->height;

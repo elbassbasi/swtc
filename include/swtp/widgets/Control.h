@@ -390,7 +390,7 @@ public:
 	 *
 	 * @see #computeSize(int, int, boolean)
 	 */
-	void Pack(bool changed) {
+	void Pack(bool changed=true) {
 		_pack(changed);
 	}
 	/**

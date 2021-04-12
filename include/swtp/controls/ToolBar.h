@@ -115,7 +115,9 @@ public:
 	 * @return the control
 	 */
 	WControl* GetControl() {
-		return (WControl*) w_toolitem_get_control(W_TOOLITEM(this));
+		WControl *control;
+		w_toolitem_get_control(W_TOOLITEM(this), (w_control**) &control);
+		return control;
 	}
 	/**
 	 * Returns <code>true</code> if the receiver is enabled, and
@@ -129,6 +131,14 @@ public:
 	 */
 	bool GetEnabled() {
 		return w_toolitem_get_enabled(W_TOOLITEM(this));
+	}
+	wushort GetID() {
+		return w_toolitem_get_id(W_TOOLITEM(this));
+	}
+	WMenu* GetMenu() {
+		WMenu *menu;
+		w_toolitem_get_menu(W_TOOLITEM(this), (w_menu**) &menu);
+		return menu;
 	}
 	/**
 	 * Returns the receiver's parent, which must be a <code>ToolBar</code>.
@@ -153,6 +163,9 @@ public:
 	bool GetSelection() {
 		return w_toolitem_get_selection(W_TOOLITEM(this));
 	}
+	wuint64 GetStyle() {
+		return w_toolitem_get_style(W_TOOLITEM(this));
+	}
 	/**
 	 * Returns the receiver's tool tip text, or null if it has not been set.
 	 *
@@ -160,7 +173,8 @@ public:
 	 */
 	WString GetToolTipText() {
 		w_string_ref *ref = 0;
-		w_toolitem_get_tooltip_text(W_TOOLITEM(this),w_alloc_string_ref, &ref);
+		w_toolitem_get_tooltip_text(W_TOOLITEM(this), w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -193,6 +207,18 @@ public:
 	bool SetControl(WControl *control) {
 		return w_toolitem_set_control(W_TOOLITEM(this), W_CONTROL(control)) > 0;
 	}
+	bool SetControl(WControl &control) {
+		return SetControl(&control);
+	}
+	bool SetControlWithPreferredWith(WControl *control) {
+		WSize size;
+		control->ComputeSize(size, W_DEFAULT, W_DEFAULT);
+		SetWidth(size.width);
+		return SetControl(control);
+	}
+	bool SetControlWithPreferredWith(WControl &control) {
+		return SetControlWithPreferredWith(&control);
+	}
 	/**
 	 * Enables the receiver if the argument is <code>true</code>,
 	 * and disables it otherwise.
@@ -207,8 +233,14 @@ public:
 	bool SetEnabled(bool enabled) {
 		return w_toolitem_set_enabled(W_TOOLITEM(this), enabled) > 0;
 	}
+	bool SetID(wushort id) {
+		return w_toolitem_set_id(W_TOOLITEM(this), id) > 0;
+	}
 	bool SetImage(int image) {
 		return w_toolitem_set_image(W_TOOLITEM(this), image) > 0;
+	}
+	bool SetMenu(WMenu *menu) {
+		return w_toolitem_set_menu(W_TOOLITEM(this), W_MENU(menu)) > 0;
 	}
 	/**
 	 * Sets the selection state of the receiver.
@@ -239,7 +271,8 @@ public:
 	 * @param string the new tool tip text (or null)
 	 */
 	bool SetToolTipText(const char *string) {
-		return w_toolitem_set_tooltip_text(W_TOOLITEM(this), string) > 0;
+		return w_toolitem_set_tooltip_text(W_TOOLITEM(this), string, -1,
+				W_ENCODING_UTF8) > 0;
 	}
 	/**
 	 * Sets the width of the receiver, for <code>SEPARATOR</code> ToolItems.
@@ -256,7 +289,19 @@ public:
 		return w_toolitem_set_width(W_TOOLITEM(this), width) > 0;
 	}
 private:
-	void* handles[sizeof(w_toolitem)/sizeof(void*)];
+	void *handles[sizeof(w_toolitem) / sizeof(void*)];
+};
+class WToolBarEvent: public WEvent {
+public:
+	union {
+		int detail;
+		struct {
+			unsigned doit :1;
+		};
+	};
+	WPoint location;
+	WToolItem *item;
+	WMenu *menu;
 };
 /**
  * Instances of this class support the layout of selectable
@@ -315,7 +360,9 @@ public:
 		Create(parent, style);
 	}
 	WImageList* GetImageList() {
-		return (WImageList*) w_toolbar_get_imagelist(W_TOOLBAR(this));
+		WImageList *imagelist;
+		w_toolbar_get_imagelist(W_TOOLBAR(this), (w_imagelist**) &imagelist);
+		return imagelist;
 	}
 	/**
 	 * Returns the item at the given, zero-relative index in the
@@ -396,10 +443,19 @@ public:
 	int GetRowCount() {
 		return w_toolbar_get_row_count(W_TOOLBAR(this));
 	}
+	static bool IsToolBar(WWidget *widget) {
+		return widget->GetClassId() == _W_CLASS_TOOLBAR;
+	}
+	static WToolBar* ToToolBar(WWidget *widget) {
+		if (IsComposite(widget))
+			return (WToolBar*) widget;
+		else
+			return 0;
+	}
 public:
 	WToolItem& Insert(WToolItem &item, const char *text, int style, int index) {
-		w_toolbar_insert(W_TOOLBAR(this), W_TOOLITEM(&item), text, style,
-				index);
+		w_toolbar_insert_item(W_TOOLBAR(this), W_TOOLITEM(&item), style, index);
+		item.SetText(text);
 		return item;
 	}
 	WToolItem& InsertPush(WToolItem &item, const char *text, int index) {
@@ -481,6 +537,11 @@ public:
 	}
 protected:
 	w_class_id _GetClassID();
+	virtual bool PostEvent(WEvent *e);
+	virtual bool OnItemSelection(WToolBarEvent &e);
+	virtual bool OnItemDefaultSelection(WToolBarEvent &e);
+	virtual bool OnItemGetMenu(WToolBarEvent &e);
+	virtual bool OnItemSetMenu(WToolBarEvent &e);
 private:
 	void *handles[(sizeof(w_toolbar) - sizeof(w_composite)) / sizeof(void*)];
 };

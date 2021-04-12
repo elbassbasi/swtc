@@ -332,7 +332,12 @@ wresult _w_widget_post_event(w_widget *widget, w_event *ee) {
 		break;
 	case W_EVENT_LAYOUTDETECT: {
 		w_layout *layout;
+		w_layout_fill filllayout;
 		w_composite_get_layout(W_COMPOSITE(widget), &layout);
+		if (layout == 0) {
+			w_layout_fill_init(&filllayout, W_VERTICAL);
+			layout = (w_layout*) &filllayout;
+		}
 		w_layout_do_layout(layout, W_COMPOSITE(widget), W_FALSE);
 		return W_TRUE;
 	}

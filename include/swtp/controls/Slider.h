@@ -153,6 +153,9 @@ public:
 	bool GetValues(WSliderValue &value) {
 		return w_slider_get_values(W_SLIDER(this), (w_slider_value*) &value) > 0;
 	}
+	static bool IsSlider(WWidget *widget) {
+		return widget->GetClassId() == _W_CLASS_SLIDER;
+	}
 	/**
 	 * Sets the amount that the receiver's value will be
 	 * modified by when the up/down (or right/left) arrows
@@ -265,6 +268,8 @@ public:
 	}
 protected:
 	w_class_id _GetClassID();
+	bool PostEvent(WEvent *e);
+	virtual bool OnSelection(WSelectionEvent &e);
 private:
 	void *handles[(sizeof(w_slider) - sizeof(w_control)) / sizeof(void*)];
 };

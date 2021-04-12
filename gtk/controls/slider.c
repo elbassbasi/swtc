@@ -283,6 +283,19 @@ wresult _w_slider_set_values(w_slider *slider, w_slider_value *values) {
 			0, 0, 0, (void*) SIGNAL_VALUE_CHANGED);
 	return W_TRUE;
 }
+/*
+ * signals
+ */
+gboolean _gtk_slider_value_changed(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	w_event event;
+	memset(&event, 0, sizeof(event));
+	event.type = W_EVENT_SELECTION;
+	event.platform_event = _EVENT_PLATFORM(e);
+	event.widget = widget;
+	_w_widget_send_event(widget, &event);
+	return FALSE;
+}
 void _w_slider_class_init(struct _w_slider_class *clazz) {
 	_w_control_class_init(W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SLIDER;
@@ -316,6 +329,6 @@ void _w_slider_class_init(struct _w_slider_class *clazz) {
 	 * signals
 	 */
 	_gtk_signal *signals = priv->widget.signals;
-	signals[SIGNAL_CLICKED] = _gtk_button_clicked;
+	signals[SIGNAL_VALUE_CHANGED] = _gtk_slider_value_changed;
 
 }

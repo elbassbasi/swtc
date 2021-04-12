@@ -9,13 +9,12 @@
 #define TESTS_CONTROLS_TOOLBAR_TTOOLBARCOMPLEX_H_
 #include "TToolBars.h"
 enum {
-	ACTION_BUTTON1=1,
+	ACTION_BUTTON1 = 1,
 	ACTION_BUTTON2,
 	ACTION_CHECK1,
 	ACTION_CHECK2,
 	ACTION_RADIO1,
 	ACTION_RADIO2,
-
 };
 class TToolbarComplex: public CompositeTreeItem {
 public:
@@ -25,13 +24,15 @@ public:
 	void CreateControl(WComposite *parent);
 	WGridLayout layout;
 	WToolBar toolBar;
-	WMenu menu;
+	WComboBox combo;
+	WMenu menu[2];
 public:
 	void CreateToolbar();
-	void CreateToolItem(WToolItem &item, int type, const char *text,
+	void CreateToolItem(WToolItem &item, int type, int image, const char *text,
 			const char *toolTipText);
 protected:
 	bool OnNotify(WEvent &e);
+	bool OnToolbarSelection(WToolBarEvent &e);
 };
 
 #endif /* TESTS_CONTROLS_TOOLBAR_TTOOLBARCOMPLEX_H_ */

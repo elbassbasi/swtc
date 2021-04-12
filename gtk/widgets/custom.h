@@ -169,10 +169,11 @@ void _w_fixed_restack(GtkWidget *fixed, GtkWidget *child, GtkWidget *sibling,
  * image widget
  */
 extern GType _w_image_widget_type;
+typedef wresult (*__get_image_list)(w_widget *widget, w_imagelist **imagelist);
 typedef struct _w_image_widget {
 	GtkImage image;
 	w_widget *parent;
-	w_imagelist* (*get_image_list)(w_widget *widget);
+	__get_image_list get_image_list;
 	int index;
 } _w_image_widget;
 

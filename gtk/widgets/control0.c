@@ -124,7 +124,17 @@ wresult _w_control_force_focus(w_control *control) {
 	return W_FALSE;
 }
 void _w_control_force_resize(w_control *control, _w_control_priv *priv) {
-
+	/*
+	 * Force size allocation on all children of this widget's
+	 * topHandle.  Note that all calls to gtk_widget_size_allocate()
+	 * must be preceded by a call to gtk_widget_size_request().
+	 */
+	GtkWidget *topHandle = priv->widget.handle_top(W_WIDGET(control), priv);
+	GtkRequisition requisition;
+	gtk_widget_size_request(topHandle, &requisition);
+	GtkAllocation allocation;
+	gtk_widget_get_allocation(topHandle, &allocation);
+	gtk_widget_size_allocate(topHandle, &allocation);
 }
 wresult _w_control_get_accessible(w_control *control,
 		w_accessible **accessible) {
@@ -455,7 +465,9 @@ wresult _w_control_new_layout_data(w_control *control, void **data,
 	return W_TRUE;
 }
 wresult _w_control_pack(w_control *control, int flags) {
-	return W_FALSE;
+	w_size size;
+	w_control_compute_size_0(control, &size, W_DEFAULT, W_DEFAULT, flags);
+	return w_control_set_bounds(control, 0, &size);
 }
 wresult _w_control_print(w_control *control, w_graphics *gc) {
 	return W_FALSE;

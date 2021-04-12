@@ -552,6 +552,9 @@ public:
 	bool Create(WControl *parent, int style) {
 		return _WReturnBool(_create(parent, style, WWidget::post_event_proc));
 	}
+	bool Create(WControl &parent, int style) {
+		return Create(&parent, style);
+	}
 	/**
 	 * Constructs a new instance of this class given its parent,
 	 * and sets the style for the instance so that the instance
@@ -601,11 +604,17 @@ public:
 	 * @see Widget#checkSubclass
 	 * @see Widget#getStyle
 	 */
-	bool Create(class WShell *parent) {
+	bool Create(WShell *parent) {
 		return Create((WControl*) parent, W_BAR);
 	}
-	bool CreateBar(class WShell *parent) {
+	bool CreateBar(WShell *parent) {
 		return Create((WControl*) parent, W_BAR);
+	}
+	bool CreateDropDown(WControl *parent) {
+		return Create(parent, W_DROP_DOWN);
+	}
+	bool CreateDropDown(WControl &parent) {
+		return Create(&parent, W_DROP_DOWN);
 	}
 	WRect& GetBounds(WRect &bounds) {
 		_get_bounds(&bounds);

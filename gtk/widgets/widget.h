@@ -96,7 +96,7 @@ typedef struct _w_widget_handles {
 void _w_widget_find_children(GtkWidget *widget, gpointer data);
 void _w_widget_children_count(GtkWidget *widget, gpointer data);
 void _w_widget_get_handles_callback(GtkWidget *widget, gpointer data);
-void _w_widget_get_handles(GtkWidget* handle,_w_widget_handles *handles);
+void _w_widget_get_handles(GtkWidget *handle, _w_widget_handles *handles);
 /*
  * functions
  */

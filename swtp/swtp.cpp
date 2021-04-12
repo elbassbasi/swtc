@@ -124,7 +124,7 @@ bool WSelectionListener::HandleEvent(WEvent *e) {
 
 bool WSelectionItemListener::HandleEvent(WEvent *e) {
 	if (e->type == W_EVENT_ITEM_SELECTION) {
-		this->function(*((WItemEvent*) e));
+		this->function(*((WMenuEvent*) e));
 		return true;
 	} else
 		return false;
@@ -967,7 +967,7 @@ w_class_id WWebView::_GetClassID() {
  */
 bool WButton::PostEvent(WEvent *e) {
 	if (e->type == W_EVENT_SELECTION) {
-		return OnSelection(*e);
+		return OnSelection(reinterpret_cast<WSelectionEvent&>(*e));
 	} else {
 		return WControl::PostEvent(e);
 	}
@@ -975,7 +975,7 @@ bool WButton::PostEvent(WEvent *e) {
 w_class_id WButton::_GetClassID() {
 	return _W_CLASS_BUTTON;
 }
-bool WButton::OnSelection(WEvent &e) {
+bool WButton::OnSelection(WSelectionEvent &e) {
 	return WControl::Notify(e);
 }
 /*
@@ -1048,6 +1048,17 @@ bool WSash::OnSelection(WSashEvent &e) {
 w_class_id WSlider::_GetClassID() {
 	return _W_CLASS_SLIDER;
 }
+bool WSlider::PostEvent(WEvent *e) {
+	if (e->type == W_EVENT_SELECTION) {
+		return OnSelection(reinterpret_cast<WSelectionEvent&>(*e));
+	} else {
+		return WControl::PostEvent(e);
+	}
+}
+
+bool WSlider::OnSelection(WSelectionEvent &e) {
+	return WControl::Notify(e);
+}
 /*
  *
  */
@@ -1115,6 +1126,41 @@ w_class_id WToolBar::_GetClassID() {
 	return _W_CLASS_TOOLBAR;
 }
 
+bool WToolBar::PostEvent(WEvent *e) {
+	switch (e->type) {
+	case W_EVENT_ITEM_SELECTION:
+		return OnItemSelection(static_cast<WToolBarEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_DEFAULTSELECTION:
+		return OnItemDefaultSelection(static_cast<WToolBarEvent&>(*e));
+		break;
+	}
+	return WComposite::PostEvent(e);
+}
+
+bool WToolBar::OnItemSelection(WToolBarEvent &e) {
+	return WControl::Notify(e);
+}
+
+bool WToolBar::OnItemDefaultSelection(WToolBarEvent &e) {
+	return false;
+}
+
+bool WToolBar::OnItemGetMenu(WToolBarEvent &e) {
+	if (e.item->GetStyle() & W_DROP_DOWN) {
+		e.menu = (WMenu*) GetItemData(e.item);
+		return true;
+	} else
+		return false;
+}
+
+bool WToolBar::OnItemSetMenu(WToolBarEvent &e) {
+	if (e.item->GetStyle() & W_DROP_DOWN) {
+		SetItemData(e.item, e.menu);
+		return true;
+	} else
+		return false;
+}
 /*
  * WTreeView
  */
@@ -1477,3 +1523,4 @@ size_t w_alloc_string_ref(void *user_data, size_t size, void **string) {
 	}
 }
 }
+

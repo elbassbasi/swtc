@@ -11,10 +11,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct w_menu {
+struct w_menu {
 	w_widget widget;
 	void *handle[0x10];
-} w_menu;
+};
 typedef struct w_menuitem {
 	w_widgetdata widgetdata;
 	void *handle[6];

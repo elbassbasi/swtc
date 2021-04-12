@@ -11,15 +11,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct w_toolkit w_toolkit;
-typedef struct w_control w_control;
-typedef struct w_composite w_composite;
-typedef struct w_shell w_shell;
-typedef struct w_theme w_theme;
 /*
  * w_widget
  */
-typedef struct w_widget w_widget;
 typedef wresult (*w_widget_post_event_proc)(w_widget *widget, w_event *event);
 struct w_widget {
 	void *v_table; //used in c++ as virtual table

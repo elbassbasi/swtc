@@ -15,7 +15,11 @@ public:
 	static void Registre(WTreeItem &parent);
 	void CreateControl(WComposite *parent);
 	WGridLayout layout;
+	WLabel label;
 	WSlider slider[length];
+protected:
+	void SetLabelText(WSlider *slider);
+	bool OnNotify(WEvent &e);
 };
 
 #endif /* TESTS_CONTROLS_SLIDER_TSLIDERDEMO_H_ */

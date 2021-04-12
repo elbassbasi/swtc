@@ -43,10 +43,18 @@ struct _w_composite_priv {
 void _w_composite_hook_events(w_widget *widget, _w_control_priv *priv);
 wresult _w_composite_create_handle_0(w_widget *composite, GtkWidget **fixed,
 		GtkWidget **scrolled, GtkWidget **handle, _w_control_priv *priv);
+wresult _w_composite_create_handle(w_widget *widget, _w_control_priv *priv);
 wresult _w_composite_get_client_area(w_widget *widget, w_event_client_area *e,
 		_w_control_priv *priv);
 wresult _w_composite_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv);
+wresult _w_composite_set_bounds_0(w_control *control, w_point *location,
+		w_size *size, _w_control_priv *priv);
+/*
+ * signals
+ */
+gboolean _gtk_composite_button_press_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
 void _w_composite_class_init(struct _w_composite_class *clazz);
 /*
  * messages

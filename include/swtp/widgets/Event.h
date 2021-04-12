@@ -405,11 +405,6 @@ public:
 	 */
 	int y;
 };
-class SWTP_PUBLIC WItemEvent: public WEvent {
-public:
-	WItem *item;
-};
-
 class SWTP_PUBLIC WPaintEvent: public WEvent {
 public:
 	WRect bounds;
@@ -421,6 +416,15 @@ public:
 class SWTP_PUBLIC WTimerEvent: public WEvent {
 public:
 	wushort id;
+};
+class SWTP_PUBLIC WSelectionEvent: public WEvent {
+public:
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
 };
 
 #endif /* SWTP_WIDGETS_EVENT_H_ */

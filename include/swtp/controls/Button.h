@@ -281,7 +281,7 @@ public:
 protected:
 	bool PostEvent(WEvent *e);
 	w_class_id _GetClassID();
-	virtual bool OnSelection(WEvent &e);
+	virtual bool OnSelection(WSelectionEvent &e);
 public:
 	WResult _get_alignment() {
 		return w_button_get_alignment(W_BUTTON(this));

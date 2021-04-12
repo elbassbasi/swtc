@@ -27,13 +27,13 @@ struct _w_coolitem_class {
 	wresult (*compute_size)(w_coolitem *coolitem, w_size *result, int wHint,
 			int hHint);
 	wresult (*get_bounds)(w_coolitem *coolitem, w_rect *bounds);
-	w_control* (*get_control)(w_coolitem *coolitem);
+	wresult (*get_control)(w_coolitem *coolitem, w_control **control);
 	wresult (*get_minimum_size)(w_coolitem *coolitem, w_size *size);
-	int (*get_order)(w_coolitem *coolitem);
+	wresult (*get_order)(w_coolitem *coolitem);
 	wresult (*get_preferred_size)(w_coolitem *coolitem, w_size *size);
 	wresult (*get_size)(w_coolitem *coolitem, w_size *size);
-	int (*get_wrap_indice)(w_coolitem *coolitem);
-	wresult (*set_control)(w_coolitem *coolitem,w_control* control);
+	wresult (*get_wrap_indice)(w_coolitem *coolitem);
+	wresult (*set_control)(w_coolitem *coolitem, w_control *control);
 	wresult (*set_layout)(w_coolitem *coolitem, int order, int wrapindices,
 			w_size *sizes);
 	wresult (*set_minimum_size)(w_coolitem *coolitem, w_size *size);
@@ -46,10 +46,11 @@ struct _w_coolbar_class {
 	struct _w_composite_class composite;
 	struct _w_coolitem_class *class_coolitem;
 	wresult (*get_item)(w_coolbar *coolbar, int index, w_coolitem *item);
-	int (*get_item_count)(w_coolbar *coolbar);
-	void (*get_items)(w_coolbar *coolbar, w_iterator *items);
+	wresult (*get_item_count)(w_coolbar *coolbar);
+	wresult (*get_items)(w_coolbar *coolbar, w_iterator *items);
 	wresult (*get_locked)(w_coolbar *coolbar);
-	wresult (*insert_item)(w_coolbar *coolbar, w_coolitem *item,int style, int index);
+	wresult (*insert_item)(w_coolbar *coolbar, w_coolitem *item, int style,
+			int index);
 	wresult (*set_locked)(w_coolbar *coolbar, int locked);
 };
 /*
@@ -59,29 +60,30 @@ SWT_PUBLIC wresult w_coolbar_create(w_coolbar *coolbar,
 		struct w_toolkit *toolkit, w_composite *parent, wuint64 style,
 		w_widget_post_event_proc post_event);
 SWT_PUBLIC w_coolbar* w_coolbar_new(struct w_toolkit *toolkit,
-		w_composite *parent, wuint64 style, w_widget_post_event_proc post_event);
+		w_composite *parent, wuint64 style,
+		w_widget_post_event_proc post_event);
 SWT_PUBLIC wresult w_coolbar_get_item(w_coolbar *coolbar, int index,
 		w_coolitem *item);
-SWT_PUBLIC int w_coolbar_get_item_count(w_coolbar *coolbar);
-SWT_PUBLIC void w_coolbar_get_items(w_coolbar *coolbar, w_iterator *items);
+SWT_PUBLIC wresult w_coolbar_get_item_count(w_coolbar *coolbar);
+SWT_PUBLIC wresult w_coolbar_get_items(w_coolbar *coolbar, w_iterator *items);
 SWT_PUBLIC wresult w_coolbar_get_locked(w_coolbar *coolbar);
-SWT_PUBLIC wresult w_coolbar_insert_item(w_coolbar *coolbar, w_coolitem *item,int style,
-		int index);
+SWT_PUBLIC wresult w_coolbar_insert_item(w_coolbar *coolbar, w_coolitem *item,
+		int style, int index);
 SWT_PUBLIC wresult w_coolbar_set_locked(w_coolbar *coolbar, int locked);
 /*
  *
  */
-SWT_PUBLIC wresult w_coolitem_compute_size(w_coolitem *coolitem,
-		w_size *result, int wHint, int hHint);
+SWT_PUBLIC wresult w_coolitem_compute_size(w_coolitem *coolitem, w_size *result,
+		int wHint, int hHint);
 SWT_PUBLIC wresult w_coolitem_get_bounds(w_coolitem *coolitem, w_rect *bounds);
-SWT_PUBLIC w_control* w_coolitem_get_control(w_coolitem *coolitem);
+SWT_PUBLIC wresult w_coolitem_get_control(w_coolitem *coolitem, w_control **control);
 SWT_PUBLIC wresult w_coolitem_get_minimum_size(w_coolitem *coolitem,
 		w_size *size);
-SWT_PUBLIC int w_coolitem_get_order(w_coolitem *coolitem);
+SWT_PUBLIC wresult w_coolitem_get_order(w_coolitem *coolitem);
 SWT_PUBLIC wresult w_coolitem_get_preferred_size(w_coolitem *coolitem,
 		w_size *size);
 SWT_PUBLIC wresult w_coolitem_get_size(w_coolitem *coolitem, w_size *size);
-SWT_PUBLIC int w_coolitem_get_wrap_indice(w_coolitem *coolitem);
+SWT_PUBLIC wresult w_coolitem_get_wrap_indice(w_coolitem *coolitem);
 SWT_PUBLIC wresult w_coolitem_set_control(w_coolitem *coolitem,
 		w_control *control);
 SWT_PUBLIC wresult w_coolitem_set_layout(w_coolitem *coolitem, int order,

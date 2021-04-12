@@ -6,6 +6,138 @@
  */
 #include "treeview.h"
 #include "../widgets/toolkit.h"
+/*
+ *
+ */
+wresult _w_columnitem_get_data(w_item *item, void **data) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(item)->column;
+	*data = g_object_get_qdata(G_OBJECT(columnhandle), gtk_toolkit->quark[1]);
+	return W_TRUE;
+}
+wresult _w_columnitem_get_index(w_item *item) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(item)->column;
+	return _W_ITEM(item)->index;
+}
+wresult _w_columnitem_get_text(w_item *item, w_alloc alloc, void *user_data,
+		int enc) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(item)->column;
+	GtkWidget *box = gtk_tree_view_column_get_widget(columnhandle);
+	_w_widget_handles handles;
+	_w_widget_get_handles(box, &handles);
+	wresult result = W_FALSE;
+	if (handles.label != 0) {
+		const char *str = gtk_label_get_label(GTK_LABEL(handles.label));
+		_gtk_alloc_set_text(alloc, user_data, str, -1, enc);
+	}
+	return result;
+}
+wresult _w_columnitem_set_data(w_item *item, void *data) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(item)->column;
+	g_object_set_qdata(G_OBJECT(columnhandle), gtk_toolkit->quark[1], data);
+	return W_TRUE;
+}
+wresult _w_columnitem_set_text(w_item *item, const char *text, int length,
+		int enc) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(item)->column;
+	GtkWidget *box = gtk_tree_view_column_get_widget(columnhandle);
+	_w_widget_handles handles;
+	_w_widget_get_handles(box, &handles);
+	if (handles.label != 0) {
+		int newlength, mnemonic;
+		char *str = _gtk_text_fix(text, length, enc, &newlength, &mnemonic);
+		gtk_label_set_text_with_mnemonic(GTK_LABEL(handles.label), str);
+		_gtk_text_free(text, str, newlength);
+	}
+	return W_TRUE;
+}
+wresult _w_columnitem_get_alignment(w_columnitem *column) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	wresult result = W_LEFT;
+	if (columnhandle != 0) {
+		gfloat al = gtk_tree_view_column_get_alignment(columnhandle);
+		if (al >= 1) {
+			result = W_RIGHT;
+		} else if (al >= 0.5) {
+			result = W_CENTER;
+		} else {
+			result = W_LEFT;
+		}
+	}
+	return result;
+}
+wresult _w_columnitem_get_image(w_columnitem *column) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return W_FALSE;
+}
+wresult _w_columnitem_get_moveable(w_columnitem *column) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return gtk_tree_view_column_get_reorderable(columnhandle);
+}
+wresult _w_columnitem_get_resizable(w_columnitem *column) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return gtk_tree_view_column_get_resizable(columnhandle);
+}
+wresult _w_columnitem_get_tooltip_text(w_columnitem *column, w_alloc alloc,
+		void *user_data, int enc) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return W_FALSE;
+}
+wresult _w_columnitem_get_width(w_columnitem *column) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return W_FALSE;
+}
+wresult _w_columnitem_pack(w_columnitem *column) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return W_FALSE;
+}
+wresult _w_columnitem_set_alignment(w_columnitem *column, int alignment) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	wresult result = W_FALSE;
+	if (columnhandle != 0) {
+		GtkCellRenderer *renderer = g_object_get_qdata(G_OBJECT(columnhandle),
+				gtk_toolkit->quark[2]);
+		float al;
+		if (alignment & W_RIGHT) {
+			al = 1;
+		} else if (alignment & W_CENTER) {
+			al = 0.5;
+		} else {
+			al = 0;
+		}
+		if (renderer != 0) {
+			g_object_set(G_OBJECT(renderer), "xalign", al, NULL);
+		}
+		gtk_tree_view_column_set_alignment(columnhandle, al);
+		result = W_TRUE;
+	}
+	return result;
+}
+wresult _w_columnitem_set_image(w_columnitem *column, int image) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return W_FALSE;
+}
+wresult _w_columnitem_set_moveable(w_columnitem *column, int moveable) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	gtk_tree_view_column_set_reorderable(columnhandle, moveable);
+	return W_TRUE;
+}
+wresult _w_columnitem_set_resizable(w_columnitem *column, int resizable) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	gtk_tree_view_column_set_resizable(columnhandle, resizable);
+	return W_TRUE;
+}
+wresult _w_columnitem_set_tooltip_text(w_columnitem *column, const char *text,
+		int length, int enc) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return W_FALSE;
+}
+wresult _w_columnitem_set_width(w_columnitem *column, int width) {
+	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
+	return W_FALSE;
+}
+/*
+ *
+ */
 wuint64 _w_listviewbase_check_style(w_widget *widget, wuint64 style) {
 	/*
 	 * Feature in Windows.  Even when WS_HSCROLL or
@@ -84,7 +216,7 @@ wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_w_widget_set_control(handle, widget);
 	_w_widget_set_control(selectionHandle, widget);
 	_W_WIDGET(widget)->handle = handle;
-	_w_listviewbase_insert_column_0(W_LISTVIEWBASE(widget), 0, priv);
+	_w_listviewbase_insert_column_0(W_LISTVIEWBASE(widget), 0, 0, priv);
 	gtk_widget_show_all(GTK_WIDGET(fixed));
 	return W_TRUE;
 	_err: if (scrolledHandle)
@@ -113,7 +245,7 @@ void _w_tree_cell_data(GtkTreeViewColumn *tree_column, GtkCellRenderer *cell,
 	memcpy(&_W_TREEITEM(&c->treeitem)->iter, iter, sizeof(GtkTreeIter));
 }
 wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
-		_w_control_priv *priv) {
+		w_columnitem *column, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(list)->style;
 	GtkTreeViewColumn *columnHandle = 0;
 	GtkCellRenderer *textrenderer = 0, *pixbufrenderer = 0, *togglerenderer = 0;
@@ -209,8 +341,14 @@ wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 	g_object_set_qdata(G_OBJECT(columnHandle), gtk_toolkit->quark[1],
 			textrenderer);
 	GtkWidget *_handle = _W_WIDGET(list)->handle;
-	gtk_tree_view_insert_column(GTK_TREE_VIEW(_handle), columnHandle, 0);
+	gtk_tree_view_insert_column(GTK_TREE_VIEW(_handle), columnHandle, index);
 	_w_widget_set_control(columnHandle, (w_widget*) ((long) 0));
+	if (column != 0) {
+		_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+		_W_ITEM(column)->parent = W_WIDGET(list);
+		_W_ITEM(column)->index = index;
+		_W_COLUMNITEM(column)->column = columnHandle;
+	}
 	return W_TRUE;
 	_err: if (columnHandle)
 		g_object_unref(columnHandle);
@@ -225,10 +363,20 @@ wresult _w_listviewbase_deselect_all(w_listviewbase *list) {
 }
 wresult _w_listviewbase_get_column(w_listviewbase *list, int index,
 		w_columnitem *column) {
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	GtkTreeViewColumn *columnHandle = gtk_tree_view_get_column(handle, index);
+	if (columnHandle != 0) {
+		_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+		_W_ITEM(column)->parent = W_WIDGET(list);
+		_W_ITEM(column)->index = index;
+		_W_COLUMNITEM(column)->column = columnHandle;
+		return W_TRUE;
+	}
 	return W_FALSE;
 }
 wresult _w_listviewbase_get_column_count(w_listviewbase *list) {
-	return W_FALSE;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	return gtk_tree_view_get_n_columns(handle);
 }
 wresult _w_listviewbase_get_columns(w_listviewbase *list, w_iterator *columns) {
 	return W_FALSE;
@@ -258,7 +406,9 @@ wresult _w_listviewbase_get_selection(w_listviewbase *list,
 	return W_FALSE;
 }
 wresult _w_listviewbase_get_selection_count(w_listviewbase *list) {
-	return W_FALSE;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(handle);
+	return gtk_tree_selection_count_selected_rows(selection);
 }
 wresult _w_listviewbase_get_sort_column(w_listviewbase *list,
 		w_columnitem *column) {
@@ -269,7 +419,10 @@ wresult _w_listviewbase_get_sort_direction(w_listviewbase *list) {
 }
 wresult _w_listviewbase_insert_column(w_listviewbase *list,
 		w_columnitem *column, int index) {
-	return W_FALSE;
+	if (index == 0)
+		return W_FALSE;
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(list);
+	return _w_listviewbase_insert_column_0(list, index, column, priv);
 }
 wresult _w_listviewbase_remove_all(w_listviewbase *list) {
 	return W_FALSE;
@@ -277,8 +430,25 @@ wresult _w_listviewbase_remove_all(w_listviewbase *list) {
 wresult _w_listviewbase_select_all(w_listviewbase *list) {
 	return W_FALSE;
 }
+wresult _w_listviewbase_set_bounds_0(w_control *control, w_point *location,
+		w_size *size, _w_control_priv *priv) {
+	wresult result = _w_composite_set_bounds_0(control, location, size, priv);
+	/*
+	 * Bug on GTK.  The tree view sometimes does not get a paint
+	 * event or resizes to a one pixel square when resized in a new
+	 * shell that is not visible after any event loop has been run.  The
+	 * problem is intermittent. It doesn't seem to happen the first time
+	 * a new shell is created. The fix is to ensure the tree view is realized
+	 * after it has been resized.
+	 */
+	GtkWidget *handle = _W_WIDGET(control)->handle;
+	gtk_widget_realize(handle);
+	return result;
+}
 wresult _w_listviewbase_set_header_visible(w_listviewbase *list, int show) {
-	return W_FALSE;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	gtk_tree_view_set_headers_visible(handle, show);
+	return W_TRUE;
 }
 wresult _w_listviewbase_set_imagelist(w_listviewbase *list,
 		w_imagelist *imagelist) {
@@ -307,7 +477,10 @@ wresult _w_listviewbase_set_item_height(w_listviewbase *list, int itemHeight) {
 	return W_FALSE;
 }
 wresult _w_listviewbase_set_lines_visible(w_listviewbase *list, int show) {
-	return W_FALSE;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	gtk_tree_view_set_grid_lines(handle,
+			show ? GTK_TREE_VIEW_GRID_LINES_BOTH : GTK_TREE_VIEW_GRID_LINES_NONE);
+	return W_TRUE;
 }
 wresult _w_listviewbase_set_sort_column(w_listviewbase *list,
 		w_columnitem *column) {
@@ -357,6 +530,29 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	clazz->show_selection = _w_listviewbase_show_selection;
 	clazz->sort = _w_listviewbase_sort;
 	/*
+	 * tree item
+	 */
+	struct _w_columnitem_class *columnitem = W_COLUMNITEM_CLASS(
+			clazz->class_column);
+	_w_item_class_init(W_ITEM_CLASS(columnitem));
+	W_ITEM_CLASS(columnitem)->get_data = _w_columnitem_get_data;
+	W_ITEM_CLASS(columnitem)->get_text = _w_columnitem_get_text;
+	W_ITEM_CLASS(columnitem)->set_data = _w_columnitem_set_data;
+	W_ITEM_CLASS(columnitem)->set_text = _w_columnitem_set_text;
+	columnitem->get_alignment = _w_columnitem_get_alignment;
+	columnitem->get_image = _w_columnitem_get_image;
+	columnitem->get_moveable = _w_columnitem_get_moveable;
+	columnitem->get_resizable = _w_columnitem_get_resizable;
+	columnitem->get_tooltip_text = _w_columnitem_get_tooltip_text;
+	columnitem->get_width = _w_columnitem_get_width;
+	columnitem->pack = _w_columnitem_pack;
+	columnitem->set_alignment = _w_columnitem_set_alignment;
+	columnitem->set_image = _w_columnitem_set_image;
+	columnitem->set_moveable = _w_columnitem_set_moveable;
+	columnitem->set_resizable = _w_columnitem_set_resizable;
+	columnitem->set_tooltip_text = _w_columnitem_set_tooltip_text;
+	columnitem->set_width = _w_columnitem_set_width;
+	/*
 	 * private
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
@@ -364,6 +560,7 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	_W_WIDGET_PRIV(priv)->check_style = _w_listviewbase_check_style;
 	_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hpp;
 	priv->handle_fixed = _w_widget_hpp;
+	priv->set_bounds_0 = _w_listviewbase_set_bounds_0;
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_hp;
 	_W_LISTVIEWBASE_PRIV(priv)->renderer_render =
 			_w_listviewbase_renderer_render;

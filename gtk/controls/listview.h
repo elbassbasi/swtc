@@ -24,6 +24,14 @@ extern GType gtk_store_types[COLUMN_COUNT];
 #define COLUMN_INFO_GRAYED (1 << 2)
 #define COLUMN_INFO_HAS_CHILDREN (1 << 3)
 /*
+ * treeitem
+ */
+typedef struct _w_columnitem {
+	_w_item item;
+	GtkTreeViewColumn *column;
+} _w_columnitem;
+#define _W_COLUMNITEM(x) ((_w_columnitem*)x)
+/*
  * listview
  */
 typedef struct _w_listviewbase {
@@ -123,7 +131,7 @@ void _w_listviewbase_rendererGetSizeProc(w_widget* widget,_w_control_priv *priv,
 wuint64 _w_listviewbase_check_style(w_widget *widget, wuint64 style);
 wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv);
 wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
-		_w_control_priv *priv);
+		w_columnitem *column, _w_control_priv *priv);
 wresult _w_listviewbase_get_header_height(w_listviewbase *list);
 
 #endif /* SRC_SWT_GTK_CONTROLS_TABLE_H_ */

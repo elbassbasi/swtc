@@ -40,7 +40,7 @@ public:
 #if __cplusplus >= 201103L
 typedef std::function<bool(WEvent &e)> WListenerFunction;
 typedef std::function<void(WEvent &e)> WSelectionFunction;
-typedef std::function<void(WItemEvent &e)> WSelectionItemFunction;
+typedef std::function<void(class WMenuEvent &e)> WSelectionItemFunction;
 class SWTP_PUBLIC WListener: public WListenerBase {
 public:
 	WListenerFunction function;
@@ -123,6 +123,14 @@ protected:
 		return w_widget_set_data(W_WIDGET(this), index, data);
 	}
 public:
+	static void* GetItemData(WItem *item) {
+		void *data;
+		w_item_get_data(W_ITEM(item), &data);
+		return data;
+	}
+	static bool SetItemData(WItem *item, void *data) {
+		return _WReturnBool(w_item_set_data(W_ITEM(item), data));
+	}
 	bool IsOk() {
 		return w_widget_is_ok(W_WIDGET(this)) > 0;
 	}

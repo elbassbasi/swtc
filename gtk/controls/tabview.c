@@ -305,9 +305,6 @@ wresult _w_tabview_get_selection(w_tabview *tabview, w_tabitem *item) {
 	int index = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
 	return _w_tabview_get_item(tabview, index, item);
 }
-w_imagelist* _w_tabview_get_image_list(w_widget *widget) {
-	return _W_TABVIEW(widget)->imagelist;
-}
 wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 	GtkWidget *handle = _W_WIDGET(tabview)->handle;
 	_w_tabview_priv *priv = (_w_tabview_priv*) _w_widget_get_priv(
@@ -324,7 +321,7 @@ wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 	imageHandle = _w_image_widget_new();
 	if (imageHandle == 0)
 		goto _err;
-	imageHandle->get_image_list = _w_tabview_get_image_list;
+	imageHandle->get_image_list = (__get_image_list) _w_tabview_get_imagelist;
 	imageHandle->parent = W_WIDGET(tabview);
 	imageHandle->index = -1;
 
