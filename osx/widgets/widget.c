@@ -73,6 +73,7 @@ wresult _w_widget_dispose(w_widget *obj) {
 	return W_TRUE;
 }
 wresult _w_widget_send_event(w_widget *widget, w_event *event) {
+    if(widget == 0) return W_FALSE;
 	if (widget->post_event != 0) {
 		return widget->post_event(widget, event);
 	} else {
