@@ -6,6 +6,7 @@
 		${CURRENT_DIR}/NSArray.m
 		${CURRENT_DIR}/NSAttributedString.m
 		${CURRENT_DIR}/NSBezierPath.m
+		${CURRENT_DIR}/NSBox.m
 		${CURRENT_DIR}/NSButton.m
 		${CURRENT_DIR}/NSColor.m
 		${CURRENT_DIR}/NSDictionary.m

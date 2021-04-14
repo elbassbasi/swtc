@@ -12,6 +12,8 @@
  * states
  */
 #define STATE_WIDGET_END (2)
+#define DEFAULT_WIDTH  (64)
+#define DEFAULT_HEIGHT  (64)
 
 typedef struct _w_widget {
 	void *v_table; //used in c++ as virtual table

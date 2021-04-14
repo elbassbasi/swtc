@@ -10,6 +10,9 @@
 #include "../widgets/shell.h"
 typedef struct _w_groupbox {
 	_w_composite composite;
+	unsigned ignoreResize :1;
+	int hMargin;
+	int vMargin;
 } _w_groupbox;
 
 typedef struct _w_groupbox_priv {

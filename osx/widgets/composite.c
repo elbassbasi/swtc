@@ -7,6 +7,70 @@
  */
 #include "composite.h"
 #include "toolkit.h"
+void _w_composite_minimum_size(w_composite *composite, w_size *size, int wHint,
+		int hHint, int changed) {
+	w_iterator children;
+	w_iterator_init(&children);
+	w_composite_get_children(composite, &children);
+	/*
+	 * Since getClientArea can be overridden by subclasses, we cannot
+	 * call getClientAreaInPixels directly.
+	 */
+	w_rect clientArea, rect;
+	w_scrollable_get_client_area(W_SCROLLABLE(composite), &clientArea);
+	int width = 0, height = 0;
+	w_control *child = 0;
+	while (w_iterator_next(&children, &child)) {
+		if (child != 0) {
+			w_control_get_bounds(child, &rect.pt, &rect.sz);
+			width = WMAX(width, rect.x - clientArea.x + rect.width);
+			height = WMAX(height, rect.y - clientArea.y + rect.height);
+		}
+	}
+	size->width = width;
+	size->height = height;
+}
+wresult _w_composite_compute_size(w_widget *widget, w_event_compute_size *e,
+		_w_control_priv *priv) {
+	int wHint = e->wHint;
+	int hHint = e->hHint;
+	//display.runSkin();
+	if (wHint != W_DEFAULT && wHint < 0)
+		wHint = 0;
+	if (hHint != W_DEFAULT && hHint < 0)
+		hHint = 0;
+	if (_W_COMPOSITE(widget)->layout != 0) {
+		if (wHint == W_DEFAULT || hHint == W_DEFAULT) {
+			//changed |= (state & LAYOUT_CHANGED) != 0;
+			w_layout_compute_size(_W_COMPOSITE(widget)->layout,
+					W_COMPOSITE(widget), e->size, wHint, hHint, e->changed);
+			//state &= ~LAYOUT_CHANGED;
+		} else {
+			e->size->width = wHint;
+			e->size->height = hHint;
+		}
+	} else {
+		_w_composite_minimum_size(W_COMPOSITE(widget), e->size, wHint, hHint,
+				W_TRUE);
+		if (e->size->width == 0)
+			e->size->width = DEFAULT_WIDTH;
+		if (e->size->height == 0)
+			e->size->height = DEFAULT_HEIGHT;
+	}
+	if (wHint != W_DEFAULT)
+		e->size->width = wHint;
+	if (hHint != W_DEFAULT)
+		e->size->height = hHint;
+	w_rect rect, trim;
+	rect.x = 0;
+	rect.y = 0;
+	rect.width = e->size->width;
+	rect.height = e->size->height;
+	w_scrollable_compute_trim(W_SCROLLABLE(widget), &trim, &rect);
+	e->size->width = trim.width;
+	e->size->height = trim.height;
+	return W_TRUE;
+}
 wresult _w_composite_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_CANVAS;
 	wuint64 style = _W_WIDGET(widget)->style;
@@ -25,8 +89,8 @@ wresult _w_composite_create_handle(w_widget *widget, _w_control_priv *priv) {
 				(style & W_BORDER) != 0 ? NSBezelBorder : NSNoBorder);
 	}
 	NSView *view = SWTView_new(widget);
-    NSRect frame;
-    memset(&frame,0,sizeof(frame));
+	NSRect frame;
+	memset(&frame, 0, sizeof(frame));
 	NSView_initWithFrame(view, &frame);
 	NSView_setFocusRingType(view, NSFocusRingTypeExterior);
 	if (scrollView != 0) {
@@ -162,12 +226,12 @@ _w_iterator_class _w_composite_children_class = { //
 wresult _w_composite_get_children(w_composite *composite, w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(composite);
-	NSView *view = priv->get_view(W_WIDGET(composite));
+	NSView *view = priv->content_view(W_WIDGET(composite),priv);
 	it->base.clazz = &_w_composite_children_class;
 	iter->composite = composite;
 	iter->views = NSView_subviews(view);
-    iter->count = NSArray_count(iter->views);
-    iter->i = 0;
+	iter->count = NSArray_count(iter->views);
+	iter->i = 0;
 	return W_TRUE;
 }
 wresult _w_composite_get_layout(w_composite *composite, w_layout **layout) {
@@ -190,16 +254,17 @@ wresult _w_composite_layout_changed(w_composite *_this, w_control **changed,
 		size_t length, int flags) {
 	return W_FALSE;
 }
-wresult _w_composite_set_bounds(w_control *control,w_point* location,w_size* size) {
-    wresult ret = _w_control_set_bounds(control, location,size);
-    if (size != 0) {
-    	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+wresult _w_composite_set_bounds(w_control *control, w_point *location,
+		w_size *size) {
+	wresult ret = _w_control_set_bounds(control, location, size);
+	if (size != 0) {
+		_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
 		//if (layout != null) {
 		priv->mark_layout(control, 0, priv);
 		priv->update_layout(control, 0, priv);
 		//}
-    }
-    return ret;
+	}
+	return ret;
 }
 wresult _w_composite_set_layout(w_composite *composite, w_layout *layout) {
 	_W_COMPOSITE(composite)->layout = layout;
@@ -235,6 +300,7 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	_W_WIDGET_PRIV(priv)->create_handle = _w_composite_create_handle;
+	_W_WIDGET_PRIV(priv)->compute_size = _w_composite_compute_size;
 	priv->mark_layout = _w_composite_mark_layout;
 	priv->update_layout = _w_composite_update_layout;
 	_W_COMPOSITE_PRIV(priv)->find_deferred_control =
