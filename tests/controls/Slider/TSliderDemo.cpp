@@ -31,7 +31,7 @@ void TSliderDemo::CreateControl(WComposite *parent) {
 		slider[i].SetId(i);
 	}
 	label.Create(this, W_NONE);
-	data.Init(W_GRID_FILL_VERTICAL);
+	data.Init(W_GRID_FILL_BOTH);
 	label.SetLayoutData(data);
 	SetLabelText(&slider[0]);
 }
@@ -40,8 +40,8 @@ void TSliderDemo::SetLabelText(WSlider *slider) {
 	char txt[30];
 	int maximum = slider->GetMaximum();
 	int selection = slider->GetSelection();
-	snprintf(txt, sizeof(txt), "slider %d : %d/%d", slider->GetId(),
-			selection, maximum);
+	snprintf(txt, sizeof(txt), "slider %d : %d/%d", slider->GetId(), selection,
+			maximum);
 	label.SetText(txt);
 }
 

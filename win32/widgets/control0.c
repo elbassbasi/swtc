@@ -628,7 +628,15 @@ wresult _w_control_set_redraw(w_control *control, int redraw) {
 	return W_FALSE;
 }
 wresult _w_control_set_region(w_control *control, w_region *region) {
-	return W_FALSE;
+	if (region != 0 && w_region_is_ok(region) <= 0)
+		return W_ERROR_INVALID_ARGUMENT;
+	HRGN hRegion = 0;
+	if (region != 0) {
+		hRegion = CreateRectRgn(0, 0, 0, 0);
+		CombineRgn(hRegion, _W_REGION(region)->handle, hRegion, RGN_OR);
+	}
+	SetWindowRgn(_W_WIDGET(control)->handle, hRegion, TRUE);
+	return W_TRUE;
 }
 wresult _w_control_set_tab(w_control *control, int tab) {
 	return W_FALSE;

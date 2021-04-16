@@ -256,7 +256,12 @@ wresult _CONTROL_WM_TIMER(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_VSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	w_widget *control = _w_widget_find_control((HWND) e->lparam);
+	if (control != 0) {
+		_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
+		return cpriv->messages[_WM_SCROLLCHILD](control, e, cpriv);
+	} else
+		return W_FALSE;
 }
 wresult _CONTROL_WM_WINDOWPOSCHANGED(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {

@@ -10,7 +10,7 @@
 #define  MARGIN  4
 wresult _w_button_get_selection(w_button *button);
 wresult _w_button_set_selection(w_button *button, int selected);
-int _w_button_check_style(int style) {
+wuint64 _w_button_check_style(w_widget *widget, wuint64 style) {
 	style = _w_widget_check_bits(style, W_PUSH, W_ARROW, W_CHECK, W_RADIO,
 			W_TOGGLE, 0);
 	if ((style & (W_PUSH | W_TOGGLE)) != 0) {
@@ -822,6 +822,7 @@ void _w_button_class_init(struct _w_button_class *clazz) {
 	 * priv
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
+	priv->check_style = _w_button_check_style;
 	priv->compute_size = _w_button_compute_size;
 	priv->create_handle = _w_button_create_handle;
 	priv->widget_style = _w_button_widget_style;

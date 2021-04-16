@@ -14,10 +14,23 @@
 #define STATE_CANVAS (1 << (STATE_CONTROL_END + 0))
 #define STATE_SCROLLABLE_END (STATE_CONTROL_END + 1)
 /*
+ * scrollbar
+ */
+typedef struct _w_scrollbar {
+	w_widgetdata widgetdata;
+	w_scrollable *scrollable;
+	int type;
+} _w_scrollbar;
+#define _W_SCROLLBAR(x) ((_w_scrollbar*)x)
+/*
  * scrollable
  */
 typedef struct _w_scrollable {
 	_w_control control;
+	int hincrement;
+	int hpageIncrement;
+	int vincrement;
+	int vpageIncrement;
 } _w_scrollable;
 #define _W_SCROLLABLE(x) ((_w_scrollable*)x)
 /*
