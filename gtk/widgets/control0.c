@@ -112,6 +112,30 @@ wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event) {
 	return W_FALSE;
 }
+wresult _w_control_draw_draw_gripper(w_control *control, w_graphics *gc,
+		w_rect *rect, int vertical, _w_control_priv *priv) {
+	GtkWidget *paintHandle = priv->handle_paint(control, priv);
+	GdkWindow *window = gtk_widget_get_window(paintHandle);
+	if (window == 0)
+		return W_FALSE;
+	int orientation =
+			vertical ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL;
+	int x = rect->x;
+	if ((_W_WIDGET(control)->style & W_MIRRORED) != 0) {
+		int clientWidth = priv->get_client_width(control, priv);
+		x = clientWidth - rect->width - x;
+	}
+#if GTK3
+	GtkStyleContext *context = gtk_widget_get_style_context(paintHandle);
+	gtk_style_context_save(context);
+	gtk_style_context_add_class(context, GTK_STYLE_CLASS_PANE_SEPARATOR);
+	gtk_style_context_set_state(context, GTK_STATE_FLAG_NORMAL);
+	gtk_render_handle(context, _W_GRAPHICS(gc)->cairo, x, rect->y, rect->width,
+			rect->height);
+	gtk_style_context_restore(context);
+#endif
+	return W_TRUE;
+}
 void _w_control_draw_widget(w_control *control, w_graphics *gc,
 		_w_control_priv *priv) {
 

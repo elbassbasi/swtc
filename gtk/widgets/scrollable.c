@@ -175,6 +175,7 @@ void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	_W_WIDGET_PRIV(priv)->get_client_area = _w_scrollable_get_client_area;
+	_W_WIDGET_PRIV(priv)->compute_trim = _w_scrollable_compute_trim;
 	_W_WIDGET_PRIV(priv)->hook_events = _w_scrollable_hook_events;
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_h0;
 	_W_SCROLLABLE_PRIV(priv)->apply_theme_background =

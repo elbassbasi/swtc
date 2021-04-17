@@ -168,6 +168,8 @@ wresult _w_control_create_droptarget(w_control *control,
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv);
 wresult _w_control_dispose(w_widget *widget);
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event);
+wresult _w_control_draw_draw_gripper(w_control *control, w_graphics *gc,
+		w_rect *rect, int vertical, _w_control_priv *priv);
 wresult _w_control_force_focus(w_control *control);
 wresult _w_control_get_accessible(w_control *control,
 		w_accessible **accessible);
