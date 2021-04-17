@@ -6,51 +6,52 @@
  */
 #include <swtc/swtc.h>
 wresult w_datetime_create(w_datetime *datetime, struct w_toolkit *toolkit,
-		w_composite *parent, wuint64 style, w_widget_post_event_proc post_event) {
+		w_composite *parent, wuint64 style,
+		w_widget_post_event_proc post_event) {
 	return _w_widget_create(W_WIDGET(datetime), toolkit, W_WIDGET(parent),
 			style, _W_CLASS_DATETIME, post_event);
 }
 w_datetime* w_datetime_new(struct w_toolkit *toolkit, w_composite *parent,
-                           wuint64 style, w_widget_post_event_proc post_event) {
+		wuint64 style, w_widget_post_event_proc post_event) {
 	return W_DATETIME(
 			_w_widget_new(toolkit,W_WIDGET(parent),style,_W_CLASS_DATETIME,post_event));
 }
-int w_datetime_get_day(w_datetime *datetime) {
+wresult w_datetime_get_day(w_datetime *datetime) {
 	wresult result = W_WIDGET_CHECK0(datetime);
 	if (result > 0) {
 		return W_DATETIME_GET_CLASS(datetime)->get_day(datetime);
 	} else
 		return result;
 }
-int w_datetime_get_hours(w_datetime *datetime) {
+wresult w_datetime_get_hours(w_datetime *datetime) {
 	wresult result = W_WIDGET_CHECK0(datetime);
 	if (result > 0) {
 		return W_DATETIME_GET_CLASS(datetime)->get_hours(datetime);
 	} else
 		return result;
 }
-int w_datetime_get_minutes(w_datetime *datetime) {
+wresult w_datetime_get_minutes(w_datetime *datetime) {
 	wresult result = W_WIDGET_CHECK0(datetime);
 	if (result > 0) {
 		return W_DATETIME_GET_CLASS(datetime)->get_minutes(datetime);
 	} else
 		return result;
 }
-int w_datetime_get_month(w_datetime *datetime) {
+wresult w_datetime_get_month(w_datetime *datetime) {
 	wresult result = W_WIDGET_CHECK0(datetime);
 	if (result > 0) {
 		return W_DATETIME_GET_CLASS(datetime)->get_month(datetime);
 	} else
 		return result;
 }
-int w_datetime_get_seconds(w_datetime *datetime) {
+wresult w_datetime_get_seconds(w_datetime *datetime) {
 	wresult result = W_WIDGET_CHECK0(datetime);
 	if (result > 0) {
 		return W_DATETIME_GET_CLASS(datetime)->get_seconds(datetime);
 	} else
 		return result;
 }
-int w_datetime_get_year(w_datetime *datetime) {
+wresult w_datetime_get_year(w_datetime *datetime) {
 	wresult result = W_WIDGET_CHECK0(datetime);
 	if (result > 0) {
 		return W_DATETIME_GET_CLASS(datetime)->get_year(datetime);

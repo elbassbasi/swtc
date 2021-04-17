@@ -90,6 +90,7 @@ enum {
 	W_DATE = 1 << 19, //DateTime
 	W_TIME = 1 << 20, //DateTime
 	W_CALENDAR = 1 << 21, //DateTime
+	W_CALENDAR_WEEKNUMBERS = 1 << 28,
 	W_SHORT = 1 << 22, //DateTime
 	W_MEDIUM = 1 << 23, //DateTime
 	W_LONG = 1 << 24, //DateTime

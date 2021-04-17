@@ -20,12 +20,12 @@ typedef struct w_datetime {
 
 struct _w_datetime_class {
 	struct _w_composite_class composite;
-	int (*get_day)(w_datetime *datetime);
-	int (*get_hours)(w_datetime *datetime);
-	int (*get_minutes)(w_datetime *datetime);
-	int (*get_month)(w_datetime *datetime);
-	int (*get_seconds)(w_datetime *datetime);
-	int (*get_year)(w_datetime *datetime);
+	wresult (*get_day)(w_datetime *datetime);
+	wresult (*get_hours)(w_datetime *datetime);
+	wresult (*get_minutes)(w_datetime *datetime);
+	wresult (*get_month)(w_datetime *datetime);
+	wresult (*get_seconds)(w_datetime *datetime);
+	wresult (*get_year)(w_datetime *datetime);
 	wresult (*set_date)(w_datetime *datetime, int year, int month, int day);
 	wresult (*set_day)(w_datetime *datetime, int day);
 	wresult (*set_hours)(w_datetime *datetime, int hours);
@@ -36,25 +36,27 @@ struct _w_datetime_class {
 			int seconds);
 	wresult (*set_year)(w_datetime *datetime, int year);
 };
-SWT_PUBLIC wresult w_datetime_create(w_datetime *datetime, struct w_toolkit *toolkit,
-		w_composite *parent, wuint64 style, w_widget_post_event_proc post_event);
-SWT_PUBLIC w_datetime* w_datetime_new(struct w_toolkit *toolkit, w_composite *parent,
-                                      wuint64 style, w_widget_post_event_proc post_event);
-SWT_PUBLIC int w_datetime_get_day(w_datetime *datetime);
-SWT_PUBLIC int w_datetime_get_hours(w_datetime *datetime);
-SWT_PUBLIC int w_datetime_get_minutes(w_datetime *datetime);
-SWT_PUBLIC int w_datetime_get_month(w_datetime *datetime);
-SWT_PUBLIC int w_datetime_get_seconds(w_datetime *datetime);
-SWT_PUBLIC int w_datetime_get_year(w_datetime *datetime);
-SWT_PUBLIC wresult w_datetime_set_date(w_datetime *datetime, int year, int month,
-		int day);
+SWT_PUBLIC wresult w_datetime_create(w_datetime *datetime,
+		struct w_toolkit *toolkit, w_composite *parent, wuint64 style,
+		w_widget_post_event_proc post_event);
+SWT_PUBLIC w_datetime* w_datetime_new(struct w_toolkit *toolkit,
+		w_composite *parent, wuint64 style,
+		w_widget_post_event_proc post_event);
+SWT_PUBLIC wresult w_datetime_get_day(w_datetime *datetime);
+SWT_PUBLIC wresult w_datetime_get_hours(w_datetime *datetime);
+SWT_PUBLIC wresult w_datetime_get_minutes(w_datetime *datetime);
+SWT_PUBLIC wresult w_datetime_get_month(w_datetime *datetime);
+SWT_PUBLIC wresult w_datetime_get_seconds(w_datetime *datetime);
+SWT_PUBLIC wresult w_datetime_get_year(w_datetime *datetime);
+SWT_PUBLIC wresult w_datetime_set_date(w_datetime *datetime, int year,
+		int month, int day);
 SWT_PUBLIC wresult w_datetime_set_day(w_datetime *datetime, int day);
 SWT_PUBLIC wresult w_datetime_set_hours(w_datetime *datetime, int hours);
 SWT_PUBLIC wresult w_datetime_set_minutes(w_datetime *datetime, int minutes);
 SWT_PUBLIC wresult w_datetime_set_month(w_datetime *datetime, int month);
 SWT_PUBLIC wresult w_datetime_set_seconds(w_datetime *datetime, int seconds);
-SWT_PUBLIC wresult w_datetime_set_time(w_datetime *datetime, int hours, int minutes,
-		int seconds);
+SWT_PUBLIC wresult w_datetime_set_time(w_datetime *datetime, int hours,
+		int minutes, int seconds);
 SWT_PUBLIC wresult w_datetime_set_year(w_datetime *datetime, int year);
 
 #define W_DATETIME_CLASS(x) ((struct _w_datetime_class*)x)
