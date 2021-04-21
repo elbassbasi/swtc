@@ -83,7 +83,9 @@ public:
 	 * @return the control
 	 */
 	WControl* GetControl() {
-		return (WControl*) w_expanditem_get_control(W_EXPANDITEM(this));
+		WControl *c;
+		w_expanditem_get_control(W_EXPANDITEM(this), (w_control**) &c);
+		return c;
 	}
 	/**
 	 * Returns <code>true</code> if the receiver is expanded,
@@ -149,6 +151,8 @@ public:
 	bool SetImage(int image) {
 		return w_expanditem_set_image(W_EXPANDITEM(this), image) > 0;
 	}
+private:
+	void *handles[sizeof(w_expanditem) / sizeof(void*)];
 };
 /**
  * Instances of this class support the layout of selectable
@@ -200,6 +204,12 @@ public:
 	WExpandBar(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
+	WImageList* GetImageList() {
+		WImageList *imagelist;
+		w_expandbar_get_imagelist(W_EXPANDBAR(this),
+				(w_imagelist**) &imagelist);
+		return imagelist;
+	}
 	/**
 	 * Returns the item at the given, zero-relative index in the
 	 * receiver. Throws an exception if the index is out of range.
@@ -218,8 +228,9 @@ public:
 	 * @param index the index of the item to return
 	 * @return the item at the given index
 	 */
-	WExpandItem& GetItem(int index, const WExpandItem &item = WExpandItem()) {
-		return GetItem(index, (WExpandItem&) item);
+	WExpandItem GetItem(int index) {
+		WExpandItem item;
+		return GetItem(index, item);
 	}
 	/**
 	 * Returns the number of items contained in the receiver.
@@ -251,6 +262,10 @@ public:
 	int GetSpacing() {
 		return w_expandbar_get_spacing(W_EXPANDBAR(this));
 	}
+	bool SetImageList(WImageList *imagelist) {
+		return w_expandbar_set_imagelist(W_EXPANDBAR(this),
+				W_IMAGELIST(imagelist));
+	}
 	/**
 	 * Sets the receiver's spacing. Spacing specifies the number of pixels allocated around
 	 * each item.
@@ -261,9 +276,13 @@ public:
 		return w_expandbar_set_spacing(W_EXPANDBAR(this), spacing) > 0;
 	}
 public:
+	WExpandItem& InsertItem(WExpandItem &item, int index) {
+		w_expandbar_insert_item(W_EXPANDBAR(this), W_EXPANDITEM(&item), index);
+		return item;
+	}
 	WExpandItem& InsertItem(WExpandItem &item, const char *text, int index) {
-		w_expandbar_insert_item(W_EXPANDBAR(this), W_EXPANDITEM(&item), text,
-				index);
+		InsertItem(item, index);
+		item.SetText(text);
 		return item;
 	}
 	WExpandItem& AppendItem(WExpandItem &item, const char *text) {

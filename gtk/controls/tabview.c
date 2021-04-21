@@ -394,11 +394,6 @@ wresult _w_tabview_set_bounds_0(w_control *control, w_point *location,
 			c = w_tabitem_get_control(W_TABITEM(&item));
 		}
 		if (c != 0) {
-			w_event e;
-			e.type = W_EVENT_RESIZE;
-			e.platform_event = 0;
-			e.data = 0;
-			e.widget = W_WIDGET(c);
 			w_rect r;
 			w_scrollable_get_client_area(W_SCROLLABLE(control), &r);
 			w_control_set_bounds(c, &r.pt, &r.sz);

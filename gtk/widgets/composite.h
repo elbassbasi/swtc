@@ -30,6 +30,8 @@ typedef struct _w_composite_priv _w_composite_priv;
 struct _w_composite_priv {
 	_w_scrollable_priv scrollable;
 	int signal_scroll_child;
+	void (*add_child)(w_control *composite, w_widget *child,
+			_w_control_priv *priv);
 	w_composite* (*find_deferred_control)(w_control *composite,
 			_w_control_priv *priv);
 	GtkWidget* (*handle_parenting)(w_widget *control, _w_control_priv *priv);

@@ -68,9 +68,7 @@ void _w_fixed_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
 	_w_fixed *fixed = _w_fixed_get(widget);
 	if (fixed == 0)
 		return;
-	//GPrintFunc func = g_set_printerr_handler(NULL);
 	GtkAllocation child_allocation;
-	//GtkRequisition requisition;
 	gtk_widget_set_allocation(widget, allocation);
 	gboolean has_window = gtk_widget_get_has_window(widget);
 
@@ -96,7 +94,6 @@ void _w_fixed_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
 		}
 		child = child->next;
 	}
-	//g_set_printerr_handler(func);
 }
 void _w_fixed_add(GtkContainer *container, GtkWidget *widget) {
 	_w_fixed *fixed = _w_fixed_get((GtkWidget*) container);
@@ -244,18 +241,22 @@ void _w_fixed_map(GtkWidget *widget) {
 }
 void _w_fixed_get_preferred_width(GtkWidget *widget, gint *minimum,
 		gint *natural) {
-	if (minimum)
+	if (minimum) {
 		*minimum = 0;
-	if (natural)
+	}
+	if (natural) {
 		*natural = 0;
+	}
 }
 
 void _w_fixed_get_preferred_height(GtkWidget *widget, gint *minimum,
 		gint *natural) {
-	if (minimum)
+	if (minimum) {
 		*minimum = 0;
-	if (natural)
+	}
+	if (natural) {
 		*natural = 0;
+	}
 }
 enum {
 	PROP_0,

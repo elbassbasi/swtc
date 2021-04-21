@@ -17,84 +17,86 @@ WControl* TExpandBarDemo::GetControl(WComposite *parent) {
 	}
 	return this;
 }
-
+const char *TExpandBarDemo::names[length] = { //
+		"What is your favorite button", //
+				"What is your favorite icon", //
+				"What is your favorite range widget" //
+		};
 void TExpandBarDemo::CreateControl(WComposite *parent) {
 	WExpandItem item;
 	WSize size;
-	WImage *image;
-	WToolkit *toolkit;
 	this->Create(parent, W_VSCROLL);
-	toolkit = this->GetToolkit();
-	// First item
-	composite[0].Create(this, W_NONE);
+	//this->Create(parent, W_NONE);
+	this->SetImageList(MShell::GetImageList16_(parent));
+	for (int i = 0; i < length; i++) {
+		composite[i].Create(this, W_NONE);
+		composite[i].SetLayout(layout[i]);
+		CreateWidgets(i);
+		this->AppendItem(item, names[i]);
+		item.SetImage(i % length);
+		composite[i].ComputeSize(size, W_DEFAULT, W_DEFAULT);
+		item.SetControl(&composite[i]);
+		item.SetHeight(size.height);
+		item.SetExpanded(true);
+	}
+}
+
+void TExpandBarDemo::CreateWidgets(int index) {
+	switch (index) {
+	case 0:
+		Create_0(&this->composite[index]);
+		break;
+	case 1:
+		Create_1(&this->composite[index]);
+		break;
+	case 2:
+		Create_2(&this->composite[index]);
+		break;
+	}
+}
+int TExpandBarDemo::styles_0[length_0] = { W_PUSH, W_RADIO, W_CHECK, W_TOGGLE };
+const char *TExpandBarDemo::names_0[length_0] = { "PUSH", "RADIO", "CHECK",
+		"TOGGLE" };
+void TExpandBarDemo::Create_0(WComposite *composite) {
 	layout[0].marginLeft = layout[0].marginTop = layout[0].marginRight =
 			layout[0].marginBottom = 10;
 	layout[0].verticalSpacing = 10;
-	composite[0].SetLayout(layout[0]);
-	button[0].Create(composite[0], W_PUSH);
-	button[0].SetText("PUSH");
-	button[1].Create(composite[0], W_RADIO);
-	button[1].SetText("RADIO");
-	button[2].Create(composite[0], W_CHECK);
-	button[2].SetText("CHECK");
-	button[3].Create(composite[0], W_TOGGLE);
-	button[3].SetText("TOGGLE");
-	this->AppendItem(item, "What is your favorite button");
-	composite[0].ComputeSize(size, W_DEFAULT, W_DEFAULT);
-	item.SetHeight(size.height);
-	item.SetControl(&composite[0]);
-	//item.SetImage(MShell::GetImage16_(this,1));
-	// Second item
-	composite[1].Create(this, W_NONE);
+	for (int i = 0; i < length_0; i++) {
+		btn_0[i].Create(composite, styles_0[i]);
+		btn_0[i].SetText(names_0[i]);
+	}
+}
+int TExpandBarDemo::images_1[length_1] = { W_ICON_ERROR, W_ICON_INFORMATION,
+		W_ICON_WARNING, W_ICON_QUESTION };
+const char *TExpandBarDemo::names_1[length_1] = { "SWT.ICON_ERROR",
+		"SWT.ICON_INFORMATION", "SWT.ICON_WARNING", "SWT.ICON_QUESTION" };
+void TExpandBarDemo::Create_1(WComposite *composite) {
+	WImage *image;
 	layout[1].numColumns = 2;
 	layout[1].marginLeft = layout[1].marginTop = layout[1].marginRight =
 			layout[1].marginBottom = 10;
 	layout[1].verticalSpacing = 10;
-	composite[1].SetLayout(layout[1]);
-	label[0].Create(composite[1], W_NONE);
-	image = toolkit->GetSystemImage(W_ICON_ERROR);
-	label[0].SetImage(image);
-	label[1].Create(composite[1], W_NONE);
-	label[1].SetText("SWT.ICON_ERROR");
-	label[2].Create(composite[1], W_NONE);
-	image = toolkit->GetSystemImage(W_ICON_INFORMATION);
-	label[2].SetImage(image);
-	label[3].Create(composite[1], W_NONE);
-	label[3].SetText("SWT.ICON_INFORMATION");
-	label[4].Create(composite[1], W_NONE);
-	image = toolkit->GetSystemImage(W_ICON_WARNING);
-	label[4].SetImage(image);
-	label[5].Create(composite[1], W_NONE);
-	label[5].SetText("SWT.ICON_WARNING");
-	label[6].Create(composite[1], W_NONE);
-	image = toolkit->GetSystemImage(W_ICON_QUESTION);
-	label[6].SetImage(image);
-	label[7].Create(composite[1], W_NONE);
-	label[7].SetText("SWT.ICON_QUESTION");
-	this->AppendItem(item, "What is your favorite icon");
-	item.SetHeight(composite[1].ComputeSize(size, W_DEFAULT, W_DEFAULT).height);
-	item.SetControl(&composite[1]);
-	//item.SetImage(image);
+	for (int i = 0; i < length_1; i++) {
+		label_1[2 * i].Create(composite, W_NONE);
+		image = MShell::GetImage16_(composite, images_1[i]);
+		label_1[2 * i].SetImage(image);
+		label_1[2 * i + 1].Create(composite, W_NONE);
+		label_1[2 * i + 1].SetText(names_1[i]);
+	}
+}
 
-	// Third item
-	composite[2].Create(this, W_NONE);
+void TExpandBarDemo::Create_2(WComposite *composite) {
 	layout[2].numColumns = 2;
 	layout[2].marginLeft = layout[2].marginTop = layout[2].marginRight =
 			layout[2].marginBottom = 10;
 	layout[2].verticalSpacing = 10;
-	composite[2].SetLayout(layout[2]);
-	label[8].Create(composite[2], W_NONE);
-	label[8].SetText("Scale");
-	scale.Create(&composite[2], W_NONE);
-	label[9].Create(composite[2], W_NONE);
-	label[0].SetText("Spinner");
-	spinner.Create(&composite[2], W_BORDER);
-	label[10].Create(composite[2], W_NONE);
-	label[10].SetText("Slider");
-	slider.Create(&composite[2], W_NONE);
-	this->AppendItem(item, "What is your favorite range widget");
-	item.SetHeight(composite[2].ComputeSize(size, W_DEFAULT, W_DEFAULT).height);
-	item.SetControl(&composite[2]);
-	//item.setImage(image);
-
+	label_2[0].Create(composite, W_NONE);
+	label_2[0].SetText("Scale");
+	scale_2.Create(composite, W_SCALE);
+	label_2[1].Create(composite, W_NONE);
+	label_2[1].SetText("Spinner");
+	spinner_2.Create(composite, W_BORDER);
+	label_2[2].Create(composite, W_NONE);
+	label_2[2].SetText("Slider");
+	slider_2.Create(composite, W_NONE);
 }

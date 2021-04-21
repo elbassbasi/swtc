@@ -89,6 +89,7 @@ wresult _w_control_create_droptarget(w_control *control,
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_DRAG_DETECT;
 	w_composite *parent = _W_CONTROL(widget)->parent;
+
 	_W_WIDGET_PRIV(priv)->check_orientation(widget, W_WIDGET(parent), priv);
 	wresult ret = _w_widget_create_widget(widget, priv);
 	if (ret < 0)
@@ -101,6 +102,10 @@ wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 	if ((_W_WIDGET(widget)->state & STATE_PARENT_BACKGROUND) != 0)
 		priv->set_parent_background(W_CONTROL(widget), priv);
 	priv->check_buffered(W_CONTROL(widget), priv);
+	if (parent != 0) {
+		_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
+		_W_COMPOSITE_PRIV(ppriv)->add_child(W_CONTROL(parent), widget, ppriv);
+	}
 	priv->show_widget(W_CONTROL(widget), priv);
 	priv->set_initial_bounds(W_CONTROL(widget), priv);
 	priv->set_zorder(W_CONTROL(widget), 0, ZORDER_FIX_CHILDREN, priv);
@@ -846,11 +851,6 @@ void _w_control_show_widget(w_control *control, _w_control_priv *priv) {
 	_W_WIDGET(control)->state |= STATE_ZERO_WIDTH | STATE_ZERO_HEIGHT;
 	GtkWidget *topHandle = _W_WIDGET_PRIV(priv)->handle_top(W_WIDGET(control),
 			priv);
-	w_composite *parent = _W_CONTROL(control)->parent;
-	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
-	GtkWidget *parentHandle = _W_COMPOSITE_PRIV(ppriv)->handle_parenting(
-			W_WIDGET(parent), ppriv);
-	gtk_container_add(GTK_CONTAINER(parentHandle), topHandle);
 	GtkWidget *fixedHandle = priv->handle_fixed(W_WIDGET(control), priv);
 	if (_W_WIDGET(control)->handle != 0
 			&& _W_WIDGET(control)->handle != topHandle)

@@ -10,6 +10,15 @@
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+void _w_composite_add_child(w_control *composite, w_widget *child,
+		_w_control_priv *priv) {
+	_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(child);
+	GtkWidget *topHandle = _W_WIDGET_PRIV(cpriv)->handle_top(W_WIDGET(child),
+			cpriv);
+	GtkWidget *parentHandle = _W_COMPOSITE_PRIV(priv)->handle_parenting(
+			W_WIDGET(composite), priv);
+	gtk_container_add(GTK_CONTAINER(parentHandle), topHandle);
+}
 wresult _w_composite_create_handle_0(w_widget *composite, GtkWidget **fixed,
 		GtkWidget **scrolled, GtkWidget **handle, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(composite)->style;
@@ -510,11 +519,14 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	_W_WIDGET_PRIV(priv)->create_handle = _w_composite_create_handle;
 	_W_WIDGET_PRIV(priv)->get_client_area = _w_composite_get_client_area;
 	_W_WIDGET_PRIV(priv)->hook_events = _w_composite_hook_events;
+	_W_WIDGET_PRIV(priv)->handle_top = _w_composite_handle_fixed;
+	_W_WIDGET_PRIV(priv)->compute_size = _w_composite_compute_size;
 	priv->handle_fixed = _w_composite_handle_fixed;
 	priv->mark_layout = _w_composite_mark_layout;
 	priv->update_layout = _w_composite_update_layout;
 	priv->set_bounds_0 = _w_composite_set_bounds_0;
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_composite_handle_scrolled;
+	_W_COMPOSITE_PRIV(priv)->add_child = _w_composite_add_child;
 	_W_COMPOSITE_PRIV(priv)->has_border = _w_composite_has_border;
 	_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_composite_handle_parenting;
 	_W_COMPOSITE_PRIV(priv)->find_deferred_control =
