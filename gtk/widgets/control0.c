@@ -313,35 +313,39 @@ wresult _w_control_has_focus(w_control *control, _w_control_priv *priv) {
 	return control == _w_toolkit_get_focus_control(W_TOOLKIT(gtk_toolkit));
 }
 void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
+	_gtk_signal *signals = gtk_toolkit->signals;
 	/* Connect the keyboard signals */
 	GtkWidget *focusHandle = priv->handle_focus(widget, priv);
 	int focusMask = GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK
 			| GDK_FOCUS_CHANGE_MASK;
 	gtk_widget_add_events(focusHandle, focusMask);
-	_w_widget_connect(focusHandle, SIGNAL_POPUP_MENU, 0, FALSE);
-	_w_widget_connect(focusHandle, SIGNAL_SHOW_HELP, 0, FALSE);
-	_w_widget_connect(focusHandle, SIGNAL_KEY_PRESS_EVENT, 0, FALSE);
-	_w_widget_connect(focusHandle, SIGNAL_KEY_RELEASE_EVENT, 0, FALSE);
-	_w_widget_connect(focusHandle, SIGNAL_FOCUS, 0, FALSE);
-	_w_widget_connect(focusHandle, SIGNAL_FOCUS_IN_EVENT, 0, FALSE);
-	_w_widget_connect(focusHandle, SIGNAL_FOCUS_OUT_EVENT, 0, FALSE);
+	_w_widget_connect(focusHandle, &signals[SIGNAL_POPUP_MENU], FALSE);
+	_w_widget_connect(focusHandle, &signals[SIGNAL_SHOW_HELP], FALSE);
+	_w_widget_connect(focusHandle, &signals[SIGNAL_KEY_PRESS_EVENT], FALSE);
+	_w_widget_connect(focusHandle, &signals[SIGNAL_KEY_RELEASE_EVENT], FALSE);
+	_w_widget_connect(focusHandle, &signals[SIGNAL_FOCUS], FALSE);
+	_w_widget_connect(focusHandle, &signals[SIGNAL_FOCUS_IN_EVENT], FALSE);
+	_w_widget_connect(focusHandle, &signals[SIGNAL_FOCUS_OUT_EVENT], FALSE);
 	/* Connect the mouse signals */
 	GtkWidget *eventHandle = priv->handle_event(widget, priv);
 	int eventMask = GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK
 			| GDK_BUTTON_RELEASE_MASK | GDK_SCROLL_MASK
 			| GDK_SMOOTH_SCROLL_MASK;
 	gtk_widget_add_events(eventHandle, eventMask);
-	_w_widget_connect(eventHandle, SIGNAL_BUTTON_PRESS_EVENT, 0, FALSE);
-	_w_widget_connect(eventHandle, SIGNAL_BUTTON_RELEASE_EVENT, 0, FALSE);
-	_w_widget_connect(eventHandle, SIGNAL_MOTION_NOTIFY_EVENT, 0, FALSE);
-	_w_widget_connect(eventHandle, SIGNAL_SCROLL_EVENT, 0, FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT], FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_BUTTON_RELEASE_EVENT],
+			FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_MOTION_NOTIFY_EVENT], FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_SCROLL_EVENT], FALSE);
 
 	/* Connect enter/exit signals */
 	GtkWidget *enterExitHandle = priv->handle_enterexit(widget, priv);
 	int enterExitMask = GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK;
 	gtk_widget_add_events(enterExitHandle, enterExitMask);
-	_w_widget_connect(enterExitHandle, SIGNAL_ENTER_NOTIFY_EVENT, 0, FALSE);
-	_w_widget_connect(enterExitHandle, SIGNAL_LEAVE_NOTIFY_EVENT, 0, FALSE);
+	_w_widget_connect(enterExitHandle, &signals[SIGNAL_ENTER_NOTIFY_EVENT],
+			FALSE);
+	_w_widget_connect(enterExitHandle, &signals[SIGNAL_LEAVE_NOTIFY_EVENT],
+			FALSE);
 	/*
 	 * Feature in GTK.  Events such as mouse move are propagate up
 	 * the widget hierarchy and are seen by the parent.  This is the
@@ -354,42 +358,39 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 	 */
 	GtkWidget *fixedHandle = priv->handle_fixed(widget, priv);
 	GtkWidget *blockHandle = fixedHandle != 0 ? fixedHandle : eventHandle;
-	_w_widget_connect(blockHandle, SIGNAL_BUTTON_PRESS_EVENT, 0, TRUE);
-	_w_widget_connect(blockHandle, SIGNAL_BUTTON_RELEASE_EVENT, 0, TRUE);
-	_w_widget_connect(blockHandle, SIGNAL_MOTION_NOTIFY_EVENT, 0, TRUE);
+	_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT], TRUE);
+	_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_RELEASE_EVENT], TRUE);
+	_w_widget_connect(blockHandle, &signals[SIGNAL_MOTION_NOTIFY_EVENT], TRUE);
 	/* Connect the event_after signal for both key and mouse */
-	_w_widget_connect(eventHandle, SIGNAL_EVENT_AFTER, 0, FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_EVENT_AFTER], FALSE);
 	if (focusHandle != eventHandle) {
-		_w_widget_connect(focusHandle, SIGNAL_EVENT_AFTER, 0, FALSE);
+		_w_widget_connect(focusHandle, &signals[SIGNAL_EVENT_AFTER], FALSE);
 	}
 
 	/* Connect the paint signal */
 	GtkWidget *paintHandle = priv->handle_paint(widget, priv);
 	int paintMask = GDK_EXPOSURE_MASK;
 	gtk_widget_add_events(paintHandle, paintMask);
-	_w_widget_connect(paintHandle, SIGNAL_EXPOSE_EVENT_INVERSE, 0, FALSE);
-	_w_widget_connect(paintHandle, SIGNAL_EXPOSE_EVENT, 0, TRUE);
+	_w_widget_connect(paintHandle, &signals[SIGNAL_EXPOSE_EVENT_INVERSE],
+			FALSE);
+	_w_widget_connect(paintHandle, &signals[SIGNAL_EXPOSE_EVENT], TRUE);
 	/* Connect the Input Method signals */
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_REALIZE, 0,
+	_w_widget_connect(_W_WIDGET(widget)->handle, &signals[SIGNAL_REALIZE],
 	TRUE);
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_UNREALIZE, 0,
+	_w_widget_connect(_W_WIDGET(widget)->handle, &signals[SIGNAL_UNREALIZE],
 	FALSE);
 	GtkIMContext *imHandle = priv->handle_im(widget, priv);
 	if (imHandle != 0) {
-		if (gtk_toolkit->signal_id[SIGNAL_COMMIT] == 0) {
-			gtk_toolkit->signal_id[SIGNAL_COMMIT] = g_signal_lookup("commit",
-			GTK_TYPE_IM_CONTEXT);
-			gtk_toolkit->signal_id[SIGNAL_PREEDIT_CHANGED] = g_signal_lookup(
-					"preedit-changed", GTK_TYPE_IM_CONTEXT);
-		}
-		_w_widget_connect((GtkWidget*) imHandle, SIGNAL_COMMIT, 0, FALSE);
-		_w_widget_connect((GtkWidget*) imHandle, SIGNAL_PREEDIT_CHANGED, 0,
-		FALSE);
+		_w_widget_connect((GtkWidget*) imHandle, &signals[SIGNAL_COMMIT],
+				FALSE);
+		_w_widget_connect((GtkWidget*) imHandle,
+				&signals[SIGNAL_PREEDIT_CHANGED],
+				FALSE);
 	}
-	_w_widget_connect(paintHandle, SIGNAL_STYLE_SET, 0, FALSE);
+	_w_widget_connect(paintHandle, &signals[SIGNAL_STYLE_SET], FALSE);
 	GtkWidget *topHandle = _W_WIDGET_PRIV(priv)->handle_top(widget, priv);
-	_w_widget_connect(topHandle, SIGNAL_MAP, 0, TRUE);
-	_w_widget_connect(topHandle, SIGNAL_DESTROY, 0, TRUE);
+	_w_widget_connect(topHandle, &signals[SIGNAL_MAP], TRUE);
+	_w_widget_connect(topHandle, &signals[SIGNAL_DESTROY], TRUE);
 #if GTK3
 	/*if (enterNotifyEventSignalId == 0 && GTK_VERSION < VERSION(3, 11, 9)) {
 	 enterNotifyEventSignalId = g_signal_lookup("enter-notify-event",
@@ -1014,7 +1015,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = _W_WIDGET_PRIV(priv)->signals;
+	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
 	signals[SIGNAL_DESTROY] = _gtk_control_destroy;
 	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_control_button_press_event;
 	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_control_button_release_event;

@@ -97,36 +97,31 @@ void _w_scrollable_hook_events(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *scrolledHandle =
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled(widget, priv);
 	if (scrolledHandle != 0) {
-		if (gtk_toolkit->signal_id[SIGNAL_CHANGE_VALUE] == 0)
-			gtk_toolkit->signal_id[SIGNAL_CHANGE_VALUE] = g_signal_lookup(
-					"change-value", GTK_TYPE_SCROLLBAR);
-		if (gtk_toolkit->signal_id[SIGNAL_VALUE_CHANGED] == 0)
-			gtk_toolkit->signal_id[SIGNAL_VALUE_CHANGED] = g_signal_lookup(
-					"value-changed", GTK_TYPE_ADJUSTMENT);
+		_gtk_signal *signals = gtk_toolkit->signals;
 		GtkWidget *handle = gtk_scrolled_window_get_vscrollbar(
 				GTK_SCROLLED_WINDOW(scrolledHandle));
 		GtkAdjustment *adjustmentHandle = gtk_scrolled_window_get_vadjustment(
 				GTK_SCROLLED_WINDOW(scrolledHandle));
-		_w_widget_connect(handle, SIGNAL_CHANGE_VALUE, 0, FALSE);
-		_w_widget_connect((GtkWidget*) adjustmentHandle, SIGNAL_VALUE_CHANGED,
-				0, FALSE);
-		_w_widget_connect(handle, SIGNAL_EVENT_AFTER, 0, FALSE);
-		_w_widget_connect(handle, SIGNAL_BUTTON_PRESS_EVENT, 0, FALSE);
+		_w_widget_connect(handle, &signals[SIGNAL_CHANGE_VALUE], FALSE);
+		_w_widget_connect((GtkWidget*) adjustmentHandle,
+				&signals[SIGNAL_VALUE_CHANGED], FALSE);
+		_w_widget_connect(handle, &signals[SIGNAL_EVENT_AFTER], FALSE);
+		_w_widget_connect(handle, &signals[SIGNAL_BUTTON_PRESS_EVENT], FALSE);
 		handle = gtk_scrolled_window_get_hscrollbar(
 				GTK_SCROLLED_WINDOW(scrolledHandle));
 		adjustmentHandle = gtk_scrolled_window_get_hadjustment(
 				GTK_SCROLLED_WINDOW(scrolledHandle));
-		_w_widget_connect(handle, SIGNAL_CHANGE_VALUE, 0, FALSE);
-		_w_widget_connect((GtkWidget*) adjustmentHandle, SIGNAL_VALUE_CHANGED,
-				0, FALSE);
-		_w_widget_connect(handle, SIGNAL_EVENT_AFTER, 0, FALSE);
-		_w_widget_connect(handle, SIGNAL_BUTTON_PRESS_EVENT, 0, FALSE);
+		_w_widget_connect(handle, &signals[SIGNAL_CHANGE_VALUE], FALSE);
+		_w_widget_connect((GtkWidget*) adjustmentHandle,
+				&signals[SIGNAL_VALUE_CHANGED], FALSE);
+		_w_widget_connect(handle, &signals[SIGNAL_EVENT_AFTER], FALSE);
+		_w_widget_connect(handle, &signals[SIGNAL_BUTTON_PRESS_EVENT], FALSE);
 	}
 }
 wresult _w_scrollable_get_client_area(w_widget *widget, w_event_client_area *e,
 		_w_control_priv *priv) {
 	GtkAllocation allocation;
-	//priv->force_resize(W_CONTROL(widget), priv);
+	priv->force_resize(W_CONTROL(widget), priv);
 	GtkWidget *clientHandle = priv->handle_client(widget, priv);
 	gtk_widget_get_allocation(clientHandle, &allocation);
 	e->rect->x = allocation.x;

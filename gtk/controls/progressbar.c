@@ -100,7 +100,8 @@ gboolean _gtk_progressbar_realize(w_widget *widget, _w_event_platform *e,
 }
 wresult _w_progressbar_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv) {
-	return _w_control_compute_size(widget, e, priv);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	return _w_control_compute_native_size(widget, handle, e, priv);
 }
 void _w_progressbar_class_init(struct _w_progressbar_class *clazz) {
 	_w_control_class_init(W_CONTROL_CLASS(clazz));
@@ -128,7 +129,7 @@ void _w_progressbar_class_init(struct _w_progressbar_class *clazz) {
 	/*
 	 * signal
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 	signals[SIGNAL_REALIZE] = _gtk_progressbar_realize;
 }
 

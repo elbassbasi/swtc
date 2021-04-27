@@ -225,6 +225,28 @@ w_composite* _w_composite_find_deferred_control(w_control *composite,
 				W_CONTROL(parent), ppriv);
 	}
 }
+void _w_composite_fix_zorder(w_composite *composite, _w_control_priv *priv) {
+	if ((_W_WIDGET(composite)->state & STATE_CANVAS) != 0)
+		return;
+	GtkWidget *parentHandle = _W_COMPOSITE_PRIV(priv)->handle_parenting(
+			W_WIDGET(composite), priv);
+	GdkWindow *parentWindow = gtk_widget_get_window(parentHandle);
+	if (parentWindow == 0)
+		return;
+	GdkWindow *redrawWindow = priv->window_redraw(W_WIDGET(composite), priv);
+	void *userData;
+	GList *windows = gdk_window_peek_children(parentWindow);
+	while (windows != 0) {
+		GdkWindow *window = (GdkWindow*) windows->data;
+		if (window != redrawWindow) {
+			gdk_window_get_user_data(window, &userData);
+			if (userData == 0 || !_W_IS_FIXED(userData)) {
+				gdk_window_lower(window);
+			}
+		}
+		windows = windows->next;
+	}
+}
 GtkWidget* _w_composite_handle_parenting(w_widget *control,
 		_w_control_priv *priv) {
 	if ((_W_WIDGET(control)->state & STATE_CANVAS) != 0)
@@ -361,6 +383,12 @@ wresult _w_composite_get_children(w_composite *composite, w_iterator *it) {
 	iter->tablist = 0;
 	return W_TRUE;
 }
+int _w_composite_get_children_count(w_composite *composite) {
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(composite);
+	_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
+			W_WIDGET(composite), priv);
+	return fixed->count;
+}
 wresult _w_composite_get_layout(w_composite *composite, w_layout **layout) {
 	*layout = _W_COMPOSITE(composite)->layout;
 	return W_TRUE;
@@ -382,13 +410,9 @@ void _w_composite_hook_events(w_widget *widget, _w_control_priv *priv) {
 		GtkWidget *scrolledHandle =
 		_W_SCROLLABLE_PRIV(priv)->handle_scrolled(widget, priv);
 		if (scrolledHandle != 0) {
-			if (_W_COMPOSITE_PRIV(priv)->signal_scroll_child == 0) {
-				_W_COMPOSITE_PRIV(priv)->signal_scroll_child = g_signal_lookup(
-						"scroll-child", G_TYPE_FROM_INSTANCE(scrolledHandle));
-			}
-			_w_widget_connect(scrolledHandle, SIGNAL_SCROLL_CHILD,
-			_W_COMPOSITE_PRIV(priv)->signal_scroll_child,
-			FALSE);
+			_w_widget_connect(scrolledHandle,
+					&gtk_toolkit->signals[SIGNAL_SCROLL_CHILD],
+					FALSE);
 		}
 	}
 }
@@ -478,6 +502,12 @@ void _w_composite_update_layout(w_control *control, int flags,
 /*
  * signals
  */
+gboolean _gtk_composite_destroy(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	return _gtk_control_destroy(widget, e, priv);
+
+}
+
 gboolean _gtk_composite_button_press_event(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv) {
 	gboolean result = _gtk_scrollable_button_press_event(widget, e, priv);
@@ -487,10 +517,129 @@ gboolean _gtk_composite_button_press_event(w_widget *widget,
 		if ((_W_WIDGET(widget)->style & W_NO_FOCUS) == 0) {
 			GdkEventButton *gdkEvent = (GdkEventButton*) e->args[0];
 			if (gdkEvent->button == 1) {
-				//if (_w_composite_get_children_count(W_COMPOSITE(widget)) == 0)
-				//	W_CONTROL_GET_CLASS(widget)->set_focus(W_CONTROL(widget));
+				if (_w_composite_get_children_count(W_COMPOSITE(widget)) == 0)
+					W_CONTROL_GET_CLASS(widget)->set_focus(W_CONTROL(widget));
 			}
 		}
+	}
+	return result;
+}
+gboolean _gtk_composite_draw(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+#if USE_CAIRO
+	if (GTK_VERSION >= VERSION(3, 16, 0)) {
+		GtkStyleContext *context = gtk_widget_get_style_context(e->widget);
+		GtkAllocation allocation;
+		gtk_widget_get_allocation(e->widget, &allocation);
+		int width =
+				(_W_WIDGET(widget)->state & STATE_ZERO_WIDTH) != 0 ?
+						0 : allocation.width;
+		int height =
+				(_W_WIDGET(widget)->state & STATE_ZERO_HEIGHT) != 0 ?
+						0 : allocation.height;
+// We specify a 0 value for x & y as we want the whole widget to be
+// colored, not some portion of it.
+		gtk_render_background(context, (cairo_t*) e->args[0], 0, 0, width,
+				height);
+	}
+	return _gtk_control_draw(widget, e, priv);
+#else
+#endif
+}
+
+gboolean _gtk_composite_key_press_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	gboolean result = _gtk_control_key_press_event(widget, e, priv);
+	if (result != 0)
+		return result;
+	/*
+	 * Feature in GTK.  The default behavior when the return key
+	 * is pressed is to select the default button.  This is not the
+	 * expected behavior for Composite and its subclasses.  The
+	 * fix is to avoid calling the default handler.
+	 */
+	GtkWidget *socketHandle = 0;
+	if ((_W_WIDGET(widget)->state & STATE_CANVAS) != 0 && socketHandle == 0) {
+		GdkEventKey *keyEvent = (GdkEventKey*) e->args[0];
+		int key = keyEvent->keyval;
+		switch (key) {
+		case GDK_KEY_Return:
+		case GDK_KEY_KP_Enter:
+			return TRUE;
+		}
+	}
+	return result;
+}
+
+gboolean _gtk_composite_focus(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	GtkWidget *socketHandle = 0;
+	if (e->widget == socketHandle)
+		return 0;
+	return _gtk_control_focus(widget, e, priv);
+}
+
+gboolean _gtk_composite_focus_in_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	gboolean result = _gtk_control_focus_in_event(widget, e, priv);
+	return (_W_WIDGET(widget)->state & STATE_CANVAS) != 0 ? TRUE : result;
+}
+
+gboolean _gtk_composite_focus_out_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	gboolean result = _gtk_control_focus_out_event(widget, e, priv);
+	return (_W_WIDGET(widget)->state & STATE_CANVAS) != 0 ? TRUE : result;
+}
+
+gboolean _gtk_composite_map(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	_w_composite_fix_zorder(W_COMPOSITE(widget), priv);
+	return FALSE;
+}
+
+gboolean _gtk_composite_realize(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	gboolean result = _gtk_control_realize(widget, e, priv);
+	;
+	if ((_W_WIDGET(widget)->style & W_NO_BACKGROUND) != 0) {
+		GtkWidget *paintHandle = priv->handle_paint(widget, priv);
+		GdkWindow *window = gtk_widget_get_window(paintHandle);
+		if (window != 0) {
+#if GTK3
+			gdk_window_set_background_pattern(window, 0);
+#endif
+#if GTK2
+#endif
+		}
+	}
+	/*if (socketHandle != 0) {
+	 embeddedHandle = OS.gtk_socket_get_id(socketHandle);
+	 }*/
+	return result;
+}
+
+gboolean _gtk_composite_scroll_child(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	/* Stop GTK scroll child signal for canvas */
+	g_signal_stop_emission(e->widget,
+			gtk_toolkit->signals[SIGNAL_SCROLL_CHILD].id, 0);
+	return TRUE;
+}
+
+gboolean _gtk_composite_style_set(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	gboolean result = _gtk_control_style_set(widget, e, priv);
+	if ((_W_WIDGET(widget)->style & W_NO_BACKGROUND) != 0) {
+		GtkWidget *paintHandle = priv->handle_paint(widget, priv);
+		GdkWindow *window = gtk_widget_get_window(paintHandle);
+#if GTK3
+		/*if (window != 0)
+		 gdk_window_set_back_pixmap(window, 0, FALSE);*/
+#endif
+#if GTK2
+		if (window != 0)
+			gdk_window_set_back_pixmap(window, 0, FALSE);
+#endif
 	}
 	return result;
 }

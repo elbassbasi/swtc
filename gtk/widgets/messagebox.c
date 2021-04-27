@@ -14,11 +14,12 @@ gboolean _w_messagebox_emission_proc(GSignalInvocationHint *ihint,
 	}
 	return 1;
 }
-void _w_messagebox_create_buttons(GtkWindow *handle,
-		w_messagebox *messagebox, int style, int alignment) {
+void _w_messagebox_create_buttons(GtkWindow *handle, w_messagebox *messagebox,
+		int style, int alignment) {
 	if (alignment == W_LEFT) {
 		if ((style & (1 << 5) /* W_OK*/) != 0) //W_OK
-			gtk_dialog_add_button(GTK_DIALOG(handle), "gtk-ok", (1 << 5) /* W_OK*/);
+			gtk_dialog_add_button(GTK_DIALOG(handle), "gtk-ok",
+					(1 << 5) /* W_OK*/);
 //	 if ((style & W_ABORT) != 0) gtk_dialog_add_button(GTK_DIALOG(handle), Converter.wcsToMbcs (W_getMessage("SWT_Abort"), true), W_ABORT);
 //	 if ((style & W_RETRY) != 0) gtk_dialog_add_button(GTK_DIALOG(handle), Converter.wcsToMbcs (W_getMessage("SWT_Retry"), true), W_RETRY);
 		if ((style & W_YES) != 0)
@@ -32,7 +33,8 @@ void _w_messagebox_create_buttons(GtkWindow *handle,
 		if ((style & W_CANCEL) != 0)
 			gtk_dialog_add_button(GTK_DIALOG(handle), "gtk-cancel", W_CANCEL);
 		if ((style & (1 << 5) /* W_OK*/) != 0) //W_OK
-			gtk_dialog_add_button(GTK_DIALOG(handle), "gtk-ok", (1 << 5) /* W_OK*/);
+			gtk_dialog_add_button(GTK_DIALOG(handle), "gtk-ok",
+					(1 << 5) /* W_OK*/);
 		if ((style & W_NO) != 0)
 			gtk_dialog_add_button(GTK_DIALOG(handle), "gtk-no", W_NO);
 		if ((style & W_YES) != 0)
@@ -44,10 +46,11 @@ void _w_messagebox_create_buttons(GtkWindow *handle,
 }
 
 wuint64 _w_messagebox_check_style(wuint64 style) {
-	wuint64 mask = (W_YES | W_NO | (1 << 5) /* W_OK*/ | W_CANCEL | W_ABORT | W_RETRY
-			| W_IGNORE);
+	wuint64 mask = (W_YES | W_NO | (1 << 5) /* W_OK*/| W_CANCEL | W_ABORT
+			| W_RETRY | W_IGNORE);
 	wuint64 bits = style & mask;
-	if (bits == (1 << 5) /* W_OK*/ || bits == W_CANCEL || bits == ((1 << 5) /* W_OK*/ | W_CANCEL))
+	if (bits == (1 << 5) /* W_OK*/|| bits == W_CANCEL
+			|| bits == ((1 << 5) /* W_OK*/| W_CANCEL))
 		return style;
 	if (bits == W_YES || bits == W_NO || bits == (W_YES | W_NO)
 			|| bits == (W_YES | W_NO | W_CANCEL))
@@ -124,7 +127,7 @@ wresult _w_messagebox_open(w_toolkit *toolkit, w_messagebox *messagebox) {
 	int signalId = 0;
 	long hookId = 0;
 	if ((style & W_RIGHT_TO_LEFT) != 0) {
-		signalId = gtk_toolkit->signal_id[SIGNAL_MAP];
+		signalId = gtk_toolkit->signals[SIGNAL_MAP].id;
 		hookId = g_signal_add_emission_hook(signalId, 0,
 				_w_messagebox_emission_proc, handle, 0);
 	}
@@ -148,6 +151,4 @@ wresult _w_messagebox_open(w_toolkit *toolkit, w_messagebox *messagebox) {
 	gtk_widget_destroy(GTK_WIDGET(handle));
 	return response;
 }
-
-
 

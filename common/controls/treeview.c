@@ -22,22 +22,6 @@ wresult w_treeitem_clear_all(w_treeitem *item, int all) {
 	} else
 		return result;
 }
-wresult w_treeitem_get_bounds(w_treeitem *item, w_rect *bounds) {
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_bounds(item, bounds);
-	} else {
-		memset(bounds, 0, sizeof(w_rect));
-		return result;
-	}
-}
-wresult w_treeitem_get_checked(w_treeitem *item) {
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_checked(item);
-	} else
-		return result;
-}
 wresult w_treeitem_get_expanded(w_treeitem *item) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
@@ -46,27 +30,19 @@ wresult w_treeitem_get_expanded(w_treeitem *item) {
 		return result;
 }
 wresult w_treeitem_get_first_child(w_treeitem *item, w_treeitem *child) {
-	w_widgetdata_close(W_WIDGETDATA(child));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_first_child(item, child);
-	} else
-		return result;
+	return w_treeitem_get_item_0(item, -1, child, W_TREEITEM_FIRST);
 }
-wresult w_treeitem_get_grayed(w_treeitem *item) {
+wresult w_treeitem_get_item_0(w_treeitem *item, int index, w_treeitem *subitem,
+		int flags) {
+	w_widgetdata_close(W_WIDGETDATA(subitem));
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_grayed(item);
+		return W_TREEITEM_GET_CLASS(item)->get_item(item, index, subitem, flags);
 	} else
 		return result;
 }
 wresult w_treeitem_get_item(w_treeitem *item, int index, w_treeitem *subitem) {
-	w_widgetdata_close(W_WIDGETDATA(subitem));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_item(item, index, subitem);
-	} else
-		return result;
+	return w_treeitem_get_item_0(item, index, subitem, W_TREEITEM_INDEX);
 }
 wresult w_treeitem_get_item_count(w_treeitem *item) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
@@ -83,85 +59,44 @@ wresult w_treeitem_get_items(w_treeitem *item, w_iterator *items) {
 	} else
 		return result;
 }
-wresult w_treeitem_get_image(w_treeitem *item) {
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_image(item);
-	} else
-		return result;
-}
 wresult w_treeitem_get_last_child(w_treeitem *item, w_treeitem *child) {
-	w_widgetdata_close(W_WIDGETDATA(child));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_last_child(item, child);
-	} else
-		return result;
+	return w_treeitem_get_item_0(item, -1, child, W_TREEITEM_LAST);
 }
 wresult w_treeitem_get_next_sibling(w_treeitem *item, w_treeitem *next) {
-	w_widgetdata_close(W_WIDGETDATA(next));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_next_sibling(item, next);
-	} else
-		return result;
+	return w_treeitem_get_item_0(item, -1, next, W_TREEITEM_NEXT);
 }
 wresult w_treeitem_get_parent_item(w_treeitem *item, w_treeitem *parent) {
-	w_widgetdata_close(W_WIDGETDATA(parent));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_parent_item(item, parent);
-	} else
-		return result;
+	return w_treeitem_get_item_0(item, -1, parent, W_TREEITEM_PARENT);
 }
 wresult w_treeitem_get_prev_sibling(w_treeitem *item, w_treeitem *prev) {
-	w_widgetdata_close(W_WIDGETDATA(prev));
+	return w_treeitem_get_item_0(item, -1, prev, W_TREEITEM_PREV);
+}
+wresult w_treeitem_insert_item_0(w_treeitem *item, w_treeitem *subitem,
+		int index, w_treeitem *after, int flags) {
+	w_widgetdata_close(W_WIDGETDATA(subitem));
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->get_prev_sibling(item, prev);
+		return W_TREEITEM_GET_CLASS(item)->insert_item(item, subitem, index,
+				after, flags);
 	} else
 		return result;
 }
 wresult w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
 		int index) {
-	w_widgetdata_close(W_WIDGETDATA(subitem));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->insert_item(item, subitem, index);
-	} else
-		return result;
+	return w_treeitem_insert_item_0(item, subitem, index, 0, W_TREEITEM_INDEX);
 }
 wresult w_treeitem_insert_item_after(w_treeitem *item, w_treeitem *subitem,
 		w_treeitem *after) {
-	w_widgetdata_close(W_WIDGETDATA(subitem));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->insert_item_after(item, subitem,
-				after);
-	} else
-		return result;
+	return w_treeitem_insert_item_0(item, subitem, -1, after, W_TREEITEM_AFTER);
 }
 wresult w_treeitem_insert_item_before(w_treeitem *item, w_treeitem *subitem,
 		w_treeitem *before) {
-	w_widgetdata_close(W_WIDGETDATA(subitem));
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->insert_item_before(item, subitem,
-				before);
-	} else
-		return result;
+	return w_treeitem_insert_item_0(item, subitem, -1, before, W_TREEITEM_AFTER);
 }
 wresult w_treeitem_remove_all(w_treeitem *item) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
 		return W_TREEITEM_GET_CLASS(item)->remove_all(item);
-	} else
-		return result;
-}
-wresult w_treeitem_set_checked(w_treeitem *item, int checked) {
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->set_checked(item, checked);
 	} else
 		return result;
 }
@@ -172,24 +107,10 @@ wresult w_treeitem_set_expanded(w_treeitem *item, int expanded) {
 	} else
 		return result;
 }
-wresult w_treeitem_set_grayed(w_treeitem *item, int grayed) {
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->set_grayed(item, grayed);
-	} else
-		return result;
-}
 wresult w_treeitem_set_has_children(w_treeitem *item) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
 		return W_TREEITEM_GET_CLASS(item)->set_has_children(item);
-	} else
-		return result;
-}
-wresult w_treeitem_set_image(w_treeitem *item, int image) {
-	wresult result = W_WIDGETDATA_CHECK0(item);
-	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->set_image(item, image);
 	} else
 		return result;
 }

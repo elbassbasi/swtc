@@ -489,7 +489,7 @@ void _w_sash_class_init(struct _w_sash_class *clazz) {
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_sash_button_press_event;
 	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_sash_button_release_event;
 	signals[SIGNAL_DRAW] = _gtk_sash_draw;

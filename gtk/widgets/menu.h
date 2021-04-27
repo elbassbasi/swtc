@@ -38,8 +38,8 @@ typedef struct _w_menuitem {
 typedef struct _w_menu_priv _w_menu_priv;
 struct _w_menu_priv {
 	_w_widget_priv widget;
-	int signal_activate_id;
-	int signal_select_id;
+	_gtk_signal signal_activate;
+	_gtk_signal signal_select;
 };
 #define _W_MENU_PRIV(x) ((_w_menu_priv*)x)
 #define _W_MENU_GET_PRIV(x) ((_w_menu_priv*)_w_widget_get_priv(W_WIDGET(x)))

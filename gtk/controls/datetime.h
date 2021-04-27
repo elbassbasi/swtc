@@ -20,13 +20,10 @@ typedef struct _w_datetime {
 	unsigned minutes :6;
 	unsigned seconds :6;
 } _w_datetime;
-
+#define _W_DATETIME_SIGNAL_COUNT 4
 typedef struct _w_datetime_priv {
 	_w_composite_priv composite;
-	guint signal_day_selected;
-	guint signal_day_selected_double_click;
-	guint signal_month_changed;
-	guint signal_output;
+	_gtk_signal signals[_W_DATETIME_SIGNAL_COUNT];
 } _w_datetime_priv;
 #define _W_DATETIME(x) ((_w_datetime*)x)
 #define _W_DATETIME_PRIV(x) ((_w_datetime_priv*)x)

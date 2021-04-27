@@ -6,6 +6,9 @@
  */
 #include "expandbar.h"
 #include "../widgets/toolkit.h"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 enum {
 	GQUARK_ITEM_DATA = 1, GQUARK_ITEM_HEIGTH = 2,
 };
@@ -489,5 +492,5 @@ void _w_expandbar_class_init(struct _w_expandbar_class *clazz) {
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 }

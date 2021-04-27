@@ -37,6 +37,7 @@ struct _w_shell {
 	w_menu *menubar;
 	GtkAccelGroup *accelGroup;
 	GtkWindowGroup *group;
+	w_control *lastActive;
 	unsigned center :1;
 	unsigned fullScreen :1;
 	unsigned mapped :1;
@@ -45,6 +46,7 @@ struct _w_shell {
 	unsigned moved :1;
 	unsigned resized :1;
 	unsigned showWithParent :1;
+	unsigned ignoreFocusOut :1;
 	int minWidth;
 	int minHeight;
 	w_rect oldbounds;
@@ -56,7 +58,7 @@ struct _w_shell {
 typedef struct _w_shell_priv _w_shell_priv;
 struct _w_shell_priv {
 	_w_canvas_priv canvas;
-	int move_focus_id;
+	_gtk_signal move_focus;
 };
 #define _W_SHELL_PRIV(x) ((_w_shell_priv*)x)
 #define _W_SHELL_GET_PRIV(x) ((_w_shell_priv*)_w_widget_get_priv(W_WIDGET(x)))

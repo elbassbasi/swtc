@@ -6,6 +6,9 @@
  */
 #include "combobox.h"
 #include "../widgets/toolkit.h"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #define LIMIT 0xFFFF
 /*
  * comboitem
@@ -726,5 +729,5 @@ void _w_combobox_class_init(struct _w_combobox_class *clazz) {
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 }

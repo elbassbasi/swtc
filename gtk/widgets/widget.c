@@ -345,8 +345,8 @@ wresult _w_widget_post_event(w_widget *widget, w_event *ee) {
 	}
 	return W_FALSE;
 }
-gboolean _w_widget_proc(GtkWidget *widget, int msg, void *args0, void *args1,
-		void *args2) {
+gboolean _w_widget_proc(GtkWidget *widget, _gtk_signal *signal, void *args0,
+		void *args1, void *args2) {
 	w_widget *cc = (w_widget*) g_object_get_qdata(G_OBJECT(widget),
 			gtk_toolkit->quark[0]);
 	if (cc == 0)
@@ -357,7 +357,8 @@ gboolean _w_widget_proc(GtkWidget *widget, int msg, void *args0, void *args1,
 		e.event.widget = cc;
 		e.event.platform_event = 0;
 		e.event.data = 0;
-		e.msg = msg;
+		e.msg = signal->msg;
+		e.signal = signal;
 		e.result = FALSE;
 		e.widget = widget;
 		e.args[0] = args0;
@@ -367,94 +368,114 @@ gboolean _w_widget_proc(GtkWidget *widget, int msg, void *args0, void *args1,
 		return e.result;
 	}
 }
-gboolean _w_widget_proc_2(GtkWidget *widget, void *msg) {
-	return _w_widget_proc(widget, (intptr_t) msg, 0, 0, 0);
+gboolean _w_widget_proc_2(GtkWidget *widget, _gtk_signal *signal) {
+	return _w_widget_proc(widget, signal, 0, 0, 0);
 }
-gboolean _w_widget_proc_3(GtkWidget *widget, void *args0, void *msg) {
-	return _w_widget_proc(widget, (intptr_t) msg, args0, 0, 0);
+gboolean _w_widget_proc_3(GtkWidget *widget, void *args0, _gtk_signal *signal) {
+	return _w_widget_proc(widget, signal, args0, 0, 0);
 }
 gboolean _w_widget_proc_4(GtkWidget *widget, void *args0, void *args1,
-		void *msg) {
-	return _w_widget_proc(widget, (intptr_t) msg, args0, args1, 0);
+		_gtk_signal *signal) {
+	return _w_widget_proc(widget, signal, args0, args1, 0);
 }
 gboolean _w_widget_proc_5(GtkWidget *widget, void *args0, void *args1,
-		void *args2, void *msg) {
-	return _w_widget_proc(widget, (intptr_t) msg, args0, args1, args2);
+		void *args2, _gtk_signal *signal) {
+	return _w_widget_proc(widget, signal, args0, args1, args2);
 }
-wuchar _gtk_signal_lookup[] = { //
-		SIGNAL_BUTTON_PRESS_EVENT, //
-				SIGNAL_DESTROY, //
-				SIGNAL_GRAB_FOCUS, //
-				SIGNAL_HIDE, //
-				SIGNAL_MAP, //
-				SIGNAL_POPUP_MENU, //
-				SIGNAL_REALIZE, //
-				SIGNAL_SHOW, //
-				SIGNAL_UNMAP, //
-				SIGNAL_UNREALIZE, //
-				SIGNAL_BUTTON_RELEASE_EVENT, //
-				SIGNAL_CONFIGURE_EVENT, //
-				SIGNAL_DELETE_EVENT, //
-				SIGNAL_ENTER_NOTIFY_EVENT, //
-				SIGNAL_EVENT_AFTER, //
-				SIGNAL_EXPOSE_EVENT, //
-				SIGNAL_EXPOSE_EVENT_INVERSE, //
-				SIGNAL_DRAW, //
-				SIGNAL_FOCUS, //
-				SIGNAL_FOCUS_IN_EVENT, //
-				SIGNAL_FOCUS_OUT_EVENT, //
-				SIGNAL_KEY_PRESS_EVENT, //
-				SIGNAL_KEY_RELEASE_EVENT, //
-				SIGNAL_LEAVE_NOTIFY_EVENT, //
-				SIGNAL_MAP_EVENT, //
-				SIGNAL_MNEMONIC_ACTIVATE, //
-				SIGNAL_MOTION_NOTIFY_EVENT, //
-				SIGNAL_SCROLL_EVENT, //
-				SIGNAL_SHOW_HELP, //
-				SIGNAL_SIZE_ALLOCATE, //
-				SIGNAL_STYLE_SET, //
-				SIGNAL_UNMAP_EVENT, //
-				SIGNAL_WINDOW_STATE_EVENT, //
-				SIGNAL_DRAG_DATA_GET, //
-				SIGNAL_DRAG_MOTION, //
-				SIGNAL_DRAG_DROP, //
-				SIGNAL_DRAG_LEAVE, //
-				SIGNAL_DRAG_DATA_RECEIVED, //
-				SIGNAL_DRAG_END, //
-				SIGNAL_DRAG_DATA_DELETE };
-void _w_widget_connect(GtkWidget *widget, wushort signal, wushort signal_id,
-		gboolean after) {
-	if (gtk_toolkit->closures[signal] == 0) {
-		GCallback callback;
-		if (signal >= SIGNAL_5_ARGS) {
-			callback = (GCallback) _w_widget_proc_5;
-		} else if (signal >= SIGNAL_4_ARGS) {
-			callback = (GCallback) _w_widget_proc_4;
-		} else if (signal >= SIGNAL_3_ARGS) {
-			callback = (GCallback) _w_widget_proc_3;
-		} else if (signal >= SIGNAL_2_ARGS) {
-			callback = (GCallback) _w_widget_proc_2;
-		}
-		gtk_toolkit->closures[signal] = g_cclosure_new(callback,
-				(gpointer) (long) signal, 0);
-		if (gtk_toolkit->closures[signal] == 0)
-			return;
+_gtk_signal_info _gtk_signal_lookup[] = { //
+		{ SIGNAL_DESTROY, 2, "destroy" }, //
+				{ SIGNAL_GRAB_FOCUS, 2, "grab-focus" }, //
+				{ SIGNAL_HIDE, 2, "hide" }, //
+				{ SIGNAL_MAP, 2, "map" }, //
+				{ SIGNAL_POPUP_MENU, 2, "popup-menu" }, //
+				{ SIGNAL_REALIZE, 2, "realize" }, //
+				{ SIGNAL_SHOW, 2, "show" }, //
+				{ SIGNAL_UNMAP, 2, "unmap" }, //
+				{ SIGNAL_UNREALIZE, 2, "unrealize" }, //
+				{ SIGNAL_BUTTON_PRESS_EVENT, 3, "button-press-event" }, //
+				{ SIGNAL_BUTTON_RELEASE_EVENT, 3, "button-release-event" }, //
+				{ SIGNAL_CONFIGURE_EVENT, 3, "configure-event" }, //
+				{ SIGNAL_DELETE_EVENT, 3, "delete-event" }, //
+				{ SIGNAL_ENTER_NOTIFY_EVENT, 3, "enter-notify-event" }, //
+				{ SIGNAL_EVENT_AFTER, 3, "event-after" }, //
+#ifdef GTK3
+				{ SIGNAL_EXPOSE_EVENT, 3, "draw" }, //
+				{ SIGNAL_EXPOSE_EVENT_INVERSE, 3, "draw" }, //
+				{ SIGNAL_DRAW, 3, "draw" }, //
+#endif
+				{ SIGNAL_FOCUS, 3, "focus" }, //
+				{ SIGNAL_FOCUS_IN_EVENT, 3, "focus-in-event" }, //
+				{ SIGNAL_FOCUS_OUT_EVENT, 3, "focus-out-event" }, //
+				{ SIGNAL_KEY_PRESS_EVENT, 3, "key-press-event" }, //
+				{ SIGNAL_KEY_RELEASE_EVENT, 3, "key-release-event" }, //
+				{ SIGNAL_LEAVE_NOTIFY_EVENT, 3, "leave-notify-event" }, //
+				{ SIGNAL_MAP_EVENT, 3, "map-event" }, //
+				{ SIGNAL_MNEMONIC_ACTIVATE, 3, "mnemonic-activate" }, //
+				{ SIGNAL_MOTION_NOTIFY_EVENT, 3, "motion-notify-event" }, //
+				{ SIGNAL_SCROLL_EVENT, 3, "scroll-event" }, //
+				{ SIGNAL_SHOW_HELP, 3, "show-help" }, //
+				{ SIGNAL_SIZE_ALLOCATE, 3, "size-allocate" }, //
+				{ SIGNAL_STYLE_SET, 3, "style-set" }, //
+				{ SIGNAL_UNMAP_EVENT, 3, "unmap-event" }, //
+				{ SIGNAL_WINDOW_STATE_EVENT, 3, "window-state-event" }, //
+				/* */
+				{ SIGNAL_SCROLL_CHILD, 3, "scroll-child" }, //
+				{ SIGNAL_DRAG_DATA_GET, 5, "drag_data_get" }, //
+				{ SIGNAL_DRAG_MOTION, 5, "drag_motion" }, //
+				{ SIGNAL_DRAG_DROP, 5, "drag_drop" }, //
+				{ SIGNAL_DRAG_LEAVE, 5, "drag_leave" }, //
+				{ SIGNAL_DRAG_DATA_RECEIVED, 5, "drag_data_received" }, //
+				{ SIGNAL_DRAG_END, 5, "drag_end" }, //
+				{ SIGNAL_DRAG_DATA_DELETE, 5, "drag_data_delete" }, };
+void _w_widget_init_signal_0() {
+	_gtk_signal *signals = gtk_toolkit->signals;
+	const int length = sizeof(_gtk_signal_lookup)
+			/ sizeof(_gtk_signal_lookup[0]);
+	for (int i = 0; i < length; i++) {
+		_gtk_signal_info *st = &_gtk_signal_lookup[i];
+		_gtk_signal *signal = &signals[st->msg];
+		signal->msg = st->msg;
+		signal->name = st->name;
+		signal->number_of_args = st->args;
 	}
-	if (signal_id == 0) {
-		if (gtk_toolkit->signal_id[_gtk_signal_lookup[0]] == 0) {
-			const int _gtk_signal_lookup_length = sizeof(_gtk_signal_lookup)
-					/ sizeof(_gtk_signal_lookup[0]);
-			for (int i = 0; i < _gtk_signal_lookup_length; i++) {
-				_gtk_signal_type _signal = _gtk_signal_lookup[i];
-				const char *_name = _gtk_signal_names[_signal];
-				gtk_toolkit->signal_id[_signal] = g_signal_lookup(_name,
-				GTK_TYPE_WIDGET);
+}
+void _w_widget_init_signal(_gtk_signal *signals, _gtk_signal_info *info,
+		int length) {
+	for (int i = 0; i < length; i++) {
+		signals[i].msg = info[i].msg;
+		signals[i].name = info[i].name;
+		signals[i].number_of_args = info[i].args;
+	}
+}
+void _w_widget_connect(GtkWidget *widget, _gtk_signal *signal, gboolean after) {
+	if (signal->closure == 0) {
+		GType type = ((GTypeInstance*) widget)->g_class->g_type;
+		signal->id = g_signal_lookup(signal->name, type);
+		if (signal->callback == 0) {
+			GCallback callback;
+			switch (signal->number_of_args) {
+			case 2:
+				callback = (GCallback) _w_widget_proc_2;
+				break;
+			case 3:
+				callback = (GCallback) _w_widget_proc_3;
+				break;
+			case 4:
+				callback = (GCallback) _w_widget_proc_4;
+				break;
+			case 5:
+				callback = (GCallback) _w_widget_proc_5;
+				break;
+			default:
+				callback = (GCallback) _w_widget_proc_2;
+				break;
 			}
+			signal->callback = callback;
 		}
-		signal_id = gtk_toolkit->signal_id[signal];
+		signal->closure = g_cclosure_new(signal->callback, signal, 0);
 	}
-	g_signal_connect_closure_by_id(widget, signal_id, 0,
-			gtk_toolkit->closures[signal], after);
+	g_signal_connect_closure_by_id(widget, signal->id, 0, signal->closure,
+			after);
 }
 gboolean _gtk_signal_null(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {

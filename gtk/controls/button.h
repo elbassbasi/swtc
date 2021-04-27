@@ -17,13 +17,12 @@ typedef struct _w_button {
 
 typedef struct _w_button_priv {
 	_w_control_priv control;
-	guint signal_clicked_id;
-
+	_gtk_signal signal_clicked;
 } _w_button_priv;
 #define _W_BUTTON(x) ((_w_button*)x)
 #define _W_BUTTON_PRIV(x) ((_w_button_priv*)x)
 
-wuint64 _w_button_check_style(w_widget* widget,wuint64 style);
+wuint64 _w_button_check_style(w_widget *widget, wuint64 style);
 void _w_button_select_radio_0(_w_fixed *t, _w_event_platform *e, int next);
 void _w_button_select_radio(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
@@ -34,12 +33,14 @@ wresult _w_button_get_alignment(w_button *button);
 wresult _w_button_get_grayed(w_button *button);
 wresult _w_button_get_image(w_button *button, w_image *image);
 wresult _w_button_get_selection(w_button *button);
-wresult _w_button_get_text(w_button *button, w_alloc alloc, void *user_data,int enc);
+wresult _w_button_get_text(w_button *button, w_alloc alloc, void *user_data,
+		int enc);
 wresult _w_button_set_alignment(w_button *button, int alignment);
 wresult _w_button_set_grayed(w_button *button, int grayed);
 wresult _w_button_set_image(w_button *button, w_image *image);
 wresult _w_button_set_selection(w_button *button, int selected);
-wresult _w_button_set_text(w_button *button, const char *text, int length,int enc);
+wresult _w_button_set_text(w_button *button, const char *text, int length,
+		int enc);
 /*
  *
  */

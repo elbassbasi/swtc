@@ -30,6 +30,7 @@ typedef struct _w_event_platform {
 	int result;
 	GtkWidget *widget;
 	void *args[6];
+	_gtk_signal *signal;
 } _w_event_platform;
 #define _W_EVENT_PLATFORM(x) ((_w_event_platform*)x)
 
@@ -50,7 +51,12 @@ typedef struct _w_widget {
  */
 typedef struct _w_widget_priv _w_widget_priv;
 typedef struct _w_control_priv _w_control_priv;
-typedef gboolean (*_gtk_signal)(w_widget *widget, _w_event_platform *e,
+typedef struct _gtk_signal_info {
+	wchar msg;
+	wuchar args;
+	const char *name;
+} _gtk_signal_info;
+typedef gboolean (*_gtk_signal_fn)(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 typedef wresult (*__compute_size)(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv);
@@ -59,7 +65,7 @@ typedef wresult (*__get_client_area)(w_widget *widget, w_event_client_area *e,
 typedef wresult (*__compute_trim)(w_widget *widget, w_event_compute_trim *e,
 		_w_control_priv *priv);
 struct _w_widget_priv {
-	_gtk_signal signals[SIGNAL_LAST];
+	_gtk_signal_fn signals[SIGNAL_LAST];
 	__compute_size compute_size;
 	__get_client_area get_client_area;
 	__compute_trim compute_trim;
@@ -120,8 +126,10 @@ void _w_widget_hook_events(w_widget *widget, _w_control_priv *priv);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
 wresult _w_widget_send_event(w_widget *widget, w_event *event);
-void _w_widget_connect(GtkWidget *widget, wushort signal, wushort signal_id,
-		gboolean after);
+void _w_widget_init_signal_0();
+void _w_widget_init_signal(_gtk_signal *signals, _gtk_signal_info *info,
+		int length);
+void _w_widget_connect(GtkWidget *widget, _gtk_signal *signal, gboolean after);
 int _w_widget_set_input_state(int state);
 int _w_translate_key(int key);
 int _w_untranslate_key(int key);

@@ -51,7 +51,11 @@ struct _w_widget_class* _w_toolkit_get_class(w_toolkit *toolkit,
 		return _W_TOOLKIT(toolkit)->classes[clazz_id];
 }
 w_theme* _w_toolkit_get_theme(w_toolkit *toolkit) {
-	return _W_TOOLKIT(toolkit)->theme;
+	_w_toolkit *_toolkit = _W_TOOLKIT(toolkit);
+	if (_toolkit->theme == 0) {
+		return (w_theme*) &_toolkit->gtktheme;
+	}
+	return _toolkit->theme;
 }
 wresult _w_toolkit_beep(w_toolkit *toolkit) {
 	return W_FALSE;
@@ -349,10 +353,18 @@ wresult _w_toolkit_read(w_toolkit *toolkit) {
 	((_w_toolkit*) toolkit)->widget_free = 0;
 	return W_TRUE;
 }
-wresult _w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *point) {
-	return W_FALSE;
+wresult _w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *location) {
+	GdkDisplay *gdkDisplay = gdk_display_get_default();
+	GdkDeviceManager *gdkDeviceManager = gdk_display_get_device_manager(
+			gdkDisplay);
+	GdkScreen *gdkScreen = gdk_screen_get_default();
+	GdkDevice *gdkPointer = gdk_device_manager_get_client_pointer(
+			gdkDeviceManager);
+	gdk_device_warp(gdkPointer, gdkScreen, location->x, location->y);
+	return TRUE;
 }
 wresult _w_toolkit_set_theme(w_toolkit *toolkit, w_theme *theme) {
+	_W_TOOLKIT(toolkit)->theme = theme;
 	return W_TRUE;
 }
 int _w_toolkit_run(w_toolkit *toolkit) {
@@ -363,17 +375,91 @@ int _w_toolkit_run(w_toolkit *toolkit) {
 	}
 	return _W_TOOLKIT(toolkit)->exit_code;
 }
+gboolean _w_toolkit_async_exec_GSourceFunc(gpointer user_data) {
+	threads_idle *funcs = (threads_idle*) user_data;
+	funcs->func(funcs->data);
+	if (funcs >= &gtk_toolkit->threads_idle[0]
+			&& funcs < &gtk_toolkit->threads_idle[THREAD_IDLE_COUNT]) {
+		funcs->func = 0;
+	} else {
+		free(funcs);
+	}
+	return FALSE;
+}
+gboolean _w_toolkit_sync_exec_GSourceFunc(gpointer user_data) {
+	threads_idle *funcs = (threads_idle*) user_data;
+	funcs->func(funcs->data);
+	if (funcs >= &gtk_toolkit->threads_idle[0]
+			&& funcs < &gtk_toolkit->threads_idle[THREAD_IDLE_COUNT]) {
+		funcs->func = 0;
+	} else {
+		free(funcs);
+	}
+	funcs->signalled = 1;
+	pthread_cond_broadcast(&gtk_toolkit->condition);
+	return FALSE;
+}
+wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function, void *args,
+		int sync, wuint ms) {
+	pthread_t thread = pthread_self();
+	if (pthread_equal(thread, _W_TOOLKIT(toolkit)->thread.id) && ms != -1) {
+		function(args);
+		return TRUE;
+	}
+	threads_idle *funcs = 0;
+	threads_idle *threads_idle = &gtk_toolkit->threads_idle[0];
+	pthread_mutex_lock(&_W_TOOLKIT(toolkit)->mutex);
+	for (int i = 0; i < THREAD_IDLE_COUNT; i++) {
+		if (threads_idle[i].func == 0) {
+			funcs = &threads_idle[i];
+			break;
+		}
+	}
+	if (funcs != 0) {
+		funcs->func = function;
+		funcs->data = args;
+		funcs->signalled = 0;
+	}
+	pthread_mutex_unlock(&_W_TOOLKIT(toolkit)->mutex);
+	if (funcs == 0) {
+		funcs = malloc(sizeof(threads_idle));
+		if (funcs == 0)
+			return TRUE;
+		else {
+			funcs->func = function;
+			funcs->data = args;
+		}
+	}
+	GSourceFunc sourceFunc;
+	if (ms == -1) {
+		if (sync) {
+			sourceFunc = _w_toolkit_sync_exec_GSourceFunc;
+		} else {
+			sourceFunc = _w_toolkit_async_exec_GSourceFunc;
+		}
+		gdk_threads_add_idle(_w_toolkit_async_exec_GSourceFunc, funcs);
+	} else {
+		g_timeout_add(ms, _w_toolkit_async_exec_GSourceFunc, funcs);
+	}
+	if (sync) {
+		while (funcs->signalled != 0) {
+			pthread_cond_wait(&gtk_toolkit->condition,
+					&gtk_toolkit->condition_mutex);
+		}
+	}
+	return TRUE;
+}
 wresult _w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
 		void *args) {
-	return W_FALSE;
+	return _w_toolkit_exec(toolkit, function, args, W_FALSE, -1);
 }
 wresult _w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
 		void *args) {
-	return W_TRUE;
+	return _w_toolkit_exec(toolkit, function, args, W_TRUE, -1);
 }
 wresult _w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
 		w_thread_start function, void *args) {
-	return W_TRUE;
+	return _w_toolkit_exec(toolkit, function, args, W_FALSE, milliseconds);
 }
 wresult _w_toolkit_update(w_toolkit *toolkit) {
 	return W_TRUE;
@@ -388,7 +474,6 @@ void _w_toolkit_class_init(_w_toolkit *toolkit) {
 	clazz->check_widget = _w_toolkit_check_widget;
 	clazz->check_widgetdata = _w_toolkit_check_widgetdata;
 	clazz->get_class = _w_toolkit_get_class;
-	clazz->get_theme = _w_toolkit_get_theme;
 	clazz->async_exec = _w_toolkit_async_exec;
 	clazz->beep = _w_toolkit_beep;
 	clazz->get_active_shell = _w_toolkit_get_active_shell;

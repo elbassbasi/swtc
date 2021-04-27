@@ -23,7 +23,7 @@ class WTreeView;
  * IMPORTANT: This class is <em>not</em> intended to be subclassed.
  * </p>
  */
-class SWTP_PUBLIC WTreeItem: public WItem {
+class SWTP_PUBLIC WTreeItem: public WListItem {
 public:
 	/**
 	 * Clears the item at the given zero-relative index in the receiver.
@@ -57,56 +57,6 @@ public:
 		return _WReturnBool(_clear_all(all));
 	}
 	/**
-	 * Returns a rectangle describing the size and location of the receiver's
-	 * text relative to its parent.
-	 *
-	 * @return the bounding rectangle of the receiver's text
-	 */
-	WRect& GetBounds(WRect &bounds) {
-		_get_bounds(&bounds);
-		return bounds;
-	}
-	/**
-	 * Returns a rectangle describing the size and location of the receiver's
-	 * text relative to its parent.
-	 *
-	 * @return the bounding rectangle of the receiver's text
-	 */
-	WRect GetBounds() {
-		WRect bounds;
-		return GetBounds((WRect&) bounds);
-	}
-	/**
-	 * Returns <code>true</code> if the receiver is checked,
-	 * and false otherwise.  When the parent does not have
-	 * the <code>CHECK style, return false.
-	 * <p>
-	 *
-	 * @return the checked state
-	 */
-	bool GetChecked() {
-		return _WReturnBool(_get_checked());
-	}
-	/**
-	 * Returns the application defined widget data associated
-	 * with the receiver, or null if it has not been set. The
-	 * <em>widget data</em> is a single, unnamed field that is
-	 * stored with every widget.
-	 * <p>
-	 * Applications may put arbitrary objects in this field. If
-	 * the object stored in the widget data needs to be notified
-	 * when the widget is disposed of, it is the application's
-	 * responsibility to hook the Dispose event on the widget and
-	 * do so.
-	 * </p>
-	 *
-	 * @return the widget data
-	 * @see #setData(Object)
-	 */
-	void* GetData() {
-		return WItem::GetData();
-	}
-	/**
 	 * Returns <code>true</code> if the receiver is expanded,
 	 * and false otherwise.
 	 * <p>
@@ -122,17 +72,6 @@ public:
 	}
 	WTreeItem& GetFirstChild(const WTreeItem &firstchild = WTreeItem()) {
 		return GetFirstChild((WTreeItem&) firstchild);
-	}
-	/**
-	 * Returns <code>true</code> if the receiver is grayed,
-	 * and false otherwise. When the parent does not have
-	 * the <code>CHECK style, return false.
-	 * <p>
-	 *
-	 * @return the grayed state of the checkbox
-	 */
-	bool GetGrayed() {
-		return _WReturnBool(_get_grayed());
 	}
 	/**
 	 * Returns the item at the given, zero-relative index in the
@@ -178,9 +117,6 @@ public:
 	 */
 	bool GetItems(WIterator<WTreeItem> &items) {
 		return _WReturnBool(_get_items(&items));
-	}
-	int GetImage() {
-		return _WReturnInt(_get_image());
 	}
 	WTreeItem& GetLastChild(WTreeItem &lastchild) {
 		_get_last_child(&lastchild);
@@ -274,34 +210,6 @@ public:
 		return _WReturnBool(_remove_all());
 	}
 	/**
-	 * Sets the checked state of the receiver.
-	 * <p>
-	 *
-	 * @param checked the new checked state
-	 */
-	bool SetChecked(bool checked) {
-		return _WReturnBool(_set_checked(checked));
-	}
-	/**
-	 * Sets the application defined widget data associated
-	 * with the receiver to be the argument. The <em>widget
-	 * data</em> is a single, unnamed field that is stored
-	 * with every widget.
-	 * <p>
-	 * Applications may put arbitrary objects in this field. If
-	 * the object stored in the widget data needs to be notified
-	 * when the widget is disposed of, it is the application's
-	 * responsibility to hook the Dispose event on the widget and
-	 * do so.
-	 * </p>
-	 *
-	 * @param data the widget data
-	 * @see #getData()
-	 */
-	bool SetData(void *data) {
-		return WItem::SetData(data);
-	}
-	/**
 	 * Sets the expanded state of the receiver.
 	 * <p>
 	 *
@@ -310,25 +218,8 @@ public:
 	bool SetExpanded(bool expanded) {
 		return _WReturnBool(_set_expanded(expanded));
 	}
-	/**
-	 * Sets the grayed state of the checkbox for this item.  This state change
-	 * only applies if the Tree was created with the W_CHECK style.
-	 *
-	 * @param grayed the new grayed state of the checkbox
-	 */
-	bool SetGrayed(bool grayed) {
-		return _WReturnBool(_set_grayed(grayed));
-	}
 	bool SetHasChildren() {
 		return _WReturnBool(_set_has_children());
-	}
-	/**
-	 * Sets the image for multiple columns in the tree.
-	 *
-	 * @param images the array of new images
-	 */
-	bool SetImage(int image) {
-		return _WReturnBool(_set_image(image));
 	}
 	bool SetItemCount(int count) {
 		return _WReturnBool(_set_item_count(count));
@@ -340,20 +231,11 @@ public:
 	WResult _clear_all(int all) {
 		return w_treeitem_clear_all(W_TREEITEM(this), all);
 	}
-	WResult _get_bounds(WRect *bounds) {
-		return w_treeitem_get_bounds(W_TREEITEM(this), (w_rect*) bounds);
-	}
-	WResult _get_checked() {
-		return w_treeitem_get_checked(W_TREEITEM(this));
-	}
 	WResult _get_expanded() {
 		return w_treeitem_get_expanded(W_TREEITEM(this));
 	}
 	WResult _get_first_child(WTreeItem *child) {
 		return w_treeitem_get_first_child(W_TREEITEM(this), W_TREEITEM(child));
-	}
-	WResult _get_grayed() {
-		return w_treeitem_get_grayed(W_TREEITEM(this));
 	}
 	WResult _get_item(int index, WTreeItem *subitem) {
 		return w_treeitem_get_item(W_TREEITEM(this), index, W_TREEITEM(subitem));
@@ -363,9 +245,6 @@ public:
 	}
 	WResult _get_items(WIterator<WTreeItem> *items) {
 		return w_treeitem_get_items(W_TREEITEM(this), (w_iterator*) items);
-	}
-	WResult _get_image() {
-		return w_treeitem_get_image(W_TREEITEM(this));
 	}
 	WResult _get_last_child(WTreeItem *child) {
 		return w_treeitem_get_last_child(W_TREEITEM(this), W_TREEITEM(child));
@@ -394,28 +273,17 @@ public:
 	WResult _remove_all() {
 		return w_treeitem_remove_all(W_TREEITEM(this));
 	}
-	WResult _set_checked(int checked) {
-		return w_treeitem_set_checked(W_TREEITEM(this), checked);
-	}
 	WResult _set_expanded(int expanded) {
 		return w_treeitem_set_expanded(W_TREEITEM(this), expanded);
-	}
-	WResult _set_grayed(int grayed) {
-		return w_treeitem_set_grayed(W_TREEITEM(this), grayed);
 	}
 	WResult _set_has_children() {
 		return w_treeitem_set_has_children(W_TREEITEM(this));
 	}
-	WResult _set_image(int image) {
-		return w_treeitem_set_image(W_TREEITEM(this), image);
-	}
 	WResult _set_item_count(int count) {
 		return w_treeitem_set_item_count(W_TREEITEM(this), count);
 	}
-private:
-	void *handles[(sizeof(w_treeitem) - sizeof(w_item)) / sizeof(void*)];
 };
-typedef _WListEvent<WTreeItem> WTreeEvent;
+typedef WListEvent WTreeEvent;
 /**
  * Instances of this class provide a selectable user interface object
  * that displays a hierarchy of items and issues notification when an

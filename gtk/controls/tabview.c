@@ -206,13 +206,8 @@ wresult _w_tabview_create_handle(w_widget *widget, _w_control_priv *priv) {
 void _w_tabview_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_composite_hook_events(widget, priv);
 	_w_tabview_priv *tpriv = (_w_tabview_priv*) priv;
-	if (tpriv->signal_switch_page_id == 0) {
-		tpriv->signal_switch_page_id = g_signal_lookup("switch-page",
-				gtk_notebook_get_type());
-	}
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
-	_w_widget_connect(handle, SIGNAL_SWITCH_PAGE, tpriv->signal_switch_page_id,
-	FALSE);
+	_w_widget_connect(handle, &tpriv->signals[0], FALSE);
 }
 wresult _w_tabview_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv) {
@@ -340,28 +335,23 @@ wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 				GTK_ICON_SIZE_MENU);
 		if (closeHandle == 0)
 			goto _err;
-		if (priv->signal_selection_id == 0) {
-			priv->signal_selection_id = g_signal_lookup("clicked",
-					gtk_button_get_type());
-		}
+
 		g_object_set_qdata(G_OBJECT(closeHandle), gtk_toolkit->quark[0],
 				tabview);
 		g_object_set_qdata(G_OBJECT(closeHandle), gtk_toolkit->quark[1],
 				pageHandle);
-		_w_widget_connect(closeHandle, SIGNAL_CLICKED,
-				priv->signal_selection_id,
-				FALSE);
+		_w_widget_connect(closeHandle, &priv->signals[1], FALSE); //SIGNAL_CLICKED
 		gtk_button_set_relief(GTK_BUTTON(closeHandle), GTK_RELIEF_NONE);
 		gtk_container_add(GTK_CONTAINER(boxHandle), closeHandle);
 		gtk_box_set_child_packing(GTK_BOX(boxHandle), (GtkWidget*) imageHandle,
 		TRUE, TRUE, 0, GTK_PACK_START);
 	}
-	g_signal_handlers_block_matched(GTK_NOTEBOOK(handle), G_SIGNAL_MATCH_DATA,
-			priv->signal_switch_page_id, 0, 0, 0, 0);
+	g_signal_handlers_block_matched(GTK_NOTEBOOK(handle), G_SIGNAL_MATCH_ID,
+			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].id, 0, 0, 0, 0);
 	i = gtk_notebook_insert_page(GTK_NOTEBOOK(handle), pageHandle, boxHandle,
 			index);
-	g_signal_handlers_unblock_matched(GTK_NOTEBOOK(handle), G_SIGNAL_MATCH_DATA,
-			priv->signal_switch_page_id, 0, 0, 0, 0);
+	g_signal_handlers_unblock_matched(GTK_NOTEBOOK(handle), G_SIGNAL_MATCH_ID,
+			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].id, 0, 0, 0, 0);
 	if (i < 0)
 		goto _err;
 
@@ -499,6 +489,10 @@ gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
 	_w_widget_send_event(widget, (w_event*) &_e);
 	return FALSE;
 }
+_gtk_signal_info _gtk_tabview_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //
+		{ SIGNAL_SWITCH_PAGE, 4, "switch-page" }, //
+				{ SIGNAL_CLICKED, 2, "clicked" }, //
+		};
 void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TABVIEW;
@@ -547,10 +541,12 @@ void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	priv->widget.compute_trim = _w_tabview_compute_trim;
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_h0;
 	_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_tabview_handle_parenting;
+	_w_widget_init_signal(_W_TABVIEW_PRIV(priv)->signals,
+			_gtk_tabview_signal_lookup, 2);
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 	signals[SIGNAL_FOCUS] = _gtk_tabview_focus;
 	signals[SIGNAL_SWITCH_PAGE] = _gtk_tabview_switch_page;
 	signals[SIGNAL_CLICKED] = _gtk_tabview_clicked;

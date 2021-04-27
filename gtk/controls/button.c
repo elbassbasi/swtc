@@ -6,6 +6,9 @@
  */
 #include "button.h"
 #include "../widgets/toolkit.h"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #define  INNER_BORDER  1
 #define  DEFAULT_BORDER  1
 /*
@@ -319,16 +322,13 @@ wresult _w_button_get_text(w_button *button, w_alloc alloc, void *user_data,
 }
 void _w_button_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_control_hook_events(widget, priv);
-	if (_W_BUTTON_PRIV(priv)->signal_clicked_id == 0) {
-		_W_BUTTON_PRIV(priv)->signal_clicked_id = g_signal_lookup("clicked",
-				gtk_button_get_type());
-	}
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_CLICKED,
-	_W_BUTTON_PRIV(priv)->signal_clicked_id, FALSE);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	_w_widget_connect(handle, &_W_BUTTON_PRIV(priv)->signal_clicked, FALSE);
 	_w_widget_handles handles;
-	_w_widget_get_handles(_W_WIDGET(widget)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	if (handles.label != 0) {
-		_w_widget_connect(handles.label, SIGNAL_MNEMONIC_ACTIVATE, 0, FALSE);
+		_w_widget_connect(handles.label,
+				&gtk_toolkit->signals[SIGNAL_MNEMONIC_ACTIVATE], FALSE);
 	}
 }
 void _w_button_select_radio_0(_w_fixed *t, _w_event_platform *e, int next) {
@@ -689,10 +689,14 @@ void _w_button_class_init(struct _w_button_class *clazz) {
 	priv->widget.check_style = _w_button_check_style;
 	priv->widget.create_handle = _w_button_create_handle;
 	priv->widget.hook_events = _w_button_hook_events;
+	_gtk_signal *signal = &_W_BUTTON_PRIV(priv)->signal_clicked;
+	signal->name = "clicked";
+	signal->msg = SIGNAL_CLICKED;
+	signal->number_of_args = 2;
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 	signals[SIGNAL_CLICKED] = _gtk_button_clicked;
 
 }

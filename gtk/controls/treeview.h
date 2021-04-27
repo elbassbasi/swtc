@@ -28,15 +28,6 @@ typedef struct _w_treeview {
  */
 typedef struct _w_treeview_priv {
 	_w_listviewbase_priv base;
-	int signal_changed_id;
-	int signal_row_activated_id;
-	int signal_test_expand_row_id;
-	int signal_test_collapse_row_id;
-	int signal_expand_collapse_cursor_row_id;
-	int signal_row_has_child_toggled_id;
-	int signal_start_interactive_search_id;
-	int signal_row_inserted_id;
-	int signal_row_deleted_id;
 } _w_treeview_priv;
 #define _W_TREEVIEW_PRIV(x) ((_w_treeview_priv*)x)
 /*
@@ -44,6 +35,43 @@ typedef struct _w_treeview_priv {
  */
 void _w_treeitem_remove_children_flags(GtkTreeModel *modelHandle,
 		GtkTreeIter *parent);
+/*
+ * signals
+ */
+wresult _gtk_treeview_get_focusitem(w_widget *widget, _w_treeitem *item,
+		_w_control_priv *priv);
+void _gtk_treeview_send_default_selection(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_treeview_button_press_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_treeview_row_activated(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_key_press_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_button_release_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_treeview_changed(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_event_after(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_expand_collapse_cursor_row(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_treeview_draw(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_motion_notify_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_treeview_row_deleted(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_row_has_child_toggled(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_treeview_start_interactive_search(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_treeview_test_collapse_row(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_test_expand_row(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_treeview_toggled(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
 void _w_treeview_class_init(struct _w_treeview_class *clazz);
 /*
  * messages

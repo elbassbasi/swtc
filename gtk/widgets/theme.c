@@ -40,9 +40,9 @@ void _gtk_theme_init_widget(_gtk_theme *theme) {
 			GTK_ORIENTATION_VERTICAL);
 #endif
 	handles[GTK_THEME_HANDLE_LABEL] = gtk_label_new(NULL);
+	GtkContainer *fixed = GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]);
 	for (int i = GTK_THEME_HANDLE_BUTTON; i < GTK_THEME_HANDLE_LAST; i++) {
-		gtk_container_add(GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]),
-				handles[i]);
+		gtk_container_add(fixed, handles[i]);
 		gtk_widget_realize(handles[i]);
 	}
 }
@@ -63,28 +63,199 @@ void _gtk_render_box(GtkStyleContext *style, cairo_t *window, int x, int y,
 }
 void _gtk_themedata_part_id(w_theme *theme, w_themedata *data, int *ids,
 		int part) {
-	int state = data->state; // this.state[part];
+	int state = data->state;
 	int state_type = GTK_STATE_NORMAL;
-	if ((state & W_THEME_DISABLED) != 0) {
-		state_type = GTK_STATE_INSENSITIVE;
-	} else {
-		if ((state & W_THEME_SELECTED) != 0)
-			state_type = GTK_STATE_ACTIVE;
-		if ((state & W_THEME_HOT) != 0) {
-			if ((state & W_THEME_PRESSED) != 0) {
-				state_type = GTK_STATE_ACTIVE;
-			} else {
-				state_type = GTK_STATE_PRELIGHT;
-			}
-		}
+	if (state & W_THEME_SELECTED) {
+		state_type |= GTK_STATE_FLAG_SELECTED;
+	}
+	if (state & W_THEME_FOCUSED) {
+		state_type |= GTK_STATE_FLAG_FOCUSED;
+	}
+	if (state & W_THEME_HOT) {
+		state_type |= GTK_STATE_FLAG_PRELIGHT;
+	}
+	if (state & W_THEME_PRESSED) {
+		state_type |= GTK_STATE_FLAG_SELECTED;
+	}
+	if (state & W_THEME_ACTIVE) {
+		state_type |= GTK_STATE_FLAG_ACTIVE;
+	}
+	if (state & W_THEME_DISABLED) {
+		state_type |= GTK_STATE_FLAG_INSENSITIVE;
+	}
+	if (state & W_THEME_DEFAULTED) {
+		state_type = GTK_STATE_FLAG_PRELIGHT;
+	}
+	if (state & W_THEME_GRAYED) {
+		state_type = GTK_STATE_FLAG_VISITED;
 	}
 	ids[0] = state_type;
+}
+void _gtk_themedata_button_part_id(w_theme *theme, w_themedata *data, int *ids,
+		int part) {
+	_gtk_themedata_part_id(theme, data, ids, part);
+	if (data->style & (W_RADIO | W_CHECK)) {
+		if (data->state & W_THEME_SELECTED) {
+			ids[0] |= GTK_STATE_FLAG_CHECKED;
+		}
+	}
+}
+static GtkStyleContext*
+create_context_for_path(GtkWidgetPath *path, GtkStyleContext *parent) {
+	GtkStyleContext *context;
+
+	context = gtk_style_context_new();
+	gtk_style_context_set_path(context, path);
+	//gtk_style_context_set_parent(context, parent);
+	/* Unfortunately, we have to explicitly set the state again here
+	 * for it to take effect
+	 */
+	gtk_style_context_set_state(context,
+			gtk_widget_path_iter_get_state(path, -1));
+	gtk_widget_path_unref(path);
+
+	return context;
+}
+
+static GtkStyleContext*
+get_style(GtkStyleContext *parent, const char *selector) {
+	GtkWidgetPath *path;
+
+	if (parent)
+		path = gtk_widget_path_copy(gtk_style_context_get_path(parent));
+	else
+		path = gtk_widget_path_new();
+
+	gtk_widget_path_append_type(path, G_TYPE_NONE);
+	gtk_widget_path_iter_set_object_name(path, -1, selector);
+
+	return create_context_for_path(path, parent);
+}
+
+static void draw_style_common(GtkStyleContext *context, cairo_t *cr, gint x,
+		gint y, gint width, gint height, gint *contents_x, gint *contents_y,
+		gint *contents_width, gint *contents_height) {
+	GtkBorder margin, border, padding;
+	int min_width, min_height;
+
+	gtk_style_context_get_margin(context, gtk_style_context_get_state(context),
+			&margin);
+	gtk_style_context_get_border(context, gtk_style_context_get_state(context),
+			&border);
+	gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
+			&padding);
+
+	gtk_style_context_get(context, gtk_style_context_get_state(context),
+			"min-width", &min_width, "min-height", &min_height,
+			NULL);
+	x += margin.left;
+	y += margin.top;
+	width -= margin.left + margin.right;
+	height -= margin.top + margin.bottom;
+
+	width = MAX(width, min_width);
+	height = MAX(height, min_height);
+
+	gtk_render_background(context, cr, x, y, width, height);
+	gtk_render_frame(context, cr, x, y, width, height);
+
+	if (contents_x)
+		*contents_x = x + border.left + padding.left;
+	if (contents_y)
+		*contents_y = y + border.top + padding.top;
+	if (contents_width)
+		*contents_width = width - border.left - border.right - padding.left
+				- padding.right;
+	if (contents_height)
+		*contents_height = height - border.top - border.bottom - padding.top
+				- padding.bottom;
+}
+
+static void query_size(GtkStyleContext *context, gint *width, gint *height) {
+	GtkBorder margin, border, padding;
+	int min_width, min_height;
+
+	gtk_style_context_get_margin(context, gtk_style_context_get_state(context),
+			&margin);
+	gtk_style_context_get_border(context, gtk_style_context_get_state(context),
+			&border);
+	gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
+			&padding);
+
+	gtk_style_context_get(context, gtk_style_context_get_state(context),
+			"min-width", &min_width, "min-height", &min_height,
+			NULL);
+
+	min_width += margin.left + margin.right + border.left + border.right
+			+ padding.left + padding.right;
+	min_height += margin.top + margin.bottom + border.top + border.bottom
+			+ padding.top + padding.bottom;
+
+	if (width)
+		*width = MAX(*width, min_width);
+	if (height)
+		*height = MAX(*height, min_height);
+}
+
+static void draw_check(GtkWidget *widget, cairo_t *cr, gint x, gint y,
+		GtkStateFlags state, gint *width, gint *height) {
+	GtkStyleContext *button_context = 0;
+	GtkStyleContext *check_context;
+	gint contents_x, contents_y, contents_width, contents_height;
+
+	/* This information is taken from the GtkCheckButton docs, see "CSS nodes" */
+	//button_context = get_style(NULL, "checkbutton");
+	check_context = get_style(button_context, "check");
+
+	gtk_style_context_set_state(check_context, state);
+
+	*width = *height = 0;
+	//query_size(button_context, width, height);
+	query_size(check_context, width, height);
+
+	/*draw_style_common(button_context, cr, x, y, *width, *height, NULL, NULL,
+	 NULL, NULL);*/
+	draw_style_common(check_context, cr, x, y, *width, *height, &contents_x,
+			&contents_y, &contents_width, &contents_height);
+	gtk_render_check(check_context, cr, contents_x, contents_y, contents_width,
+			contents_height);
+
+	g_object_unref(check_context);
+	g_object_unref(button_context);
+
+}
+void draw_radio(GtkWidget *widget, cairo_t *cr, gint x, gint y,
+		GtkStateFlags state, gint *width, gint *height) {
+	GtkStyleContext *button_context;
+	GtkStyleContext *check_context;
+	gint contents_x, contents_y, contents_width, contents_height;
+
+	/* This information is taken from the GtkRadioButton docs, see "CSS nodes" */
+	button_context = get_style(NULL, "radiobutton");
+	check_context = get_style(button_context, "radio");
+
+	gtk_style_context_set_state(check_context, state);
+
+	*width = *height = 0;
+	query_size(button_context, width, height);
+	query_size(check_context, width, height);
+
+	draw_style_common(button_context, cr, x, y, *width, *height, NULL, NULL,
+	NULL, NULL);
+	draw_style_common(check_context, cr, x, y, *width, *height, &contents_x,
+			&contents_y, &contents_width, &contents_height);
+	gtk_render_check(check_context, cr, contents_x, contents_y, contents_width,
+			contents_height);
+
+	g_object_unref(check_context);
+	g_object_unref(button_context);
+
 }
 void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		w_graphics *gc, w_rect *bounds, wuint clazz) {
 	_gtk_theme *gtktheme = (_gtk_theme*) theme;
 	int ids[3];
-	_gtk_themedata_part_id(theme, data, ids, W_THEME_WIDGET_WHOLE);
+	_gtk_themedata_button_part_id(theme, data, ids, W_THEME_WIDGET_WHOLE);
 	GtkStateFlags state = ids[0];
 	cairo_t *drawable = _W_GRAPHICS(gc)->cairo;
 	if ((data->style & (W_RADIO | W_CHECK)) != 0) {
@@ -95,26 +266,27 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		GtkWidget *buttonHandle = gtktheme->handle[handle_id];
 		GtkStyleContext *gtkStyle = gtk_widget_get_style_context(buttonHandle);
 		_gtk_theme_transfer_clipping(gc, gtkStyle);
-		int indicator_size;
+		int indicator_size = 0;
+		int indicator_spacing = 0;
+		int focus_line_width = 0;
+		int interior_focus = 0;
+		int focus_padding = 0;
+		int border_width, x, y;
 		gtk_widget_style_get(buttonHandle, "indicator-size", &indicator_size,
 		NULL);
-		int indicator_spacing;
 		gtk_widget_style_get(buttonHandle, "indicator-spacing",
 				&indicator_spacing, NULL);
-		int interior_focus;
 		gtk_widget_style_get(buttonHandle, "interior-focus", &interior_focus,
 		NULL);
-		int focus_line_width;
 		gtk_widget_style_get(buttonHandle, "focus-line-width",
 				&focus_line_width, NULL);
-		int focus_padding;
 		gtk_widget_style_get(buttonHandle, "focus-padding", &focus_padding,
 		NULL);
-		int border_width = gtk_container_get_border_width(
+		border_width = gtk_container_get_border_width(
 				GTK_CONTAINER(buttonHandle));
 
-		int x = bounds->x + indicator_spacing + border_width;
-		int y = bounds->y + (bounds->height - indicator_size) / 2;
+		x = bounds->x + indicator_spacing + border_width;
+		y = bounds->y + (bounds->height - indicator_size) / 2;
 
 		if (interior_focus == 0) {
 			x += focus_line_width + focus_padding;
@@ -128,24 +300,45 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		} else {
 			shadow_type = GTK_SHADOW_OUT;
 		}
-
-		const char *detail =
-				(data->style & W_RADIO) != 0 ? "radiobutton" : "checkbutton";
-		if ((state & W_THEME_HOT) != 0) {
+		gtk_style_context_set_state(gtkStyle, state);
+		const char *selector[2];
+		if ((data->style & W_RADIO) != 0) {
+			selector[0] = "radiobutton";
+			selector[1] = GTK_STYLE_CLASS_RADIO;
+		} else {
+			selector[0] = "checkbutton";
+			selector[1] = GTK_STYLE_CLASS_CHECK;
+		}
+		GtkWidgetPath *path = gtk_widget_path_new();
+		for (int i = 0; i < 2; i++) {
+			gtk_widget_path_append_type(path, G_TYPE_NONE);
+			gtk_widget_path_iter_set_object_name(path, -1, selector[i]);
+			gtk_style_context_set_path(gtkStyle, path);
+			//if ((state & W_THEME_HOT) != 0) {
 			int prelight_x, prelight_y, prelight_width, prelight_height;
 			prelight_x = bounds->x + border_width;
 			prelight_y = bounds->y + border_width;
 			prelight_width = bounds->width - (2 * border_width);
 			prelight_height = bounds->height - (2 * border_width);
-			gtk_render_frame(gtkStyle, drawable, prelight_x, prelight_y,
+			gtk_render_background(gtkStyle, drawable, prelight_x, prelight_y,
 					prelight_width, prelight_height);
+			//}
+			gtk_render_frame(gtkStyle, drawable, x, y, indicator_size,
+					indicator_size);
 		}
+		gtk_widget_path_unref(path);
 		if ((data->style & W_RADIO) != 0) {
-			gtk_render_option(gtkStyle, drawable, x, y, indicator_size,
-					indicator_size);
+			/*gtk_render_option(gtkStyle, drawable, x, y, indicator_size,
+			 indicator_size);*/
+			int width = bounds->width;
+			int height = bounds->height;
+			draw_radio(buttonHandle, drawable, x, y, state, &width, &height);
 		} else {
-			gtk_render_check(gtkStyle, drawable, x, y, indicator_size,
-					indicator_size);
+			int width = bounds->width;
+			int height = bounds->height;
+			draw_check(buttonHandle, drawable, x, y, state, &width, &height);
+			/*gtk_render_check(gtkStyle, drawable, x, y, indicator_size,
+			 indicator_size);*/
 		}
 		if (data->clientArea != 0) {
 			data->clientArea->x = bounds->x + 2 * indicator_spacing
@@ -523,17 +716,9 @@ void _gtk_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 	cairo_t *drawable = _W_GRAPHICS(gc)->cairo;
 	_gtk_theme_transfer_clipping(gc, gtkStyle);
 	PangoLayout *layout;
-	char *t = 0;
-	if (length < 0) {
-		layout = gtk_widget_create_pango_layout(widget, text);
-	} else {
-		t = _w_toolkit_malloc(length + 1);
-		if (t == 0)
-			return;
-		memcpy(t, text, length);
-		t[length] = 0;
-		layout = gtk_widget_create_pango_layout(widget, t);
-	}
+	int newlength, mnemonic;
+	char *t = _gtk_text_fix(text, length, flags, &newlength, &mnemonic);
+	layout = gtk_widget_create_pango_layout(widget, t);
 	int width, height;
 	pango_layout_get_pixel_size(layout, &width, &height);
 	pango_layout_set_width(layout, bounds->width * PANGO_SCALE);
@@ -560,9 +745,7 @@ void _gtk_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 	 int state_type = ids[0];*/
 	gtk_render_layout(gtkStyle, drawable, x, y, layout);
 	g_object_unref(layout);
-	if (t != 0) {
-		_w_toolkit_free(t, length + 1);
-	}
+	_gtk_text_free(text, t, newlength);
 }
 void _gtk_theme_get_bounds(w_theme *theme, w_themedata *data, int part,
 		w_rect *bounds, w_rect *result) {
@@ -581,17 +764,9 @@ void _gtk_theme_measure_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 	_gtk_theme *gtktheme = (_gtk_theme*) theme;
 	GtkWidget *widget = gtktheme->handle[GTK_THEME_HANDLE_LABEL];
 	PangoLayout *layout;
-	char *t = 0;
-	if (length < 0) {
-		layout = gtk_widget_create_pango_layout(widget, text);
-	} else {
-		t = _w_toolkit_malloc(length + 1);
-		if (t == 0)
-			return;
-		memcpy(t, text, length);
-		t[length] = 0;
-		layout = gtk_widget_create_pango_layout(widget, t);
-	}
+	int newlength, mnemonic;
+	char *t = _gtk_text_fix(text, length, flags, &newlength, &mnemonic);
+	layout = gtk_widget_create_pango_layout(widget, t);
 	if (bounds != 0)
 		pango_layout_set_width(layout, bounds->width);
 	if ((flags & W_THEME_DRAW_LEFT) != 0) {
@@ -610,8 +785,7 @@ void _gtk_theme_measure_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 	result->y = 0;
 	result->width = width;
 	result->height = height;
-	if (t != 0)
-		_w_toolkit_free(W_TOOLKIT(gtk_toolkit), length + 1);
+	_gtk_text_free(text, t, newlength);
 }
 w_color _gtk_theme_get_color(w_theme *theme, wuint colorid) {
 	return 0;

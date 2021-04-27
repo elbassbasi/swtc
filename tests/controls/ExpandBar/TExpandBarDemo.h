@@ -31,7 +31,7 @@ public:
 	WLabel label_1[length_1 * 2];
 	void Create_1(WComposite *composite);
 	/* item 2 */
-	WLabel label_2[2];
+	WLabel label_2[3];
 	WSlider scale_2;
 	WSpinner spinner_2;
 	WSlider slider_2;

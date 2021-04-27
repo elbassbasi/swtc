@@ -66,8 +66,15 @@ wresult _w_columnitem_get_alignment(w_columnitem *column) {
 	return result;
 }
 wresult _w_columnitem_get_image(w_columnitem *column) {
+	wresult image = -1;
 	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
-	return W_FALSE;
+	GtkWidget *box = gtk_tree_view_column_get_widget(columnhandle);
+	_w_widget_handles handles;
+	_w_widget_get_handles(box, &handles);
+	if (handles.image != 0) {
+		image = _W_IMAGE_WIDGET(handles.image)->index;
+	}
+	return image;
 }
 wresult _w_columnitem_get_moveable(w_columnitem *column) {
 	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
@@ -114,7 +121,13 @@ wresult _w_columnitem_set_alignment(w_columnitem *column, int alignment) {
 }
 wresult _w_columnitem_set_image(w_columnitem *column, int image) {
 	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
-	return W_FALSE;
+	GtkWidget *box = gtk_tree_view_column_get_widget(columnhandle);
+	_w_widget_handles handles;
+	_w_widget_get_handles(box, &handles);
+	if (handles.image != 0) {
+		_W_IMAGE_WIDGET(handles.image)->index = image;
+	}
+	return W_TRUE;
 }
 wresult _w_columnitem_set_moveable(w_columnitem *column, int moveable) {
 	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
@@ -132,8 +145,57 @@ wresult _w_columnitem_set_tooltip_text(w_columnitem *column, const char *text,
 	return W_FALSE;
 }
 wresult _w_columnitem_set_width(w_columnitem *column, int width) {
+	w_widget *tree = _W_ITEM(column)->parent;
+	GtkWidget *handle = _W_WIDGET(tree)->handle;
 	GtkTreeViewColumn *columnhandle = _W_COLUMNITEM(column)->column;
-	return W_FALSE;
+	if (width > 0) {
+		gtk_tree_view_column_set_fixed_width(columnhandle, width);
+	}
+	/*
+	 * Bug in GTK.  For some reason, calling gtk_tree_view_column_set_visible()
+	 * when the parent is not realized fails to show the column. The fix is to
+	 * ensure that the table has been realized.
+	 */
+	if (width != 0) {
+		gtk_widget_realize(handle);
+	}
+	gtk_tree_view_column_set_visible(columnhandle, width != 0);
+	/*
+	 * Bug in GTK. When the column is made visible the event window of column
+	 * header is raised above the gripper window of the previous column. In
+	 * some cases, this can cause the previous column to be not resizable by
+	 * the mouse. The fix is to find the event window and lower it to bottom to
+	 * the z-order stack.
+	 */
+	if (width != 0) {
+		GtkWidget *buttonHandle = gtk_tree_view_column_get_button(columnhandle);
+		if (buttonHandle != 0) {
+			GdkWindow *window = gtk_widget_get_parent_window(buttonHandle);
+			if (window != 0) {
+				GList *windowList = gdk_window_peek_children(window);
+				if (windowList != 0) {
+					GList *windows = windowList;
+					void *userData = 0;
+					while (windows != 0) {
+						GdkWindow *child = (GdkWindow*) windows->data;
+						gdk_window_get_user_data(child, &userData);
+						if (userData == buttonHandle) {
+							gdk_window_lower(child);
+							break;
+						}
+						windows = windows->next;
+					}
+				}
+			}
+		}
+	}
+	w_event_list e;
+	memset(&e, 0, sizeof(e));
+	e.event.type = W_EVENT_ITEM_RESIZE;
+	e.event.widget = tree;
+	e.column = column;
+	_w_widget_send_event(tree, (w_event*) &e);
+	return W_TRUE;
 }
 /*
  *
@@ -249,7 +311,8 @@ wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 	wuint64 style = _W_WIDGET(list)->style;
 	GtkTreeViewColumn *columnHandle = 0;
 	GtkCellRenderer *textrenderer = 0, *pixbufrenderer = 0, *togglerenderer = 0;
-	GtkWidget *boxHandle = 0, *labelHandle = 0, *imageHandle = 0;
+	GtkWidget *boxHandle = 0, *labelHandle = 0;
+	_w_image_widget *imageHandle = 0;
 	columnHandle = gtk_tree_view_column_new();
 	if (columnHandle == 0) {
 		goto _err;
@@ -262,11 +325,16 @@ wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 	if (labelHandle == 0) {
 		goto _err;
 	}
-	imageHandle = gtk_image_new();
+	imageHandle = _w_image_widget_new();
+	if (imageHandle == 0)
+		goto _err;
+	imageHandle->get_image_list = (__get_image_list) _w_listviewbase_get_header_imagelist;
+	imageHandle->parent = W_WIDGET(list);
+	imageHandle->index = -1;
 	if (imageHandle == 0) {
 		goto _err;
 	}
-	gtk_container_add(GTK_CONTAINER(boxHandle), imageHandle);
+	gtk_container_add(GTK_CONTAINER(boxHandle), (GtkWidget*) imageHandle);
 	gtk_container_add(GTK_CONTAINER(boxHandle), labelHandle);
 	gtk_widget_show_all(boxHandle);
 	//gtk_widget_show (labelHandle);
@@ -283,20 +351,16 @@ wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 			if (togglerenderer == 0)
 				goto _err;
 			g_object_ref(togglerenderer);
+			_W_LISTVIEWBASE(list)->checkrenderer = togglerenderer;
 			gtk_tree_view_column_pack_start(columnHandle, togglerenderer,
 			FALSE);
 			gtk_tree_view_column_set_cell_data_func(columnHandle,
 					togglerenderer, _w_tree_cell_data, list, 0);
 			_w_widget_set_control(togglerenderer, W_WIDGET(list));
 			if (togglerenderer != 0) {
-				if (_W_LISTVIEWBASE_PRIV(priv)->signal_toggled_id == 0) {
-					_W_LISTVIEWBASE_PRIV(priv)->signal_toggled_id =
-							g_signal_lookup("toggled",
-									gtk_cell_renderer_toggle_get_type());
-				}
-				_w_widget_connect((GtkWidget*) togglerenderer, SIGNAL_TOGGLED,
-				_W_LISTVIEWBASE_PRIV(priv)->signal_toggled_id,
-				FALSE);
+				_w_widget_connect((GtkWidget*) togglerenderer,
+						&_W_LISTVIEWBASE_PRIV(priv)->signals[_W_LISTVIEW_SIGNAL_TOGGLED],
+						FALSE); //SIGNAL_TOGGLED
 			}
 		}
 		pixbufrenderer = _w_pixbuf_renderer_new(W_WIDGET(list));
@@ -356,7 +420,29 @@ wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 }
 
 wresult _w_listviewbase_clear_all(w_listviewbase *list) {
-	return W_FALSE;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(handle);
+	int length = gtk_tree_model_iter_n_children(modelHandle, 0);
+	if (length == 0)
+		return W_TRUE;
+	GtkTreeIter iter, parentIter, tmp;
+	gboolean valid = gtk_tree_model_iter_children(modelHandle, &iter, 0);
+	if (w_widget_class_id(W_WIDGET(list)) == _W_CLASS_TREEVIEW) {
+		GtkTreeStore *store = GTK_TREE_STORE(modelHandle);
+		while (valid) {
+			memcpy(&tmp, &iter, sizeof(GtkTreeIter));
+			valid = gtk_tree_model_iter_next(modelHandle, &iter);
+			gtk_tree_store_remove(store, &tmp);
+		}
+	} else {
+		GtkListStore *store = GTK_LIST_STORE(modelHandle);
+		while (valid) {
+			memcpy(&tmp, &iter, sizeof(GtkTreeIter));
+			valid = gtk_tree_model_iter_next(modelHandle, &iter);
+			gtk_list_store_remove(store, &tmp);
+		}
+	}
+	return W_TRUE;
 }
 wresult _w_listviewbase_deselect_all(w_listviewbase *list) {
 	return W_FALSE;
@@ -386,6 +472,11 @@ wresult _w_listviewbase_get_gridline_width(w_listviewbase *list) {
 }
 wresult _w_listviewbase_get_header_height(w_listviewbase *list) {
 	return W_FALSE;
+}
+wresult _w_listviewbase_get_header_imagelist(w_listviewbase *list,
+		w_imagelist **imagelist) {
+	*imagelist = _W_LISTVIEWBASE(list)->headerimagelist;
+	return W_TRUE;
 }
 wresult _w_listviewbase_get_header_visible(w_listviewbase *list) {
 	return W_FALSE;
@@ -417,6 +508,39 @@ wresult _w_listviewbase_get_sort_column(w_listviewbase *list,
 wresult _w_listviewbase_get_sort_direction(w_listviewbase *list) {
 	return W_FALSE;
 }
+void _w_listviewbase_hook_events(w_widget *widget, _w_control_priv *priv) {
+	_w_composite_hook_events(widget, priv);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(
+			GTK_TREE_VIEW(handle));
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(GTK_TREE_VIEW(handle));
+	_w_listviewbase_priv *tpriv = (_w_listviewbase_priv*) priv;
+	int class_id = w_widget_class_id(widget);
+	_w_widget_connect((GtkWidget*) selection,
+			&tpriv->signals[_W_LISTVIEW_SIGNAL_CHANGED], FALSE);
+	_w_widget_connect((GtkWidget*) modelHandle,
+			&tpriv->signals[_W_LISTVIEW_SIGNAL_ROW_HAS_CHILD_TOGGLED], FALSE);
+	//if (fixAccessibility()) {
+	_w_widget_connect((GtkWidget*) modelHandle,
+			&tpriv->signals[_W_LISTVIEW_SIGNAL_ROW_INSERTED], FALSE);
+	_w_widget_connect((GtkWidget*) modelHandle,
+			&tpriv->signals[_W_LISTVIEW_SIGNAL_ROW_DELETED], FALSE);
+	//}
+	_w_widget_connect(handle, &tpriv->signals[_W_LISTVIEW_SIGNAL_ROW_ACTIVATED],
+	FALSE);
+	_w_widget_connect(handle,
+			&tpriv->signals[_W_LISTVIEW_SIGNAL_START_INTERACTIVE_SEARCH],
+			FALSE);
+	if (class_id == _W_CLASS_TREEVIEW) {
+		_w_widget_connect(handle,
+				&tpriv->signals[_W_LISTVIEW_SIGNAL_TEST_EXPAND_ROW], FALSE);
+		_w_widget_connect(handle,
+				&tpriv->signals[_W_LISTVIEW_SIGNAL_TEST_COLLAPSE_ROW], FALSE);
+		_w_widget_connect(handle,
+				&tpriv->signals[_W_LISTVIEW_SIGNAL_EXPAND_COLLAPSE_CURSOR_ROW],
+				FALSE);
+	}
+}
 wresult _w_listviewbase_insert_column(w_listviewbase *list,
 		w_columnitem *column, int index) {
 	if (index == 0)
@@ -425,7 +549,29 @@ wresult _w_listviewbase_insert_column(w_listviewbase *list,
 	return _w_listviewbase_insert_column_0(list, index, column, priv);
 }
 wresult _w_listviewbase_remove_all(w_listviewbase *list) {
-	return W_FALSE;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(handle);
+	int length = gtk_tree_model_iter_n_children(modelHandle, 0);
+	if (length == 0)
+		return W_TRUE;
+	GtkTreeIter iter, parentIter, tmp;
+	gboolean valid = gtk_tree_model_iter_children(modelHandle, &iter, 0);
+	if (w_widget_class_id(W_WIDGET(list)) == _W_CLASS_TREEVIEW) {
+		GtkTreeStore *store = GTK_TREE_STORE(modelHandle);
+		while (valid) {
+			memcpy(&tmp, &iter, sizeof(GtkTreeIter));
+			valid = gtk_tree_model_iter_next(modelHandle, &iter);
+			gtk_tree_store_remove(store, &tmp);
+		}
+	} else {
+		GtkListStore *store = GTK_LIST_STORE(modelHandle);
+		while (valid) {
+			memcpy(&tmp, &iter, sizeof(GtkTreeIter));
+			valid = gtk_tree_model_iter_next(modelHandle, &iter);
+			gtk_list_store_remove(store, &tmp);
+		}
+	}
+	return W_TRUE;
 }
 wresult _w_listviewbase_select_all(w_listviewbase *list) {
 	return W_FALSE;
@@ -444,6 +590,21 @@ wresult _w_listviewbase_set_bounds_0(w_control *control, w_point *location,
 	GtkWidget *handle = _W_WIDGET(control)->handle;
 	gtk_widget_realize(handle);
 	return result;
+}
+wresult _w_listviewbase_set_header_imagelist(w_listviewbase *list,
+		w_imagelist *imagelist) {
+	if (imagelist == 0) {
+		_W_LISTVIEWBASE(list)->headerimagelist = 0;
+	} else {
+		if (_W_IMAGELIST(imagelist)->images == 0) {
+			_W_LISTVIEWBASE(list)->headerimagelist = 0;
+			return W_ERROR_INVALID_ARGUMENT;
+		} else {
+			_W_LISTVIEWBASE(list)->headerimagelist = imagelist;
+		}
+	}
+	W_CONTROL_GET_CLASS(list)->update(W_CONTROL(list));
+	return W_TRUE;
 }
 wresult _w_listviewbase_set_header_visible(w_listviewbase *list, int show) {
 	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
@@ -500,6 +661,19 @@ wresult _w_listviewbase_show_selection(w_listviewbase *list) {
 wresult _w_listviewbase_sort(w_listviewbase *list) {
 	return W_FALSE;
 }
+_gtk_signal_info _gtk_listview_signal_lookup[_W_LISTVIEW_LAST] = { //
+				{ SIGNAL_TOGGLED, 3, "toggled" }, //
+				{ SIGNAL_CHANGED, 2, "changed" }, //
+				{ SIGNAL_ROW_HAS_CHILD_TOGGLED, 4, "row-has-child-toggled" }, //
+				{ SIGNAL_ROW_INSERTED, 4, "row-inserted" }, //
+				{ SIGNAL_ROW_DELETED, 3, "row-deleted" }, //
+				{ SIGNAL_ROW_ACTIVATED, 4, "row-activated" }, //
+				{ SIGNAL_START_INTERACTIVE_SEARCH, 2, "start-interactive-search" }, //
+				{ SIGNAL_TEST_EXPAND_ROW, 4, "test-expand-row" }, //
+				{ SIGNAL_TEST_COLLAPSE_ROW, 4, "test-collapse-row" }, //
+				{ SIGNAL_EXPAND_COLLAPSE_CURSOR_ROW, 5,
+						"expand-collapse-cursor-row" }, //
+		};
 void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
 	clazz->clear_all = _w_listviewbase_clear_all;
@@ -509,6 +683,7 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	clazz->get_columns = _w_listviewbase_get_columns;
 	clazz->get_gridline_width = _w_listviewbase_get_gridline_width;
 	clazz->get_header_height = _w_listviewbase_get_header_height;
+	clazz->get_header_imagelist = _w_listviewbase_get_header_imagelist;
 	clazz->get_header_visible = _w_listviewbase_get_header_visible;
 	clazz->get_imagelist = _w_listviewbase_get_imagelist;
 	clazz->get_item_height = _w_listviewbase_get_item_height;
@@ -520,6 +695,7 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	clazz->insert_column = _w_listviewbase_insert_column;
 	clazz->remove_all = _w_listviewbase_remove_all;
 	clazz->select_all = _w_listviewbase_select_all;
+	clazz->set_header_imagelist = _w_listviewbase_set_header_imagelist;
 	clazz->set_header_visible = _w_listviewbase_set_header_visible;
 	clazz->set_imagelist = _w_listviewbase_set_imagelist;
 	clazz->set_item_height = _w_listviewbase_set_item_height;
@@ -559,6 +735,7 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	_W_WIDGET_PRIV(priv)->create_handle = _w_listviewbase_create_handle;
 	_W_WIDGET_PRIV(priv)->check_style = _w_listviewbase_check_style;
 	_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hpp;
+	_W_WIDGET_PRIV(priv)->hook_events = _w_listviewbase_hook_events;
 	priv->handle_fixed = _w_widget_hpp;
 	priv->set_bounds_0 = _w_listviewbase_set_bounds_0;
 	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_hp;
@@ -568,6 +745,8 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	_W_LISTVIEWBASE_PRIV(priv)->renderer_get_preferred_width =
 			_w_listviewbase_renderer_get_preferred_width;
 #endif
+	_w_widget_init_signal(_W_LISTVIEWBASE_PRIV(priv)->signals,
+			_gtk_listview_signal_lookup, _W_LISTVIEW_LAST);
 }
 /*
  * cell renderer

@@ -14,6 +14,7 @@ typedef struct _w_slider {
 
 typedef struct _w_slider_priv {
 	_w_control_priv control;
+	_gtk_signal signals[3];
 	guint signal_scale_value_changed;
 	guint signal_value_changed;
 	guint signal_change_value;

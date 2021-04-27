@@ -345,33 +345,23 @@ void _w_datetime_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_datetime_priv *tpriv = (_w_datetime_priv*) priv;
 	if (style & W_CALENDAR) {
 		GtkWidget *calendarHandle = _W_WIDGET(widget)->handle;
-		if (tpriv->signal_day_selected == 0) {
-			GType calendar_type = gtk_calendar_get_type();
-			tpriv->signal_day_selected = g_signal_lookup("day-selected",
-					calendar_type);
-			tpriv->signal_day_selected_double_click = g_signal_lookup(
-					"day-selected-double-click", calendar_type);
-			tpriv->signal_month_changed = g_signal_lookup("month-changed",
-					calendar_type);
+		for (int i = 0; i < 3; i++) {
+			_w_widget_connect(calendarHandle, &tpriv->signals[i], FALSE);
 		}
-		_w_widget_connect(calendarHandle, SIGNAL_DAY_SELECTED,
-				tpriv->signal_day_selected, FALSE);
-		_w_widget_connect(calendarHandle, SIGNAL_DAY_SELECTED_DOUBLE_CLICK,
-				tpriv->signal_day_selected_double_click, FALSE);
-		_w_widget_connect(calendarHandle, SIGNAL_MONTH_CHANGED,
-				tpriv->signal_month_changed, FALSE);
 	} else {
+		_gtk_signal *signals = gtk_toolkit->signals;
 		GtkWidget *textEntryHandle = _w_datetime_get_entry(widget);
 		int eventMask = GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK
 				| GDK_BUTTON_RELEASE_MASK;
 		gtk_widget_add_events(textEntryHandle, eventMask);
 		if ((style & W_DROP_DOWN) == 0) {
-			_w_widget_connect(textEntryHandle, SIGNAL_OUTPUT, 0, TRUE);
-			_w_widget_connect(textEntryHandle, SIGNAL_FOCUS_IN_EVENT, 0, TRUE);
+			_w_widget_connect(textEntryHandle, &signals[SIGNAL_OUTPUT], TRUE);
+			_w_widget_connect(textEntryHandle, &signals[SIGNAL_FOCUS_IN_EVENT],
+			TRUE);
 		}
 		if (G_OBJECT_TYPE (textEntryHandle) == gtk_menu_get_type()) {
-			_w_widget_connect(_W_DATETIME(widget)->down, SIGNAL_FOCUS_IN_EVENT,
-					0, TRUE);
+			_w_widget_connect(_W_DATETIME(widget)->down,
+					&signals[SIGNAL_FOCUS_IN_EVENT], TRUE);
 		}
 	}
 }
@@ -451,7 +441,12 @@ wresult _w_datetime_set_year(w_datetime *datetime, int year) {
 void _w_datetime_update_control(w_datetime *datetime) {
 
 }
-
+_gtk_signal_info _gtk_datetime_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //
+		{ SIGNAL_DAY_SELECTED, 2, "day-selected" }, //
+				{ SIGNAL_DAY_SELECTED_DOUBLE_CLICK, 2,
+						"day-selected-double-click" }, //
+				{ SIGNAL_MONTH_CHANGED, 2, "month-changed" }, //
+				{ SIGNAL_OUTPUT, 2, "output" } };
 void _w_datetime_class_init(struct _w_datetime_class *clazz) {
 	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_DATETIME;
@@ -486,10 +481,12 @@ void _w_datetime_class_init(struct _w_datetime_class *clazz) {
 	priv->widget.check_style = _w_datetime_check_style;
 	priv->widget.create_handle = _w_datetime_create_handle;
 	priv->widget.hook_events = _w_datetime_hook_events;
+	_w_widget_init_signal(_W_DATETIME_PRIV(priv)->signals,
+			_gtk_datetime_signal_lookup, _W_DATETIME_SIGNAL_COUNT);
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 	signals[SIGNAL_CLICKED] = _gtk_button_clicked;
 
 }

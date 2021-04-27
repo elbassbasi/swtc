@@ -72,6 +72,14 @@ public:
 	WLabel(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
+	bool CreateLabel(WComposite *parent, const char *text) {
+		bool result = Create(parent, W_NONE);
+		SetText(text);
+		return result;
+	}
+	bool CreateLabel(WComposite &parent, const char *text) {
+		return CreateLabel(&parent, text);
+	}
 	/**
 	 * Returns the receiver's image if it has one, or null
 	 * if it does not.

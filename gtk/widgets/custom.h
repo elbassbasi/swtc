@@ -134,6 +134,15 @@ typedef enum _gtk_signal_type {
 	GDK_FILTER_PROC,
 } _gtk_signal_type;
 
+typedef struct _gtk_signal {
+	gushort msg;
+	guchar number_of_args;
+	guint id;
+	const char *name;
+	GCallback callback;
+	GClosure *closure;
+} _gtk_signal;
+
 /**
  * fixed widget
  */

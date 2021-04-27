@@ -23,7 +23,6 @@ wresult _w_toolitem_get_data(w_item *item, void **data) {
 	*data = g_object_get_qdata(G_OBJECT(toolitem),
 			gtk_toolkit->quark[GQUARK_DATA]);
 	return W_TRUE;
-	return W_FALSE;
 }
 wresult _w_toolitem_get_index(w_item *item) {
 	return _W_ITEM(item)->index;
@@ -179,14 +178,13 @@ void _w_toolitem_resize_control(w_toolitem *item) {
 		w_widget *parent = _W_ITEM(item)->parent;
 		_w_control_priv *priv = _W_CONTROL_GET_PRIV(parent);
 		priv->force_resize(W_CONTROL(parent), priv);
-		GtkAllocation itemRect;
-		w_rect rect;
-		_w_toolitem_get_bounds(item, &rect);
-		w_control_set_bounds(control, 0, &rect.sz);
+		w_rect rect, itemRect;
+		_w_toolitem_get_bounds(item, &itemRect);
+		w_control_set_bounds(control, 0, &itemRect.sz);
 		_w_toolitem_resize_handle(item, itemRect.width, itemRect.height);
 		w_control_get_bounds(control, &rect.pt, &rect.sz);
-		rect.x = itemRect.x + (itemRect.width - rect.width) / 2;
-		rect.y = itemRect.y + (itemRect.height - rect.height) / 2;
+		rect.x = itemRect.x + (itemRect.width - rect.width) / 2, 0;
+		rect.y = itemRect.y + (itemRect.height - rect.height) / 2, 0;
 		w_control_set_bounds(control, &rect.pt, 0);
 	}
 }
@@ -233,7 +231,6 @@ wresult _w_toolitem_set_id(w_toolitem *item, wushort id) {
 	g_object_set_qdata(G_OBJECT(item), gtk_toolkit->quark[GQUARK_ID],
 			(void*) _id);
 	return W_TRUE;
-	return W_FALSE;
 }
 wresult _w_toolitem_set_image(w_toolitem *item, int image) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
@@ -387,7 +384,7 @@ wresult _w_toolbar_get_item_from_point(w_toolbar *toolbar, w_point *point,
 	return W_FALSE;
 }
 wresult _w_toolbar_get_item_count(w_toolbar *toolbar) {
-	GtkToolbar *handle = _W_WIDGET(toolbar)->handle;
+	GtkWidget *handle = _W_WIDGET(toolbar)->handle;
 	_w_widget_find_child data;
 	data.count = 0;
 	gtk_container_forall(GTK_CONTAINER(handle), _w_widget_children_count,
@@ -547,6 +544,17 @@ void _w_toolbar_relayout(w_toolbar *toolbar) {
 	}
 	gtk_toolbar_set_style(GTK_TOOLBAR(_W_WIDGET(toolbar)->handle), type);
 }
+wresult _w_toolbar_set_bounds_0(w_control *control, w_point *location,
+		w_size *size, _w_control_priv *priv) {
+	GtkToolbar *handle = GTK_TOOLBAR(_W_WIDGET(control)->handle);
+	gtk_toolbar_set_show_arrow(handle, FALSE);
+	wresult result = _w_composite_set_bounds_0(control, location, size, priv);
+	if ((result & 2) != 0)
+		_w_toolbar_relayout(W_TOOLBAR(control));
+	if ((_W_WIDGET(control)->style & W_WRAP) != 0)
+		gtk_toolbar_set_show_arrow(handle, TRUE);
+	return result;
+}
 wresult _w_toolbar_set_imagelist(w_toolbar *toolbar, w_imagelist *imagelist) {
 	wresult ret = W_TRUE;
 	if (imagelist == 0) {
@@ -612,9 +620,12 @@ void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	priv->widget.handle_top = _w_widget_hp;
 	priv->handle_fixed = _w_widget_hp;
+	priv->handle_event = _w_widget_hp;
+	priv->handle_enterexit = _w_widget_h;
 	priv->widget.compute_size = _w_toolbar_compute_size;
 	priv->widget.check_style = _w_toolbar_check_style;
 	priv->widget.create_handle = _w_toolbar_create_handle;
 	priv->widget.hook_events = _w_toolbar_hook_events;
+	priv->set_bounds_0 = _w_toolbar_set_bounds_0;
 
 }

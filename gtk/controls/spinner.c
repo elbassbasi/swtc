@@ -153,16 +153,18 @@ wresult _w_spinner_create_handle(w_widget *widget, _w_control_priv *priv) {
 }
 void _w_spinner_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_composite_hook_events(widget, priv);
+	_gtk_signal *signals = gtk_toolkit->signals;
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
-	_w_widget_connect(handle, SIGNAL_CHANGED, 0, TRUE);
-	_w_widget_connect(handle, SIGNAL_INSERT_TEXT, 0, FALSE);
-	_w_widget_connect(handle, SIGNAL_DELETE_TEXT, 0, FALSE);
-	_w_widget_connect(handle, SIGNAL_VALUE_CHANGED, 0, FALSE);
-	_w_widget_connect(handle, SIGNAL_ACTIVATE, 0, FALSE);
-	_w_widget_connect(handle, SIGNAL_POPULATE_POPUP, 0, FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_CHANGED], TRUE);
+	_w_widget_connect(handle, &signals[SIGNAL_INSERT_TEXT], FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_DELETE_TEXT], FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_VALUE_CHANGED], FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_ACTIVATE], FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_POPULATE_POPUP], FALSE);
 	GtkIMContext *imContext = 0;	//imContext();
 	if (imContext != 0) {
-		_w_widget_connect((GtkWidget*) imContext, SIGNAL_COMMIT, 0, FALSE);
+		_w_widget_connect((GtkWidget*) imContext, &signals[SIGNAL_COMMIT],
+				FALSE);
 		int id = g_signal_lookup("commit", gtk_im_context_get_type());
 		GSignalMatchType mask = G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_ID;
 		g_signal_handlers_block_matched(imContext, mask, id, 0, 0, 0, handle);
@@ -453,6 +455,6 @@ void _w_spinner_class_init(struct _w_spinner_class *clazz) {
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 	signals[SIGNAL_CLICKED] = _gtk_button_clicked;
 }

@@ -128,6 +128,13 @@ wresult w_listitem_get_checked(w_listitem *item) {
 	} else
 		return result;
 }
+wresult w_listitem_get_grayed(w_listitem *item) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_LISTITEM_GET_CLASS(item)->get_grayed(item);
+	} else
+		return result;
+}
 wresult w_listitem_get_image(w_listitem *item) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
@@ -139,6 +146,13 @@ wresult w_listitem_set_checked(w_listitem *item, int checked) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
 		return W_LISTITEM_GET_CLASS(item)->set_checked(item, checked);
+	} else
+		return result;
+}
+wresult w_listitem_set_grayed(w_listitem *item, int grayed) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_LISTITEM_GET_CLASS(item)->set_grayed(item, grayed);
 	} else
 		return result;
 }
@@ -199,6 +213,15 @@ wresult w_listviewbase_get_header_height(w_listviewbase *list) {
 	wresult result = W_WIDGET_CHECK0(list);
 	if (result > 0) {
 		return W_LISTVIEWBASE_GET_CLASS(list)->get_header_height(list);
+	} else
+		return result;
+}
+wresult w_listviewbase_get_header_imagelist(w_listviewbase *list,
+		w_imagelist **imagelist) {
+	wresult result = W_WIDGET_CHECK0(list);
+	if (result > 0) {
+		return W_LISTVIEWBASE_GET_CLASS(list)->get_header_imagelist(list,
+				imagelist);
 	} else
 		return result;
 }
@@ -281,6 +304,15 @@ wresult w_listviewbase_select_all(w_listviewbase *list) {
 	wresult result = W_WIDGET_CHECK0(list);
 	if (result > 0) {
 		return W_LISTVIEWBASE_GET_CLASS(list)->select_all(list);
+	} else
+		return result;
+}
+wresult w_listviewbase_set_header_imagelist(w_listviewbase *list,
+		w_imagelist *imagelist) {
+	wresult result = W_WIDGET_CHECK0(list);
+	if (result > 0) {
+		return W_LISTVIEWBASE_GET_CLASS(list)->set_header_imagelist(list,
+				imagelist);
 	} else
 		return result;
 }
@@ -530,13 +562,6 @@ wresult w_listview_select_range(w_listview *list, int start, int end) {
 	wresult result = W_WIDGET_CHECK0(list);
 	if (result > 0) {
 		return W_LISTVIEW_GET_CLASS(list)->select_range(list, start, end);
-	} else
-		return result;
-}
-wresult w_listview_set_header_visible(w_listview *list, int show) {
-	wresult result = W_WIDGET_CHECK0(list);
-	if (result > 0) {
-		return W_LISTVIEW_GET_CLASS(list)->set_header_visible(list, show);
 	} else
 		return result;
 }

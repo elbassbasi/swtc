@@ -90,13 +90,10 @@ void TExpandBarDemo::Create_2(WComposite *composite) {
 	layout[2].marginLeft = layout[2].marginTop = layout[2].marginRight =
 			layout[2].marginBottom = 10;
 	layout[2].verticalSpacing = 10;
-	label_2[0].Create(composite, W_NONE);
-	label_2[0].SetText("Scale");
-	scale_2.Create(composite, W_SCALE);
-	label_2[1].Create(composite, W_NONE);
-	label_2[1].SetText("Spinner");
+	label_2[0].CreateLabel(composite, "Scale");
+	scale_2.CreateScale(composite);
+	label_2[1].CreateLabel(composite, "Spinner");
 	spinner_2.Create(composite, W_BORDER);
-	label_2[2].Create(composite, W_NONE);
-	label_2[2].SetText("Slider");
-	slider_2.Create(composite, W_NONE);
+	label_2[2].CreateLabel(composite, "Slider");
+	slider_2.CreateSlider(composite);
 }

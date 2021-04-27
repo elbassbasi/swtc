@@ -392,6 +392,9 @@ void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	if (toolkit->empty_tab != 0) {
 		pango_tab_array_set_tab(toolkit->empty_tab, 0, PANGO_TAB_LEFT, 1);
 	}
+	pthread_mutex_init(&toolkit->mutex, NULL);
+	pthread_mutex_init(&toolkit->condition_mutex, NULL);
+	pthread_cond_init(&toolkit->condition, NULL);
 }
 void _w_toolkit_init_display(_w_toolkit *toolkit) {
 	GdkDisplay *display = gdk_display_get_default();
@@ -409,6 +412,7 @@ void _w_toolkit_init(_w_toolkit *toolkit) {
 	_w_toolkit_widget_class_init(toolkit);
 	_w_toolkit_init_gtk(toolkit);
 	_w_toolkit_init_display(toolkit);
+	_w_widget_init_signal_0();
 	_w_theme_init();
 }
 void _w_toolkit_dispose(w_disposable *disposable) {

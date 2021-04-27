@@ -15,38 +15,34 @@ extern "C" {
  * w_treeitem
  */
 typedef struct w_treeitem {
-	w_item item;
-	void *handle[6];
+	w_listitem item;
 } w_treeitem;
 #define W_TREEITEM(x) ((w_treeitem*)x)
+enum {
+	W_TREEITEM_INDEX = 0,
+	W_TREEITEM_BEFORE,
+	W_TREEITEM_AFTER,
+	W_TREEITEM_PARENT,
+	W_TREEITEM_NEXT,
+	W_TREEITEM_PREV,
+	W_TREEITEM_LAST,
+	W_TREEITEM_FIRST
+};
 struct _w_treeitem_class {
-	struct _w_item_class item;
+	struct _w_listitem_class item;
 	wresult (*clear)(w_treeitem *item, int index, int all);
 	wresult (*clear_all)(w_treeitem *item, int all);
-	wresult (*get_bounds)(w_treeitem *item, w_rect *bounds);
-	wresult (*get_checked)(w_treeitem *item);
 	wresult (*get_expanded)(w_treeitem *item);
 	wresult (*get_first_child)(w_treeitem *item, w_treeitem *child);
-	wresult (*get_grayed)(w_treeitem *item);
-	wresult (*get_item)(w_treeitem *item, int index, w_treeitem *subitem);
+	wresult (*get_item)(w_treeitem *item, int index, w_treeitem *subitem,
+			int flags);
 	wresult (*get_item_count)(w_treeitem *item);
 	wresult (*get_items)(w_treeitem *item, w_iterator *items);
-	wresult (*get_image)(w_treeitem *item);
-	wresult (*get_last_child)(w_treeitem *item, w_treeitem *child);
-	wresult (*get_next_sibling)(w_treeitem *item, w_treeitem *next);
-	wresult (*get_parent_item)(w_treeitem *item, w_treeitem *parent);
-	wresult (*get_prev_sibling)(w_treeitem *item, w_treeitem *prev);
-	wresult (*insert_item)(w_treeitem *item, w_treeitem *subitem, int index);
-	wresult (*insert_item_after)(w_treeitem *item, w_treeitem *subitem,
-			w_treeitem *after);
-	wresult (*insert_item_before)(w_treeitem *item, w_treeitem *subitem,
-			w_treeitem *before);
+	wresult (*insert_item)(w_treeitem *item, w_treeitem *subitem, int index,
+			w_treeitem *after, int flags);
 	wresult (*remove_all)(w_treeitem *item);
-	wresult (*set_checked)(w_treeitem *item, int checked);
 	wresult (*set_expanded)(w_treeitem *item, int expanded);
-	wresult (*set_grayed)(w_treeitem *item, int grayed);
 	wresult (*set_has_children)(w_treeitem *item);
-	wresult (*set_image)(w_treeitem *item, int image);
 	wresult (*set_item_count)(w_treeitem *item, int count);
 };
 #define W_TREEITEM_CLASS(x) ((struct _w_treeitem_class*)x)
@@ -58,7 +54,8 @@ SWT_PUBLIC wresult w_treeitem_get_checked(w_treeitem *item);
 SWT_PUBLIC wresult w_treeitem_get_expanded(w_treeitem *item);
 SWT_PUBLIC wresult w_treeitem_get_first_child(w_treeitem *item,
 		w_treeitem *child);
-SWT_PUBLIC wresult w_treeitem_get_grayed(w_treeitem *item);
+SWT_PUBLIC wresult w_treeitem_get_item_0(w_treeitem *item, int index,
+		w_treeitem *subitem, int flags);
 SWT_PUBLIC wresult w_treeitem_get_item(w_treeitem *item, int index,
 		w_treeitem *subitem);
 SWT_PUBLIC wresult w_treeitem_get_item_count(w_treeitem *item);
@@ -72,6 +69,8 @@ SWT_PUBLIC wresult w_treeitem_get_parent_item(w_treeitem *item,
 		w_treeitem *parent);
 SWT_PUBLIC wresult w_treeitem_get_prev_sibling(w_treeitem *item,
 		w_treeitem *prev);
+SWT_PUBLIC wresult w_treeitem_insert_item_0(w_treeitem *item,
+		w_treeitem *subitem, int index, w_treeitem *after, int flags);
 SWT_PUBLIC wresult w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
 		int index);
 SWT_PUBLIC wresult w_treeitem_insert_item_after(w_treeitem *item,
@@ -81,7 +80,6 @@ SWT_PUBLIC wresult w_treeitem_insert_item_before(w_treeitem *item,
 SWT_PUBLIC wresult w_treeitem_remove_all(w_treeitem *item);
 SWT_PUBLIC wresult w_treeitem_set_checked(w_treeitem *item, int checked);
 SWT_PUBLIC wresult w_treeitem_set_expanded(w_treeitem *item, int expanded);
-SWT_PUBLIC wresult w_treeitem_set_grayed(w_treeitem *item, int grayed);
 SWT_PUBLIC wresult w_treeitem_set_has_children(w_treeitem *item);
 SWT_PUBLIC wresult w_treeitem_set_image(w_treeitem *item, int image);
 SWT_PUBLIC wresult w_treeitem_set_item_count(w_treeitem *item, int count);

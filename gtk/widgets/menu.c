@@ -194,17 +194,10 @@ wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 	}
 	gtk_widget_show(menuItem);
 	_w_menu_priv *priv = _W_MENU_GET_PRIV(menu);
-	if (priv->signal_activate_id == 0) {
-		priv->signal_activate_id = g_signal_lookup("activate",
-				gtk_menu_item_get_type());
-		priv->signal_select_id = g_signal_lookup("select",
-				gtk_menu_item_get_type());
-	}
-	_w_widget_connect(menuItem, SIGNAL_ACTIVATE, priv->signal_activate_id,
-	FALSE);
-	_w_widget_connect(menuItem, SIGNAL_SELECT, priv->signal_select_id,
-	FALSE);
-	_w_widget_connect(menuItem, SIGNAL_SHOW_HELP, 0, FALSE);
+
+	_w_widget_connect(menuItem, &priv->signal_activate, FALSE);
+	_w_widget_connect(menuItem, &priv->signal_select, FALSE);
+	_w_widget_connect(menuItem, &gtk_toolkit->signals[SIGNAL_SHOW_HELP], FALSE);
 	return W_OK;
 }
 GtkAccelGroup* _w_menuitem_get_accel_group(w_menuitem *item) {
@@ -651,9 +644,11 @@ wresult _w_menu_get_visible(w_menu *menu) {
 }
 void _w_menu_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_widget_hook_events(widget, priv);
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_SHOW, 0, FALSE);
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_HIDE, 0, FALSE);
-	_w_widget_connect(_W_WIDGET(widget)->handle, SIGNAL_SHOW_HELP, 0, FALSE);
+	_gtk_signal *signals = gtk_toolkit->signals;
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	_w_widget_connect(handle, &signals[SIGNAL_SHOW], FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_HIDE], FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_SHOW_HELP], FALSE);
 }
 wresult _w_menu_is_visible(w_menu *menu) {
 	return _w_menu_get_visible(menu);
@@ -884,10 +879,18 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	_w_widget_priv *priv = _W_WIDGET_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	priv->create_handle = _w_menu_create_handle;
 	priv->hook_events = _w_menu_hook_events;
+	_gtk_signal *signal = &_W_MENU_PRIV(priv)->signal_activate;
+	signal->msg = SIGNAL_ACTIVATE;
+	signal->name = "activate";
+	signal->number_of_args = 2;
+	signal = &_W_MENU_PRIV(priv)->signal_select;
+	signal->msg = SIGNAL_SELECT;
+	signal->name = "select";
+	signal->number_of_args = 2;
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = _W_WIDGET_PRIV(priv)->signals;
+	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
 	signals[SIGNAL_ACTIVATE] = _gtk_menu_activate;
 	signals[SIGNAL_HIDE] = _gtk_menu_hide;
 	signals[SIGNAL_SELECT] = _gtk_menu_select;

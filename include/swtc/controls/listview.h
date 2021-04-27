@@ -70,8 +70,10 @@ struct _w_listitem_class {
 	wresult (*get_bounds)(w_listitem *item, w_rect *bounds);
 	wresult (*get_bounds_index)(w_listitem *item, int index, w_rect *bounds);
 	wresult (*get_checked)(w_listitem *item);
+	wresult (*get_grayed)(w_listitem *item);
 	wresult (*get_image)(w_listitem *item);
 	wresult (*set_checked)(w_listitem *item, int checked);
+	wresult (*set_grayed)(w_listitem *item, int grayed);
 	wresult (*set_image)(w_listitem *item, int image);
 };
 #define W_LISTITEM_CLASS(x) ((struct _w_listitem_class*)x)
@@ -80,8 +82,10 @@ SWT_PUBLIC wresult w_listitem_get_bounds(w_listitem *item, w_rect *bounds);
 SWT_PUBLIC wresult w_listitem_get_bounds_index(w_listitem *item, int index,
 		w_rect *bounds);
 SWT_PUBLIC wresult w_listitem_get_checked(w_listitem *item);
+SWT_PUBLIC wresult w_listitem_get_grayed(w_listitem *item);
 SWT_PUBLIC wresult w_listitem_get_image(w_listitem *item);
 SWT_PUBLIC wresult w_listitem_set_checked(w_listitem *item, int checked);
+SWT_PUBLIC wresult w_listitem_set_grayed(w_listitem *item, int grayed);
 SWT_PUBLIC wresult w_listitem_set_image(w_listitem *item, int image);
 /*
  * w_listviewbase
@@ -103,6 +107,8 @@ struct _w_listviewbase_class {
 	wresult (*get_columns)(w_listviewbase *list, w_iterator *columns);
 	wresult (*get_gridline_width)(w_listviewbase *list);
 	wresult (*get_header_height)(w_listviewbase *list);
+	wresult (*get_header_imagelist)(w_listviewbase *list,
+			w_imagelist **imagelist);
 	wresult (*get_header_visible)(w_listviewbase *list);
 	wresult (*get_imagelist)(w_listviewbase *list, w_imagelist **imagelist);
 	wresult (*get_item_height)(w_listviewbase *list);
@@ -115,6 +121,8 @@ struct _w_listviewbase_class {
 			int index);
 	wresult (*remove_all)(w_listviewbase *list);
 	wresult (*select_all)(w_listviewbase *list);
+	wresult (*set_header_imagelist)(w_listviewbase *list,
+			w_imagelist *imagelist);
 	wresult (*set_header_visible)(w_listviewbase *list, int show);
 	wresult (*set_imagelist)(w_listviewbase *list, w_imagelist *imagelist);
 	wresult (*set_item_height)(w_listviewbase *list, int itemHeight);
@@ -136,6 +144,8 @@ SWT_PUBLIC wresult w_listviewbase_get_columns(w_listviewbase *list,
 		w_iterator *columns);
 SWT_PUBLIC wresult w_listviewbase_get_gridline_width(w_listviewbase *list);
 SWT_PUBLIC wresult w_listviewbase_get_header_height(w_listviewbase *list);
+SWT_PUBLIC wresult w_listviewbase_get_header_imagelist(w_listviewbase *list,
+		w_imagelist **imagelist);
 SWT_PUBLIC wresult w_listviewbase_get_header_visible(w_listviewbase *list);
 SWT_PUBLIC wresult w_listviewbase_get_imagelist(w_listviewbase *list,
 		w_imagelist **imagelist);
@@ -151,6 +161,8 @@ SWT_PUBLIC wresult w_listviewbase_insert_column(w_listviewbase *list,
 		w_columnitem *column, int index);
 SWT_PUBLIC wresult w_listviewbase_remove_all(w_listviewbase *list);
 SWT_PUBLIC wresult w_listviewbase_select_all(w_listviewbase *list);
+SWT_PUBLIC wresult w_listviewbase_set_header_imagelist(w_listviewbase *list,
+		w_imagelist *imagelist);
 SWT_PUBLIC wresult w_listviewbase_set_header_visible(w_listviewbase *list,
 		int show);
 SWT_PUBLIC wresult w_listviewbase_set_imagelist(w_listviewbase *list,
@@ -227,7 +239,6 @@ struct _w_listview_class {
 	wresult (*select_indices)(w_listview *list, int *indices, int length);
 	wresult (*select_item)(w_listview *list, w_listitem *item);
 	wresult (*select_range)(w_listview *list, int start, int end);
-	wresult (*set_header_visible)(w_listview *list, int show);
 	wresult (*set_insert_mark)(w_listview *list, w_listitem *item, int before);
 	wresult (*set_selection_index)(w_listview *list, int index);
 	wresult (*set_selection_indices)(w_listview *list, int *indices,
@@ -276,7 +287,6 @@ SWT_PUBLIC wresult w_listview_select_indices(w_listview *list, int *indices,
 SWT_PUBLIC wresult w_listview_select_item(w_listview *list, w_listitem *item);
 SWT_PUBLIC wresult w_listview_select_range(w_listview *list, int start,
 		int end);
-SWT_PUBLIC wresult w_listview_set_header_visible(w_listview *list, int show);
 SWT_PUBLIC wresult w_listview_set_insert_mark(w_listview *list,
 		w_listitem *item, int before);
 SWT_PUBLIC wresult w_listview_set_selection_index(w_listview *list, int index);

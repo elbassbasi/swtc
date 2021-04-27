@@ -86,6 +86,18 @@ public:
 	WSlider(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
+	bool CreateScale(WComposite *parent) {
+		return Create(parent, W_SCALE);
+	}
+	bool CreateScale(WComposite &parent) {
+		return CreateScale(&parent);
+	}
+	bool CreateSlider(WComposite *parent) {
+		return Create(parent, W_NONE);
+	}
+	bool CreateSlider(WComposite &parent) {
+		return CreateSlider(&parent);
+	}
 	/**
 	 * Returns the amount that the receiver's value will be
 	 * modified by when the up/down (or right/left) arrows

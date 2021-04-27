@@ -101,26 +101,10 @@ void _w_slider_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_slider_priv *cpriv = (_w_slider_priv*) priv;
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	if (_W_WIDGET(widget)->style & W_SCALE) {
-		if (cpriv->signal_scale_value_changed == 0) {
-			cpriv->signal_scale_value_changed = g_signal_lookup(
-					_gtk_signal_names[SIGNAL_VALUE_CHANGED],
-					gtk_scale_get_type());
-		}
-		_w_widget_connect(handle, SIGNAL_VALUE_CHANGED,
-				cpriv->signal_scale_value_changed, FALSE);
+		_w_widget_connect(handle, &cpriv->signals[2], FALSE);
 	} else {
-		if (cpriv->signal_value_changed == 0) {
-			cpriv->signal_value_changed = g_signal_lookup(
-					_gtk_signal_names[SIGNAL_VALUE_CHANGED],
-					gtk_scrollbar_get_type());
-			cpriv->signal_change_value = g_signal_lookup(
-					_gtk_signal_names[SIGNAL_CHANGE_VALUE],
-					gtk_scrollbar_get_type());
-		}
-		_w_widget_connect(handle, SIGNAL_VALUE_CHANGED,
-				cpriv->signal_value_changed, FALSE);
-		//_w_widget_connect(handle, SIGNAL_CHANGE_VALUE,
-		//		cpriv->signal_change_value, FALSE);
+		_w_widget_connect(handle, &cpriv->signals[0], FALSE);
+		_w_widget_connect(handle, &cpriv->signals[1], FALSE);
 	}
 }
 wresult _w_slider_set_increment(w_slider *slider, int value) {
@@ -296,6 +280,11 @@ gboolean _gtk_slider_value_changed(w_widget *widget, _w_event_platform *e,
 	_w_widget_send_event(widget, &event);
 	return FALSE;
 }
+_gtk_signal_info _gtk_slider_signal_lookup[3] = { //
+		{ SIGNAL_VALUE_CHANGED, 2, "value-changed" }, //
+				{ SIGNAL_CHANGE_VALUE, 3, "change-value" }, //
+				{ SIGNAL_VALUE_CHANGED, 2, "value-changed" }, //
+		};
 void _w_slider_class_init(struct _w_slider_class *clazz) {
 	_w_control_class_init(W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SLIDER;
@@ -325,10 +314,12 @@ void _w_slider_class_init(struct _w_slider_class *clazz) {
 	priv->widget.check_style = _w_slider_check_style;
 	priv->widget.create_handle = _w_slider_create_handle;
 	priv->widget.hook_events = _w_slider_hook_events;
+	_w_widget_init_signal(_W_SLIDER_PRIV(priv)->signals,
+			_gtk_slider_signal_lookup, 3);
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = priv->widget.signals;
+	_gtk_signal_fn *signals = priv->widget.signals;
 	signals[SIGNAL_VALUE_CHANGED] = _gtk_slider_value_changed;
 
 }

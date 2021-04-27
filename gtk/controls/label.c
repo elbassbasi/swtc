@@ -6,6 +6,9 @@
  */
 #include "label.h"
 #include "../widgets/toolkit.h"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 wresult _w_label_get_image(w_label *label, w_image *image) {
 	if (image == 0)
 		return W_ERROR_NULL_ARGUMENT;
@@ -56,7 +59,7 @@ wresult _w_label_set_image(w_label *label, w_image *image) {
 	}
 	return W_TRUE;
 }
-int _w_label_parse_mnemonics(char *buffer, int start, int end,
+int _w_label_parse_mnemonics(const char *buffer, int start, int end,
 		_w_hyperlink *link, int *result_length) {
 	int mnemonic = -1, index = start;
 	char *result = link->text;
@@ -802,7 +805,7 @@ void _w_label_class_init(struct _w_label_class *clazz) {
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = _W_WIDGET_PRIV(priv)->signals;
+	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
 	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_label_button_press_event;
 	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_label_button_release_event;
 	signals[SIGNAL_EVENT_AFTER] = _gtk_label_event_after;

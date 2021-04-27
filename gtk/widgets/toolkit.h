@@ -27,16 +27,27 @@ enum {
 	GTK_THEME_HANDLE_TREE, //
 	GTK_THEME_HANDLE_SEPARATOR, //
 	GTK_THEME_HANDLE_LABEL, //
-	GTK_THEME_HANDLE_LAST
+	GTK_THEME_HANDLE_LAST,
+	/*
+	 *
+	 */
+	SWT_GQUARK_WIDGET = 0,
+	SWT_GQUARK_LAST = 4,
+	/*
+	 *
+	 */
+	THREAD_IDLE_COUNT = 0x10,
 };
 typedef struct _gtk_theme {
 	w_theme theme;
 	GtkWidget *handle[GTK_THEME_HANDLE_LAST];
 
 } _gtk_theme;
-enum {
-	SWT_GQUARK_WIDGET = 0, SWT_GQUARK_LAST = 4
-};
+typedef struct threads_idle {
+	w_thread_start func;
+	void *data;
+	wuint signalled;
+} threads_idle;
 extern const char *_gtk_signal_names[SIGNAL_LAST];
 typedef struct _w_toolkit {
 	w_toolkit toolkit;
@@ -44,8 +55,7 @@ typedef struct _w_toolkit {
 	_w_cursor cursors[W_CURSOR_HAND + 1];
 	_w_image images[5];
 	GQuark quark[SWT_GQUARK_LAST];
-	GClosure *closures[SIGNAL_LAST];
-	guint signal_id[SIGNAL_LAST];
+	_gtk_signal signals[SIGNAL_LAST];
 	w_taskbar taskbar;
 	w_tray tray;
 	w_widget *widget_free;
@@ -59,6 +69,13 @@ typedef struct _w_toolkit {
 	unsigned activePending :1;
 	unsigned clickCount :2;
 	unsigned ignoreFocus :1;
+	/* Custom Resize */
+	w_pointf resizeLocation;
+	w_rect resizeBounds;
+	int resizeMode;
+	//caret
+	guint caretId;
+	w_caret *currentCaret;
 	/*
 	 * function
 	 */
@@ -66,6 +83,10 @@ typedef struct _w_toolkit {
 	/*
 	 * thread
 	 */
+	threads_idle threads_idle[THREAD_IDLE_COUNT];
+	pthread_mutex_t mutex;
+	pthread_cond_t condition;
+	pthread_mutex_t condition_mutex;
 	w_thread thread;
 	GPollFD *fds;
 	size_t allocated_nfds;

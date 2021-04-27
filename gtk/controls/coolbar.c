@@ -6,6 +6,9 @@
  */
 #include "coolbar.h"
 #include "../widgets/toolkit.h"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #define MARGIN_WIDTH 4
 #define GRABBER_WIDTH 2
 #define MINIMUM_WIDTH ((2 * MARGIN_WIDTH) + GRABBER_WIDTH)
@@ -405,7 +408,7 @@ void _w_coolbar_fix_rectangle(w_coolbar *coolbar, w_rect *result,
 }
 wresult _w_coolbar_get_item(w_coolbar *coolbar, int index, w_coolitem *item) {
 	_w_coolitem_handles *_items = _W_COOLBAR(coolbar)->items;
-	if (index >= 0 && index < _items->count) {
+	if (index >= 0 && _items != 0 && index < _items->count) {
 		_W_WIDGETDATA(item)->clazz = _W_COOLBAR_GET_ITEM_CLASS(coolbar);
 		_W_ITEM(item)->parent = W_WIDGET(coolbar);
 		_W_ITEM(item)->index = index;
@@ -439,7 +442,6 @@ wresult _w_coolbar_insert_item(w_coolbar *coolbar, w_coolitem *item, int style,
 	int itemCount = _w_coolbar_get_item_count(coolbar), row = 0;
 	if (!(0 <= index && index <= itemCount)) {
 		index = itemCount;
-		//return W_ERROR_INVALID_RANGE;
 	}
 	_w_coolitem_handle *_item;
 	_w_coolitem_handles *_items = _W_COOLBAR(coolbar)->items;

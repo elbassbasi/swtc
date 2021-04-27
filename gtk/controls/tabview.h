@@ -14,12 +14,14 @@ typedef struct _w_tabview {
 	GtkWidget *image_close_button;
 	w_imagelist *imagelist;
 } _w_tabview;
-
+enum {
+	_W_TABVIEW_SIGNAL_SWITCH_PAGE, //
+	_W_TABVIEW_SIGNAL_CLICKED, //
+	_W_TABVIEW_SIGNAL_LAST
+};
 typedef struct _w_tabview_priv {
 	_w_composite_priv composite;
-	guint signal_switch_page_id;
-	guint signal_selection_id;
-
+	_gtk_signal signals[_W_TABVIEW_SIGNAL_LAST];
 } _w_tabview_priv;
 #define _W_TABVIEW(x) ((_w_tabview*)x)
 #define _W_TABVIEW_PRIV(x) ((_w_tabview_priv*)x)

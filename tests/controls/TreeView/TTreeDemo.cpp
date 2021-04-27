@@ -30,9 +30,11 @@ void TTreeDemo::CreateControl(WComposite *parent) {
 	char txt[50];
 	this->Create(parent, W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
 	this->SetImageList(MShell::GetImageList32_(this));
+	this->SetHeaderImageList(MShell::GetImageList32_(this));
 	this->GetColumn(0, column).SetText("id");
-	this->AppendColumn(column, "progress"); //.SetResizable(false);
-	this->AppendColumn(column, "int");
+	column.SetImage(1);
+	this->AppendColumn(column, "progress").SetImage(2); //.SetResizable(false);
+	this->AppendColumn(column, "int").SetImage(3);
 	column.SetAlignment(W_CENTER);
 	this->SetHeaderVisible(true);
 	this->SetLinesVisible(true);

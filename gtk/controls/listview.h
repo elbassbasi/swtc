@@ -37,13 +37,17 @@ typedef struct _w_columnitem {
 typedef struct _w_listviewbase {
 	_w_composite composite;
 	GtkCellRenderer *pixbufrenderer;
+	GtkCellRenderer *checkrenderer;
 	w_imagelist *imagelist;
+	w_imagelist *headerimagelist;
 	unsigned rowActivated :1;
 	unsigned ignoreSize :1;
 } _w_listviewbase;
 #define _W_LISTVIEWBASE(x) ((_w_listviewbase*)x)
 #define _W_LISTVIEWBASE_GET_ITEM_CLASS(list) (W_WIDGETDATA_CLASS(W_LISTVIEWBASE_GET_CLASS(list)->class_item))
 #define _W_LISTVIEWBASE_GET_COLUMN_CLASS(list) (W_WIDGETDATA_CLASS(W_LISTVIEWBASE_GET_CLASS(list)->class_column))
+wresult _w_listviewbase_get_header_imagelist(w_listviewbase *list,
+		w_imagelist **imagelist);
 typedef struct _w_listview {
 	_w_listviewbase base;
 } _w_listview;
@@ -51,6 +55,19 @@ typedef struct _w_listview {
 /*
  * private
  */
+enum {
+	_W_LISTVIEW_SIGNAL_TOGGLED,
+	_W_LISTVIEW_SIGNAL_CHANGED, //
+	_W_LISTVIEW_SIGNAL_ROW_HAS_CHILD_TOGGLED, //
+	_W_LISTVIEW_SIGNAL_ROW_INSERTED, //
+	_W_LISTVIEW_SIGNAL_ROW_DELETED, //
+	_W_LISTVIEW_SIGNAL_ROW_ACTIVATED, //
+	_W_LISTVIEW_SIGNAL_START_INTERACTIVE_SEARCH, //
+	_W_LISTVIEW_SIGNAL_TEST_EXPAND_ROW, //
+	_W_LISTVIEW_SIGNAL_TEST_COLLAPSE_ROW, //
+	_W_LISTVIEW_SIGNAL_EXPAND_COLLAPSE_CURSOR_ROW,
+	_W_LISTVIEW_LAST
+};
 typedef struct _w_listviewbase_priv {
 	_w_composite_priv composite;
 	void (*renderer_render)(w_widget *widget, _w_control_priv *priv,
@@ -62,7 +79,7 @@ typedef struct _w_listviewbase_priv {
 			_w_control_priv *priv, GtkCellRenderer *cell, GtkWidget *gtkwidget,
 			gint *minimum_size, gint *natural_size);
 #endif
-	int signal_toggled_id;
+	_gtk_signal signals[_W_LISTVIEW_LAST];
 } _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
 #define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_w_widget_get_priv(W_WIDGET(x)))
@@ -71,6 +88,7 @@ typedef struct _w_listview_priv {
 	_w_listviewbase_priv tablebase;
 } _w_listview_priv;
 #define _W_LISTVIEW_PRIV(x) ((_w_listview_priv*)x)
+void _w_listitem_class_init(struct _w_listitem_class *listitem);
 void _w_listview_class_init(struct _w_listview_class *clazz);
 /*
  * cell renderer

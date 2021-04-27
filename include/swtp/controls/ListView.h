@@ -515,8 +515,8 @@ public:
 	WColor background;
 	WColor foreground;
 };
-template<typename T>
-class _WListEvent: public WEvent {
+class WTreeItem;
+class WListEvent: public WEvent {
 public:
 	union {
 		int detail;
@@ -531,12 +531,20 @@ public:
 	};
 	WRect *rect;
 	WColumnItem *column;
-	T *item;
+	WListItem *item;
 	WGraphics *gc;
 	WValue *value;
 	WListAttr *attr;
+	WTreeItem* GetTreeItem() {
+		return (WTreeItem*) item;
+	}
+	WListItem* GetListItem() {
+		return item;
+	}
+	WListItem* GetItem() {
+		return item;
+	}
 };
-typedef _WListEvent<WListItem> WListEvent;
 class SWTP_PUBLIC WListViewBase: public WComposite {
 public:
 	/**
@@ -657,6 +665,11 @@ public:
 	int GetHeaderHeight() {
 		return _WReturnInt(_get_header_height());
 	}
+	WImageList* GetHeaderImageList() {
+		WImageList *imagelist;
+		_get_header_imagelist(&imagelist);
+		return imagelist;
+	}
 	/**
 	 * Returns <code>true</code> if the receiver's header is visible,
 	 * and <code>false</code> otherwise.
@@ -776,6 +789,9 @@ public:
 	bool SelectAll() {
 		return _WReturnBool(_select_all());
 	}
+	bool SetHeaderImageList(WImageList *imagelist) {
+		return _WReturnBool(_set_header_imagelist(imagelist));
+	}
 	/**
 	 * Marks the receiver's header as visible if the argument is <code>true</code>,
 	 * and marks it invisible otherwise.
@@ -873,6 +889,10 @@ public:
 	WResult _get_header_height() {
 		return w_listviewbase_get_header_height(W_LISTVIEWBASE(this));
 	}
+	WResult _get_header_imagelist(WImageList **imagelist) {
+		return w_listviewbase_get_header_imagelist(W_LISTVIEWBASE(this),
+				(w_imagelist**) imagelist);
+	}
 	WResult _get_header_visible() {
 		return w_listviewbase_get_header_visible(W_LISTVIEWBASE(this));
 	}
@@ -908,6 +928,10 @@ public:
 	}
 	WResult _select_all() {
 		return w_listviewbase_select_all(W_LISTVIEWBASE(this));
+	}
+	wresult _set_header_imagelist(WImageList *imagelist) {
+		return w_listviewbase_set_header_imagelist(W_LISTVIEWBASE(this),
+				W_IMAGELIST(imagelist));
 	}
 	WResult _set_header_visible(int show) {
 		return w_listviewbase_set_header_visible(W_LISTVIEWBASE(this), show);

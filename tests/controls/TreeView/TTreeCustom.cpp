@@ -185,7 +185,7 @@ bool TTreeCustom::OnItemDefaultSelection(WTreeEvent &e) {
 	if (e.item->IsOk()) {
 		WRect bounds;
 		e.item->GetBounds(bounds);
-		text.item = *e.item;
+		text.item = *e.GetTreeItem();
 		WString str = e.item->GetText();
 		text.SetText(str);
 		text.SetBounds(bounds);

@@ -30,7 +30,7 @@ bool MPanel::OnItemExpand(WTreeEvent &e) {
 	if (e.item != 0) {
 		ITreeItem *obj = (ITreeItem*) e.item->GetData();
 		if (obj != 0) {
-			return obj->OnExpand(*e.item);
+			return obj->OnExpand(*e.GetTreeItem());
 		}
 	}
 	return false;

@@ -29,7 +29,6 @@ typedef struct _w_composite {
 typedef struct _w_composite_priv _w_composite_priv;
 struct _w_composite_priv {
 	_w_scrollable_priv scrollable;
-	int signal_scroll_child;
 	void (*add_child)(w_control *composite, w_widget *child,
 			_w_control_priv *priv);
 	w_composite* (*find_deferred_control)(w_control *composite,
@@ -55,8 +54,26 @@ wresult _w_composite_set_bounds_0(w_control *control, w_point *location,
 /*
  * signals
  */
+gboolean _gtk_composite_destroy(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
 gboolean _gtk_composite_button_press_event(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_composite_draw(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_composite_key_press_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_composite_focus(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_composite_focus_in_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_composite_focus_out_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_composite_map(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_composite_realize(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+gboolean _gtk_composite_scroll_child(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
 void _w_composite_class_init(struct _w_composite_class *clazz);
 /*
  * messages

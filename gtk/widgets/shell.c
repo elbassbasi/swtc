@@ -331,6 +331,41 @@ wresult _w_shell_get_menu_bar(w_shell *shell, w_menu **menu) {
 wresult _w_shell_get_minimized(w_shell *shell) {
 	return W_FALSE;
 }
+int _w_shell_get_resize_mode(w_shell *shell, double x, double y) {
+	GtkAllocation allocation;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	gtk_widget_get_allocation(shellHandle, &allocation);
+	int width = allocation.width;
+	int height = allocation.height;
+	int border = gtk_container_get_border_width(GTK_CONTAINER(shellHandle));
+	int mode = 0;
+	if (y >= height - border) {
+		mode = GDK_BOTTOM_SIDE;
+		if (x >= width - border - 16)
+			mode = GDK_BOTTOM_RIGHT_CORNER;
+		else if (x <= border + 16)
+			mode = GDK_BOTTOM_LEFT_CORNER;
+	} else if (x >= width - border) {
+		mode = GDK_RIGHT_SIDE;
+		if (y >= height - border - 16)
+			mode = GDK_BOTTOM_RIGHT_CORNER;
+		else if (y <= border + 16)
+			mode = GDK_TOP_RIGHT_CORNER;
+	} else if (y <= border) {
+		mode = GDK_TOP_SIDE;
+		if (x <= border + 16)
+			mode = GDK_TOP_LEFT_CORNER;
+		else if (x >= width - border - 16)
+			mode = GDK_TOP_RIGHT_CORNER;
+	} else if (x <= border) {
+		mode = GDK_LEFT_SIDE;
+		if (y <= border + 16)
+			mode = GDK_TOP_LEFT_CORNER;
+		else if (y >= height - border - 16)
+			mode = GDK_BOTTOM_LEFT_CORNER;
+	}
+	return mode;
+}
 wresult _w_shell_get_shell(w_control *control, w_shell **shell) {
 	*shell = W_SHELL(control);
 	return W_TRUE;
@@ -347,24 +382,19 @@ wresult _w_shell_get_toolbar(w_shell *shell, w_toolbar **toolbar) {
 }
 void _w_shell_hook_events(w_widget *shell, _w_control_priv *priv) {
 	_w_composite_hook_events(shell, priv);
+	_gtk_signal *signals = gtk_toolkit->signals;
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
-	if (_W_SHELL_PRIV(priv)->move_focus_id == 0) {
-		_W_SHELL_PRIV(priv)->move_focus_id = g_signal_lookup("move-focus",
-				gtk_window_get_type());
-	}
-	_w_widget_connect(shellHandle, SIGNAL_KEY_PRESS_EVENT, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_WINDOW_STATE_EVENT, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_SIZE_ALLOCATE, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_CONFIGURE_EVENT, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_DELETE_EVENT, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_MAP_EVENT, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_ENTER_NOTIFY_EVENT, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_MOVE_FOCUS,
-	_W_SHELL_PRIV(priv)->move_focus_id,
-	FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_KEY_PRESS_EVENT], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_WINDOW_STATE_EVENT], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_SIZE_ALLOCATE], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_CONFIGURE_EVENT], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_DELETE_EVENT], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_MAP_EVENT], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_ENTER_NOTIFY_EVENT], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_MOVE_FOCUS], FALSE);
 #if GTK3
-	_w_widget_connect(shellHandle, SIGNAL_FOCUS_IN_EVENT, 0, FALSE);
-	_w_widget_connect(shellHandle, SIGNAL_FOCUS_OUT_EVENT, 0, FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_FOCUS_IN_EVENT], FALSE);
+	_w_widget_connect(shellHandle, &signals[SIGNAL_FOCUS_OUT_EVENT], FALSE);
 #else
 #endif
 	if (ISCUSTOMRESIZE(_W_WIDGET(shell)->style)) {
@@ -372,10 +402,13 @@ void _w_shell_hook_events(w_widget *shell, _w_control_priv *priv) {
 				| GDK_BUTTON_PRESS_MASK | GDK_ENTER_NOTIFY_MASK
 				| GDK_LEAVE_NOTIFY_MASK;
 		gtk_widget_add_events(shellHandle, mask);
-		_w_widget_connect(shellHandle, SIGNAL_EXPOSE_EVENT, 0, FALSE);
-		_w_widget_connect(shellHandle, SIGNAL_LEAVE_NOTIFY_EVENT, 0, FALSE);
-		_w_widget_connect(shellHandle, SIGNAL_MOTION_NOTIFY_EVENT, 0, FALSE);
-		_w_widget_connect(shellHandle, SIGNAL_BUTTON_PRESS_EVENT, 0, FALSE);
+		_w_widget_connect(shellHandle, &signals[SIGNAL_EXPOSE_EVENT], FALSE);
+		_w_widget_connect(shellHandle, &signals[SIGNAL_LEAVE_NOTIFY_EVENT],
+		FALSE);
+		_w_widget_connect(shellHandle, &signals[SIGNAL_MOTION_NOTIFY_EVENT],
+		FALSE);
+		_w_widget_connect(shellHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT],
+		FALSE);
 	}
 }
 wresult _w_shell_open(w_shell *shell) {
@@ -427,6 +460,73 @@ void _w_shell_resize_bounds(w_control *control, int width, int height,
 }
 wresult _w_shell_set_active(w_shell *shell) {
 	return W_FALSE;
+}
+w_control* _w_shell_path_next(w_shell *shell, w_control *control) {
+	if (control == W_CONTROL(shell))
+		return 0;
+	return (w_control*) _W_CONTROL(control)->parent;
+}
+void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
+		int type) {
+	if (control != 0 && !w_widget_is_ok(W_WIDGET(control)))
+		control = 0;
+	w_control *lastActive = _W_SHELL(shell)->lastActive;
+	if (lastActive != 0 && !w_widget_is_ok(W_WIDGET(lastActive)))
+		lastActive = 0;
+	if (lastActive == control)
+		return;
+
+	/*
+	 * Compute the list of controls to be activated and
+	 * deactivated by finding the first common parent
+	 * control.
+	 */
+	w_control *activate = control;
+	w_control *deactivate = lastActive;
+	_W_SHELL(shell)->lastActive = control;
+	int index = 0;
+	while (activate != 0 && deactivate != 0) {
+		if (activate != deactivate)
+			break;
+		activate = _w_shell_path_next(shell, activate);
+		deactivate = _w_shell_path_next(shell, deactivate);
+		index++;
+	}
+	w_event e;
+	/*
+	 * It is possible (but unlikely), that application
+	 * code could have destroyed some of the widgets. If
+	 * this happens, keep processing those widgets that
+	 * are not disposed.
+	 */
+	deactivate = lastActive;
+	w_control *next;
+	for (int i = 0; i < index; i++) {
+		if (w_widget_is_ok(W_WIDGET(deactivate))) {
+			e.type = W_EVENT_DEACTIVATE;
+			e.time = 0;
+			e.platform_event = 0;
+			e.widget = W_WIDGET(deactivate);
+			e.data = 0;
+			_w_widget_send_event(W_WIDGET(deactivate), &e);
+		}
+		deactivate = _w_shell_path_next(shell, deactivate);
+	}
+	activate = control;
+	for (int i = 0; i < index; i++) {
+		if (w_widget_is_ok(W_WIDGET(activate))) {
+			e.type = W_EVENT_ACTIVATE;
+			e.time = 0;
+			e.platform_event = 0;
+			e.widget = W_WIDGET(activate);
+			e.data = 0;
+			//e.detail = type;
+			_w_widget_send_event(W_WIDGET(activate), &e);
+		}
+	}
+}
+void _w_shell_set_active_control(w_shell *shell, w_control *control) {
+	_w_shell_set_active_control_0(shell, control, W_NONE);
 }
 wresult _w_shell_set_alpha(w_shell *shell, int alpha) {
 	return W_FALSE;
@@ -762,11 +862,55 @@ gboolean _gtk_shell_destroy(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_shell_button_press_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget == shellHandle) {
+		wuint64 style = _W_WIDGET(widget)->style;
+		if (ISCUSTOMRESIZE(style)) {
+			if ((style & W_ON_TOP) != 0 && (style & W_NO_FOCUS) == 0) {
+				_w_shell_force_active(W_SHELL(widget));
+			}
+			GdkEventButton *gdkEvent = (GdkEventButton*) e->args[0];
+			if (gdkEvent->button == 1) {
+				gtk_toolkit->resizeLocation.x = gdkEvent->x_root;
+				gtk_toolkit->resizeLocation.y = gdkEvent->y_root;
+				int x = 0, y = 0;
+				gtk_window_get_position(GTK_WINDOW(shellHandle), &x, &y);
+				gtk_toolkit->resizeBounds.x = x;
+				gtk_toolkit->resizeBounds.y = y;
+				GtkAllocation allocation;
+				gtk_widget_get_allocation(shellHandle, &allocation);
+				gtk_toolkit->resizeBounds.width = allocation.width;
+				gtk_toolkit->resizeBounds.height = allocation.height;
+			}
+		}
+		return FALSE;
+	}
+	return _gtk_canvas_button_press_event(widget, e, priv);
 }
 gboolean _gtk_shell_configure_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	int x = 0, y = 0;
+	gtk_window_get_position(GTK_WINDOW(shellHandle), &x, &y);
+
+	if (W_CONTROL_GET_CLASS(widget)->is_visible(W_CONTROL(widget)) <= 0) {
+		return FALSE; //We shouldn't handle move/resize events if shell is hidden.
+	}
+	if (!_W_SHELL(widget)->moved || _W_SHELL(widget)->oldbounds.x != x
+			|| _W_SHELL(widget)->oldbounds.y != y) {
+		_W_SHELL(widget)->moved = W_TRUE;
+		_W_SHELL(widget)->oldbounds.x = x;
+		_W_SHELL(widget)->oldbounds.y = y;
+		w_event event;
+		event.type = W_EVENT_MOVE;
+		event.widget = widget;
+		event.platform_event = (w_event_platform*) e;
+		event.time = 0;
+		event.data = 0;
+		w_widget_send_event(widget, &event);
+		// widget could be disposed at this point
+	}
+	return FALSE;
 }
 gboolean _gtk_shell_delete_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -777,39 +921,254 @@ gboolean _gtk_shell_delete_event(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_shell_enter_notify_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget != shellHandle) {
+		return _gtk_control_enter_notify_event(widget, e, priv);
+	}
+	return FALSE;
 }
 gboolean _gtk_shell_draw(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+#if USE_CAIRO
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget == shellHandle) {
+		if (ISCUSTOMRESIZE(_W_WIDGET(widget)->style)) {
+			int width;
+			int height;
+			GdkWindow *window = gtk_widget_get_window(e->widget);
+#if GTK3
+			width = gdk_window_get_width(window);
+			height = gdk_window_get_height(window);
+#else
+#endif
+			int border = gtk_container_get_border_width(
+					GTK_CONTAINER(e->widget));
+			GtkStyleContext *context = gtk_widget_get_style_context(
+					shellHandle);
+			//draw shell frame on GTK3
+			gtk_style_context_save(context);
+			cairo_t *cairo = (cairo_t*) e->args[0];
+			gtk_render_frame(context, cairo, 0, 0, width, border);
+			gtk_render_frame(context, cairo, 0, height - border, width, border);
+			gtk_render_frame(context, cairo, 0, border, border,
+					height - border - border);
+			gtk_render_frame(context, cairo, width - border, border, border,
+					height - border - border);
+			gtk_render_frame(context, cairo, 0 + 10, 0 + 10, width - 20,
+					height - 20);
+			gtk_style_context_restore(context);
+			return TRUE;
+		}
+		return FALSE;
+	}
+	return _gtk_canvas_draw(widget, e, priv);
+#else
+#endif
+	return FALSE;
 }
 gboolean _gtk_shell_focus(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	return _gtk_composite_focus(widget, e, priv);
 }
 gboolean _gtk_shell_focus_in_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget != shellHandle) {
+		return _gtk_canvas_focus_in_event(widget, e, priv);
+	}
+	gtk_toolkit->activeShell = W_SHELL(widget);
+	gtk_toolkit->activePending = W_FALSE;
+	w_event event;
+	event.type = W_EVENT_ACTIVATE;
+	event.widget = widget;
+	event.platform_event = (w_event_platform*) e;
+	event.time = 0;
+	event.data = 0;
+	w_widget_send_event(widget, &event);
+	return FALSE;
 }
 gboolean _gtk_shell_focus_out_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget != shellHandle) {
+		return _gtk_canvas_focus_out_event(widget, e, priv);
+	}
+	w_event event;
+	event.type = W_EVENT_DEACTIVATE;
+	event.widget = widget;
+	event.platform_event = (w_event_platform*) e;
+	event.time = 0;
+	event.data = 0;
+	w_widget_send_event(widget, &event);
+	_w_shell_set_active_control(W_SHELL(widget), 0);
+	if (gtk_toolkit->activeShell == W_SHELL(widget)
+			&& !_W_SHELL(widget)->ignoreFocusOut) {
+		gtk_toolkit->activeShell = 0;
+		gtk_toolkit->activePending = W_FALSE;
+	}
+	return FALSE;
 }
 gboolean _gtk_shell_leave_notify_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget == shellHandle) {
+		wuint64 style = _W_WIDGET(widget)->style;
+		if (ISCUSTOMRESIZE(style)) {
+			GdkEventCrossing *gdkEvent = (GdkEventCrossing*) e->args[0];
+			if ((gdkEvent->state & GDK_BUTTON1_MASK) == 0) {
+				GdkWindow *window = gtk_widget_get_window(shellHandle);
+				gdk_window_set_cursor(window, 0);
+				gtk_toolkit->resizeMode = 0;
+			}
+		}
+		return FALSE;
+	}
+	return _gtk_control_leave_notify_event(widget, e, priv);
 }
 gboolean _gtk_shell_move_focus(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	w_control *control = _w_toolkit_get_focus_control(W_TOOLKIT(gtk_toolkit));
+	if (control != 0) {
+		_w_control_priv *fpriv = _W_CONTROL_GET_PRIV(control);
+		GtkWidget *focusHandle = fpriv->handle_focus(W_WIDGET(control), fpriv);
+		GtkDirectionType directionType = (intptr_t) e->args[0];
+		gtk_widget_child_focus(focusHandle, directionType);
+	}
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	g_signal_stop_emission_by_name(shellHandle, "move-focus");
+	return TRUE;
 }
 gboolean _gtk_shell_motion_notify_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget == shellHandle) {
+		wuint64 style = _W_WIDGET(widget)->style;
+		if (ISCUSTOMRESIZE(style)) {
+			GdkEventMotion *gdkEvent = (GdkEventMotion*) e->args[0];
+			if ((gdkEvent->state & GDK_BUTTON1_MASK) != 0) {
+				int border = gtk_container_get_border_width(
+						GTK_CONTAINER(shellHandle));
+				int dx =
+						(int) (gdkEvent->x_root - gtk_toolkit->resizeLocation.x);
+				int dy =
+						(int) (gdkEvent->y_root - gtk_toolkit->resizeLocation.y);
+				int x = gtk_toolkit->resizeBounds.x;
+				int y = gtk_toolkit->resizeBounds.y;
+				int width = gtk_toolkit->resizeBounds.width;
+				int height = gtk_toolkit->resizeBounds.height;
+				int newWidth = WMAX(width - dx,
+						WMAX(_W_SHELL(widget)->minWidth, border + border));
+				int newHeight = WMAX(height - dy,
+						WMAX(_W_SHELL(widget)->minHeight, border + border));
+				switch (gtk_toolkit->resizeMode) {
+				case GDK_LEFT_SIDE:
+					x += width - newWidth;
+					width = newWidth;
+					break;
+				case GDK_TOP_LEFT_CORNER:
+					x += width - newWidth;
+					width = newWidth;
+					y += height - newHeight;
+					height = newHeight;
+					break;
+				case GDK_TOP_SIDE:
+					y += height - newHeight;
+					height = newHeight;
+					break;
+				case GDK_TOP_RIGHT_CORNER:
+					width = WMAX(width + dx,
+							WMAX(_W_SHELL(widget)->minWidth, border + border));
+					y += height - newHeight;
+					height = newHeight;
+					break;
+				case GDK_RIGHT_SIDE:
+					width = WMAX(width + dx,
+							WMAX(_W_SHELL(widget)->minWidth, border + border));
+					break;
+				case GDK_BOTTOM_RIGHT_CORNER:
+					width = WMAX(width + dx,
+							WMAX(_W_SHELL(widget)->minWidth, border + border));
+					height = WMAX(height + dy,
+							WMAX(_W_SHELL(widget)->minHeight, border + border));
+					break;
+				case GDK_BOTTOM_SIDE:
+					height = WMAX(height + dy,
+							WMAX(_W_SHELL(widget)->minHeight, border + border));
+					break;
+				case GDK_BOTTOM_LEFT_CORNER:
+					x += width - newWidth;
+					width = newWidth;
+					height = WMAX(height + dy,
+							WMAX(_W_SHELL(widget)->minHeight, border + border));
+					break;
+				}
+				if (x != gtk_toolkit->resizeBounds.x
+						|| y != gtk_toolkit->resizeBounds.y) {
+					gdk_window_move_resize(gtk_widget_get_window(shellHandle),
+							x, y, width, height);
+				} else {
+					gtk_window_resize(GTK_WINDOW(shellHandle), width, height);
+				}
+			} else {
+				GdkCursorType mode = (GdkCursorType) _w_shell_get_resize_mode(
+						W_SHELL(widget), gdkEvent->x, gdkEvent->y);
+				if (mode != gtk_toolkit->resizeMode) {
+					GdkWindow *window = gtk_widget_get_window(shellHandle);
+					GdkCursor *cursor = gdk_cursor_new_for_display(
+							gdk_display_get_default(), mode);
+					gdk_window_set_cursor(window, cursor);
+					gdk_cursor_unref(cursor);
+					gtk_toolkit->resizeMode = mode;
+				}
+			}
+		}
+		return FALSE;
+	}
+	return _gtk_control_motion_notify_event(widget, e, priv);
 }
 gboolean _gtk_shell_key_press_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	if (e->widget == shellHandle) {
+		/* Stop menu mnemonics when the shell is disabled */
+		if ((_W_WIDGET(widget)->state & STATE_DISABLED) != 0)
+			return TRUE;
+
+		if (w_widget_is_ok(W_WIDGET(_W_SHELL(widget)->menubar))) {
+			w_control *focusControl = _w_toolkit_get_focus_control(
+					W_TOOLKIT(gtk_toolkit));
+			if (w_widget_is_ok(W_WIDGET(focusControl))) {
+				gchar *accel = 0;
+				GtkSettings *setting = gtk_settings_get_default();
+				g_object_get(setting, "gtk-menu-bar-accel", &accel, NULL);
+				if (accel != 0) {
+					guint keyval;
+					GdkModifierType mods;
+					gtk_accelerator_parse(accel, &keyval, &mods);
+					g_free(accel);
+					if (keyval != 0) {
+						GdkEventKey *keyEvent = (GdkEventKey*) e->args[0];
+						int mask = gtk_accelerator_get_default_mod_mask();
+						if (keyEvent->keyval == keyval
+								&& (keyEvent->state & mask) == (mods & mask)) {
+							_w_control_priv *fpriv = _W_CONTROL_GET_PRIV(
+									focusControl);
+							e->widget = fpriv->handle_focus(
+									W_WIDGET(focusControl), fpriv);
+							_gtk_signal_fn ___signal =
+									fpriv->widget.signals[SIGNAL_KEY_PRESS_EVENT];
+							gboolean ret = ___signal(W_WIDGET(focusControl), e,
+									fpriv);
+							e->widget = shellHandle;
+							return ret;
+						}
+					}
+				}
+			}
+		}
+		return FALSE;
+	}
+	return _gtk_composite_key_press_event(widget, e, priv);
 }
 gboolean _gtk_shell_size_allocate(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -835,7 +1194,64 @@ gboolean _gtk_shell_size_allocate(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_shell_realize(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	gboolean result = _gtk_composite_realize(widget, e, priv);
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	GdkWindow *window = gtk_widget_get_window(shellHandle);
+	wuint64 style = _W_WIDGET(widget)->style;
+	if ((style & W_SHELL_TRIM) != W_SHELL_TRIM) {
+		int decorations = 0;
+		int functions = 0;
+		if ((style & W_NO_TRIM) == 0) {
+			if ((style & W_MIN) != 0) {
+				decorations |= GDK_DECOR_MINIMIZE;
+				functions |= GDK_FUNC_MINIMIZE;
+			}
+			if ((style & W_MAX) != 0) {
+				decorations |= GDK_DECOR_MAXIMIZE;
+				functions |= GDK_FUNC_MAXIMIZE;
+			}
+			if ((style & W_RESIZE) != 0) {
+				decorations |= GDK_DECOR_RESIZEH;
+				functions |= GDK_FUNC_RESIZE;
+			}
+			if ((style & W_BORDER) != 0)
+				decorations |= GDK_DECOR_BORDER;
+			if ((style & W_MENU) != 0)
+				decorations |= GDK_DECOR_MENU;
+			if ((style & W_TITLE) != 0)
+				decorations |= GDK_DECOR_TITLE;
+			if ((style & W_CLOSE) != 0)
+				functions |= GDK_FUNC_CLOSE;
+			/*
+			 * Feature in GTK.  Under some Window Managers (Sawmill), in order
+			 * to get any border at all from the window manager it is necessary to
+			 * set GDK_DECOR_BORDER.  The fix is to force these bits when any
+			 * kind of border is requested.
+			 */
+			if ((style & W_RESIZE) != 0)
+				decorations |= GDK_DECOR_BORDER;
+			if ((style & W_NO_MOVE) == 0)
+				functions |= GDK_FUNC_MOVE;
+		}
+		gdk_window_set_decorations(window, (GdkWMDecoration) decorations);
+
+		/*
+		 * For systems running Metacity, this call forces the style hints to
+		 * be displayed in a window's titlebar. Otherwise, the decorations
+		 * set by the function gdk_window_set_decorations (window,
+		 * decorations) are ignored by the window manager.
+		 */
+		gdk_window_set_functions(window, (GdkWMFunction) functions);
+	} else if ((style & W_NO_MOVE) != 0) {
+		// if the GDK_FUNC_ALL bit is present, all the other style
+		// bits specified as a parameter will be removed from the window
+		gdk_window_set_functions(window,
+				(GdkWMFunction) (GDK_FUNC_ALL | GDK_FUNC_MOVE));
+	}
+	if ((style & W_ON_TOP) != 0) {
+		gdk_window_set_override_redirect(window, W_TRUE);
+	}
+	return result;
 }
 gboolean _gtk_shell_window_state_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -893,10 +1309,14 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	priv->show_widget = _w_shell_show_widget;
 	_W_COMPOSITE_PRIV(priv)->find_deferred_control =
 			_w_shell_find_deferred_control;
+	_gtk_signal *signal = &_W_SHELL_PRIV(priv)->move_focus;
+	signal->msg = SIGNAL_MOVE_FOCUS;
+	signal->name = "move-focus";
+	signal->number_of_args = 3;
 	/*
 	 * signals
 	 */
-	_gtk_signal *signals = _W_WIDGET_PRIV(priv)->signals;
+	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
 	signals[SIGNAL_DESTROY] = _gtk_shell_destroy;
 	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_shell_button_press_event;
 	signals[SIGNAL_CONFIGURE_EVENT] = _gtk_shell_configure_event;
