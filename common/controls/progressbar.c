@@ -17,19 +17,19 @@ w_progressbar* w_progressbar_new(struct w_toolkit *toolkit, w_composite *parent,
 	return W_PROGRESSBAR(
 			_w_widget_new(toolkit,W_WIDGET(parent),style,_W_CLASS_PROGRESSBAR,post_event));
 }
-int w_progressbar_get_maximum(w_progressbar *progressbar) {
+wresult w_progressbar_get_maximum(w_progressbar *progressbar) {
 	if (W_WIDGET_CHECK(progressbar)) {
 		return W_PROGRESSBAR_GET_CLASS(progressbar)->get_maximum(progressbar);
 	} else
 		return 0;
 }
-int w_progressbar_get_selection(w_progressbar *progressbar) {
+wresult w_progressbar_get_selection(w_progressbar *progressbar) {
 	if (W_WIDGET_CHECK(progressbar)) {
 		return W_PROGRESSBAR_GET_CLASS(progressbar)->get_selection(progressbar);
 	} else
 		return 0;
 }
-int w_progressbar_get_state(w_progressbar *progressbar) {
+wresult w_progressbar_get_state(w_progressbar *progressbar) {
 	if (W_WIDGET_CHECK(progressbar)) {
 		return W_PROGRESSBAR_GET_CLASS(progressbar)->get_state(progressbar);
 	} else

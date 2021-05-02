@@ -18,5 +18,6 @@
 #include "NSMenu.h"
 #include "NSButton.h"
 #include "NSBox.h"
+#include "NSProgressIndicator.h"
 
 #endif /* OSX_OBJC_OBJC_H_ */

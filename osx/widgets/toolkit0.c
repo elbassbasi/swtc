@@ -64,9 +64,9 @@ wresult _w_toolkit_beep(w_toolkit *toolkit) {
 }
 w_shell* _w_toolkit_get_active_shell(w_toolkit *toolkit) {
 	NSWindow *window =
-			_W_TOOLKIT(toolkit)->keyWindow != 0 ?
-					_W_TOOLKIT(toolkit)->keyWindow :
-					NSApplication_keyWindow(mac_toolkit->application);
+	_W_TOOLKIT(toolkit)->keyWindow != 0 ?
+			_W_TOOLKIT(toolkit)->keyWindow :
+			NSApplication_keyWindow(mac_toolkit->application);
 	if (window != 0) {
 		NSView *contentView = NSWindow_contentView(window);
 		w_widget *widget = _w_widget_find_control(contentView);
@@ -231,7 +231,12 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 		return 0;
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
-	return (w_font*) &_W_TOOLKIT(toolkit)->systemFont;
+	_w_toolkit *_toolkit = _W_TOOLKIT(toolkit);
+	if (_toolkit->systemFont.handle == 0) {
+		CGFloat fontSize = NSFont_systemFontSize();
+		_toolkit->systemFont.handle = NSFont_systemFontOfSize(fontSize);
+	}
+	return (w_font*) &_toolkit->systemFont;
 }
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {
@@ -278,8 +283,8 @@ wresult _w_toolkit_dispatch(w_toolkit *toolkit) {
 }
 wresult _w_toolkit_read(w_toolkit *toolkit) {
 	NSEvent *event = NSApplication_nextEventMatchingMask(
-			_W_TOOLKIT(toolkit)->application, NSAnyEventMask, 0,
-			NSDefaultRunLoopMode, W_TRUE);
+	_W_TOOLKIT(toolkit)->application, NSAnyEventMask, 0, NSDefaultRunLoopMode,
+			W_TRUE);
 	if ((event != 0) && (_W_TOOLKIT(toolkit)->application != 0)) {
 		NSApplication_sendEvent(_W_TOOLKIT(toolkit)->application, event);
 	}

@@ -47,6 +47,55 @@ wresult _w_control_create_droptarget(w_control *control,
 		w_widget_post_event_proc post_event) {
 	return W_FALSE;
 }
+NSAttributedString* _w_control_create_string(w_control *control,
+		NSString *string, w_font *font, w_color foreground, int flags) {
+	NSMutableDictionary *dict = NSMutableDictionary_initWithCapacity(5);
+	if (font == 0) {
+		w_control_get_font(control, &font);
+	}
+	NSFont *hFont = _W_FONT(font)->handle;
+	NSMutableDictionary_setObject(dict, NSOBJECT(hFont),
+			NSOBJECT(_NSFontAttributeName()));
+	_w_font_add_traits_1(font, dict);
+	if ((flags & W_DISABLED) == 0) {
+		if (foreground != 0) {
+			NSColor *color = NSColor_colorWithDeviceRed(
+			W_RED(foreground) / 255., W_GREEN(foreground) / 255.,
+			W_BLUE(foreground) / 255., W_ALPHA(foreground) / 255.);
+			NSMutableDictionary_setObject(dict, NSOBJECT(color),
+					NSOBJECT(_NSForegroundColorAttributeName));
+		}
+	} else {
+		NSMutableDictionary_setObject(dict,
+				(NSObject*) NSColor_disabledControlTextColor(),
+				(NSObject*) _NSForegroundColorAttributeName);
+	}
+	NSMutableParagraphStyle *paragraphStyle = NSMutableParagraphStyle_init();
+	NSMutableParagraphStyle_setLineBreakMode(paragraphStyle,
+			(flags & W_WRAP) ?
+					NSLineBreakByWordWrapping : NSLineBreakByClipping);
+	int align = NSLeftTextAlignment;
+	if ((flags & W_CENTER) != 0) {
+		align = NSCenterTextAlignment;
+	} else if ((flags & W_RIGHT) != 0) {
+		align = NSRightTextAlignment;
+	}
+	NSMutableParagraphStyle_setAlignment(paragraphStyle, align);
+	if ((_W_WIDGET(control)->style & W_RIGHT_TO_LEFT) != 0) {
+		NSMutableParagraphStyle_setBaseWritingDirection(paragraphStyle,
+				NSWritingDirectionRightToLeft);
+	} else {
+		NSMutableParagraphStyle_setBaseWritingDirection(paragraphStyle,
+				NSWritingDirectionLeftToRight);
+	}
+	NSMutableDictionary_setObject(dict, paragraphStyle,
+			_NSParagraphStyleAttributeName());
+	NSObject_release(paragraphStyle);
+	NSAttributedString *attribStr = NSAttributedString_initWithString_0(string,
+			dict);
+	NSObject_release(dict);
+	return attribStr;
+}
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_DRAG_DETECT;
 	priv->check_orientation(W_WIDGET(widget), _W_CONTROL(widget)->parent, priv);
@@ -165,6 +214,11 @@ wresult _w_control_get_enabled(w_control *control) {
 	return W_FALSE;
 }
 wresult _w_control_get_font(w_control *control, w_font **font) {
+	if(_W_CONTROL(control)->font != 0){
+		*font = _W_CONTROL(control)->font;
+	}else{
+		*font = w_toolkit_get_system_font(0);
+	}
 	return W_FALSE;
 }
 wresult _w_control_get_foreground(w_control *control, w_color *foreground) {
@@ -174,13 +228,13 @@ wresult _w_control_get_graphics(w_control *control, w_graphics *gc) {
 	return W_FALSE;
 }
 wresult _w_control_get_layout_data(w_control *control, void **data) {
-    struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
-    if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
-        *data = *((void**) &((char*) control)[clazz->object_used_size]);
-    } else {
-        *data = (void*) &((char*) control)[clazz->object_used_size];
-    }
-    return W_TRUE;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
+	if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
+		*data = *((void**) &((char*) control)[clazz->object_used_size]);
+	} else {
+		*data = (void*) &((char*) control)[clazz->object_used_size];
+	}
+	return W_TRUE;
 }
 wresult _w_control_get_menu(w_control *control, w_menu **menu) {
 	return W_FALSE;
@@ -250,25 +304,25 @@ wresult _w_control_move_below(w_control *control, w_control *_control) {
 }
 wresult _w_control_new_layout_data(w_control *control, void **data,
 		size_t size) {
-	    struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
-    if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
-        void *layout_data =
-                *((void**) &((char*) control)[clazz->object_used_size]);
-        if (layout_data != 0) {
-            free(layout_data);
-        }
-    }
-    if ((clazz->object_used_size + size) < clazz->object_total_size) {
-        _W_WIDGET(control)->state |= STATE_LAYOUT_DATA_LOCALE;
-        *data = (void*) &((char*) control)[clazz->object_used_size];
-    } else {
-        _W_WIDGET(control)->state &= ~STATE_LAYOUT_DATA_LOCALE;
-        *data = malloc(size);
-        if (*data == 0)
-            return W_ERROR_NO_MEMORY;
-        *((void**) &((char*) control)[clazz->object_used_size]) = *data;
-    }
-    return W_TRUE;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
+	if ((_W_WIDGET(control)->state & STATE_LAYOUT_DATA_LOCALE) == 0) {
+		void *layout_data =
+				*((void**) &((char*) control)[clazz->object_used_size]);
+		if (layout_data != 0) {
+			free(layout_data);
+		}
+	}
+	if ((clazz->object_used_size + size) < clazz->object_total_size) {
+		_W_WIDGET(control)->state |= STATE_LAYOUT_DATA_LOCALE;
+		*data = (void*) &((char*) control)[clazz->object_used_size];
+	} else {
+		_W_WIDGET(control)->state &= ~STATE_LAYOUT_DATA_LOCALE;
+		*data = malloc(size);
+		if (*data == 0)
+			return W_ERROR_NO_MEMORY;
+		*((void**) &((char*) control)[clazz->object_used_size]) = *data;
+	}
+	return W_TRUE;
 }
 wresult _w_control_pack(w_control *control, int flags) {
 	return W_FALSE;

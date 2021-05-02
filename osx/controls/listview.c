@@ -127,9 +127,6 @@ wresult _w_listview_select_item(w_listview *list, w_listitem *item) {
 wresult _w_listview_select_range(w_listview *list, int start, int end) {
 	return W_FALSE;
 }
-wresult _w_listview_set_header_visible(w_listview *list, int show) {
-	return W_FALSE;
-}
 wresult _w_listview_set_insert_mark(w_listview *list, w_listitem *item,
 		int before) {
 	return W_FALSE;
@@ -190,7 +187,6 @@ void _w_listview_class_init(struct _w_listview_class *clazz) {
 	clazz->select_indices = _w_listview_select_indices;
 	clazz->select_item = _w_listview_select_item;
 	clazz->select_range = _w_listview_select_range;
-	clazz->set_header_visible = _w_listview_set_header_visible;
 	clazz->set_insert_mark = _w_listview_set_insert_mark;
 	clazz->set_selection_index = _w_listview_set_selection_index;
 	clazz->set_selection_indices = _w_listview_set_selection_indices;

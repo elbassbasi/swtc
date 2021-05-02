@@ -48,6 +48,7 @@ enum {
 	_NS_CLASS_BUTTON,
 	_NS_CLASS_OUTLINEVIEW,
 	_NS_CLASS_BOX,
+    _NS_CLASS_PROGRESSINDICATOR,
 	_NS_CLASS_LAST
 };
 typedef w_widget* (*ns_get_widget)(NSView *view);

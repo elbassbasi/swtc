@@ -184,8 +184,7 @@ typedef struct _w_composite_children {
 	w_basic_iterator iter;
 	w_composite *composite;
 	NSArray *views;
-	size_t i;
-	size_t count;
+	int i;
 } _w_composite_children;
 wresult _w_composite_children_close(w_iterator *it) {
 	return W_TRUE;
@@ -193,10 +192,10 @@ wresult _w_composite_children_close(w_iterator *it) {
 wresult _w_composite_children_next(w_iterator *it, void *obj) {
 	_w_composite_children *iter = (_w_composite_children*) it;
 	*((w_widget**) obj) = 0;
-	if (iter->i >= iter->count)
+	if (iter->i == 0)
 		return W_FALSE;
+	iter->i--;
 	NSView *view = (NSView*) NSArray_objectAtIndex(iter->views, iter->i);
-	iter->i++;
 	if (view == 0)
 		return W_FALSE;
 	*((w_widget**) obj) = _w_widget_find_control(view);
@@ -206,7 +205,7 @@ wresult _w_composite_children_next(w_iterator *it, void *obj) {
 }
 wresult _w_composite_children_reset(w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
-	iter->i = 0;
+	iter->i = NSArray_count(iter->views);
 	return W_TRUE;
 }
 wresult _w_composite_children_remove(w_iterator *it) {
@@ -226,12 +225,11 @@ _w_iterator_class _w_composite_children_class = { //
 wresult _w_composite_get_children(w_composite *composite, w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(composite);
-	NSView *view = priv->content_view(W_WIDGET(composite),priv);
+	NSView *view = priv->content_view(W_WIDGET(composite), priv);
 	it->base.clazz = &_w_composite_children_class;
 	iter->composite = composite;
 	iter->views = NSView_subviews(view);
-	iter->count = NSArray_count(iter->views);
-	iter->i = 0;
+	iter->i = NSArray_count(iter->views);
 	return W_TRUE;
 }
 wresult _w_composite_get_layout(w_composite *composite, w_layout **layout) {

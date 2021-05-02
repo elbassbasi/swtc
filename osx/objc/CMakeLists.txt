@@ -9,6 +9,7 @@
 		${CURRENT_DIR}/NSBox.m
 		${CURRENT_DIR}/NSButton.m
 		${CURRENT_DIR}/NSColor.m
+		${CURRENT_DIR}/NSComboBox.m
 		${CURRENT_DIR}/NSDictionary.m
 		${CURRENT_DIR}/NSEvent.m
 		${CURRENT_DIR}/NSFont.m
@@ -18,8 +19,15 @@
 		${CURRENT_DIR}/NSMenu.m
 		${CURRENT_DIR}/NSObject.m
 		${CURRENT_DIR}/NSOutlineView.m
+		${CURRENT_DIR}/NSProgressIndicator.m
+		${CURRENT_DIR}/NSScroller.m
 		${CURRENT_DIR}/NSScrollView.m
+		${CURRENT_DIR}/NSSlider.m
+		${CURRENT_DIR}/NSStepper.m
 		${CURRENT_DIR}/NSTable.m
+		${CURRENT_DIR}/NSTabView.m
+		${CURRENT_DIR}/NSTextField.m
+		${CURRENT_DIR}/NSToolbar.m
 		${CURRENT_DIR}/NSView.m
 		${CURRENT_DIR}/NSWindow.m
 		PARENT_SCOPE

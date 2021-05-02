@@ -80,11 +80,18 @@ wresult _w_button_set_selection(w_button *button, int selected) {
 		return W_FALSE;
 	return W_TRUE;
 }
-wresult _w_button_set_text(w_button *button, const char *text) {
+wresult _w_button_set_text(w_button *button, const char *text, int length,
+		int enc) {
 	if (text == 0)
 		return W_ERROR_NULL_ARGUMENT;
 	if (_W_WIDGET(button)->style & W_ARROW)
 		return W_TRUE;
+	NSString *str = NSString_new(text, length, enc);
+	NSMutableAttributedString *attributedTitle = _w_control_create_string(W_CONTROL(button),
+			str, 0, _W_CONTROL(button)->foreground, _W_WIDGET(button)->style);
+	NSButton* btn =(NSButton*) _W_WIDGET(button)->handle;
+	NSButton_setAttributedTitle(btn, attributedTitle);
+	NSObject_release(str);
 	return W_TRUE;
 }
 /*

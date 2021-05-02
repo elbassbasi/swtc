@@ -93,6 +93,57 @@ NSAttributedString* NSTextStorage_attributedStringWithAttachment(NSTextAttachmen
     return [NSTextStorage attributedStringWithAttachment:attachment];
 }
 /*
+ *  NSParagraphStyle
+ */
+NSUInteger NSParagraphStyle_alignment(NSParagraphStyle* style) {
+    return [style alignment];
+}
+
+NSArray* NSParagraphStyle_tabStops(NSParagraphStyle* style) {
+    return [style tabStops];
+}
+/*
+ *  NSMutableParagraphStyle
+ */
+NSMutableParagraphStyle* NSMutableParagraphStyle_init() {
+    return [[NSMutableParagraphStyle alloc] init];
+}
+void NSMutableParagraphStyle_addTabStop(NSMutableParagraphStyle* style,NSTextTab* anObject) {
+    [style addTabStop:anObject];
+}
+
+void NSMutableParagraphStyle_setAlignment(NSMutableParagraphStyle* style,NSUInteger alignment) {
+    [style setAlignment:alignment];
+}
+
+void NSMutableParagraphStyle_setBaseWritingDirection(NSMutableParagraphStyle* style,NSUInteger writingDirection) {
+    [style setBaseWritingDirection:writingDirection];
+}
+
+void NSMutableParagraphStyle_setDefaultTabInterval(NSMutableParagraphStyle* style,CGFloat aFloat) {
+    [style setDefaultTabInterval:aFloat];
+}
+
+void NSMutableParagraphStyle_setFirstLineHeadIndent(NSMutableParagraphStyle* style,CGFloat aFloat) {
+    [style setFirstLineHeadIndent:aFloat];
+}
+
+void NSMutableParagraphStyle_setHeadIndent(NSMutableParagraphStyle* style,CGFloat aFloat) {
+    [style setHeadIndent:aFloat];
+}
+
+void NSMutableParagraphStyle_setLineBreakMode(NSMutableParagraphStyle* style,NSUInteger mode) {
+    [style setLineBreakMode:mode];
+}
+
+void NSMutableParagraphStyle_setLineSpacing(NSMutableParagraphStyle* style,CGFloat aFloat) {
+    [style setLineSpacing:aFloat];
+}
+void NSMutableParagraphStyle_setTabStops(NSMutableParagraphStyle* style,NSArray* array) {
+    [style setTabStops:array];
+}
+
+/*
  *  NSAttributedStringKey
  */
 NSString* _NSFontAttributeName(){

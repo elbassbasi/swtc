@@ -39,6 +39,7 @@ typedef struct _w_control {
 		w_font *font;
 		_w_font _font;
 	};
+	w_color foreground;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)
 /*
@@ -84,6 +85,8 @@ wresult _w_control_create_dragsource(w_control *control,
 wresult _w_control_create_droptarget(w_control *control,
 		w_droptarget *droptarget, wuint64 style,
 		w_widget_post_event_proc post_event);
+NSAttributedString* _w_control_create_string(w_control *control,
+		NSString *string, w_font *font, w_color foreground, int flags);
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv);
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event);
 wresult _w_control_draw_widget(w_widget *widget, NSView *view,

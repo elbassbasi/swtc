@@ -261,6 +261,9 @@ enum {
     NSURLErrorServerCertificateNotYetValid = -1204,//
     NSURLRequestReloadIgnoringLocalCacheData = 1,//
     NSUTF8StringEncoding = 4,//
+	NSLeftTextAlignment = 0,//
+	NSRightTextAlignment = 1,//
+	NSCenterTextAlignment = 2,//
 };
 #define WMIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define WMAX(X, Y) (((X) > (Y)) ? (X) : (Y))

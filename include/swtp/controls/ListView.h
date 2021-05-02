@@ -1505,9 +1505,6 @@ public:
 	WResult _select_range(int start, int end) {
 		return w_listview_select_range(W_LISTVIEW(this), start, end);
 	}
-	WResult _set_header_visible(int show) {
-		return w_listview_set_header_visible(W_LISTVIEW(this), show);
-	}
 	WResult _set_insert_mark(WListItem *item, int before) {
 		return w_listview_set_insert_mark(W_LISTVIEW(this), W_LISTITEM(item),
 				before);

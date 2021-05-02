@@ -11,8 +11,11 @@
 #include "NSLayoutManager.h"
 typedef struct NSAttributedString NSAttributedString;
 typedef struct NSMutableAttributedString NSMutableAttributedString;
-typedef struct NSTextAttachment NSTextAttachment;
 typedef struct NSMutableString NSMutableString;
+typedef struct NSTextAttachment NSTextAttachment;
+typedef struct NSParagraphStyle NSParagraphStyle;
+typedef struct NSMutableParagraphStyle NSMutableParagraphStyle;
+typedef struct NSTextTab NSTextTab;
 /*
  *  NSAttributedString
  */
@@ -50,6 +53,24 @@ NSTextStorage* NSTextStorage_init();
 void NSTextStorage_addLayoutManager(NSTextStorage* textStorage,NSLayoutManager* obj);
 NSArray* NSTextStorage_paragraphs(NSTextStorage* textStorage);
 NSAttributedString* NSTextStorage_attributedStringWithAttachment(NSTextAttachment* attachment);
+/*
+ *  NSParagraphStyle
+ */
+NSUInteger NSParagraphStyle_alignment(NSParagraphStyle* style);
+NSArray* NSParagraphStyle_tabStops(NSParagraphStyle* style);
+/*
+ *  NSMutableParagraphStyle
+ */
+NSMutableParagraphStyle* NSMutableParagraphStyle_init();
+void NSMutableParagraphStyle_addTabStop(NSMutableParagraphStyle* style,NSTextTab* anObject);
+void NSMutableParagraphStyle_setAlignment(NSMutableParagraphStyle* style,NSUInteger alignment);
+void NSMutableParagraphStyle_setBaseWritingDirection(NSMutableParagraphStyle* style,NSUInteger writingDirection);
+void NSMutableParagraphStyle_setDefaultTabInterval(NSMutableParagraphStyle* style,CGFloat aFloat);
+void NSMutableParagraphStyle_setFirstLineHeadIndent(NSMutableParagraphStyle* style,CGFloat aFloat);
+void NSMutableParagraphStyle_setHeadIndent(NSMutableParagraphStyle* style,CGFloat aFloat);
+void NSMutableParagraphStyle_setLineBreakMode(NSMutableParagraphStyle* style,NSUInteger mode);
+void NSMutableParagraphStyle_setLineSpacing(NSMutableParagraphStyle* style,CGFloat aFloat);
+void NSMutableParagraphStyle_setTabStops(NSMutableParagraphStyle* style,NSArray* array);
 /*
  *  NSAttributedStringKey
  */
