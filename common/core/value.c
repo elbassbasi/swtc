@@ -80,7 +80,6 @@ wresult w_value_int_convert(w_value *value, w_value *v2, w_alloc alloc,
 		return W_FALSE;
 	}
 	return W_TRUE;
-	return W_FALSE;
 }
 /*
  * Int type
@@ -208,8 +207,10 @@ wresult w_value_utf8_convert(w_value *value, w_value *v2, w_alloc alloc,
 	case W_VALUE_DOUBLE:
 		value->INT64 = v2->DOUBLE;
 		break;
-	case W_VALUE_STRING_UTF8:
-		value->INT64 = atoll(v2->string);
+	case W_VALUE_STRING_UTF8: {
+		//need modified
+		value->string = v2->string;
+	}
 		break;
 	default:
 		return W_FALSE;
@@ -350,11 +351,15 @@ const char* w_value_get_string_0(w_value *value, w_alloc alloc, void *user_data,
 }
 const char* w_value_get_string(w_value *value, char *text, size_t length,
 		int flags) {
-	w_alloc_buffer buffer;
-	buffer.buffer = text;
-	buffer.total_size = 0;
-	buffer.size = length;
-	return w_value_get_string_0(value, w_alloc_buffer_copy, &buffer, flags);
+	if (value->clazz->type == W_VALUE_STRING_UTF8) {
+		return value->string;
+	} else {
+		w_alloc_buffer buffer;
+		buffer.buffer = text;
+		buffer.total_size = 0;
+		buffer.size = length;
+		return w_value_get_string_0(value, w_alloc_buffer_copy, &buffer, flags);
+	}
 }
 void w_value_string_copy(w_value *value, char *text, size_t length) {
 }
@@ -373,11 +378,14 @@ char* w_value_string_create(w_value *value, size_t length) {
 	}
 }
 int w_value_vprint(w_value *value, w_alloc alloc, void *user_data,
-		const char *Template, va_list args) {
-	size_t sz = vsnprintf(0, value->size, Template, args);
+		const char *_template, va_list args) {
+	va_list args2;
+	va_copy(args2, args);
+	size_t sz = vsnprintf(0, 0, _template, args2);
+	va_end(args2);
 	char *s = w_value_string_create(value, sz + 1);
 	if (s != 0) {
-		size_t sz = vsnprintf(s, sz, Template, args);
+		size_t sz = vsprintf(s, _template, args);
 	}
 	return sz;
 }

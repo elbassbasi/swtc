@@ -102,7 +102,7 @@ protected:
 	}
 public:
 	int GetIndex() {
-		return _WReturnInt(_get_index());
+		return _WReturnIntIndex(_get_index());
 	}
 	/**
 	 * Returns the receiver's text, which will be an empty

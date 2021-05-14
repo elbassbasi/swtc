@@ -390,7 +390,7 @@ public:
 	 *
 	 * @see #computeSize(int, int, boolean)
 	 */
-	void Pack(bool changed=true) {
+	void Pack(bool changed = true) {
 		_pack(changed);
 	}
 	/**
@@ -693,10 +693,10 @@ public:
 	 *
 	 * @see #getParent
 	 */
-	WShell* GetShell() {
-		WShell *shell;
-		_get_shell(&shell);
-		return shell;
+	WFrame* GetFrame() {
+		WFrame *frame;
+		_get_shell(&frame);
+		return frame;
 	}
 	/**
 	 * Returns the receiver's tool tip text, or null if it has
@@ -1220,6 +1220,7 @@ protected:
 	virtual bool OnMouseWheel(WMouseEvent &e);
 	virtual bool OnPaint(WPaintEvent &e);
 	virtual bool OnTimer(WTimerEvent &e);
+	virtual bool OnTooltipText(WTooltipTextEvent &e);
 protected:
 	virtual bool OnGesture(WGestureEvent &e);
 	virtual bool OnTouch(WTouchEvent &e);
@@ -1417,7 +1418,7 @@ public:
 	WResult _is_reparentable() {
 		return w_control_is_reparentable(W_CONTROL(this));
 	}
-	WResult _get_shell(WShell **shell) {
+	WResult _get_shell(WFrame **shell) {
 		return w_control_get_shell(W_CONTROL(this), (w_shell**) shell);
 	}
 	WResult _get_tooltip_text(w_alloc alloc, void *user_data, int enc) {

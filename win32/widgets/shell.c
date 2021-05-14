@@ -23,7 +23,7 @@ wuint64 _w_shell_check_style(w_widget *widget, wuint64 style) {
 	if ((style & W_SHEET) != 0) {
 		style &= ~W_SHEET;
 		w_composite *parent = _W_CONTROL(widget)->parent;
-		style |= parent == 0 ? W_SHELL_TRIM : W_DIALOG_TRIM;
+		style |= parent == 0 ? W_FRAME_TRIM : W_DIALOG_TRIM;
 		if ((style & mask) == 0) {
 			style |= parent == 0 ? W_APPLICATION_MODAL : W_PRIMARY_MODAL;
 		}

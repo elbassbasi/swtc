@@ -40,6 +40,8 @@ typedef struct _w_listviewbase {
 	GtkCellRenderer *checkrenderer;
 	w_imagelist *imagelist;
 	w_imagelist *headerimagelist;
+	int drawState;
+	int drawFlags;
 	unsigned rowActivated :1;
 	unsigned ignoreSize :1;
 } _w_listviewbase;

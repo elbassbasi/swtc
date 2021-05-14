@@ -43,7 +43,7 @@ bool TLogin::OnNotify(WEvent &e) {
 	if (e.widget->GetId() == 1) {
 		snprintf(txt, sizeof(txt), "User name:%s\nPassword:%s",
 				text[0].GetTextStd().c_str(), text[1].GetTextStd().c_str());
-		WMessageBox(GetShell(), W_OK, "Login", txt);
+		WMessageBox(GetFrame(), W_OK, "Login", txt);
 	}
 	return true;
 }

@@ -44,8 +44,9 @@ wresult _w_button_compute_size(w_widget *widget, w_event_compute_size *e,
 	 * of the button.
 	 */
 	priv->force_resize(W_CONTROL(widget), priv);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles(_W_WIDGET(widget)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	int reqWidth, reqHeight;
 	if ((_W_WIDGET(widget)->style & (W_CHECK | W_RADIO)) != 0) {
 		gtk_widget_get_size_request(handles.box, &reqWidth, &reqHeight);
@@ -294,8 +295,9 @@ wresult _w_button_get_grayed(w_button *button) {
 	return _W_WIDGET(button)->state & STATE_BUTTON_GRAYED;
 }
 wresult _w_button_get_image(w_button *button, w_image *image) {
+	GtkWidget *handle = _W_WIDGET(button)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles(_W_WIDGET(button)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	if (handles.image != 0) {
 		GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(handles.image));
 		_W_IMAGE(image)->pixbuf = gdk_pixbuf_copy(pixbuf);
@@ -312,8 +314,9 @@ wresult _w_button_get_text(w_button *button, w_alloc alloc, void *user_data,
 		int enc) {
 	if ((_W_WIDGET(button)->style & W_ARROW) != 0)
 		return W_TRUE;
+	GtkWidget *handle = _W_WIDGET(button)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles(_W_WIDGET(button)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	if (handles.label != 0) {
 		gchar *s = (gchar*) gtk_label_get_text(GTK_LABEL(handles.label));
 		_gtk_alloc_set_text(alloc, user_data, s, -1, enc);
@@ -389,8 +392,9 @@ void _w_button_select_radio(w_widget *widget, _w_event_platform *e,
 	_w_button_set_selection(W_BUTTON(widget), !selected);
 }
 wresult _w_button_set_alignment(w_button *button, int alignment) {
+	GtkWidget *handle = _W_WIDGET(button)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles(_W_WIDGET(button)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	if ((_W_WIDGET(button)->style & W_ARROW) != 0) {
 		if ((_W_WIDGET(button)->style & (W_UP | W_DOWN | W_LEFT | W_RIGHT))
 				== 0)
@@ -527,22 +531,20 @@ wresult _w_button_set_grayed(w_button *button, int grayed) {
 	} else {
 		_W_WIDGET(button)->state &= ~STATE_BUTTON_GRAYED;
 	}
-	if (grayed
-			&& gtk_toggle_button_get_active(
-					GTK_TOGGLE_BUTTON(_W_WIDGET(button)->handle))) {
-		gtk_toggle_button_set_inconsistent(
-				GTK_TOGGLE_BUTTON(_W_WIDGET(button)->handle), TRUE);
+	GtkToggleButton *handle = GTK_TOGGLE_BUTTON(_W_WIDGET(button)->handle);
+	if (grayed && gtk_toggle_button_get_active(handle)) {
+		gtk_toggle_button_set_inconsistent(handle, TRUE);
 	} else {
-		gtk_toggle_button_set_inconsistent(
-				GTK_TOGGLE_BUTTON(_W_WIDGET(button)->handle), FALSE);
+		gtk_toggle_button_set_inconsistent(handle, FALSE);
 	}
 	return W_TRUE;
 }
 wresult _w_button_set_image(w_button *button, w_image *image) {
 	if ((_W_WIDGET(button)->style & W_ARROW) != 0)
 		return W_FALSE;
+	GtkWidget *handle = _W_WIDGET(button)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles(_W_WIDGET(button)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	GdkPixbuf *lastpixbuf = gtk_image_get_pixbuf(GTK_IMAGE(handles.image));
 	gtk_image_set_from_pixbuf(GTK_IMAGE(handles.image), 0);
 	if (lastpixbuf != 0) {
@@ -562,9 +564,9 @@ wresult _w_button_set_image(w_button *button, w_image *image) {
 wresult _w_button_set_selection(w_button *button, int selected) {
 	if ((_W_WIDGET(button)->style & (W_CHECK | W_RADIO | W_TOGGLE)) == 0)
 		return W_FALSE;
+	_w_button_priv *priv = (_w_button_priv*) _W_CONTROL_GET_PRIV(button);
 	g_signal_handlers_block_matched(_W_WIDGET(button)->handle,
-			G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
-			(void*) ((intptr_t) SIGNAL_CLICKED));
+			G_SIGNAL_MATCH_DATA, 0, 0, 0, 0, &priv->signal_clicked);
 	if (selected) {
 		_W_WIDGET(button)->state |= STATE_BUTTON_SELECTED;
 	} else {
@@ -595,8 +597,7 @@ wresult _w_button_set_selection(w_button *button, int selected) {
 		}
 	}
 	g_signal_handlers_unblock_matched(_W_WIDGET(button)->handle,
-			G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
-			(void*) ((intptr_t) SIGNAL_CLICKED));
+			G_SIGNAL_MATCH_DATA, 0, 0, 0, 0, &priv->signal_clicked);
 	return W_TRUE;
 }
 wresult _w_button_set_text(w_button *button, const char *text, int length,
@@ -609,7 +610,8 @@ wresult _w_button_set_text(w_button *button, const char *text, int length,
 	int newlength, mnemonic;
 	char *s = _gtk_text_fix(text, length, enc, &newlength, &mnemonic);
 	if (s != 0) {
-		_w_widget_get_handles(_W_WIDGET(button)->handle, &handles);
+		GtkWidget *handle = _W_WIDGET(button)->handle;
+		_w_widget_get_handles(handle, &handles);
 		if (handles.label != 0) {
 			gtk_label_set_text_with_mnemonic(GTK_LABEL(handles.label), s);
 			gtk_widget_show(handles.label);

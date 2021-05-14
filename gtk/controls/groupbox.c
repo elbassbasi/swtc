@@ -78,7 +78,8 @@ wresult _w_groupbox_create_handle(w_widget *widget, _w_control_priv *priv) {
 }
 wresult _w_groupbox_get_text(w_groupbox *group, w_alloc alloc, void *user_data,
 		int enc) {
-	GtkWidget *handle = gtk_widget_get_parent(_W_WIDGET(group)->handle);
+	GtkWidget *_handle = _W_WIDGET(group)->handle;
+	GtkWidget *handle = gtk_widget_get_parent(_handle);
 	GtkWidget *label = gtk_frame_get_label_widget(GTK_FRAME(handle));
 	if (label != 0) {
 		gchar *s = (gchar*) gtk_label_get_text(GTK_LABEL(label));
@@ -92,7 +93,8 @@ wresult _w_groupbox_set_text(w_groupbox *group, const char *string, int length,
 	int mnemonic;
 	char *s = _gtk_text_fix(string, length, enc, &newlength, &mnemonic);
 	if (s != 0) {
-		GtkWidget *handle = gtk_widget_get_parent(_W_WIDGET(group)->handle);
+		GtkWidget *_handle = _W_WIDGET(group)->handle;
+		GtkWidget *handle = gtk_widget_get_parent(_handle);
 		GtkWidget *label = gtk_frame_get_label_widget(GTK_FRAME(handle));
 		if (newlength != 0) {
 			gtk_label_set_text_with_mnemonic(GTK_LABEL(label), s);
@@ -139,7 +141,8 @@ wresult _w_groupbox_compute_size(w_widget *widget, w_event_compute_size *e,
 	e->hHint = W_DEFAULT;
 	sz.width = e->size->width;
 	sz.height = e->size->height;
-	GtkWidget *handle = gtk_widget_get_parent(_W_WIDGET(widget)->handle);
+	GtkWidget *_handle = _W_WIDGET(widget)->handle;
+	GtkWidget *handle = gtk_widget_get_parent(_handle);
 	_w_control_compute_native_size(widget, handle, e, priv);
 	e->wHint = wHint;
 	e->hHint = hHint;

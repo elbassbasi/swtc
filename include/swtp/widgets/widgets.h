@@ -7,7 +7,7 @@
 
 #ifndef SWTP_WIDGETS_WIDGETS_H_
 #define SWTP_WIDGETS_WIDGETS_H_
-#include "Shell.h"
+#include <swtp/widgets/Frame.h>
 #include "Accessible.h"
 #include "Dialogs.h"
 #include "Dnd.h"

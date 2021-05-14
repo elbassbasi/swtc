@@ -65,10 +65,14 @@ struct _w_shell_priv {
 /*
  * functions
  */
+void _w_shell_bring_totop(w_shell *shell, int force);
 wresult _w_shell_close(w_shell *shell);
 void _w_shell_close_widget(w_shell *shell, _w_event_platform *e);
 GtkAccelGroup* _w_shell_create_accel_group(w_shell *shell);
 void _w_shell_destroy_accel_group(w_shell *shell);
+void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
+		int type);
+void _w_shell_set_saved_focus(w_shell *shell, w_control *control);
 void _w_shell_class_init(struct _w_shell_class *clazz);
 /*
  * signals

@@ -7,7 +7,7 @@
 
 #ifndef SWTP_WIDGETS_TOOLKIT_H_
 #define SWTP_WIDGETS_TOOLKIT_H_
-#include "Shell.h"
+#include <swtp/widgets/Frame.h>
 /**
  * Instances of this class are responsible for managing the
  * connection between SWT and the underlying operating
@@ -139,8 +139,8 @@ public:
 	 *
 	 * @return the active shell or null
 	 */
-	WShell* GetActiveShell() {
-		return (WShell*) w_toolkit_get_active_shell(W_TOOLKIT(this));
+	WFrame* GetActiveShell() {
+		return (WFrame*) w_toolkit_get_active_shell(W_TOOLKIT(this));
 	}
 	/**
 	 * Returns the single instance of the application menu bar, or
@@ -273,7 +273,7 @@ public:
 	 *
 	 * @return the receiver's shells
 	 */
-	void GetShells(WIterator<WShell*> &shells) {
+	void GetShells(WIterator<WFrame*> &shells) {
 		w_toolkit_get_shells(W_TOOLKIT(this), (w_iterator*) &shells);
 	}
 	/**

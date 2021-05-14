@@ -24,13 +24,13 @@ wuint64 _w_shell_check_style(w_widget *control, wuint64 style) {
 			style &= ~(W_CLOSE | W_TITLE | W_MIN | W_MAX);
 			if (parent == 0) {
 				style &= ~W_SHEET;
-				style |= W_SHELL_TRIM;
+				style |= W_FRAME_TRIM;
 			}
 		} else {
 			style &= ~W_SHEET;
-			style |= parent == 0 ? W_SHELL_TRIM : W_DIALOG_TRIM;
+			style |= parent == 0 ? W_FRAME_TRIM : W_DIALOG_TRIM;
 		}
-		style |= parent == 0 ? W_SHELL_TRIM : W_DIALOG_TRIM;
+		style |= parent == 0 ? W_FRAME_TRIM : W_DIALOG_TRIM;
 		if ((style & mask) == 0) {
 			style |= parent == 0 ? W_APPLICATION_MODAL : W_PRIMARY_MODAL;
 		}
@@ -146,7 +146,7 @@ wresult _w_shell_create_handle(w_widget *widget, _w_control_priv *priv) {
 		window = NSWindow_initWithContentRect_0(window, &frame, styleMask,
 				NSBackingStoreBuffered,
 				(_W_WIDGET(widget)->style & W_ON_TOP) != 0, screen);
-		if ((_W_WIDGET(widget)->style & (W_NO_TRIM | W_BORDER | W_SHELL_TRIM))
+		if ((_W_WIDGET(widget)->style & (W_NO_TRIM | W_BORDER | W_FRAME_TRIM))
 				== 0 || (_W_WIDGET(widget)->style & (W_TOOL | W_SHEET)) != 0) {
 			NSWindow_setHasShadow(window, W_TRUE);
 		}

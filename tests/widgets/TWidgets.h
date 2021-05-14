@@ -7,7 +7,7 @@
 
 #ifndef TESTS_WIDGETS_TWIDGETS_H_
 #define TESTS_WIDGETS_TWIDGETS_H_
-#include "../main/MShell.h"
+#include "../main/MFrame.h"
 class TWidgets: public FolderTreeItem {
 public:
 	static void Registre(WTreeItem &parent);

@@ -32,8 +32,9 @@ struct _w_treeitem_class {
 	struct _w_listitem_class item;
 	wresult (*clear)(w_treeitem *item, int index, int all);
 	wresult (*clear_all)(w_treeitem *item, int all);
+	wresult (*for_all_item)(w_treeitem *item, w_widget_callback callback,
+			void *user_data);
 	wresult (*get_expanded)(w_treeitem *item);
-	wresult (*get_first_child)(w_treeitem *item, w_treeitem *child);
 	wresult (*get_item)(w_treeitem *item, int index, w_treeitem *subitem,
 			int flags);
 	wresult (*get_item_count)(w_treeitem *item);

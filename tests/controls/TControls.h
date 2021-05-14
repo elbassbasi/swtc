@@ -7,7 +7,7 @@
 
 #ifndef TESTS_CONTROLS_TCONTROLS_H_
 #define TESTS_CONTROLS_TCONTROLS_H_
-#include "../main/MShell.h"
+#include "../main/MFrame.h"
 class TControls: public FolderTreeItem {
 public:
 	static void Registre(WTreeItem &parent);

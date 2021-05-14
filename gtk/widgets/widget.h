@@ -79,6 +79,8 @@ struct _w_widget_priv {
 			_w_control_priv *priv);
 	void (*set_orientation)(w_widget *widget, int create,
 			_w_control_priv *priv);
+	gboolean (*send_key_event)(w_widget *widget, _w_event_platform *e,
+			_w_control_priv *priv);
 };
 #define _W_WIDGET_PRIV(x) ((_w_widget_priv*)x)
 #define _W_WIDGET_GET_PRIV(x) ((_w_widget_priv*)_w_widget_get_priv(W_WIDGET(x)))
@@ -126,12 +128,16 @@ void _w_widget_hook_events(w_widget *widget, _w_control_priv *priv);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
 wresult _w_widget_send_event(w_widget *widget, w_event *event);
+gboolean _w_widget_send_IM_key_event(w_widget *widget, _w_event_platform *e,
+		int type, GdkEventKey *keyEvent, const char *chars, int length);
 void _w_widget_init_signal_0();
 void _w_widget_init_signal(_gtk_signal *signals, _gtk_signal_info *info,
 		int length);
-void _w_widget_connect(GtkWidget *widget, _gtk_signal *signal, gboolean after);
+void _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after);
 int _w_widget_set_input_state(int state);
 int _w_translate_key(int key);
 int _w_untranslate_key(int key);
+void _w_widget_set_font_description(w_widget *control, GtkWidget *widget,
+		PangoFontDescription *font, _w_control_priv *priv);
 void _w_widget_class_init(struct _w_widget_class *clazz);
 #endif /* GTK_WIDGETS_WIDGET_H_ */

@@ -22,6 +22,20 @@ size_t w_alloc_new(void *user_data, size_t size, void **ptr) {
 	*((void**) user_data) = *ptr;
 	return size;
 }
+size_t WFileDialogSelectedFile::_alloc(void *user_data, size_t size,
+		void **buf) {
+	WFileDialogSelectedFile *file = (WFileDialogSelectedFile*) user_data;
+	if (file->mem_alloc < size) {
+		char *text =(char *) realloc(file->text, size);
+		if (text != 0) {
+			file->text = text;
+			file->mem_alloc = size;
+		}
+	}
+	*buf = file->text;
+	return file->mem_alloc;
+}
+
 /*
  * Widget
  */
@@ -498,6 +512,9 @@ bool WControl::PostEvent(WEvent *e) {
 	case W_EVENT_COMPUTE_SIZE:
 		return OnComputeSize((w_event_compute_size*) e);
 		break;
+	case W_EVENT_TOOLTIP_TEXT:
+		return OnTooltipText(reinterpret_cast<WTooltipTextEvent&>(*e));
+		break;
 	default:
 		return WWidget::PostEvent(e);
 		break;
@@ -616,6 +633,11 @@ bool WControl::OnReserved4(WEvent &e) {
 bool WControl::OnTimer(WTimerEvent &e) {
 	return false;
 }
+
+bool WControl::OnTooltipText(WTooltipTextEvent &e) {
+	return false;
+}
+
 bool WControl::Notify(WEvent &e) {
 	WComposite *parent = GetParent();
 	if (parent != 0) {
@@ -716,10 +738,10 @@ WResult WGLCanvas::Create(WComposite *parent, wuint64 style,
 /*
  * WShell
  */
-w_class_id WShell::_GetClassID() {
+w_class_id WFrame::_GetClassID() {
 	return _W_CLASS_SHELL;
 }
-bool WShell::PostEvent(WEvent *e) {
+bool WFrame::PostEvent(WEvent *e) {
 	switch (e->type) {
 	case W_EVENT_CLOSE:
 		return OnClose(*e);
@@ -742,27 +764,27 @@ bool WShell::PostEvent(WEvent *e) {
 	}
 }
 
-bool WShell::OnClose(WEvent &e) {
+bool WFrame::OnClose(WEvent &e) {
 	return false;
 }
 
-bool WShell::OnIconify(WEvent &e) {
+bool WFrame::OnIconify(WEvent &e) {
 	return false;
 }
 
-bool WShell::OnDeiconify(WEvent &e) {
+bool WFrame::OnDeiconify(WEvent &e) {
 	return false;
 }
 
-bool WShell::OnActivate(WEvent &e) {
+bool WFrame::OnActivate(WEvent &e) {
 	return false;
 }
 
-bool WShell::OnDeactivate(WEvent &e) {
+bool WFrame::OnDeactivate(WEvent &e) {
 	return false;
 }
 
-bool WShell::OnNotify(WEvent &e) {
+bool WFrame::OnNotify(WEvent &e) {
 	return false;
 }
 /*
@@ -1118,6 +1140,34 @@ w_class_id WListViewBase::_GetClassID() {
 w_class_id WTextEdit::_GetClassID() {
 	return _W_CLASS_TEXTEDIT;
 }
+bool WTextEdit::PostEvent(WEvent *e) {
+	switch (e->type) {
+	case W_EVENT_MODIFY:
+		return OnModify(reinterpret_cast<WTextEditEvent&>(*e));
+		break;
+	case W_EVENT_DEFAULTSELECTION:
+		return OnDefaultSelection(reinterpret_cast<WTextEditEvent&>(*e));
+		break;
+	case W_EVENT_VERIFY:
+		return OnVerify(reinterpret_cast<WTextEditEvent&>(*e));
+		break;
+	default:
+		return WScrollable::PostEvent(e);
+		break;
+	}
+}
+
+bool WTextEdit::OnModify(WTextEditEvent &e) {
+	return false;
+}
+
+bool WTextEdit::OnDefaultSelection(WTextEditEvent &e) {
+	return false;
+}
+
+bool WTextEdit::OnVerify(WTextEditEvent &e) {
+	return false;
+}
 /*
  *
  */
@@ -1133,6 +1183,18 @@ bool WToolBar::PostEvent(WEvent *e) {
 		break;
 	case W_EVENT_ITEM_DEFAULTSELECTION:
 		return OnItemDefaultSelection(static_cast<WToolBarEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_GET_MENU:
+		return OnItemGetMenu(static_cast<WToolBarEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_SET_MENU:
+		return OnItemSetMenu(static_cast<WToolBarEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_GET_CONTROL:
+		return OnItemGetControl(static_cast<WToolBarEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_SET_CONTROL:
+		return OnItemSetControl(static_cast<WToolBarEvent&>(*e));
 		break;
 	}
 	return WComposite::PostEvent(e);
@@ -1157,6 +1219,22 @@ bool WToolBar::OnItemGetMenu(WToolBarEvent &e) {
 bool WToolBar::OnItemSetMenu(WToolBarEvent &e) {
 	if (e.item->GetStyle() & W_DROP_DOWN) {
 		SetItemData(e.item, e.menu);
+		return true;
+	} else
+		return false;
+}
+
+bool WToolBar::OnItemGetControl(WToolBarEvent &e) {
+	if (e.item->GetStyle() & W_SEPARATOR) {
+		e.control = (WControl*) GetItemData(e.item);
+		return true;
+	} else
+		return false;
+}
+
+bool WToolBar::OnItemSetControl(WToolBarEvent &e) {
+	if (e.item->GetStyle() & W_SEPARATOR) {
+		SetItemData(e.item, e.control);
 		return true;
 	} else
 		return false;
@@ -1523,4 +1601,3 @@ size_t w_alloc_string_ref(void *user_data, size_t size, void **string) {
 	}
 }
 }
-

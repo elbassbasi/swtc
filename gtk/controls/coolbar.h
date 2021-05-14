@@ -14,7 +14,7 @@ typedef struct _w_coolitem_handle {
 	w_size minimumSize;
 	int requestedWidth;
 	unsigned ideal :1;
-	unsigned wrap;
+	unsigned wrap :1;
 	unsigned newrow :1;
 	w_control *control;
 } _w_coolitem_handle;

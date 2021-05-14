@@ -103,8 +103,9 @@ wresult _w_caret_get_font(w_caret *caret, w_font **font) {
 wresult _w_caret_get_image(w_caret *caret, w_image *image) {
 	return w_image_copy(&_W_CARET(caret)->image, 0, image);
 }
-w_canvas* _w_caret_get_parent(w_caret *caret) {
-	return _W_CARET(caret)->parent;
+wresult _w_caret_get_parent(w_caret *caret, w_canvas **canvas) {
+	*canvas = _W_CARET(caret)->parent;
+	return W_TRUE;
 }
 wresult _w_caret_get_visible(w_caret *caret) {
 	return _W_CARET(caret)->isVisible;
@@ -164,13 +165,14 @@ void _w_caret_kill_focus(w_caret *caret) {
 	if (_W_CARET(caret)->isVisible)
 		_w_caret_hide_caret(caret);
 }
-void _w_caret_copy(w_widgetdata *from, w_widgetdata *to) {
+wresult _w_caret_copy(w_widgetdata *from, w_widgetdata *to) {
 	w_widgetdata_close(to);
+	return W_TRUE;
 }
 wresult _w_caret_equals(w_widgetdata *obj1, w_widgetdata *obj2) {
 	return obj1 == obj2;
 }
-void _w_caret_close(w_widgetdata *widgetdata) {
+wresult _w_caret_close(w_widgetdata *widgetdata) {
 	w_canvas *parent = _W_CARET(widgetdata)->parent;
 	w_caret *caret;
 	w_canvas_get_caret(parent, &caret);
@@ -183,6 +185,7 @@ void _w_caret_close(w_widgetdata *widgetdata) {
 	_W_CARET(widgetdata)->parent = 0;
 	w_image_dispose(&_W_CARET(widgetdata)->image);
 	_W_CARET(widgetdata)->clazz = 0;
+	return W_TRUE;
 }
 wresult _w_caret_set_bounds(w_caret *caret, w_point *location, w_size *size) {
 	int is_equal = W_TRUE;
@@ -282,96 +285,22 @@ int _w_caret_get_caret_blink_time() {
 /*
  * IME
  */
-int _w_ime_get_caret_offset(w_ime *ime) {
+wresult _w_ime_get_caret_offset(w_ime *ime) {
 	return _W_IME(ime)->startOffset + _W_IME(ime)->caretOffset;
 }
-int _w_ime_get_commit_count(w_ime *ime) {
+wresult _w_ime_get_commit_count(w_ime *ime) {
 	return _W_IME(ime)->commitCount;
 }
-int _w_ime_get_composition_offset(w_ime *ime) {
+wresult _w_ime_get_composition_offset(w_ime *ime) {
 	return _W_IME(ime)->startOffset;
 }
-size_t _w_ime_get_ranges(w_ime *ime, w_range *ranges, w_textstyle *styles,
-		size_t _length) {
-	int length = strlen(_W_IME(ime)->preeditString);
-	char *chars = _W_IME(ime)->preeditString;
+wresult _w_ime_get_ranges(w_ime *ime, w_iterator *ranges) {
+	w_iterator_close(ranges);
 	PangoAttrList *pangoAttrs = _W_IME(ime)->pangoAttrs;
-	if (pangoAttrs != 0) {
-		int count = 0;
-		PangoAttrIterator *iterator = pango_attr_list_get_iterator(pangoAttrs);
-		while (pango_attr_iterator_next(iterator))
-			count++;
-		pango_attr_iterator_destroy(iterator);
-		if (styles != 0 || ranges != 0) {
-			iterator = pango_attr_list_get_iterator(pangoAttrs);
-			PangoAttrColor *attrColor;
-			PangoAttrInt *attrInt;
-			int start = 0;
-			int end = 0;
-			size_t ll = WMIN(count, _length);
-			for (int i = 0; i < ll; i++) {
-				pango_attr_iterator_range(iterator, &start, &end);
-				if (ranges != 0) {
-					/*ranges[i].begin = g_utf16_pointer_to_offset(preeditString,
-					 preeditString + start);
-					 ranges[i].end = g_utf16_pointer_to_offset(preeditString,
-					 preeditString + end) - 1;*/
-				}
-				if (styles != 0) {
-					PangoAttribute *attr = pango_attr_iterator_get(iterator,
-							PANGO_ATTR_FOREGROUND);
-					if (attr != 0) {
-						attrColor = (PangoAttrColor*) attr;
-						styles[i].foreground = W_RGB(
-								attrColor->color.red / 0x100,
-								attrColor->color.green / 0x100,
-								attrColor->color.blue / 0x100);
-					}
-					attr = pango_attr_iterator_get(iterator,
-							PANGO_ATTR_BACKGROUND);
-					if (attr != 0) {
-						attrColor = (PangoAttrColor*) attr;
-						styles[i].background = W_RGB(
-								attrColor->color.red / 0x100,
-								attrColor->color.green / 0x100,
-								attrColor->color.blue / 0x100);
-					}
-					attr = pango_attr_iterator_get(iterator,
-							PANGO_ATTR_UNDERLINE);
-					if (attr != 0) {
-						attrInt = (PangoAttrInt*) attr;
-						styles[i].underline = attrInt->value
-								!= PANGO_UNDERLINE_NONE;
-						styles[i].underlineStyle = W_UNDERLINE_SINGLE;
-						switch (attrInt->value) {
-						case PANGO_UNDERLINE_DOUBLE:
-							styles[i].underlineStyle = W_UNDERLINE_DOUBLE;
-							break;
-						case PANGO_UNDERLINE_ERROR:
-							styles[i].underlineStyle = W_UNDERLINE_ERROR;
-							break;
-						}
-						if (styles[i].underline) {
-							attr = pango_attr_iterator_get(iterator,
-									PANGO_ATTR_UNDERLINE_COLOR);
-							if (attr != 0) {
-								attrColor = (PangoAttrColor*) attr;
-								styles[i].underlineColor = W_RGB(
-										attrColor->color.red / 0x100,
-										attrColor->color.green / 0x100,
-										attrColor->color.blue / 0x100);
-							}
-						}
-					}
-				}
-				pango_attr_iterator_next(iterator);
-			}
-			pango_attr_iterator_destroy(iterator);
-			//pango_attr_list_unref(pangoAttrs);
-		}
-		return count;
-	}
-	return 0;
+	if (pangoAttrs != 0)
+		return _w_attr_list_get_ranges(pangoAttrs, ranges);
+	else
+		return W_FALSE;
 }
 wresult _w_ime_get_text(w_ime *ime, w_alloc text, void *user_data) {
 	return w_alloc_set_text(text, user_data, _W_IME(ime)->text, -1);
@@ -379,13 +308,14 @@ wresult _w_ime_get_text(w_ime *ime, w_alloc text, void *user_data) {
 wresult _w_ime_get_wide_caret(w_ime *ime) {
 	return W_FALSE;
 }
-void _w_ime_copy(w_widgetdata *from, w_widgetdata *to) {
+wresult _w_ime_copy(w_widgetdata *from, w_widgetdata *to) {
 	w_widgetdata_close(to);
+	return W_TRUE;
 }
 wresult _w_ime_equals(w_widgetdata *obj1, w_widgetdata *obj2) {
 	return obj1 == obj2;
 }
-void _w_ime_close(w_widgetdata *widgetdata) {
+wresult _w_ime_close(w_widgetdata *widgetdata) {
 	w_canvas *parent = _W_IME(widgetdata)->parent;
 	w_ime *ime;
 	w_canvas_get_ime(parent, &ime);
@@ -395,6 +325,7 @@ void _w_ime_close(w_widgetdata *widgetdata) {
 	_W_IME(widgetdata)->text = 0;
 	_W_IME(widgetdata)->pangoAttrs = 0;
 	_W_CARET(widgetdata)->clazz = 0;
+	return W_TRUE;
 }
 wresult _w_ime_set_composition_offset(w_ime *ime, int offset) {
 	if (offset < 0)
@@ -407,9 +338,9 @@ wresult _w_ime_set_composition_offset(w_ime *ime, int offset) {
 /*
  * canvas
  */
-w_caret* _w_canvas_get_caret(w_canvas *canvas) {
-	return _W_CANVAS(canvas)->caret;
-
+wresult _w_canvas_get_caret(w_canvas *canvas, w_caret **caret) {
+	*caret = _W_CANVAS(canvas)->caret;
+	return W_TRUE;
 }
 wresult _w_canvas_create_caret(w_canvas *canvas, w_caret *caret) {
 	memset(caret, 0, sizeof(_w_caret));
@@ -433,11 +364,11 @@ wresult _w_canvas_create_ime(w_canvas *canvas, w_ime *ime) {
 }
 wresult _w_canvas_get_imcaret_pos(w_control *control, w_point *pos,
 		_w_control_priv *priv) {
-	/*if (_W_CANVAS(control)->caret == 0)
-		return _w_control_get_imcaret_pos(control, pos, priv);
+	if (_W_CANVAS(control)->caret == 0)
+		return priv->get_imcaret_pos(control, pos, priv);
 	w_caret *caret = _W_CANVAS(control)->caret;
 	pos->x = _W_CARET(caret)->bounds.x;
-	pos->y = _W_CARET(caret)->bounds.y;*/
+	pos->y = _W_CARET(caret)->bounds.y;
 	return W_TRUE;
 }
 void _w_canvas_redraw_widget(w_control *control, w_rect *rect, int flags,
@@ -697,8 +628,9 @@ wresult _w_canvas_set_ime(w_canvas *canvas, w_ime *ime) {
 	_W_CANVAS(canvas)->ime = ime;
 	return W_TRUE;
 }
-w_ime* _w_canvas_get_ime(w_canvas *canvas) {
-	return _W_CANVAS(canvas)->ime;
+wresult _w_canvas_get_ime(w_canvas *canvas, w_ime **ime) {
+	*ime = _W_CANVAS(canvas)->ime;
+	return W_TRUE;
 }
 wresult _w_canvas_set_font(w_control *control, w_font *font) {
 	w_caret *caret = _W_CANVAS(control)->caret;
@@ -895,11 +827,70 @@ void _w_canvas_class_init(struct _w_canvas_class *clazz) {
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_canvas_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_canvas);
 	W_WIDGET_CLASS(clazz)->object_used_size = sizeof(_w_canvas);
+	/**
+	 *
+	 */
+	W_CONTROL_CLASS(clazz)->set_font = _w_canvas_set_font;
+	clazz->create_caret = _w_canvas_create_caret;
+	clazz->create_ime = _w_canvas_create_ime;
+	clazz->scroll = _w_canvas_scroll;
+	clazz->get_caret = _w_canvas_get_caret;
+	clazz->set_caret = _w_canvas_set_caret;
+	clazz->get_ime = _w_canvas_get_ime;
+	clazz->set_ime = _w_canvas_set_ime;
+	/*
+	 * caret class
+	 */
+	if (gtk_toolkit->class_caret.widgetdata.toolkit == 0) {
+		struct _w_caret_class *caret = &gtk_toolkit->class_caret;
+		caret->widgetdata.toolkit = W_TOOLKIT(gtk_toolkit);
+		caret->widgetdata.is_ok = _w_widgetdata_is_ok;
+		caret->widgetdata.close = _w_caret_close;
+		caret->widgetdata.copy = _w_caret_copy;
+		caret->widgetdata.equals = _w_caret_equals;
+		caret->get_bounds = _w_caret_get_bounds;
+		caret->get_font = _w_caret_get_font;
+		caret->get_image = _w_caret_get_image;
+		caret->get_parent = _w_caret_get_parent;
+		caret->get_visible = _w_caret_get_visible;
+		caret->is_visible = _w_caret_is_visible;
+		caret->set_bounds = _w_caret_set_bounds;
+		caret->set_font = _w_caret_set_font;
+		caret->set_image = _w_caret_set_image;
+		caret->set_visible = _w_caret_set_visible;
+
+	}
+	/*
+	 * IME class
+	 */
+	if (gtk_toolkit->class_ime.widgetdata.toolkit == 0) {
+		struct _w_ime_class *ime = &gtk_toolkit->class_ime;
+		ime->widgetdata.toolkit = W_TOOLKIT(gtk_toolkit);
+		ime->widgetdata.is_ok = _w_widgetdata_is_ok;
+		ime->widgetdata.close = _w_ime_close;
+		ime->widgetdata.copy = _w_ime_copy;
+		ime->widgetdata.equals = _w_ime_equals;
+		ime->get_caret_offset = _w_ime_get_caret_offset;
+		ime->get_commit_count = _w_ime_get_commit_count;
+		ime->get_composition_offset = _w_ime_get_composition_offset;
+		ime->get_ranges = _w_ime_get_ranges;
+		ime->get_text = _w_ime_get_text;
+		ime->get_wide_caret = _w_ime_get_wide_caret;
+		ime->set_composition_offset = _w_ime_set_composition_offset;
+
+	}
 	/*
 	 * private
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	/*
-	 * messages
+	 * signals
 	 */
+	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_canvas_button_press_event;
+	signals[SIGNAL_COMMIT] = _gtk_canvas_commit;
+	signals[SIGNAL_DRAW] = _gtk_canvas_draw;
+	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_canvas_focus_in_event;
+	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_canvas_focus_out_event;
+	signals[SIGNAL_PREEDIT_CHANGED] = _gtk_canvas_preedit_changed;
 }

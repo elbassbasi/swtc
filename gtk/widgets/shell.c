@@ -10,6 +10,9 @@
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+void _w_shell_bring_totop(w_shell *shell, int force) {
+
+}
 wresult _w_shell_close(w_shell *shell) {
 	_w_shell_close_widget(shell, 0);
 	return W_TRUE;
@@ -42,7 +45,7 @@ wuint64 _w_shell_check_style(w_widget *widget, wuint64 style) {
 	if ((style & W_SHEET) != 0) {
 		style &= ~W_SHEET;
 		w_composite *parent = _W_CONTROL(widget)->parent;
-		style |= parent == 0 ? W_SHELL_TRIM : W_DIALOG_TRIM;
+		style |= parent == 0 ? W_FRAME_TRIM : W_DIALOG_TRIM;
 		if ((style & mask) == 0) {
 			style |= parent == 0 ? W_APPLICATION_MODAL : W_PRIMARY_MODAL;
 		}
@@ -168,7 +171,7 @@ wresult _w_shell_create_handle(w_widget *widget, _w_control_priv *priv) {
 			gtk_window_set_resizable(shellHandle, FALSE);
 		}
 //gtk_window_set_title(shellHandle, "");
-		if ((style & (W_NO_TRIM | W_BORDER | W_SHELL_TRIM)) == 0) {
+		if ((style & (W_NO_TRIM | W_BORDER | W_FRAME_TRIM)) == 0) {
 			gtk_container_set_border_width(GTK_CONTAINER(shellHandle), 1);
 		}
 		if ((style & W_TOOL) != 0) {
@@ -410,6 +413,12 @@ void _w_shell_hook_events(w_widget *shell, _w_control_priv *priv) {
 		_w_widget_connect(shellHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT],
 		FALSE);
 	}
+}
+wresult _w_shell_is_enabled(w_control *shell) {
+	return W_CONTROL_GET_CLASS(shell)->get_enabled(shell);
+}
+wresult _w_shell_is_visible(w_control *shell) {
+	return W_CONTROL_GET_CLASS(shell)->get_visible(shell);
 }
 wresult _w_shell_open(w_shell *shell) {
 	//_w_shell_bring_totop(shell, W_FALSE);
@@ -654,6 +663,9 @@ wresult _w_shell_set_minimum_size(w_shell *shell, w_size *size) {
 wresult _w_shell_set_modified(w_shell *shell, int modified) {
 	return W_FALSE;
 }
+void _w_shell_set_saved_focus(w_shell *shell, w_control *control) {
+
+}
 wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
 		int enc) {
 	return W_FALSE;
@@ -787,7 +799,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			gtk_widget_get_allocation(vboxHandle, &allocation);
 			int border = 0;
 			if ((_W_WIDGET(control)->style
-					& (W_NO_TRIM | W_BORDER | W_SHELL_TRIM)) == 0) {
+					& (W_NO_TRIM | W_BORDER | W_FRAME_TRIM)) == 0) {
 				border = gtk_container_get_border_width(
 						GTK_CONTAINER(shellHandle));
 			}
@@ -914,9 +926,9 @@ gboolean _gtk_shell_configure_event(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_shell_delete_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	//if (W_CONTROL_GET_CLASS(widget)->is_enabled(W_CONTROL(widget)) > 0) {
-	_w_shell_close_widget(W_SHELL(widget), 0);
-	//}
+	if (W_CONTROL_GET_CLASS(widget)->is_enabled(W_CONTROL(widget)) > 0) {
+		_w_shell_close_widget(W_SHELL(widget), 0);
+	}
 	return TRUE;
 }
 gboolean _gtk_shell_enter_notify_event(w_widget *widget, _w_event_platform *e,
@@ -1198,7 +1210,7 @@ gboolean _gtk_shell_realize(w_widget *widget, _w_event_platform *e,
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
 	GdkWindow *window = gtk_widget_get_window(shellHandle);
 	wuint64 style = _W_WIDGET(widget)->style;
-	if ((style & W_SHELL_TRIM) != W_SHELL_TRIM) {
+	if ((style & W_FRAME_TRIM) != W_FRAME_TRIM) {
 		int decorations = 0;
 		int functions = 0;
 		if ((style & W_NO_TRIM) == 0) {
@@ -1268,6 +1280,8 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_shell_create;
 	W_CONTROL_CLASS(clazz)->get_shell = _w_shell_get_shell;
+	W_CONTROL_CLASS(clazz)->is_enabled = _w_shell_is_enabled;
+	W_CONTROL_CLASS(clazz)->is_visible = _w_shell_is_visible;
 	W_CONTROL_CLASS(clazz)->set_visible = _w_shell_set_visible;
 	clazz->close = _w_shell_close;
 	clazz->get_toolbar = _w_shell_get_toolbar;

@@ -7,7 +7,7 @@
 
 #ifndef SWTP_WIDGETS_DIALOGS_H_
 #define SWTP_WIDGETS_DIALOGS_H_
-#include "Shell.h"
+#include <swtp/widgets/Frame.h>
 /**
  * Show message box
  * <p>
@@ -35,7 +35,7 @@
  * @see W_RETRY
  * @see W_IGNORE
  */
-inline int WMessageBox(WShell *parent, wuint64 style, const char *title,
+inline int WMessageBox(WFrame *parent, wuint64 style, const char *title,
 		const char *message) {
 	w_messagebox messagebox;
 	messagebox.parent = W_SHELL(parent);
@@ -45,43 +45,111 @@ inline int WMessageBox(WShell *parent, wuint64 style, const char *title,
 	return w_messagebox_open(0, &messagebox);
 }
 
-class WColorDialog {
+class WColorDialog: public w_dialog_color {
 public:
 	WColorDialog() {
 		memset(this, 0, sizeof(WColorDialog));
 	}
-	WShell *parent;
-	wuint64 style;
-	const char *title;
-	w_color selected_color;
-	w_color *custom_colors;
-	size_t count;
-	int Open(WToolkit *toolkit) {
-		return w_dialog_color_open((w_toolkit*) toolkit, (w_dialog_color*) this);
+	int _Open(WToolkit *toolkit) {
+		return w_dialog_color_open(W_TOOLKIT(toolkit), this);
+	}
+	int Open(WToolkit *toolkit, WFrame *parent, const char *title) {
+		this->parent =(w_shell*) parent;
+		this->title = title;
+		return _Open(toolkit);
+	}
+	int Open(WFrame *parent, const char *title) {
+		return Open(0, parent, title);
+	}
+	int Open(WFrame *parent) {
+		this->parent =(w_shell*) parent;
+		return _Open(0);
 	}
 	int Open() {
-		return Open(0);
+		return _Open(0);
 	}
 };
-
-class WFileDialog {
+class WFileDialogSelectedFile: protected w_dialog_selected_file {
 public:
-	WFileDialog(){
+	static size_t _alloc(void *user_data, size_t size, void **buf);
+	size_t mem_alloc;
+	char *text;
+	WFileDialogSelectedFile() {
+		this->mem_alloc = 0;
+		this->text = 0;
+		this->user_data = this;
+		this->enc = W_ENCODING_UTF8;
+		this->alloc = _alloc;
+	}
+	~WFileDialogSelectedFile() {
+		if (this->text != 0) {
+			free(this->text);
+		}
+	}
+	const char* GetFile() {
+		return this->text;
+	}
+};
+class WFileDialog: public w_dialog_file {
+public:
+	WFileDialog() {
 		memset(this, 0, sizeof(WFileDialog));
+		w_iterator_init(&selectedfiles);
 	}
-	WShell *parent;
-	wuint64 style;
-	WIterator<char*> files;
+	~WFileDialog() {
+		w_iterator_close(&selectedfiles);
+	}
 public:
-	void GetFileNames(WIterator<char*>& files){
-
+	WResult _Open(WToolkit *toolkit) {
+		return w_dialog_file_open(W_TOOLKIT(toolkit), this);
 	}
-	int Open(WToolkit *toolkit) {
-		return false;
+	WResult Open() {
+		return _Open(0);
 	}
-	int Open() {
-		return Open(0);
+	bool NextSelected(WFileDialogSelectedFile &selectedFile) {
+		return w_iterator_next(&this->selectedfiles, (void*) &selectedFile);
+	}
+	bool NextSelected(WString &str) {
+		str = (const char*) 0;
+		w_dialog_selected_file selectedFile;
+		selectedFile.alloc = w_alloc_string_ref;
+		selectedFile.user_data = &str;
+		selectedFile.enc = W_ENCODING_UTF8;
+		return w_iterator_next(&this->selectedfiles, (void*) &selectedFile);
+	}
+	bool NextSelected(std::string &str) {
+		str.clear();
+		w_dialog_selected_file selectedFile;
+		selectedFile.alloc = w_alloc_std_string;
+		selectedFile.user_data = &str;
+		selectedFile.enc = W_ENCODING_UTF8;
+		return w_iterator_next(&this->selectedfiles, (void*) &selectedFile);
+	}
+	bool ResetSelected() {
+		return w_iterator_reset(&this->selectedfiles) > 0;
+	}
+	WString GetSelectedFile() {
+		WString str;
+		w_dialog_selected_file selectedFile;
+		selectedFile.alloc = w_alloc_string_ref;
+		selectedFile.user_data = &str;
+		selectedFile.enc = W_ENCODING_UTF8;
+		w_iterator_reset(&this->selectedfiles);
+		w_iterator_next(&this->selectedfiles, (void*) &selectedFile);
+		return str;
+	}
+	std::string GetSelectedFileStd() {
+		std::string str;
+		w_dialog_selected_file selectedFile;
+		selectedFile.alloc = w_alloc_std_string;
+		selectedFile.user_data = &str;
+		selectedFile.enc = W_ENCODING_UTF8;
+		w_iterator_reset(&this->selectedfiles);
+		w_iterator_next(&this->selectedfiles, (void*) &selectedFile);
+		return str;
+	}
+	size_t GetSelectedCount() {
+		return w_iterator_get_count(&this->selectedfiles);
 	}
 };
-
 #endif /* SWTP_WIDGETS_DIALOGS_H_ */

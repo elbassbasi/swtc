@@ -10,7 +10,7 @@
 #include "Event.h"
 #include <string>
 #include <atomic>
-class WShell;
+class WFrame;
 class WAccessible;
 class WComposite;
 class WLayout;

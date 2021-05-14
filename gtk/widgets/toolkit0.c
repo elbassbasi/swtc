@@ -91,6 +91,25 @@ int _w_toolkit_get_double_click_time(w_toolkit *toolkit) {
 	return W_FALSE;
 }
 w_control* _w_toolkit_get_focus_control(w_toolkit *toolkit) {
+	w_control *focusControl = _W_TOOLKIT(toolkit)->focusControl;
+	if (focusControl != 0 && w_widget_is_ok(W_WIDGET(focusControl))) {
+		return focusControl;
+	}
+	w_shell *activeShell = _W_TOOLKIT(toolkit)->activeShell;
+	if (activeShell == 0)
+		return 0;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(activeShell);
+	GtkWidget *handle = gtk_window_get_focus(GTK_WINDOW(shellHandle));
+	if (handle == 0)
+		return 0;
+	do {
+		w_widget *widget = g_object_get_qdata(G_OBJECT(handle),
+		_W_TOOLKIT(toolkit)->quark[0]);
+		if (widget != 0 && w_widget_class_id(widget) >= _W_CLASS_CONTROL) {
+			return w_control_is_enabled(W_CONTROL(widget)) ?
+					W_CONTROL(widget) : 0;
+		}
+	} while ((handle = gtk_widget_get_parent(handle)) != 0);
 	return 0;
 }
 wresult _w_toolkit_get_high_contrast(w_toolkit *toolkit) {

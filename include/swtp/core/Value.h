@@ -53,6 +53,9 @@ public:
 	void Free() {
 		w_value_free(this);
 	}
+	wuint GetClassId() {
+		return this->clazz->type;
+	}
 	/*
 	 * @param temp
 	 */
@@ -62,11 +65,11 @@ public:
 	const char* GetString(char *temp, size_t length) {
 		return GetString(temp, length, W_VALUE_STRING_COPY_IS_NEED);
 	}
-	void SetInt(long long int int_) {
+	void SetInt(wint64 int_) {
 		w_value_set_int(this, int_);
 	}
 	bool IsInt() {
-		return this->clazz->type == W_VALUE_INT;
+		return GetClassId() == W_VALUE_INT;
 	}
 	void SetFloat(double float_) {
 		w_value_set_float(this, float_);
@@ -97,11 +100,8 @@ public:
 		return SetString(string, true);
 	}
 	bool CopyString(const char *string, size_t length) {
-		return SetString(string, length, W_VALUE_FREE_MEMORY);
+		return SetString(string, length, W_VALUE_STRING_COPY);
 	}
-	/*void SetString(WString &str) {
-	 w_value_set_string_ref(this, str.ref);
-	 }*/
 	int Print(const char *format, ...) {
 		va_list args;
 		va_start(args, format);

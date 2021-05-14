@@ -31,7 +31,8 @@ void TComboDemo::CreateControls(int index, const char *text, wuint64 style) {
 	btn[index].Create(this, W_PUSH);
 	btn[index].SetId(index + 1);
 	btn[index].SetText("show selected");
-	combo[1].SetImageList(MShell::GetImageList16_(0));
+	MFrame *frame = (MFrame*) GetFrame();
+	combo[1].SetImageList(frame->GetImageList16());
 }
 void TComboDemo::CreateControl(WComposite *parent) {
 	this->Create(parent, W_NONE);
@@ -49,7 +50,7 @@ bool TComboDemo::OnNotify(WEvent &e) {
 	wuint id = e.widget->GetId();
 	if (id != 0) {
 		WString text = combo[id - 1].GetText();
-		WMessageBox(GetShell(), W_OK, "Select Button", text.GetChars());
+		WMessageBox(GetFrame(), W_OK, "Select Button", text.GetChars());
 	}
 	return true;
 }

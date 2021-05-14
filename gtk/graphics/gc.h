@@ -177,6 +177,7 @@ typedef struct _w_textlayout {
 	int *tabs;
 	int *invalidOffsets;
 } _w_textlayout;
+wresult _w_attr_list_get_ranges(PangoAttrList *attrList, w_iterator *ranges);
 #define _W_TEXTLAYOUT(x) ((_w_textlayout*)x)
 #ifdef __cplusplus
 }

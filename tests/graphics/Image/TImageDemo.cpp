@@ -20,7 +20,7 @@ void TImageDemo::CreateControl(WComposite *parent) {
 }
 
 bool TImageDemo::OnPaint(WPaintEvent &e) {
-	MShell *shell = (MShell*) GetShell();
+	MFrame *shell = (MFrame*) GetFrame();
 	WImage *image = shell->GetImage32(IMAGELIST_ADD);
 	e->DrawImage(*image, 0, 0);
 	return true;

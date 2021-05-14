@@ -53,7 +53,7 @@ public:
 	 * @see Widget#checkSubclass
 	 * @see Widget#getStyle
 	 */
-	WToolTip(WShell *parent, int style) {
+	WToolTip(WFrame *parent, int style) {
 		Create(parent, style | W_FREE_MEMORY);
 	}
 	/**
@@ -79,10 +79,10 @@ public:
 	 * @see Widget#checkSubclass
 	 * @see Widget#getStyle
 	 */
-	bool Create(WShell *parent, int style) {
+	bool Create(WFrame *parent, int style) {
 		return Create(0, parent, style);
 	}
-	bool Create(WToolkit *toolkit, WShell *parent, int style) {
+	bool Create(WToolkit *toolkit, WFrame *parent, int style) {
 		return w_tooltip_create(W_TOOLTIP(this), (w_toolkit*) toolkit,
 				W_COMPOSITE(parent), style, WWidget::post_event_proc) > 0;
 	}
@@ -111,8 +111,8 @@ public:
 	 *
 	 * @return the receiver's parent
 	 */
-	WShell* GetParent() {
-		WShell* parent;
+	WFrame* GetParent() {
+		WFrame* parent;
 		w_tooltip_get_parent(W_TOOLTIP(this),(w_shell**)&parent);
 		return parent;
 	}

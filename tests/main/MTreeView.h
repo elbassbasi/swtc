@@ -5,26 +5,19 @@
  *      Author: azeddine El Bassbasi
  */
 
-#ifndef TESTS_MAIN_MPANEL_H_
-#define TESTS_MAIN_MPANEL_H_
+#ifndef TESTS_MAIN_MTREEVIEW_H_
+#define TESTS_MAIN_MTREEVIEW_H_
 #include "TreeItems.h"
-class MPanel: public WTreeView {
-private:
-	friend class MShell;
-	WSash sash;
-	int width;
-	WControl *control;
+class MTreeView: public WTreeView {
 public:
-	MPanel();
-	~MPanel();
+	MTreeView();
+	~MTreeView();
 	bool Create(WComposite *parent);
 protected:
-	void UpdateSize();
-	bool OnSashSelection(WSashEvent &e);
 	bool OnItemExpand(WTreeEvent &e);
 	bool OnItemCollapse(WTreeEvent &e);
 	bool OnItemSelection(WTreeEvent &e);
 	bool OnItemDispose(WTreeEvent &e);
 };
 
-#endif /* TESTS_MAIN_MPANEL_H_ */
+#endif /* TESTS_MAIN_MTREEVIEW_H_ */

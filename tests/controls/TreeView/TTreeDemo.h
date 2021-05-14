@@ -24,6 +24,14 @@ public:
 	~TTreeDemo();
 	void CreateControl(WComposite *parent);
 	WControl* GetControl(WComposite *parent);
+	void CreateColumns();
+	void CreateItems();
+	void CreateFonts();
+protected:
+	bool OnItemGetValue(WTreeEvent &e);
+	bool OnItemGetAttr(WTreeEvent &e);
+	bool OnItemDispose(WTreeEvent &e);
+	WFont fonts[3];
 };
 
 #endif /* TESTS_CONTROLS_TREEVIEW_TTREEDEMO_H_ */

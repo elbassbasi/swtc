@@ -26,8 +26,9 @@ void TButtonDemo::CreateControl(WComposite *parent) {
 			btn[i][j].SetText(txt);
 		}
 	}
-	btn[0][2].SetImage(MShell::GetImage16_(this, 1));
-	btn[0][3].SetImage(MShell::GetImage32_(this, 4));
+	MFrame *frame = (MFrame*) GetFrame();
+	btn[0][2].SetImage(frame->GetImage16(1));
+	btn[0][3].SetImage(frame->GetImage32(4));
 
 	// Create three arrow buttons
 	btn[5][0].Create(this, W_ARROW);
@@ -40,7 +41,8 @@ bool TButtonDemo::OnNotify(WEvent &e) {
 	if (WButton::IsButton(e.widget)) {
 		WButton *b = static_cast<WButton*>(e.widget);
 		WString text = b->GetText();
-		WMessageBox(GetShell(),W_OK,"button selected",text.GetCharsNotNull());
+		WMessageBox(GetFrame(), W_OK, "button selected",
+				text.GetCharsNotNull());
 		return true;
 	}
 	return false;

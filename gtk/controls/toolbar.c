@@ -6,18 +6,17 @@
  */
 #include "toolbar.h"
 #include "../widgets/toolkit.h"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 /*
  * toolitem
  *
- * GQuark : 0 : parent
- * 			1 : user_data
+ * GQuark : 1 : user_data
  * 			2 : id
- * 			3 : control
  */
-#define GQUARK_PARENT 0
-#define GQUARK_DATA 1
-#define GQUARK_ID 2
-#define GQUARK_CONTROL 3
+#define GQUARK_DATA 0
+#define GQUARK_ID 1
 wresult _w_toolitem_get_data(w_item *item, void **data) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
 	*data = g_object_get_qdata(G_OBJECT(toolitem),
@@ -43,7 +42,8 @@ wresult _w_toolitem_get_text(w_item *item, w_alloc alloc, void *user_data,
 }
 wresult _w_toolitem_set_data(w_item *item, void *data) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
-	g_object_set_qdata(G_OBJECT(item), gtk_toolkit->quark[GQUARK_DATA], data);
+	g_object_set_qdata(G_OBJECT(toolitem), gtk_toolkit->quark[GQUARK_DATA],
+			data);
 	return W_TRUE;
 }
 wresult _w_toolitem_set_text(w_item *item, const char *text, int length,
@@ -64,6 +64,62 @@ wresult _w_toolitem_set_text(w_item *item, const char *text, int length,
 	}
 	return W_FALSE;
 }
+void _w_toolitem_arrow_handle_callback(GtkWidget *widget, gpointer data) {
+	if (GTK_IS_ARROW(widget)) {
+		*((GtkWidget**) data) = widget;
+	}
+}
+void _w_toolitem_hook_events(w_widget *toolbar, w_toolitem *item, int style,
+		_w_toolbar_priv *priv) {
+	if ((style & W_SEPARATOR) != 0)
+		return;
+	_gtk_signal *signals = priv->signals;
+	GtkToolItem *handle = _W_TOOLITEM(item)->toolItem;
+	_w_widget_set_control(handle, toolbar);
+	_w_widget_connect(handle, &priv->signals[_W_TOOLBAR_SIGNAL_CLICKED], FALSE);
+	/*
+	 * Feature in GTK. GtkToolItem does not respond to basic listeners
+	 * such as button-press, enter-notify to it. The fix is to assign
+	 * the listener to child (GtkButton) of the tool-item.
+	 */
+	GtkWidget *eventHandle = gtk_bin_get_child(GTK_BIN(handle));
+	if ((style & W_DROP_DOWN) != 0) {
+		GtkWidget *arrowHandle = 0;
+		gtk_container_forall(GTK_CONTAINER(eventHandle),
+				_w_toolitem_arrow_handle_callback, &arrowHandle);
+		if (arrowHandle != 0) {
+			_w_widget_set_control(arrowHandle, toolbar);
+			_w_widget_connect(arrowHandle,
+					&priv->signals[_W_TOOLBAR_SIGNAL_CLICKED_ARROW], FALSE);
+		}
+	}
+	_w_widget_connect(handle, &priv->signals[_W_TOOLBAR_SIGNAL_MENU_PROXY],
+	FALSE);
+	_w_widget_set_control(eventHandle, toolbar);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_ENTER_NOTIFY_EVENT], FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_LEAVE_NOTIFY_EVENT], FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_FOCUS_IN_EVENT], FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_FOCUS_OUT_EVENT], FALSE);
+	/*
+	 * Feature in GTK.  Usually, GTK widgets propagate all events to their
+	 * parent when they are done their own processing.  However, in contrast
+	 * to other widgets, the buttons that make up the tool items, do not propagate
+	 * the mouse up/down events. It is interesting to note that they DO propagate
+	 * mouse motion events.  The fix is to explicitly forward mouse up/down events
+	 * to the parent.
+	 */
+	int mask = GDK_EXPOSURE_MASK | GDK_POINTER_MOTION_MASK
+			| GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
+			| GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_KEY_PRESS_MASK
+			| GDK_KEY_RELEASE_MASK | GDK_FOCUS_CHANGE_MASK;
+	gtk_widget_add_events(eventHandle, mask);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT], FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_BUTTON_RELEASE_EVENT],
+	FALSE);
+	_w_widget_connect(eventHandle, &signals[SIGNAL_EVENT_AFTER], FALSE);
+
+	_w_widget_connect(handle, &signals[SIGNAL_MAP], TRUE);
+}
 wresult _w_toolitem_get_bounds(w_toolitem *item, w_rect *rect) {
 	w_widget *parent = _W_ITEM(item)->parent;
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
@@ -81,24 +137,30 @@ wresult _w_toolitem_get_bounds(w_toolitem *item, w_rect *rect) {
 		rect->x = clientWidth - rect->width - rect->x;
 	}
 	if (GTK_IS_SEPARATOR_TOOL_ITEM(toolitem)) {
-		void *control = g_object_get_qdata(G_OBJECT(toolitem),
-				gtk_toolkit->quark[GQUARK_CONTROL]);
+		w_control *control = 0;
+		_w_toolitem_get_control(item, &control);
 		if (control != 0) {
 			rect->height = WMAX(rect->height, 23);
 		}
-
 	}
 	return W_TRUE;
 }
 wresult _w_toolitem_get_control(w_toolitem *item, w_control **control) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
 	if (GTK_IS_SEPARATOR_TOOL_ITEM(toolitem)) {
-		*control = g_object_get_qdata(G_OBJECT(toolitem),
-				gtk_toolkit->quark[GQUARK_CONTROL]);
+		w_widget *parent = _W_ITEM(item)->parent;
+		w_event_toolbar event;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_GET_CONTROL;
+		event.event.widget = parent;
+		event.item = item;
+		_w_widget_send_event(parent, W_EVENT(&event));
+		*control = event.control;
 		return W_TRUE;
+	} else {
+		*control = 0;
+		return W_FALSE;
 	}
-	*control = 0;
-	return W_FALSE;
 }
 wresult _w_toolitem_get_enabled(w_toolitem *item) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
@@ -114,13 +176,19 @@ wresult _w_toolitem_get_id(w_toolitem *item) {
 wresult _w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
 	if (GTK_IS_MENU_TOOL_BUTTON(toolitem)) {
-		GtkWidget *hmenu = gtk_menu_tool_button_get_menu(
-				GTK_MENU_TOOL_BUTTON(toolitem));
-		*menu = (w_menu*) _w_widget_find_control(hmenu);
+		w_widget *parent = _W_ITEM(item)->parent;
+		w_event_toolbar event;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_GET_CONTROL;
+		event.event.widget = parent;
+		event.item = item;
+		_w_widget_send_event(parent, W_EVENT(&event));
+		*menu = event.menu;
 		return W_TRUE;
+	} else {
+		*menu = 0;
+		return W_FALSE;
 	}
-	*menu = 0;
-	return W_FALSE;
 }
 wresult _w_toolitem_get_selection(w_toolitem *item) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
@@ -159,7 +227,6 @@ wresult _w_toolitem_is_enabled(w_toolitem *item) {
 	if (gtk_widget_get_sensitive(topHandle)) {
 		w_widget *parent = _W_ITEM(item)->parent;
 		return w_control_is_enabled(W_CONTROL(parent));
-
 	}
 	return W_FALSE;
 }
@@ -205,11 +272,16 @@ void _w_toolitem_resize_handle(w_toolitem *item, int width, int height) {
 	gtk_widget_size_allocate(handle, &allocation);
 }
 wresult _w_toolitem_set_control(w_toolitem *item, w_control *control) {
-	w_widget *parent = _W_ITEM(item)->parent;
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
 	if (GTK_IS_SEPARATOR_TOOL_ITEM(toolitem)) {
-		g_object_set_qdata(G_OBJECT(toolitem),
-				gtk_toolkit->quark[GQUARK_CONTROL], control);
+		w_widget *parent = _W_ITEM(item)->parent;
+		w_event_toolbar event;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_SET_CONTROL;
+		event.event.widget = parent;
+		event.item = item;
+		event.control = control;
+		_w_widget_send_event(parent, W_EVENT(&event));
 		_w_toolbar_relayout(W_TOOLBAR(parent));
 		return W_TRUE;
 	}
@@ -248,11 +320,19 @@ wresult _w_toolitem_set_image(w_toolitem *item, int image) {
 wresult _w_toolitem_set_menu(w_toolitem *item, w_menu *menu) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
 	if (GTK_IS_MENU_TOOL_BUTTON(toolitem)) {
+		w_widget *parent = _W_ITEM(item)->parent;
+		w_event_toolbar event;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_SET_CONTROL;
+		event.event.widget = parent;
+		event.item = item;
+		event.menu = menu;
+		_w_widget_send_event(parent, W_EVENT(&event));
 		GtkWidget *hmenu = _W_WIDGET(menu)->handle;
 		gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(toolitem), hmenu);
 		return W_TRUE;
-	}
-	return W_FALSE;
+	} else
+		return W_FALSE;
 }
 wresult _w_toolitem_set_selection(w_toolitem *item, int selected) {
 	GtkWidget *toolitem = (GtkWidget*) _W_TOOLITEM(item)->toolItem;
@@ -407,7 +487,7 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 	GtkToolItem *handle = 0;
 	GtkWidget *arrowHandle = 0;
 	_w_image_widget *imageHandle = 0;
-	_w_control_priv *priv;
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(toolbar);
 	int bits = W_SEPARATOR | W_RADIO | W_CHECK | W_PUSH | W_DROP_DOWN;
 	if ((style & W_SEPARATOR) == 0) {
 		labelHandle = gtk_label_new_with_mnemonic("");
@@ -442,16 +522,21 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 	}
 		break;
 	case W_RADIO:
-		/*
-		 * Because GTK enforces radio behavior in a button group
-		 * a radio group is not created for each set of contiguous
-		 * buttons, each radio button will not draw unpressed.
-		 * The fix is to use toggle buttons instead.
-		 */
 	case W_CHECK:
 		handle = gtk_toggle_tool_button_new();
 		if (handle == 0)
 			goto _err;
+		if (style & W_RADIO) {
+			/*
+			 * Because GTK enforces radio behavior in a button group
+			 * a radio group is not created for each set of contiguous
+			 * buttons, each radio button will not draw unpressed.
+			 * The fix is to use toggle buttons instead.
+			 */
+			intptr_t _id = 0x10000;
+			g_object_set_qdata(G_OBJECT(handle), gtk_toolkit->quark[GQUARK_ID],
+					(void*) _id);
+		}
 		break;
 	case W_PUSH:
 	default:
@@ -499,6 +584,8 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 		_W_ITEM(item)->index = _index;
 		_W_TOOLITEM(item)->toolItem = GTK_TOOL_ITEM(handle);
 	}
+	_w_toolitem_hook_events(W_WIDGET(toolbar), item, style,
+			(_w_toolbar_priv*) priv);
 	return W_TRUE;
 	_err: return W_ERROR_NO_HANDLES;
 }
@@ -570,6 +657,253 @@ wresult _w_toolbar_set_imagelist(w_toolbar *toolbar, w_imagelist *imagelist) {
 	//_w_control_update(W_CONTROL(tree));
 	return ret;
 }
+/*
+ * signals
+ */
+gboolean _gtk_toolbar_button_press_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	GdkEventButton *gdkEvent = (GdkEventButton*) e->args[0];
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	wresult result;
+	if (handle != e->widget) {
+		GtkAllocation allocation;
+		gtk_widget_get_allocation(handle, &allocation);
+		double x = gdkEvent->x + allocation.x;
+		double y = gdkEvent->y + allocation.y;
+		result = _gtk_composite_button_press_event(widget, e, priv);
+		gdkEvent->x = x;
+		gdkEvent->y = y;
+	} else {
+		result = _gtk_composite_button_press_event(widget, e, priv);
+	}
+	return result;
+}
+
+gboolean _gtk_toolbar_button_release_event(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv) {
+	GdkEventButton *gdkEvent = (GdkEventButton*) e->args[0];
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	wresult result;
+	if (handle != e->widget) {
+		GtkAllocation allocation;
+		gtk_widget_get_allocation(handle, &allocation);
+		double x = gdkEvent->x + allocation.x;
+		double y = gdkEvent->y + allocation.y;
+		result = _gtk_control_button_release_event(widget, e, priv);
+		gdkEvent->x = x;
+		gdkEvent->y = y;
+	} else {
+		result = _gtk_control_button_release_event(widget, e, priv);
+	}
+	return result;
+}
+struct _gtk_toolbar_select_radio_struct {
+	w_widget *parent;
+	GtkWidget *widget;
+	GtkWidget *lastSelected;
+	_w_event_platform *e;
+	_w_toolbar_priv *priv;
+	union {
+		int flags;
+		struct {
+			unsigned is_after :1;
+			unsigned is_end :1;
+
+		};
+	};
+
+};
+void _gtk_toolbar_send_selection(GtkWidget *widget,
+		struct _gtk_toolbar_select_radio_struct *st, gboolean activate) {
+	w_event_toolbar event;
+	_w_toolitem item;
+	g_signal_handlers_block_matched(st->lastSelected, G_SIGNAL_MATCH_DATA, 0, 0,
+			0, 0, &st->priv->signals[_W_TOOLBAR_SIGNAL_CLICKED]);
+	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(st->lastSelected),
+			activate);
+	g_signal_handlers_unblock_matched(st->lastSelected, G_SIGNAL_MATCH_DATA, 0,
+			0, 0, 0, &st->priv->signals[_W_TOOLBAR_SIGNAL_CLICKED]);
+	memset(&event, 0, sizeof(event));
+	event.event.type = W_EVENT_ITEM_SELECTION;
+	event.event.widget = st->parent;
+	event.event.platform_event = _EVENT_PLATFORM(st->e);
+	event.item = W_TOOLITEM(&item);
+	_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(st->parent);
+	_W_ITEM(&item)->parent = st->parent;
+	_W_ITEM(&item)->index = -1;
+	_W_TOOLITEM(&item)->toolItem = GTK_TOOL_ITEM(st->lastSelected);
+	_w_widget_send_event(st->parent, W_EVENT(&event));
+}
+void _gtk_toolbar_select_radio_callback(GtkWidget *widget, gpointer data) {
+	struct _gtk_toolbar_select_radio_struct *st =
+			(struct _gtk_toolbar_select_radio_struct*) data;
+	gboolean is_radio;
+	gboolean is_selected;
+	if (widget == st->widget) {
+		st->is_after = 1;
+		if (st->lastSelected != 0) {
+			_gtk_toolbar_send_selection(widget, st, FALSE);
+		}
+	} else if (!st->is_end) {
+		is_radio = GTK_IS_TOGGLE_TOOL_BUTTON(widget);
+		if (is_radio) {
+			intptr_t _id = (intptr_t) g_object_get_qdata(G_OBJECT(widget),
+					gtk_toolkit->quark[GQUARK_ID]);
+			is_radio = (_id & 0x10000) != 0;
+		}
+		if (is_radio) {
+			is_selected = gtk_toggle_tool_button_get_active(
+					GTK_TOGGLE_TOOL_BUTTON(widget));
+			if (is_selected) {
+				st->lastSelected = widget;
+				if (st->is_after) {
+					_gtk_toolbar_send_selection(widget, st, FALSE);
+				}
+			}
+		} else {
+			st->lastSelected = 0;
+			if (st->is_after)
+				st->is_end = 1;
+		}
+	}
+}
+gboolean _gtk_toolbar_clicked(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	w_event_toolbar event;
+	_w_toolitem item;
+	memset(&event, 0, sizeof(event));
+	event.event.type = W_EVENT_ITEM_SELECTION;
+	event.event.widget = widget;
+	event.event.platform_event = _EVENT_PLATFORM(e);
+	event.item = W_TOOLITEM(&item);
+	_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(widget);
+	_W_ITEM(&item)->parent = widget;
+	_W_ITEM(&item)->index = -1;
+	_W_TOOLITEM(&item)->toolItem = GTK_TOOL_ITEM(e->widget);
+	if (GTK_IS_MENU_TOOL_BUTTON(e->widget) || GTK_IS_ARROW(e->widget)) {
+		GdkEvent *gdkEvent = gtk_get_current_event();
+		if (gdkEvent != 0) {
+			switch (gdkEvent->type) {
+			case GDK_KEY_RELEASE: //Fall Through..
+			case GDK_BUTTON_PRESS:
+			case GDK_2BUTTON_PRESS:
+			case GDK_BUTTON_RELEASE: {
+				if (GTK_IS_ARROW(e->widget)) {
+					GtkWidget *topHandle = e->widget;
+					_w_control_priv *priv = _W_CONTROL_GET_PRIV(widget);
+					_w_toolbar_priv *tpriv = _W_TOOLBAR_PRIV(priv);
+					/*
+					 * Feature in GTK. ArrowButton stays in toggled state if there is no popup menu.
+					 * It is required to set back the state of arrow to normal state after it is clicked.
+					 */
+					g_signal_handlers_block_matched(e->widget,
+							G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+							&tpriv->signals[_W_TOOLBAR_SIGNAL_CLICKED_ARROW]);
+					gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(e->widget),
+					FALSE);
+					g_signal_handlers_unblock_matched(e->widget,
+							G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+							&tpriv->signals[_W_TOOLBAR_SIGNAL_CLICKED_ARROW]);
+					event.detail = W_ARROW;
+					GtkAllocation allocation;
+					gtk_widget_get_allocation(topHandle, &allocation);
+					event.location.x = allocation.x;
+					if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
+						int clientWidth = priv->get_client_width(
+								W_CONTROL(widget), priv);
+						event.location.x = clientWidth - allocation.width
+								- event.location.x;
+					}
+					event.location.y = allocation.y + allocation.height;
+				}
+				break;
+			}
+			}
+			gdk_event_free(gdkEvent);
+		}
+	}
+	if (GTK_IS_TOGGLE_TOOL_BUTTON(e->widget)) {
+		if ((_W_WIDGET(widget)->style & W_NO_RADIO_GROUP) == 0) {
+			intptr_t _id = (intptr_t) g_object_get_qdata(G_OBJECT(e->widget),
+					gtk_toolkit->quark[GQUARK_ID]);
+			if ((_id & 0x10000) != 0) {
+				GtkWidget *handle = _W_WIDGET(widget)->handle;
+				struct _gtk_toolbar_select_radio_struct st;
+				st.parent = widget;
+				st.widget = e->widget;
+				st.lastSelected = 0;
+				st.flags = 0;
+				st.e = e;
+				st.priv = _W_TOOLBAR_PRIV(priv);
+				gtk_container_forall(GTK_CONTAINER(handle),
+						_gtk_toolbar_select_radio_callback, &st);
+			}
+		}
+	}
+	_w_widget_send_event(widget, W_EVENT(&event));
+	return FALSE;
+}
+
+gboolean _gtk_toolbar_create_menu_proxy(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	return FALSE;
+}
+gboolean _gtk_toolbar_enter_notify_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	_gtk_control_enter_notify_event(widget, e, priv);
+	return FALSE;
+}
+
+gboolean _gtk_toolbar_event_after(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	GdkEvent *event = (GdkEvent*) e->args[0];
+	switch (event->type) {
+	case GDK_BUTTON_PRESS: {
+		GdkEventButton *gdkEventButton = (GdkEventButton*) event;
+		if (gdkEventButton->button == 3) {
+			/*parent.showMenu((int) gdkEventButton.x_root,
+			 (int) gdkEventButton.y_root);*/
+		}
+		break;
+	}
+	}
+	return FALSE;
+}
+
+gboolean _gtk_toolbar_focus_in_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	/*parent.hasChildFocus = true;
+	 parent.currentFocusItem = this;*/
+	return 0;
+}
+
+gboolean _gtk_toolbar_focus_out_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	//parent.hasChildFocus = false;
+	return 0;
+}
+
+gboolean _gtk_toolbar_leave_notify_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	_gtk_control_leave_notify_event(widget, e, priv);
+	return FALSE;
+}
+
+gboolean _gtk_toolbar_map(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	//parent.fixZOrder();
+	return FALSE;
+}
+
+gboolean _gtk_toolbar_mnemonic_activate(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	return _gtk_control_mnemonic_activate(widget, e, priv);
+}
+_gtk_signal_info _gtk_toolbar_signal_lookup[_W_TOOLBAR_LAST] = { //
+		{ SIGNAL_CLICKED, 2, "clicked" }, //
+				{ SIGNAL_CLICKED, 2, "clicked" }, //
+				{ SIGNAL_CREATE_MENU_PROXY, 2, "create-menu-proxy" }, //
+		};
 void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
 	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TOOLBAR;
@@ -627,5 +961,22 @@ void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
 	priv->widget.create_handle = _w_toolbar_create_handle;
 	priv->widget.hook_events = _w_toolbar_hook_events;
 	priv->set_bounds_0 = _w_toolbar_set_bounds_0;
+	_w_widget_init_signal(_W_TOOLBAR_PRIV(priv)->signals,
+			_gtk_toolbar_signal_lookup, _W_TOOLBAR_LAST);
+	/*
+	 * signals
+	 */
+	_gtk_signal_fn *signals = priv->widget.signals;
+	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_toolbar_button_press_event;
+	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_toolbar_button_release_event;
+	signals[SIGNAL_CLICKED] = _gtk_toolbar_clicked;
+	signals[SIGNAL_CREATE_MENU_PROXY] = _gtk_toolbar_create_menu_proxy;
+	signals[SIGNAL_ENTER_NOTIFY_EVENT] = _gtk_toolbar_enter_notify_event;
+	signals[SIGNAL_EVENT_AFTER] = _gtk_toolbar_event_after;
+	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_toolbar_focus_in_event;
+	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_toolbar_focus_out_event;
+	signals[SIGNAL_LEAVE_NOTIFY_EVENT] = _gtk_toolbar_leave_notify_event;
+	signals[SIGNAL_MAP] = _gtk_toolbar_map;
+	signals[SIGNAL_MNEMONIC_ACTIVATE] = _gtk_toolbar_mnemonic_activate;
 
 }

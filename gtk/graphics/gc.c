@@ -773,20 +773,22 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 		if (result < 0)
 			return result;
 		int x = rect->x, y = rect->y, stringWidth, stringHeight;
-		if (rect->width >= 0) {
-			pango_layout_set_width(_gc->layout, rect->width);
+		int width = rect->width;
+		int height = rect->height;
+		if (width >= 0) {
+			pango_layout_set_width(_gc->layout, width);
 		}
-		if (rect->height >= 0) {
-			pango_layout_set_height(_gc->layout, rect->height);
+		if (height >= 0) {
+			pango_layout_set_height(_gc->layout, height);
 		}
 		pango_layout_get_pixel_size(_gc->layout, &stringWidth, &stringHeight);
-		if (rect->width >= 0) {
+		if (width >= 0) {
 			PangoAlignment alignment = PANGO_ALIGN_LEFT;
-			int diff = rect->width - stringWidth;
+			int diff = width - stringWidth;
 			if (diff < 0)
 				diff = 0;
 			if (flags & W_DRAW_HCENTER) {
-				alignment = PANGO_ALIGN_CENTER;
+				//alignment = PANGO_ALIGN_CENTER;
 				x = rect->x + diff / 2;
 			}
 			if (flags & W_DRAW_RIGHT) {
@@ -794,10 +796,12 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 				x = rect->x + diff;
 			}
 			pango_layout_set_alignment(_gc->layout, alignment);
+		} else {
+			width = stringWidth;
 		}
-		if (rect->height >= 0) {
-			if (rect->height >= stringHeight) {
-				int diff = rect->height - stringWidth;
+		if (height >= 0) {
+			if (height >= stringHeight) {
+				int diff = height - stringWidth;
 				if (flags & W_DRAW_VCENTER) {
 					y = rect->y + diff / 2;
 				}
@@ -805,6 +809,8 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 					y = rect->y + diff;
 				}
 			}
+		} else {
+			height = stringHeight;
 		}
 #if USE_CAIRO
 		if ((flags & W_DRAW_TRANSPARENT) == 0) {

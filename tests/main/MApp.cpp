@@ -107,8 +107,8 @@ WTheme* MApp::CreateCustomTheme(const char *name) {
 	return (WTheme*) w_toolkit_custom_create_theme(name);
 }
 
-WShell* MApp::NewCustomShell() {
-	MShell *shell = new MShell();
+WFrame* MApp::NewCustomShell() {
+	MFrame *shell = new MFrame();
 	WToolkit *custom = MApp::Get()->GetCustomToolkit();
 	if (custom != 0) {
 		WTheme *theme = MApp::Get()->CreateCustomTheme("Metal");
@@ -120,8 +120,8 @@ WShell* MApp::NewCustomShell() {
 	return shell;
 }
 
-WShell* MApp::NewPlatformShell() {
-	MShell *shell = new MShell();
+WFrame* MApp::NewPlatformShell() {
+	MFrame *shell = new MFrame();
 	shell->Create(WApp::Get()->GetPlatformToolkit());
 	shell->SetText("Swt Test Platform Theme");
 	shell->Open();

@@ -23,6 +23,8 @@ public:
 protected:
 	bool OnFocusOut(WEvent &e);
 	bool OnTraverse(WKeyEvent &e);
+	bool OnDefaultSelection(WTextEditEvent &e);
+	void SetTextAndHide();
 };
 class TTreeCustom: public WTreeView, public ITreeItem {
 public:

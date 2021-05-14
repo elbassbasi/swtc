@@ -278,7 +278,7 @@ wresult _w_composite_get_client_area(w_widget *widget, w_event_client_area *e,
 			memset(e->rect, 0, sizeof(w_rect));
 			return W_TRUE;
 		}
-		//priv->force_resize(W_CONTROL(widget), priv);
+		priv->force_resize(W_CONTROL(widget), priv);
 		GtkWidget *clientHandle = priv->handle_client(widget, priv);
 		GtkAllocation allocation;
 		gtk_widget_get_allocation(clientHandle, &allocation);
@@ -370,6 +370,24 @@ _w_iterator_class _w_composite_children_class = { //
 				_w_composite_children_remove, //
 				_w_composite_children_get_count //
 		};
+wresult _w_composite_for_all_children(w_composite *composite,
+		w_widget_callback callback, void *user_data, int flags) {
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(composite);
+	_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
+			W_WIDGET(composite), priv);
+	_w_fixed *i = fixed->first;
+	wresult result;
+	while (i != 0) {
+		w_control *c = (w_control*) _w_widget_find_control(i);
+		if (c != 0) {
+			result = callback(W_WIDGET(composite), c, user_data);
+			if (result)
+				break;
+		}
+		i = i->next;
+	}
+	return W_TRUE;
+}
 wresult _w_composite_get_children(w_composite *composite, w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
 	iter->base.clazz = &_w_composite_children_class;
@@ -426,6 +444,12 @@ wresult _w_composite_layout_changed(w_composite *_this, w_control **changed,
 		size_t length, int flags) {
 	return W_FALSE;
 }
+wresult _w_composite_mark_layout_callback(w_widget *widget, void *child,
+		void *user_data) {
+	_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(child);
+	cpriv->mark_layout(W_CONTROL(child), (intptr_t) user_data, cpriv);
+	return W_FALSE;
+}
 void _w_composite_mark_layout(w_control *control, int flags,
 		_w_control_priv *priv) {
 	//if (layout != null) {
@@ -434,17 +458,9 @@ void _w_composite_mark_layout(w_control *control, int flags,
 		_W_WIDGET(control)->state |= STATE_LAYOUT_CHANGED;
 	//}
 	if (flags & W_ALL) {
-		_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
-				W_WIDGET(control), priv);
-		_w_fixed *i = fixed->first;
-		while (i != 0) {
-			w_widget *child = _w_widget_find_control(i);
-			if (child != 0) {
-				_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(child);
-				cpriv->mark_layout(W_CONTROL(child), flags, cpriv);
-			}
-			i = i->next;
-		}
+		_w_composite_for_all_children(W_COMPOSITE(control),
+				_w_composite_mark_layout_callback, (void*) ((intptr_t) flags),
+				0);
 	}
 }
 wresult _w_composite_set_bounds_0(w_control *control, w_point *location,
@@ -463,6 +479,12 @@ wresult _w_composite_set_layout(w_composite *composite, w_layout *layout) {
 	return W_TRUE;
 }
 wresult _w_composite_set_layout_deferred(w_composite *composite, int defer) {
+	return W_FALSE;
+}
+wresult _w_composite_update_layout_callback(w_widget *widget, void *child,
+		void *user_data) {
+	_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(child);
+	cpriv->update_layout(W_CONTROL(child), (intptr_t) user_data, cpriv);
 	return W_FALSE;
 }
 void _w_composite_update_layout(w_control *control, int flags,
@@ -486,17 +508,9 @@ void _w_composite_update_layout(w_control *control, int flags,
 	}
 	if (flags & W_ALL) {
 		_W_WIDGET(control)->state &= ~STATE_LAYOUT_CHILD;
-		_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
-				W_WIDGET(control), priv);
-		_w_fixed *i = fixed->first;
-		while (i != 0) {
-			w_widget *child = _w_widget_find_control(i);
-			if (child != 0) {
-				_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(child);
-				cpriv->update_layout(W_CONTROL(child), flags, cpriv);
-			}
-			i = i->next;
-		}
+		_w_composite_for_all_children(W_COMPOSITE(control),
+				_w_composite_update_layout_callback, (void*) ((intptr_t) flags),
+				0);
 	}
 }
 /*
@@ -608,13 +622,8 @@ gboolean _gtk_composite_realize(w_widget *widget, _w_event_platform *e,
 #if GTK3
 			gdk_window_set_background_pattern(window, 0);
 #endif
-#if GTK2
-#endif
 		}
 	}
-	/*if (socketHandle != 0) {
-	 embeddedHandle = OS.gtk_socket_get_id(socketHandle);
-	 }*/
 	return result;
 }
 
@@ -636,10 +645,6 @@ gboolean _gtk_composite_style_set(w_widget *widget, _w_event_platform *e,
 		/*if (window != 0)
 		 gdk_window_set_back_pixmap(window, 0, FALSE);*/
 #endif
-#if GTK2
-		if (window != 0)
-			gdk_window_set_back_pixmap(window, 0, FALSE);
-#endif
 	}
 	return result;
 }
@@ -652,6 +657,7 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	/*
 	 * functions
 	 */
+	clazz->for_all_children = _w_composite_for_all_children;
 	clazz->get_children = _w_composite_get_children;
 	clazz->get_layout = _w_composite_get_layout;
 	clazz->get_layout_deferred = _w_composite_get_layout_deferred;
@@ -683,4 +689,14 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	/*
 	 * signals
 	 */
+	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_composite_button_press_event;
+	signals[SIGNAL_DRAW] = _gtk_composite_draw;
+	signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_composite_key_press_event;
+	signals[SIGNAL_FOCUS] = _gtk_composite_focus;
+	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_composite_focus_in_event;
+	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_composite_focus_out_event;
+	signals[SIGNAL_MAP] = _gtk_composite_map;
+	signals[SIGNAL_REALIZE] = _gtk_composite_realize;
+	signals[SIGNAL_SCROLL_CHILD] = _gtk_composite_scroll_child;
 }

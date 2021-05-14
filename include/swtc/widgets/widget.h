@@ -15,6 +15,8 @@ extern "C" {
  * w_widget
  */
 typedef wresult (*w_widget_post_event_proc)(w_widget *widget, w_event *event);
+typedef wresult (*w_widget_callback)(w_widget *widget, void *item,
+		void *user_data);
 struct w_widget {
 	void *v_table; //used in c++ as virtual table
 	struct _w_widget_class *clazz;

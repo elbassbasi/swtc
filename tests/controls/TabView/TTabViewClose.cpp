@@ -22,8 +22,9 @@ void TTabViewClose::CreateControl(WComposite *parent) {
 	WTabItem item;
 	char txt[50];
 	this->Create(parent, W_CLOSE);
-	this->SetImageList(MShell::GetImageList16_(this));
-	int ImageListcount = MShell::GetImageList16_(this)->GetCount();
+	MFrame *frame = (MFrame*) GetFrame();
+	this->SetImageList(frame->GetImageList16());
+	int ImageListcount = frame->GetImageList16()->GetCount();
 	if (ImageListcount <= 0)
 		ImageListcount = 1;
 	for (int i = 0; i < numofTab; i++) {

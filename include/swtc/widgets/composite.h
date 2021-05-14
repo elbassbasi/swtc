@@ -20,6 +20,8 @@ struct w_composite {
 
 struct _w_composite_class {
 	struct _w_scrollable_class scrollable;
+	wresult (*for_all_children)(w_composite *composite,
+			w_widget_callback callback, void *user_data, int flags);
 	wresult (*get_children)(w_composite *composite, w_iterator *it);
 	wresult (*get_layout)(w_composite *composite, w_layout **layout);
 	wresult (*get_layout_deferred)(w_composite *composite);
@@ -37,6 +39,8 @@ SWT_PUBLIC wresult w_composite_create(w_composite *composite,
 SWT_PUBLIC w_composite* w_composite_new(struct w_toolkit *toolkit,
 		w_composite *parent, wuint64 style,
 		w_widget_post_event_proc post_event);
+SWT_PUBLIC wresult w_composite_for_all_children(w_composite *composite,
+		w_widget_callback callback, void *user_data, int flags);
 SWT_PUBLIC wresult w_composite_get_children(w_composite *composite,
 		w_iterator *it);
 SWT_PUBLIC wresult w_composite_get_layout(w_composite *composite,

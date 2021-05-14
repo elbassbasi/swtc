@@ -73,6 +73,7 @@ typedef struct _w_control {
 	GdkPixbuf *backgroundImage;
 	w_dragsource *dragsource;
 	w_droptarget *droptarget;
+	char *tooltiptext;
 	w_point lastInput;
 	int backgroundAlpha;
 	w_color foreground;
@@ -126,6 +127,8 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	wresult (*set_cursor_0)(w_control *control, GdkCursor *cursor,
 			_w_control_priv *priv);
+	void (*set_font_description)(w_control *control, PangoFontDescription *font,
+			_w_control_priv *priv);
 	void (*mark_layout)(w_control *control, int flags, _w_control_priv *priv);
 	void (*update_layout)(w_control *control, int flags, _w_control_priv *priv);
 	void (*move_handle)(w_control *control, w_point *position,
@@ -137,6 +140,9 @@ struct _w_control_priv {
 	int (*get_client_width)(w_control *control, _w_control_priv *priv);
 	w_control* (*find_background_control)(w_control *control,
 			_w_control_priv *priv);
+	wresult (*draw_background)(w_control *_this, w_control *control,
+			cairo_t *cr, cairo_region_t *region, w_rect *rect,
+			_w_control_priv *priv);
 	void (*draw_widget)(w_control *control, w_graphics *gc,
 			_w_control_priv *priv);
 	void (*redraw_widget)(w_control *control, w_rect *rect, int flags,
@@ -144,6 +150,13 @@ struct _w_control_priv {
 	wresult (*update_0)(w_control *control, int flags, _w_control_priv *priv);
 	void (*force_resize)(w_control *control, _w_control_priv *priv);
 	wresult (*has_focus)(w_control *control, _w_control_priv *priv);
+	wresult (*get_imcaret_pos)(w_control *control, w_point *pos,
+			_w_control_priv *priv);
+	wresult (*translate_traversal)(w_control *control, GdkEventKey *keyEvent,
+			_w_control_priv *priv);
+	wresult (*send_leave_notify)(w_control *control, _w_control_priv *priv);
+	gboolean (*is_focus_handle)(w_control *control, GtkWidget *widget,
+			_w_control_priv *priv);
 };
 /*
  * functions
@@ -167,6 +180,8 @@ wresult _w_control_create_droptarget(w_control *control,
 		w_widget_post_event_proc post_event);
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv);
 wresult _w_control_dispose(w_widget *widget);
+gboolean _w_control_drag_detect_2(w_control *control, int x, int y,
+		gboolean filter, gboolean dragOnTimeout, gboolean *consume);
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event);
 wresult _w_control_draw_draw_gripper(w_control *control, w_graphics *gc,
 		w_rect *rect, int vertical, _w_control_priv *priv);
@@ -202,6 +217,7 @@ GtkWidget* _w_control_handle_enterexit(w_widget *control,
 GtkWidget* _w_control_handle_top(w_widget *control, _w_control_priv *priv);
 GtkWidget* _w_control_handle_paint(w_widget *control, _w_control_priv *priv);
 GtkIMContext* _w_control_handle_im(w_widget *control, _w_control_priv *priv);
+wresult _w_control_has_focus(w_control *control, _w_control_priv *priv);
 void _w_control_hook_events(w_widget *widget, _w_control_priv *priv);
 wresult _w_control_is_enabled(w_control *control);
 wresult _w_control_is_focus_control(w_control *control);
@@ -249,11 +265,14 @@ wresult _w_control_set_touch_enabled(w_control *control, int enabled);
 wresult _w_control_set_visible(w_control *control, int visible);
 wresult _w_control_set_zorder(w_control *control, w_control *sibling, int flags,
 		_w_control_priv *priv);
+gboolean _w_control_show_menu(w_control *control, int x, int y, int detail);
 void _w_control_show_widget(w_control *control, _w_control_priv *priv);
 wresult _w_control_to_control(w_control *control, w_point *result,
 		w_point *point);
 wresult _w_control_to_display(w_control *control, w_point *result,
 		w_point *point);
+gboolean _w_control_translate_mnemonic_0(w_control *_this, int keyval,
+		GdkEventKey *gdkEvent, _w_control_priv *priv);
 wresult _w_control_traverse(w_control *control, int traversal,
 		w_event_key *event);
 wresult _w_control_update(w_control *control);

@@ -29,7 +29,8 @@ void TToolbarComplex::CreateToolbar() {
 	WSize size;
 	char txt[30];
 	toolBar.Create(this, W_HORIZONTAL);
-	toolBar.SetImageList(MShell::GetImageList16_(this));
+	MFrame *frame = (MFrame*) GetFrame();
+	toolBar.SetImageList(frame->GetImageList16());
 
 	// Create push buttons
 	CreateToolItem(item, W_PUSH, 0, "Button One", "This is button one");

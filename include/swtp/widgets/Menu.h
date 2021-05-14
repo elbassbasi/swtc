@@ -604,10 +604,10 @@ public:
 	 * @see Widget#checkSubclass
 	 * @see Widget#getStyle
 	 */
-	bool Create(WShell *parent) {
+	bool Create(WFrame *parent) {
 		return Create((WControl*) parent, W_BAR);
 	}
-	bool CreateBar(WShell *parent) {
+	bool CreateBar(WFrame *parent) {
 		return Create((WControl*) parent, W_BAR);
 	}
 	bool CreateDropDown(WControl *parent) {
@@ -666,8 +666,8 @@ public:
 		_get_parent(&control);
 		return (WControl*) control;
 	}
-	WShell* GetShell() {
-		WShell *shell;
+	WFrame* GetShell() {
+		WFrame *shell;
 		_get_shell(&shell);
 		return shell;
 	}
@@ -775,7 +775,7 @@ public:
 	WResult _get_parent(WControl **parent) {
 		return w_menu_get_parent(W_MENU(this), (w_control**) parent);
 	}
-	WResult _get_shell(WShell **shell) {
+	WResult _get_shell(WFrame **shell) {
 		return w_menu_get_shell(W_MENU(this), (w_shell**) shell);
 	}
 	WResult _get_visible() {

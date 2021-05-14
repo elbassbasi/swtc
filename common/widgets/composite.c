@@ -16,6 +16,15 @@ w_composite* w_composite_new(struct w_toolkit *toolkit, w_composite *parent,
 	return W_COMPOSITE(
 			_w_widget_new(toolkit, W_WIDGET(parent), style,_W_CLASS_COMPOSITE, post_event));
 }
+wresult w_composite_for_all_children(w_composite *composite,
+		w_widget_callback callback, void *user_data, int flags) {
+	wresult result = W_WIDGET_CHECK0(composite);
+	if (result >= 0) {
+		return W_COMPOSITE_GET_CLASS(composite)->for_all_children(composite,
+				callback, user_data, flags);
+	} else
+		return result;
+}
 wresult w_composite_get_children(w_composite *composite, w_iterator *it) {
 	w_iterator_close(it);
 	wresult result = W_WIDGET_CHECK0(composite);

@@ -20,7 +20,7 @@ void TImageListDemo::CreateControl(WComposite *parent) {
 }
 
 bool TImageListDemo::OnPaint(WPaintEvent &e) {
-	MShell *shell = (MShell*) GetShell();
+	MFrame *shell = (MFrame*) GetFrame();
 	WRect r;
 	WSize sz;
 	int x = 0, y = 0;

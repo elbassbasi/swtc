@@ -6,8 +6,11 @@
  */
 #include <swtc.h>
 
-wresult w_messagebox_open(struct w_toolkit *toolkit, w_messagebox *messagebox){
+wresult w_messagebox_open(w_toolkit *toolkit, w_messagebox *messagebox){
 	if(toolkit == 0) toolkit = w_app_get_default_toolkit(w_app_get());
 	return W_TOOLKIT_GET_CLASS(toolkit)->messagebox_open(toolkit,messagebox);
 }
 
+wresult w_dialog_color_open(w_toolkit *toolkit, w_dialog_color *dialog_color){
+
+}

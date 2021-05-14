@@ -51,11 +51,12 @@ void TCoolBarDemo::CreateCoolBar(int index, int style) {
 		coolbar->SetLayoutData(
 				WGridData(W_GRID_FILL_HORIZONTAL, layout.numColumns, 1));
 	}
+	MFrame *frame = (MFrame*) GetFrame();
 	for (int i = 0; i < num_toolbar; ++i) {
 		WToolBar *toolbar = &this->toolbars[index][i];
 		toolbar->Create(coolbar, style);
 		CreateToolBar(*toolbar, style, false, true);
-		toolbar->SetImageList(MShell::GetImageList16_(this));
+		toolbar->SetImageList(frame->GetImageList16());
 		/** resize to toolbar */
 		toolbar->ComputeSize(sz, W_DEFAULT, W_DEFAULT);
 		toolbar->SetSize(sz);

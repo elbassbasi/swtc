@@ -34,21 +34,21 @@ wresult _w_sash_set_cursor(w_control *control, w_cursor *cursor) {
 }
 wresult _w_sash_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
-	_W_WIDGET(widget)->handle = _w_fixed_new();
-	if (_W_WIDGET(widget)->handle == 0) {
+	GtkWidget *handle = _w_fixed_new();
+	if (handle == 0) {
 		return W_ERROR_NO_HANDLES;
 	}
-	gtk_widget_set_has_window(_W_WIDGET(widget)->handle, TRUE);
-	gtk_widget_set_can_focus(_W_WIDGET(widget)->handle, TRUE);
-	g_object_set_qdata(G_OBJECT(_W_WIDGET(widget)->handle),
-			gtk_toolkit->quark[0], widget);
+	gtk_widget_set_has_window(handle, TRUE);
+	gtk_widget_set_can_focus(handle, TRUE);
+	_w_widget_set_control(handle, widget);
+	_W_WIDGET(widget)->handle = handle;
 	_w_sash_set_cursor(W_CONTROL(widget), 0);
 	return W_TRUE;
 }
 void _w_sash_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_control_hook_events(widget, priv);
-	gtk_widget_add_events(_W_WIDGET(widget)->handle,
-			GDK_POINTER_MOTION_HINT_MASK);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	gtk_widget_add_events(handle, GDK_POINTER_MOTION_HINT_MASK);
 }
 gboolean _gtk_sash_button_press_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -67,30 +67,31 @@ gboolean _gtk_sash_button_press_event(w_widget *widget, _w_event_platform *e,
 		e->result = 0;
 		return W_TRUE;
 	}
-	GdkWindow *window = gtk_widget_get_window(
-	_W_WIDGET(widget)->handle);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	GdkWindow *window = gtk_widget_get_window(handle);
 	gint origin_x, origin_y;
-	gdk_window_get_origin(window, &origin_x, &origin_y);
-	_W_SASH(widget)->start.x = (int) (gdkEvent->x_root - origin_x);
-	_W_SASH(widget)->start.y = (int) (gdkEvent->y_root - origin_y);
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(_W_WIDGET(widget)->handle, &allocation);
-	w_point pt;
+	w_point pt, *_last = &_W_SASH(widget)->last;
+	w_point *_start = &_W_SASH(widget)->start;
 	w_size size;
+	gdk_window_get_origin(window, &origin_x, &origin_y);
+	_start->x = gdkEvent->x_root - origin_x;
+	_start->y = gdkEvent->y_root - origin_y;
+	GtkAllocation allocation;
+	gtk_widget_get_allocation(handle, &allocation);
 	pt.x = allocation.x;
 	pt.y = allocation.y;
 	size.width = allocation.width;
 	size.height = allocation.height;
-	_W_SASH(widget)->last.x = pt.x;
-	_W_SASH(widget)->last.y = pt.y;
+	_last->x = pt.x;
+	_last->y = pt.y;
 	w_event_sash event;
 	event.event.type = W_EVENT_SELECTION;
 	event.event.widget = widget;
 	event.event.data = 0;
 	event.event.platform_event = (w_event_platform*) e;
 	event.event.time = gdkEvent->time;
-	event.bounds.x = _W_SASH(widget)->last.x;
-	event.bounds.y = _W_SASH(widget)->last.y;
+	event.bounds.x = _last->x;
+	event.bounds.y = _last->y;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
 	if ((_W_WIDGET(widget)->style & W_SMOOTH) == 0) {
@@ -109,18 +110,17 @@ gboolean _gtk_sash_button_press_event(w_widget *widget, _w_event_platform *e,
 		return FALSE;
 	if (doit) {
 		_W_WIDGET(widget)->state |= STATE_SASH_DRAGGING;
-		_W_SASH(widget)->last.x = event.bounds.x;
-		_W_SASH(widget)->last.y = event.bounds.y;
+		_last->x = event.bounds.x;
+		_last->y = event.bounds.y;
 		if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
-			_W_SASH(widget)->last.x = ClientWidth - size.width
-					- _W_SASH(widget)->last.x;
+			_last->x = ClientWidth - size.width - _last->x;
 		}
 		int flags = UPDATE_ALL;
 		if (_W_WIDGET(widget)->style & W_SMOOTH) {
 			flags |= UPDATE_FLUSH;
 		}
 		ppriv->update_0(W_CONTROL(parent), flags, ppriv);
-		pt.x = _W_SASH(widget)->last.x;
+		pt.x = _last->x;
 		pt.y = event.bounds.y;
 		_w_sash_draw_band(widget, &pt, &size);
 		if ((_W_WIDGET(widget)->style & W_SMOOTH) != 0) {
@@ -145,8 +145,11 @@ gboolean _gtk_sash_button_release_event(w_widget *widget, _w_event_platform *e,
 		return 0;
 	}
 	_W_WIDGET(widget)->state &= ~STATE_SASH_DRAGGING;
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	w_point *_last = &_W_SASH(widget)->last;
+	w_point *_start = &_W_SASH(widget)->start;
 	GtkAllocation allocation;
-	gtk_widget_get_allocation(_W_WIDGET(widget)->handle, &allocation);
+	gtk_widget_get_allocation(handle, &allocation);
 	w_size size;
 	size.width = allocation.width;
 	size.height = allocation.height;
@@ -156,11 +159,11 @@ gboolean _gtk_sash_button_release_event(w_widget *widget, _w_event_platform *e,
 	event.event.data = 0;
 	event.event.platform_event = (w_event_platform*) e;
 	event.event.time = gdkEvent->time;
-	event.bounds.x = _W_SASH(widget)->last.x;
-	event.bounds.y = _W_SASH(widget)->last.y;
+	event.bounds.x = _last->x;
+	event.bounds.y = _last->y;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
-	_w_sash_draw_band(widget, &_W_SASH(widget)->last, &size);
+	_w_sash_draw_band(widget, _last, &size);
 	w_composite *parent;
 	w_control_get_parent(W_CONTROL(widget), &parent);
 	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
@@ -207,8 +210,9 @@ gboolean _gtk_sash_focus_in_event(w_widget *widget, _w_event_platform *e,
 		return result;
 	// widget could be disposed at this point
 	if (_W_WIDGET(widget)->handle != 0) {
+		GtkWidget *handle = _W_WIDGET(widget)->handle;
 		GtkAllocation allocation;
-		gtk_widget_get_allocation(_W_WIDGET(widget)->handle, &allocation);
+		gtk_widget_get_allocation(handle, &allocation);
 		_W_SASH(widget)->last.x = allocation.x;
 		_W_SASH(widget)->last.y = allocation.y;
 	}
@@ -227,6 +231,7 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 	case GDK_KEY_Right:
 	case GDK_KEY_Up:
 	case GDK_KEY_Down: {
+		GtkWidget *handle = _W_WIDGET(widget)->handle;
 		int xChange = 0, yChange = 0;
 		int stepSize = PAGE_INCREMENT;
 		if ((gdkEvent->state & GDK_CONTROL_MASK) != 0)
@@ -240,53 +245,55 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 				break;
 			yChange = keyval == GDK_KEY_Up ? -stepSize : stepSize;
 		}
+		w_toolkit *toolkit = w_widget_get_toolkit(widget);
 		w_composite *parent;
 		w_control_get_parent(W_CONTROL(widget), &parent);
 		_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
+		w_point *_last = &_W_SASH(widget)->last;
+		w_point *_start = &_W_SASH(widget)->start;
 		int parentBorder = 0;
 		GtkAllocation allocation;
-		gtk_widget_get_allocation(_W_WIDGET(widget)->handle, &allocation);
+		gtk_widget_get_allocation(handle, &allocation);
 		w_size size;
 		size.width = allocation.width;
 		size.height = allocation.height;
-		gtk_widget_get_allocation(_W_WIDGET(parent)->handle, &allocation);
+		gtk_widget_get_allocation(handle, &allocation);
 		int parentWidth = allocation.width;
 		int parentHeight = allocation.height;
-		int newX = _W_SASH(widget)->last.y, newY = _W_SASH(widget)->last.y;
+		int newX = _last->y, newY = _last->y;
 		if ((_W_WIDGET(widget)->style & W_VERTICAL) != 0) {
-			int _newX0 = _W_SASH(widget)->last.x + xChange - parentBorder
-					- _W_SASH(widget)->start.x;
+			int _newX0 = _last->x + xChange - parentBorder - _start->x;
 			int _newX = WMAX(0, _newX0);
 			newX = WMIN(_newX, parentWidth - size.width);
 		} else {
-			int _newY0 = _W_SASH(widget)->last.y + yChange - parentBorder
-					- _W_SASH(widget)->start.y;
+			int _newY0 = _last->y + yChange - parentBorder - _start->y;
 			int _newY = WMAX(0, _newY0);
 			newY = WMIN(_newY, parentHeight - size.height);
 		}
-		if (newX == _W_SASH(widget)->last.x && newY == _W_SASH(widget)->last.y)
+		if (newX == _last->x && newY == _last->y)
 			return result;
 
 		/* Ensure that the pointer image does not change */
-		GdkWindow *window = gtk_widget_get_window(
-		_W_WIDGET(widget)->handle);
+		GdkWindow *window = gtk_widget_get_window(handle);
 		GdkEventMask grabMask = GDK_POINTER_MOTION_MASK
 				| GDK_BUTTON_RELEASE_MASK;
 		GdkCursor *gdkCursor;
+		w_cursor *_cursor;
 		if (_W_CONTROL(widget)->cursor != 0) {
+			_cursor = _W_CONTROL(widget)->cursor;
 			gdkCursor = _W_CURSOR(_W_CONTROL(widget)->cursor)->handle;
 		} else {
+			wuint cursor_style;
 			if (_W_WIDGET(widget)->style & W_HORIZONTAL) {
-				gdkCursor =
-						_W_CURSOR(w_toolkit_get_system_cursor((w_toolkit*)gtk_toolkit,W_CURSOR_SIZENS))->handle;
+				cursor_style = W_CURSOR_SIZENS;
 			} else {
-				gdkCursor =
-						_W_CURSOR(w_toolkit_get_system_cursor((w_toolkit*)gtk_toolkit,W_CURSOR_SIZEWE))->handle;
+				cursor_style = W_CURSOR_SIZEWE;
 			}
+			_cursor = w_toolkit_get_system_cursor(toolkit, cursor_style);
 		}
-		GdkGrabStatus ptrGrabResult = gdk_pointer_grab(window,
-		FALSE, grabMask, window, gdkCursor,
-		GDK_CURRENT_TIME);
+		gdkCursor = _W_CURSOR(_cursor)->handle;
+		GdkGrabStatus ptrGrabResult = gdk_pointer_grab(window, FALSE, grabMask,
+				window, gdkCursor, GDK_CURRENT_TIME);
 
 		/* The event must be sent because its doit flag is used. */
 		w_event_sash event;
@@ -312,11 +319,10 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 		}
 
 		if (doit) {
-			_W_SASH(widget)->last.x = event.bounds.x;
-			_W_SASH(widget)->last.y = event.bounds.y;
+			_last->x = event.bounds.x;
+			_last->y = event.bounds.y;
 			if (_W_WIDGET(parent)->style & W_MIRRORED) {
-				_W_SASH(widget)->last.x = ClientWidth - size.width
-						- _W_SASH(widget)->last.x;
+				_last->x = ClientWidth - size.width - _last->x;
 			}
 			if ((_W_WIDGET(parent)->style & W_SMOOTH) != 0) {
 				w_control_set_bounds(W_CONTROL(widget), &event.bounds.pt,
@@ -334,8 +340,7 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 			} else {
 				cursor.x += size.width / 2;
 			}
-			w_toolkit_set_cursor_location(w_widget_get_toolkit(widget),
-					&cursor);
+			w_toolkit_set_cursor_location(toolkit, &cursor);
 		}
 	}
 		break;
@@ -372,10 +377,13 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 	}
 	if ((eventState & GDK_BUTTON1_MASK) == 0)
 		return 0;
+	GtkWidget *handle = _W_WIDGET(widget)->handle, *phandle;
 	GtkAllocation allocation;
 	w_point pt;
+	w_point *_last = &_W_SASH(widget)->last;
+	w_point *_start = &_W_SASH(widget)->start;
 	w_size size;
-	gtk_widget_get_allocation(_W_WIDGET(widget)->handle, &allocation);
+	gtk_widget_get_allocation(handle, &allocation);
 	pt.x = allocation.x;
 	pt.y = allocation.y;
 	size.width = allocation.width;
@@ -383,22 +391,21 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 	int parentBorder = 0;
 	w_composite *parent;
 	w_control_get_parent(W_CONTROL(widget), &parent);
-	gtk_widget_get_allocation(_W_WIDGET(parent)->handle, &allocation);
+	phandle = _W_WIDGET(parent)->handle;
+	gtk_widget_get_allocation(phandle, &allocation);
 	int parentWidth = allocation.width;
 	int parentHeight = allocation.height;
-	int newX = _W_SASH(widget)->last.x, newY = _W_SASH(widget)->last.y;
+	int newX = _last->x, newY = _last->y;
 	if ((_W_WIDGET(widget)->style & W_VERTICAL) != 0) {
-		int _newX = WMAX(0,
-				eventX + pt.x - _W_SASH(widget)->start.x - parentBorder);
+		int _newX = WMAX(0, eventX + pt.x - _start->x - parentBorder);
 		newX = WMIN(_newX, parentWidth - size.width);
 	} else {
-		int _newY0 = WMAX(0,
-				eventY + pt.y - _W_SASH(widget)->start.y - parentBorder);
+		int _newY0 = WMAX(0, eventY + pt.y - _start->y - parentBorder);
 		newY = WMIN(_newY0, parentHeight - size.height);
 	}
-	if (newX == _W_SASH(widget)->last.x && newY == _W_SASH(widget)->last.y)
+	if (newX == _last->x && newY == _last->y)
 		return 0;
-	_w_sash_draw_band(widget, &_W_SASH(widget)->last, &size);
+	_w_sash_draw_band(widget, _last, &size);
 	w_event_sash event;
 	event.event.type = W_EVENT_SELECTION;
 	event.event.widget = widget;
@@ -422,11 +429,10 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 	if (w_widget_is_ok(widget) <= 0)
 		return 0;
 	if (doit) {
-		_W_SASH(widget)->last.x = event.bounds.x;
-		_W_SASH(widget)->last.y = event.bounds.y;
+		_last->x = event.bounds.x;
+		_last->y = event.bounds.y;
 		if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
-			_W_SASH(widget)->last.x = ClientWidth - size.width
-					- _W_SASH(widget)->last.x;
+			_last->x = ClientWidth - size.width - _last->x;
 		}
 	}
 	int flags = UPDATE_ALL;
@@ -434,10 +440,10 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 		flags |= UPDATE_FLUSH;
 	}
 	ppriv->update_0(W_CONTROL(parent), flags, ppriv);
-	_w_sash_draw_band(widget, &_W_SASH(widget)->last, &size);
+	_w_sash_draw_band(widget, _last, &size);
 	if ((_W_WIDGET(widget)->style & W_SMOOTH) != 0) {
 		pt.x = event.bounds.x;
-		pt.y = _W_SASH(widget)->last.y;
+		pt.y = _last->y;
 		w_control_set_bounds(W_CONTROL(widget), &pt, &size);
 	}
 	return result;

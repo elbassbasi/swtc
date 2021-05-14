@@ -27,7 +27,8 @@ void TExpandBarDemo::CreateControl(WComposite *parent) {
 	WSize size;
 	this->Create(parent, W_VSCROLL);
 	//this->Create(parent, W_NONE);
-	this->SetImageList(MShell::GetImageList16_(parent));
+	MFrame *frame = (MFrame*) GetFrame();
+	this->SetImageList(frame->GetImageList16());
 	for (int i = 0; i < length; i++) {
 		composite[i].Create(this, W_NONE);
 		composite[i].SetLayout(layout[i]);
@@ -76,9 +77,10 @@ void TExpandBarDemo::Create_1(WComposite *composite) {
 	layout[1].marginLeft = layout[1].marginTop = layout[1].marginRight =
 			layout[1].marginBottom = 10;
 	layout[1].verticalSpacing = 10;
+	MFrame *frame = (MFrame*) GetFrame();
 	for (int i = 0; i < length_1; i++) {
 		label_1[2 * i].Create(composite, W_NONE);
-		image = MShell::GetImage16_(composite, images_1[i]);
+		image = frame->GetImage16(images_1[i]);
 		label_1[2 * i].SetImage(image);
 		label_1[2 * i + 1].Create(composite, W_NONE);
 		label_1[2 * i + 1].SetText(names_1[i]);

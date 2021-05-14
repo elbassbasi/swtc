@@ -52,7 +52,7 @@ enum {
 	W_NO_MOVE = 1 << 23, //Shell
 	W_ON_TOP = 1 << 24, //Shell
 	W_SHEET = 1 << 25, //Dialog,Shell
-	W_SHELL_TRIM = W_CLOSE | W_MIN | W_MAX | W_RESIZE,
+	W_FRAME_TRIM = W_CLOSE | W_MIN | W_MAX | W_RESIZE,
 	W_DIALOG_TRIM = W_CLOSE | W_BORDER,
 	W_MODELESS = 26, //Dialog,Shell
 	W_PRIMARY_MODAL = 1 << 27, //Dialog,Shell

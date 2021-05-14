@@ -7,7 +7,7 @@
 
 #ifndef TESTS_GRAPHICS_TGRAPHICS_H_
 #define TESTS_GRAPHICS_TGRAPHICS_H_
-#include "../main/MShell.h"
+#include "../main/MFrame.h"
 class TGraphics: public FolderTreeItem {
 public:
 	static void Registre(WTreeItem &parent);

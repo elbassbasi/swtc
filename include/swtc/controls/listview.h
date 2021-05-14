@@ -101,6 +101,10 @@ struct _w_listviewbase_class {
 	struct _w_columnitem_class *class_column;
 	wresult (*clear_all)(w_listviewbase *list);
 	wresult (*deselect_all)(w_listviewbase *list);
+	wresult (*for_all_column)(w_listviewbase *list, w_widget_callback callback,
+			void *user_data);
+	wresult (*for_all_item)(w_listviewbase *list, w_widget_callback callback,
+			void *user_data);
 	wresult (*get_column)(w_listviewbase *list, int index,
 			w_columnitem *column);
 	wresult (*get_column_count)(w_listviewbase *list);
@@ -137,6 +141,10 @@ struct _w_listviewbase_class {
 #define W_LISTVIEWBASE_GET_CLASS(x) ((struct _w_listviewbase_class*)W_WIDGET_GET_CLASS(x))
 SWT_PUBLIC wresult w_listviewbase_clear_all(w_listviewbase *list);
 SWT_PUBLIC wresult w_listviewbase_deselect_all(w_listviewbase *list);
+SWT_PUBLIC wresult w_listviewbase_for_all_column(w_listviewbase *list,
+		w_widget_callback callback, void *user_data);
+SWT_PUBLIC wresult w_listviewbase_for_all_item(w_listviewbase *list,
+		w_widget_callback callback, void *user_data);
 SWT_PUBLIC wresult w_listviewbase_get_column(w_listviewbase *list, int index,
 		w_columnitem *column);
 SWT_PUBLIC wresult w_listviewbase_get_column_count(w_listviewbase *list);

@@ -79,7 +79,8 @@ void TToolBarDemo::CreateControl(WComposite *parent) {
 	/* image */
 	CreateToolBar(2, W_VERTICAL, false, true);
 	CreateToolBar(3, W_VERTICAL, false, true);
-	bar[2].SetImageList(MShell::GetImageList16_(this));
-	bar[3].SetImageList(MShell::GetImageList32_(this));
+	MFrame *frame = (MFrame*) GetFrame();
+	bar[2].SetImageList(frame->GetImageList16());
+	bar[3].SetImageList(frame->GetImageList32());
 }
 

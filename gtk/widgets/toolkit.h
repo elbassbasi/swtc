@@ -61,7 +61,12 @@ typedef struct _w_toolkit {
 	w_widget *widget_free;
 	PangoTabArray *empty_tab;
 	w_control *currentControl;
+	w_control *focusControl;
+	w_control *imControl;
+	w_control *mnemonicControl;
+	gint latinKeyGroup;
 	int exit_code;
+	int focusEvent;
 	unsigned exit_loop :1;
 	unsigned wake :1;
 	unsigned ISX11 :1;

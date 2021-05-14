@@ -14,8 +14,9 @@ wresult _w_label_get_image(w_label *label, w_image *image) {
 		return W_ERROR_NULL_ARGUMENT;
 	if ((_W_WIDGET(label)->style & (W_SEPARATOR | W_HYPERLINK)) != 0)
 		return W_FALSE;
+	GtkWidget *handle = _W_WIDGET(label)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles( _W_WIDGET(label)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(handles.image));
 	_W_IMAGE(image)->pixbuf = pixbuf;
 	return W_TRUE;
@@ -33,8 +34,9 @@ wresult _w_label_get_text(w_label *label, w_alloc string, void *user_data,
 					link->text_length, enc);
 		}
 	} else {
+		GtkWidget *handle = _W_WIDGET(label)->handle;
 		_w_widget_handles handles;
-		_w_widget_get_handles( _W_WIDGET(label)->handle, &handles);
+		_w_widget_get_handles(handle, &handles);
 		if (handles.label != 0) {
 			const char *text = gtk_label_get_text(GTK_LABEL(handles.label));
 			_gtk_alloc_set_text(string, user_data, text, -1, enc);
@@ -45,8 +47,9 @@ wresult _w_label_get_text(w_label *label, w_alloc string, void *user_data,
 wresult _w_label_set_image(w_label *label, w_image *image) {
 	if ((_W_WIDGET(label)->style & (W_SEPARATOR | W_HYPERLINK)) != 0)
 		return W_FALSE;
+	GtkWidget *handle = _W_WIDGET(label)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles( _W_WIDGET(label)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	if (image != 0) {
 		GdkPixbuf *pixbuf = _W_IMAGE(image)->pixbuf;
 		gtk_image_set_from_pixbuf(GTK_IMAGE(handles.image), pixbuf);
@@ -215,7 +218,7 @@ int _w_label_parse(const char *string, int length, _w_hyperlink *link) {
 		}
 		link->text_length = result_length;
 	}
-	return linkIndex;
+	return linkIndex + 1;
 }
 
 void _w_label_set_text_hyperlink(w_label *label, const char *text, int length,
@@ -235,7 +238,7 @@ void _w_label_set_text_hyperlink(w_label *label, const char *text, int length,
 		}
 		_W_LABEL(label)->hyperlink = link;
 		if (link != 0) {
-			link->text = &((char*) link)[new_size - newlength - 2];
+			link->text = (char*) &link->ids[ids_count];
 			link->ids_length = ids_count;
 			if (link->layout == 0) {
 				PangoContext *context = gdk_pango_context_get();
@@ -287,8 +290,9 @@ wresult _w_label_set_text(w_label *label, const char *text, int length,
 	if ((_W_WIDGET(label)->style & W_HYPERLINK) != 0) {
 		_w_label_set_text_hyperlink(label, text, length, enc);
 	} else {
+		GtkWidget *handle = _W_WIDGET(label)->handle;
 		_w_widget_handles handles;
-		_w_widget_get_handles( _W_WIDGET(label)->handle, &handles);
+		_w_widget_get_handles(handle, &handles);
 		if (handles.label != 0) {
 			char *s = _gtk_text_fix(text, length, enc, &newlength, &mnemonic);
 			if (s != 0) {
@@ -326,8 +330,9 @@ void gtk_label_set_align(GtkWidget *labelHandle, float xalign, float yalign) {
 }
 
 void _w_label_set_alignment_0(w_label *label) {
+	GtkWidget *handle = _W_WIDGET(label)->handle;
 	_w_widget_handles handles;
-	_w_widget_get_handles(_W_WIDGET(label)->handle, &handles);
+	_w_widget_get_handles(handle, &handles);
 	if ((_W_WIDGET(label)->style & W_LEFT) != 0) {
 		if (GTK_VERSION >= VERSION(3, 16, 0)) {
 			gtk_widget_set_align(handles.label, GTK_ALIGN_START,
@@ -515,8 +520,9 @@ wresult _w_label_compute_size(w_widget *widget, w_event_compute_size *e,
 	}
 	_w_widget_handles handles;
 	GtkWidget *frameHandle;
-	_w_widget_get_handles(_W_WIDGET(widget)->handle, &handles);
-	frameHandle = gtk_widget_get_parent(_W_WIDGET(widget)->handle);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	_w_widget_get_handles(handle, &handles);
+	frameHandle = gtk_widget_get_parent(handle);
 	if (!GTK_IS_FRAME(frameHandle)) {
 		frameHandle = 0;
 	}
@@ -566,10 +572,8 @@ wresult _w_label_compute_size(w_widget *widget, w_event_compute_size *e,
 	} else {
 		if (frameHandle != 0) {
 			int reqWidth, reqHeight;
-			gtk_widget_get_size_request(_W_WIDGET(widget)->handle, &reqWidth,
-					&reqHeight);
-			gtk_widget_set_size_request(_W_WIDGET(widget)->handle, wHint,
-					hHint);
+			gtk_widget_get_size_request(handle, &reqWidth, &reqHeight);
+			gtk_widget_set_size_request(handle, wHint, hHint);
 			tmp[0] = e->wHint;
 			tmp[1] = e->hHint;
 			e->wHint = -1;
@@ -577,15 +581,13 @@ wresult _w_label_compute_size(w_widget *widget, w_event_compute_size *e,
 			_w_control_compute_native_size(widget, frameHandle, e, priv);
 			e->wHint = tmp[0];
 			e->hHint = tmp[1];
-			gtk_widget_set_size_request(_W_WIDGET(widget)->handle, reqWidth,
-					reqHeight);
+			gtk_widget_set_size_request(handle, reqWidth, reqHeight);
 		} else {
 			tmp[0] = e->wHint;
 			tmp[1] = e->hHint;
 			e->wHint = wHint;
 			e->hHint = hHint;
-			_w_control_compute_native_size(widget, _W_WIDGET(widget)->handle, e,
-					priv);
+			_w_control_compute_native_size(widget, handle, e, priv);
 			e->wHint = tmp[0];
 			e->hHint = tmp[1];
 		}
@@ -706,14 +708,28 @@ gboolean _gtk_label_event_after(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_label_draw(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	gboolean result = _gtk_control_draw(widget, e, priv);
-	if (result == 0 && (_W_WIDGET(widget)->style & W_HYPERLINK)) {
+	if (_W_WIDGET(widget)->style & W_HYPERLINK) {
 		_w_hyperlink *link = _W_LABEL(widget)->hyperlink;
 		if (link != 0) {
-
+			if (GTK_VERSION >= VERSION(3, 16, 0)) {
+				GtkWidget *handle = _W_WIDGET(widget)->handle;
+				GtkStyleContext *context = gtk_widget_get_style_context(handle);
+				GtkAllocation allocation;
+				gtk_widget_get_allocation(handle, &allocation);
+				int width =
+						(_W_WIDGET(widget)->state & STATE_ZERO_WIDTH) != 0 ?
+								0 : allocation.width;
+				int height =
+						(_W_WIDGET(widget)->state & STATE_ZERO_HEIGHT) != 0 ?
+								0 : allocation.height;
+				// We specify a 0 value for x & y as we want the whole widget to be
+				// colored, not some portion of it.
+				cairo_t *cairo = (cairo_t*) e->args[0];
+				gtk_render_background(context, cairo, 0, 0, width, height);
+			}
 		}
 	}
-	return result;
+	return _gtk_control_draw(widget, e, priv);
 }
 gboolean _gtk_label_key_press_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {

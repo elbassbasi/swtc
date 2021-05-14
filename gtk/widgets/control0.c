@@ -7,9 +7,13 @@
  */
 #include "control.h"
 #include "toolkit.h"
+#include <sys/time.h>
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+int enterNotifyEventSignalId = 0;
+GQuark GTK_POINTER_WINDOW = 0;
+GQuark SWT_GRAB_WIDGET = 0;
 void gtk_widget_set_align(GtkWidget *widget, GtkAlign hAlign, GtkAlign vAlign) {
 	gtk_widget_set_halign(widget, hAlign);
 	gtk_widget_set_valign(widget, vAlign);
@@ -56,8 +60,8 @@ wresult _w_control_compute_native_size(w_widget *widget, GtkWidget *h,
 }
 wresult _w_control_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv) {
-	return _w_control_compute_native_size(widget, _W_WIDGET(widget)->handle, e,
-			priv);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	return _w_control_compute_native_size(widget, handle, e, priv);
 }
 wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
@@ -114,12 +118,101 @@ wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 	priv->check_border(W_CONTROL(widget), priv);
 	return ret;
 }
+w_font* _w_control_default_font(w_control *control) {
+	return _w_toolkit_get_system_font(W_TOOLKIT(gtk_toolkit));
+}
+gboolean _w_control_drag_detect_2(w_control *control, int x, int y,
+		gboolean filter, gboolean dragOnTimeout, gboolean *consume) {
+	gboolean quit = FALSE, dragging = FALSE;
+
+	//428852 DND workaround for GTk3.
+	//Gtk3 no longer sends motion events on the same control during thread sleep
+	//before a drag started. This is due to underlying gdk changes.
+	//Thus for gtk3 we check mouse coords manually
+	//Note, input params x/y are relative, the two points below are absolute coords.
+	w_point startPos;
+	w_point currPos;
+#if GTK3
+	_w_toolkit_get_cursor_location(W_TOOLKIT(gtk_toolkit), &startPos);
+#endif
+	GtkWidget *handle = _W_WIDGET(control)->handle;
+	while (!quit) {
+		GdkEvent *eventPtr = 0;
+		/*
+		 * There should be an event on the queue already, but
+		 * in cases where there isn't one, stop trying after
+		 * half a second.
+		 */
+		struct timeval tp;
+		gettimeofday(&tp, NULL);
+		uint64_t timecurrent = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+		uint64_t timeout = timecurrent + 500;
+		while (timecurrent < timeout) {
+			eventPtr = gdk_event_get();
+			if (eventPtr != 0) {
+				break;
+			} else {
+#if GTK3 //428852
+				_w_toolkit_get_cursor_location(W_TOOLKIT(gtk_toolkit),
+						&currPos);
+				dragging = gtk_drag_check_threshold(handle, startPos.x,
+						startPos.y, currPos.x, currPos.y);
+				if (dragging)
+					break;
+#endif
+			}
+			gettimeofday(&tp, 0);
+			timecurrent = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+		}
+		if (dragging)
+			return TRUE;  //428852
+		if (eventPtr == 0)
+			return dragOnTimeout;
+		switch (eventPtr->type) {
+		case GDK_MOTION_NOTIFY: {
+			GdkEventMotion *gdkMotionEvent = (GdkEventMotion*) eventPtr;
+			if ((gdkMotionEvent->state & GDK_BUTTON1_MASK) != 0) {
+				if (gtk_drag_check_threshold(handle, x, y, gdkMotionEvent->x,
+						gdkMotionEvent->y)) {
+					dragging = TRUE;
+					quit = TRUE;
+				}
+			} else {
+				quit = TRUE;
+			}
+			int newX = 0, newY = 0;
+			_gdk_window_get_device_position(gdkMotionEvent->window, &newX,
+					&newY, 0);
+			break;
+		}
+		case GDK_KEY_PRESS:
+		case GDK_KEY_RELEASE: {
+			GdkEventKey *gdkEvent = (GdkEventKey*) eventPtr;
+			if (gdkEvent->keyval == GDK_KEY_Escape)
+				quit = TRUE;
+			break;
+		}
+		case GDK_BUTTON_RELEASE:
+		case GDK_BUTTON_PRESS:
+		case GDK_2BUTTON_PRESS:
+		case GDK_3BUTTON_PRESS: {
+			gdk_event_put(eventPtr);
+			quit = TRUE;
+			break;
+		}
+		default:
+			gtk_main_do_event(eventPtr);
+		}
+		gdk_event_free(eventPtr);
+	}
+	return dragging;
+}
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event) {
 	return W_FALSE;
 }
 wresult _w_control_draw_draw_gripper(w_control *control, w_graphics *gc,
 		w_rect *rect, int vertical, _w_control_priv *priv) {
-	GtkWidget *paintHandle = priv->handle_paint(control, priv);
+	GtkWidget *paintHandle = priv->handle_paint(W_WIDGET(control), priv);
 	GdkWindow *window = gtk_widget_get_window(paintHandle);
 	if (window == 0)
 		return W_FALSE;
@@ -149,8 +242,49 @@ w_control* _w_control_find_background_control(w_control *control,
 		_w_control_priv *priv) {
 	return 0;
 }
+gboolean _w_control_force_focus_0(w_control *control, GtkWidget *focusHandle,
+		_w_control_priv *priv) {
+	if (gtk_widget_has_focus(focusHandle))
+		return TRUE;
+	gtk_widget_set_can_focus(focusHandle, TRUE);
+	/* When the control is zero sized it must be realized */
+	gtk_widget_realize(focusHandle);
+	gtk_widget_grab_focus(focusHandle);
+// widget could be disposed at this point
+	if (!w_widget_is_ok(W_WIDGET(control)))
+		return FALSE;
+	w_shell *shell;
+	w_control_get_shell(control, &shell);
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	GtkWidget *handle = gtk_window_get_focus(GTK_WINDOW(shellHandle));
+	while (handle != 0) {
+		if (handle == focusHandle) {
+			/* Cancel any previous ignoreFocus requests */
+			gtk_toolkit->ignoreFocus = FALSE;
+			return TRUE;
+		}
+		w_widget *widget = g_object_get_qdata(G_OBJECT(handle),
+				gtk_toolkit->quark[0]);
+		if (widget != 0 && w_widget_class_id(widget) >= _W_CLASS_CONTROL) {
+			return widget == (w_widget*) control;
+		}
+		handle = gtk_widget_get_parent(handle);
+	}
+	return FALSE;
+}
 wresult _w_control_force_focus(w_control *control) {
-	return W_FALSE;
+	if (gtk_toolkit->focusEvent == W_EVENT_FOCUSOUT)
+		return FALSE;
+	w_shell *shell;
+	w_control_get_shell(control, &shell);
+	_w_shell_set_saved_focus(shell, control);
+	struct _w_control_class *clazz = W_CONTROL_GET_CLASS(control);
+	if (clazz->is_enabled(control) <= 0 || clazz->is_visible(control) <= 0)
+		return W_FALSE;
+	_w_shell_bring_totop(shell, W_FALSE);
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	GtkWidget *focusHandle = priv->handle_focus(W_WIDGET(control), priv);
+	return _w_control_force_focus_0(control, focusHandle, priv);
 }
 void _w_control_force_resize(w_control *control, _w_control_priv *priv) {
 	/*
@@ -170,7 +304,8 @@ wresult _w_control_get_accessible(w_control *control,
 	return W_FALSE;
 }
 wresult _w_control_get_background(w_control *control, w_color *background) {
-	return W_FALSE;
+	*background = W_COLOR_WHITE;
+	return W_TRUE;
 }
 wresult _w_control_get_background_image(w_control *control, w_image *image) {
 	return W_FALSE;
@@ -205,6 +340,12 @@ wresult _w_control_get_bounds(w_control *control, w_point *location,
 	}
 	return W_TRUE;
 }
+wresult _w_control_get_imcaret_pos(w_control *control, w_point *pos,
+		_w_control_priv *priv) {
+	pos->x = 0;
+	pos->y = 0;
+	return TRUE;
+}
 wresult _w_control_get_cursor(w_control *control, w_cursor **cursor) {
 	return W_FALSE;
 }
@@ -215,16 +356,44 @@ wresult _w_control_get_drag_detect(w_control *control) {
 	return W_FALSE;
 }
 wresult _w_control_get_enabled(w_control *control) {
-	return W_FALSE;
+	return (_W_WIDGET(control)->state & STATE_DISABLED) == 0;
 }
 wresult _w_control_get_font(w_control *control, w_font **font) {
-	return W_FALSE;
+	if (_W_CONTROL(control)->font != 0) {
+		*font = _W_CONTROL(control)->font;
+	} else {
+		w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
+		*font = _w_toolkit_get_system_font(toolkit);
+	}
+	return W_TRUE;
 }
 wresult _w_control_get_foreground(w_control *control, w_color *foreground) {
-	return W_FALSE;
+	*foreground = W_COLOR_BLACK;
+	return W_TRUE;
 }
 wresult _w_control_get_graphics(w_control *control, w_graphics *gc) {
-	return W_FALSE;
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	GdkWindow *window = priv->window_paint(W_WIDGET(control), priv);
+	if (window == 0)
+		return W_ERROR_NO_HANDLES;
+
+#if USE_CAIRO
+	cairo_t *cr;
+	cr = gdk_cairo_create(window);
+	_w_graphics_init(gc, cr);
+	w_font *font;
+	w_control_get_font(W_CONTROL(control), &font);
+	w_graphics_set_font(gc, font);
+	w_color background;
+	w_control_get_background(W_CONTROL(control), &background);
+	w_graphics_set_background(gc, background);
+	w_color foreground;
+	w_control_get_foreground(W_CONTROL(control), &foreground);
+	w_graphics_set_foreground(gc, foreground);
+#else
+		cr = gdk_gc_new (window);
+#endif
+	return W_TRUE;
 }
 wresult _w_control_get_layout_data(w_control *control, void **data) {
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(control);
@@ -236,7 +405,8 @@ wresult _w_control_get_layout_data(w_control *control, void **data) {
 	return W_TRUE;
 }
 wresult _w_control_get_menu(w_control *control, w_menu **menu) {
-	return W_FALSE;
+	*menu = _W_CONTROL(control)->menu;
+	return W_TRUE;
 }
 wresult _w_control_get_orientation(w_control *control) {
 	return W_FALSE;
@@ -288,13 +458,14 @@ void _w_control_get_thickness(GtkWidget *widget, w_point *thickness) {
 }
 wresult _w_control_get_tooltip_text(w_control *control, w_alloc alloc,
 		void *user_data, int enc) {
-	return W_FALSE;
+	return _gtk_alloc_set_text(alloc, user_data,
+			_W_CONTROL(control)->tooltiptext, -1, enc);
 }
 wresult _w_control_get_touch_enabled(w_control *control) {
 	return W_FALSE;
 }
 wresult _w_control_get_visible(w_control *control) {
-	return W_FALSE;
+	return (_W_WIDGET(control)->state & STATE_HIDDEN) == 0;
 }
 GtkWidget* _w_control_handle_enterexit(w_widget *control,
 		_w_control_priv *priv) {
@@ -334,7 +505,7 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 	gtk_widget_add_events(eventHandle, eventMask);
 	_w_widget_connect(eventHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT], FALSE);
 	_w_widget_connect(eventHandle, &signals[SIGNAL_BUTTON_RELEASE_EVENT],
-			FALSE);
+	FALSE);
 	_w_widget_connect(eventHandle, &signals[SIGNAL_MOTION_NOTIFY_EVENT], FALSE);
 	_w_widget_connect(eventHandle, &signals[SIGNAL_SCROLL_EVENT], FALSE);
 
@@ -343,9 +514,9 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 	int enterExitMask = GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK;
 	gtk_widget_add_events(enterExitHandle, enterExitMask);
 	_w_widget_connect(enterExitHandle, &signals[SIGNAL_ENTER_NOTIFY_EVENT],
-			FALSE);
+	FALSE);
 	_w_widget_connect(enterExitHandle, &signals[SIGNAL_LEAVE_NOTIFY_EVENT],
-			FALSE);
+	FALSE);
 	/*
 	 * Feature in GTK.  Events such as mouse move are propagate up
 	 * the widget hierarchy and are seen by the parent.  This is the
@@ -372,44 +543,52 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 	int paintMask = GDK_EXPOSURE_MASK;
 	gtk_widget_add_events(paintHandle, paintMask);
 	_w_widget_connect(paintHandle, &signals[SIGNAL_EXPOSE_EVENT_INVERSE],
-			FALSE);
+	FALSE);
 	_w_widget_connect(paintHandle, &signals[SIGNAL_EXPOSE_EVENT], TRUE);
 	/* Connect the Input Method signals */
-	_w_widget_connect(_W_WIDGET(widget)->handle, &signals[SIGNAL_REALIZE],
-	TRUE);
-	_w_widget_connect(_W_WIDGET(widget)->handle, &signals[SIGNAL_UNREALIZE],
-	FALSE);
-	GtkIMContext *imHandle = priv->handle_im(widget, priv);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	_w_widget_connect(handle, &signals[SIGNAL_REALIZE], TRUE);
+	_w_widget_connect(handle, &signals[SIGNAL_UNREALIZE], FALSE);
+	GtkWidget *imHandle = (GtkWidget*) priv->handle_im(widget, priv);
 	if (imHandle != 0) {
-		_w_widget_connect((GtkWidget*) imHandle, &signals[SIGNAL_COMMIT],
-				FALSE);
-		_w_widget_connect((GtkWidget*) imHandle,
-				&signals[SIGNAL_PREEDIT_CHANGED],
-				FALSE);
+		_w_widget_connect(imHandle, &signals[SIGNAL_COMMIT], FALSE);
+		_w_widget_connect(imHandle, &signals[SIGNAL_PREEDIT_CHANGED], FALSE);
 	}
 	_w_widget_connect(paintHandle, &signals[SIGNAL_STYLE_SET], FALSE);
 	GtkWidget *topHandle = _W_WIDGET_PRIV(priv)->handle_top(widget, priv);
 	_w_widget_connect(topHandle, &signals[SIGNAL_MAP], TRUE);
 	_w_widget_connect(topHandle, &signals[SIGNAL_DESTROY], TRUE);
 #if GTK3
-	/*if (enterNotifyEventSignalId == 0 && GTK_VERSION < VERSION(3, 11, 9)) {
-	 enterNotifyEventSignalId = g_signal_lookup("enter-notify-event",
-	 GTK_TYPE_WIDGET);
-	 GTK_POINTER_WINDOW = g_quark_from_string("gtk-pointer-window");
-	 SWT_GRAB_WIDGET = g_quark_from_string("swt-grab-widget");
-	 }*/
+	if (enterNotifyEventSignalId == 0 && GTK_VERSION < VERSION(3, 11, 9)) {
+		enterNotifyEventSignalId = g_signal_lookup("enter-notify-event",
+		GTK_TYPE_WIDGET);
+		GTK_POINTER_WINDOW = g_quark_from_string("gtk-pointer-window");
+		SWT_GRAB_WIDGET = g_quark_from_string("swt-grab-widget");
+	}
 #endif
 }
 wresult _w_control_is_enabled(w_control *control) {
+	if (W_CONTROL_GET_CLASS(control)->get_enabled(control) > 0) {
+		w_composite *parent = _W_CONTROL(control)->parent;
+		return W_CONTROL_GET_CLASS(parent)->is_enabled(W_CONTROL(parent));
+	}
 	return W_FALSE;
 }
 wresult _w_control_is_focus_control(w_control *control) {
 	return W_FALSE;
 }
+gboolean _w_control_is_focus_handle(w_control *control, GtkWidget *widget,
+		_w_control_priv *priv) {
+	return widget == priv->handle_focus(W_WIDGET(control), priv);
+}
 wresult _w_control_is_reparentable(w_control *control) {
 	return W_FALSE;
 }
 wresult _w_control_is_visible(w_control *control) {
+	if (W_CONTROL_GET_CLASS(control)->get_visible(control) > 0) {
+		w_composite *parent = _W_CONTROL(control)->parent;
+		return W_CONTROL_GET_CLASS(parent)->is_visible(W_CONTROL(parent));
+	}
 	return W_FALSE;
 }
 void _w_control_kill_all_timer(w_control *control) {
@@ -505,18 +684,56 @@ wresult _w_control_print(w_control *control, w_graphics *gc) {
 wresult _w_control_request_layout(w_control *control) {
 	return W_FALSE;
 }
-wresult _w_control_redraw(w_control *control, w_rect *rect, int all) {
-	return W_FALSE;
+wresult _w_control_redraw(w_control *control, w_rect *r, int all) {
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	GtkWidget *topHandle = priv->widget.handle_top(W_WIDGET(control), priv);
+	if (!gtk_widget_get_visible(topHandle))
+		return W_FALSE;
+	int flags;
+	if (all) {
+		flags = REDRAW_ALL;
+	} else
+		flags = 0;
+	if ((_W_WIDGET(control)->style & W_MIRRORED) != 0 && r != 0) {
+		w_rect rect;
+		memcpy(&rect, r, sizeof(w_rect));
+		rect.x = priv->get_client_width(control, priv) - rect.width - rect.x;
+		r = &rect;
+	}
+	priv->redraw_widget(control, r, flags, priv);
+	return W_TRUE;
 }
-void _w_control_redraw_widget(w_control *control, w_rect *rect, int flags,
+void _w_control_redraw_widget(w_control *control, w_rect *_rect, int flags,
 		_w_control_priv *priv) {
-
+	GtkWidget *handle = _W_WIDGET(control)->handle;
+	if (!gtk_widget_get_realized(handle))
+		return;
+	GdkWindow *window = priv->window_paint(W_WIDGET(control), priv);
+	GdkRectangle rect, *r = &rect;
+	if (flags & REDRAW_REDRAWALL) {
+		rect.width = gdk_window_get_width(window);
+		rect.height = gdk_window_get_height(window);
+	} else {
+		if (_rect != 0) {
+			rect.x = _rect->x;
+			rect.y = _rect->y;
+			rect.width = WMAX(0, _rect->width);
+			rect.height = WMAX(0, _rect->height);
+		} else {
+			r = 0;
+		}
+	}
+	gdk_window_invalidate_rect(window, r, flags & REDRAW_ALL);
 }
 void _w_control_resize_handle(w_control *control, w_size *size,
 		_w_control_priv *priv) {
 	GtkWidget *topHandle = _W_WIDGET_PRIV(priv)->handle_top(W_WIDGET(control),
 			priv);
 	_w_fixed_resize(topHandle, size->width, size->height);
+}
+wresult _w_control_send_leave_notify(w_control *control,
+		_w_control_priv *priv) {
+	return W_FALSE;
 }
 wresult _w_control_set_background(w_control *control, w_color color) {
 	return W_FALSE;
@@ -632,9 +849,10 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 			_allocation.width = _size.width;
 			_allocation.height = _size.height;
 		}
+		GtkWidget *handle = _W_WIDGET(control)->handle;
 		if (GTK_VERSION >= VERSION(3, 8, 0)
-				&& !gtk_widget_get_visible(_W_WIDGET(control)->handle)) {
-			gtk_widget_show(_W_WIDGET(control)->handle);
+				&& !gtk_widget_get_visible(handle)) {
+			gtk_widget_show(handle);
 #if GTK3
 			gtk_widget_get_preferred_size(topHandle, &requisition, NULL);
 #endif
@@ -642,7 +860,7 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 		gtk_widget_size_request(topHandle, &requisition);
 #endif
 			gtk_widget_size_allocate(topHandle, &_allocation);
-			gtk_widget_hide(_W_WIDGET(control)->handle);
+			gtk_widget_hide(handle);
 		} else {
 			gtk_widget_size_allocate(topHandle, &_allocation);
 		}
@@ -741,10 +959,35 @@ wresult _w_control_set_enabled(w_control *control, int enabled) {
 	return W_FALSE;
 }
 wresult _w_control_set_focus(w_control *control) {
-	return W_FALSE;
+	if ((_W_WIDGET(control)->style & W_NO_FOCUS) != 0)
+		return W_FALSE;
+	return _w_control_force_focus(control);
 }
 wresult _w_control_set_font(w_control *control, w_font *font) {
-	return W_FALSE;
+	if (((_W_WIDGET(control)->state & STATE_FONT) == 0) && font == 0)
+		return W_TRUE;
+	_W_CONTROL(control)->font = font;
+	PangoFontDescription *fontDesc;
+	if (font == 0) {
+		fontDesc = _W_FONT(_w_control_default_font(control))->handle;
+	} else {
+		if (!w_font_is_ok(font))
+			return W_ERROR_INVALID_ARGUMENT;
+		fontDesc = _W_FONT(font)->handle;
+	}
+	if (font == 0) {
+		_W_WIDGET(control)->state &= ~STATE_FONT;
+	} else {
+		_W_WIDGET(control)->state |= STATE_FONT;
+	}
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	priv->set_font_description(control, fontDesc, priv);
+	return W_TRUE;
+}
+void _w_control_set_font_description(w_control *control,
+		PangoFontDescription *font, _w_control_priv *priv) {
+	GtkWidget *handle = _W_WIDGET(control)->handle;
+	_w_widget_set_font_description(W_WIDGET(control), handle, font, priv);
 }
 wresult _w_control_set_foreground(w_control *control, w_color color) {
 	return W_FALSE;
@@ -752,7 +995,22 @@ wresult _w_control_set_foreground(w_control *control, w_color color) {
 void _w_control_set_initial_bounds(w_control *control, _w_control_priv *priv) {
 }
 wresult _w_control_set_menu(w_control *control, w_menu *menu) {
-	return W_FALSE;
+	_W_CONTROL(control)->menu = 0;
+	if (w_widget_is_ok(W_WIDGET(menu))) {
+		if ((_W_WIDGET(menu)->style & W_POP_UP) == 0) {
+			return W_ERROR_MENU_NOT_POP_UP;
+		}
+		w_shell *shell1;
+		w_control_get_shell(_W_MENU(menu)->parent, &shell1);
+		w_shell *shell2;
+		w_control_get_shell(control, &shell2);
+		if (shell1 != shell2) {
+			return W_ERROR_INVALID_PARENT;
+		}
+		_W_CONTROL(control)->menu = menu;
+		return W_TRUE;
+	}
+	return W_ERROR_INVALID_ARGUMENT;
 }
 wresult _w_control_set_orientation(w_control *control, int orientation) {
 	return W_FALSE;
@@ -848,14 +1106,40 @@ wresult _w_control_set_zorder(w_control *control, w_control *sibling, int flags,
 		_w_control_priv *priv) {
 	return W_FALSE;
 }
+gboolean _w_control_show_menu(w_control *control, int x, int y, int detail) {
+	w_event_menu_detect event;
+	/*if (gdk_pointer_is_grabbed()) {
+	 gdk_pointer_ungrab(0);
+	 }*/
+	memset(&event, 0, sizeof(event));
+	event.event.type = W_EVENT_MENUDETECT;
+	event.event.widget = W_WIDGET(control);
+	event.location.x = x;
+	event.location.y = y;
+	event.detail = detail;
+	int ret = _w_widget_send_event(W_WIDGET(control), (w_event*) &event);
+//widget could be disposed at this point
+	if (!w_widget_is_ok(W_WIDGET(control)))
+		return FALSE;
+	if (ret && w_widget_is_ok(W_WIDGET(event.menu))) {
+		/*boolean hooksKeys = hooks(SWT.KeyDown) || hooks(SWT.KeyUp);
+		 menu.createIMMenu(hooksKeys ? imHandle() : 0);*/
+		if (event.location.x != x || event.location.y != y) {
+			w_menu_set_location(event.menu, &event.location);
+		}
+		w_menu_set_visible(event.menu, W_TRUE);
+		return TRUE;
+	}
+	return FALSE;
+}
 void _w_control_show_widget(w_control *control, _w_control_priv *priv) {
 	_W_WIDGET(control)->state |= STATE_ZERO_WIDTH | STATE_ZERO_HEIGHT;
 	GtkWidget *topHandle = _W_WIDGET_PRIV(priv)->handle_top(W_WIDGET(control),
 			priv);
 	GtkWidget *fixedHandle = priv->handle_fixed(W_WIDGET(control), priv);
-	if (_W_WIDGET(control)->handle != 0
-			&& _W_WIDGET(control)->handle != topHandle)
-		gtk_widget_show(_W_WIDGET(control)->handle);
+	GtkWidget *handle = _W_WIDGET(control)->handle;
+	if (handle != 0 && handle != topHandle)
+		gtk_widget_show(handle);
 	if ((_W_WIDGET(control)->state & (STATE_ZERO_WIDTH | STATE_ZERO_HEIGHT))
 			== 0) {
 		if (fixedHandle != 0)
@@ -868,6 +1152,14 @@ wresult _w_control_to_control(w_control *control, w_point *result,
 }
 wresult _w_control_to_display(w_control *control, w_point *result,
 		w_point *point) {
+	return W_FALSE;
+}
+gboolean _w_control_translate_mnemonic_0(w_control *_this, int keyval,
+		GdkEventKey *gdkEvent, _w_control_priv *priv) {
+	return W_FALSE;
+}
+wresult _w_control_translate_traversal(w_control *control,
+		GdkEventKey *keyEvent, _w_control_priv *priv) {
 	return W_FALSE;
 }
 wresult _w_control_traverse(w_control *control, int traversal,
@@ -894,7 +1186,9 @@ GdkWindow* _w_control_window_event(w_widget *control, _w_control_priv *priv) {
 	return gtk_widget_get_window(eventHandle);
 }
 GdkWindow* _w_control_window_paint(w_widget *control, _w_control_priv *priv) {
-	return 0;
+	GtkWidget *paintHandle = priv->handle_paint(control, priv);
+	gtk_widget_realize(paintHandle);
+	return gtk_widget_get_window(paintHandle);
 }
 GdkWindow* _w_control_window_redraw(w_widget *control, _w_control_priv *priv) {
 	return 0;
@@ -1003,6 +1297,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->redraw_widget = _w_control_redraw_widget;
 	priv->resize_handle = _w_control_resize_handle;
 	priv->set_bounds_0 = _w_control_set_bounds_0;
+	priv->set_font_description = _w_control_set_font_description;
 	priv->set_parent_background = _w_control_set_parent_background;
 	priv->set_initial_bounds = _w_control_set_initial_bounds;
 	priv->set_relations = _w_control_set_relations;
@@ -1012,6 +1307,10 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->update_0 = _w_control_update_0;
 	priv->force_resize = _w_control_force_resize;
 	priv->has_focus = _w_control_has_focus;
+	priv->get_imcaret_pos = _w_control_get_imcaret_pos;
+	priv->translate_traversal = _w_control_translate_traversal;
+	priv->send_leave_notify = _w_control_send_leave_notify;
+	priv->is_focus_handle = _w_control_is_focus_handle;
 	/*
 	 * signals
 	 */

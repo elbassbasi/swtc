@@ -50,7 +50,7 @@ bool TButtonCircle::OnNotify(WEvent &e) {
 	if (WButton::IsButton(e.widget)) {
 		WButton *b = static_cast<WButton*>(e.widget);
 		WString text = b->GetText();
-		WMessageBox(GetShell(), W_OK, "button selected",
+		WMessageBox(GetFrame(), W_OK, "button selected",
 				text.GetCharsNotNull());
 		return true;
 	}

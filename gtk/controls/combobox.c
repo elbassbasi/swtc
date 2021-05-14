@@ -124,7 +124,7 @@ wresult _w_combobox_clear_selection(w_combobox *combo) {
 	}
 	return W_TRUE;
 }
-void _w_combobox_clear_clear_text(w_combobox *combo) {
+void _w_combobox_clear_text(w_combobox *combo) {
 	GtkComboBox *handle = GTK_COMBO_BOX(_W_WIDGET(combo)->handle);
 	g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
 			(void*) SIGNAL_CHANGED);
@@ -267,13 +267,13 @@ wresult _w_combobox_cut(w_combobox *combo) {
 wresult _w_combobox_deselect(w_combobox *combo, int index) {
 	GtkWidget *handle = _W_WIDGET(combo)->handle;
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(handle)) == index) {
-		_w_combobox_clear_clear_text(combo);
+		_w_combobox_clear_text(combo);
 	}
 	return W_TRUE;
 }
 wresult _w_combobox_deselect_all(w_combobox *combo) {
 	GtkWidget *handle = _W_WIDGET(combo)->handle;
-	_w_combobox_clear_clear_text(combo);
+	_w_combobox_clear_text(combo);
 	return W_TRUE;
 }
 wresult _w_combobox_get_imagelist(w_combobox *combo, w_imagelist **imagelist) {
@@ -438,7 +438,7 @@ wresult _w_combobox_paste(w_combobox *combo) {
 wresult _w_combobox_remove_index(w_combobox *combo, int index) {
 	GtkWidget *handle = _W_WIDGET(combo)->handle;
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(handle)) == index)
-		_w_combobox_clear_clear_text(combo);
+		_w_combobox_clear_text(combo);
 #if GTK3
 	gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(handle), index);
 #endif
@@ -450,7 +450,7 @@ wresult _w_combobox_remove_range(w_combobox *combo, int start, int end) {
 		return W_FALSE;
 	int index = gtk_combo_box_get_active(GTK_COMBO_BOX(handle));
 	if (start <= index && index <= end)
-		_w_combobox_clear_clear_text(combo);
+		_w_combobox_clear_text(combo);
 	for (int i = end; i >= start; i--) {
 #if GTK3
 		gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(handle), i);
@@ -469,7 +469,7 @@ wresult _w_combobox_remove_string(w_combobox *combo, const char *string,
 }
 wresult _w_combobox_remove_all(w_combobox *combo) {
 	GtkWidget *handle = _W_WIDGET(combo)->handle;
-	_w_combobox_clear_clear_text(combo);
+	_w_combobox_clear_text(combo);
 #if GTK3
 	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(handle));
 #endif

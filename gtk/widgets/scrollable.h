@@ -15,6 +15,16 @@
 #define STATE_HSCROLLBAR_DRAGSEND (1 << (STATE_CONTROL_END + 2))
 #define STATE_SCROLLABLE_END (STATE_CONTROL_END + 2)
 /*
+ * scrollbar
+ */
+typedef struct _w_scrollbar {
+	w_widgetdata widgetdata;
+	w_scrollable *parent;
+	GtkWidget *scrolledHandle;
+	int style;
+} _w_scrollbar;
+#define _W_SCROLLBAR(x) ((_w_scrollbar*)x)
+/*
  * scrollable
  */
 typedef struct _w_scrollable {
@@ -32,6 +42,8 @@ struct _w_scrollable_priv {
 	int (*apply_theme_background)(w_scrollable *scrollable,
 			_w_control_priv *priv);
 	GtkWidget* (*handle_scrolled)(w_widget *control, _w_control_priv *priv);
+	void (*update_scrollbar_value)(w_scrollable *scrollable, wuint64 style,
+			_w_control_priv *priv);
 };
 #define _W_SCROLLABLE_PRIV(x) ((_w_scrollable_priv*)x)
 #define _W_SCROLLABLE_GET_PRIV(x) ((_w_scrollable_priv*)_w_widget_get_priv(W_WIDGET(x)))

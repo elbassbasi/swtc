@@ -18,7 +18,8 @@ typedef struct w_messagebox {
 	const char *message;
 } w_messagebox;
 
-SWT_PUBLIC wresult w_messagebox_open(struct w_toolkit *toolkit, w_messagebox *messagebox);
+SWT_PUBLIC wresult w_messagebox_open(w_toolkit *toolkit,
+		w_messagebox *messagebox);
 
 typedef struct w_dialog_color {
 	w_shell *parent;
@@ -29,7 +30,7 @@ typedef struct w_dialog_color {
 	size_t count;
 } w_dialog_color;
 
-wresult w_dialog_color_open(struct w_toolkit *toolkit, w_dialog_color *dialog_color);
+wresult w_dialog_color_open(w_toolkit *toolkit, w_dialog_color *dialog_color);
 
 typedef struct w_dialog_font {
 	w_shell *parent;
@@ -39,7 +40,7 @@ typedef struct w_dialog_font {
 	w_fontdata data;
 } w_dialog_font;
 
-wresult w_dialog_font_open(struct w_toolkit *toolkit, w_dialog_font *dialog_font);
+wresult w_dialog_font_open(w_toolkit *toolkit, w_dialog_font *dialog_font);
 
 typedef struct w_dialog_directory {
 	w_shell *parent;
@@ -50,8 +51,14 @@ typedef struct w_dialog_directory {
 	w_alloc *path;
 } w_dialog_directory;
 
-wresult w_dialog_directory_open(struct w_toolkit *toolkit,
+wresult w_dialog_directory_open(w_toolkit *toolkit,
 		w_dialog_directory *dialog_directory);
+
+typedef struct w_dialog_selected_file {
+	w_alloc alloc;
+	void *user_data;
+	int enc;
+} w_dialog_selected_file;
 
 typedef struct w_dialog_file {
 	w_shell *parent;
@@ -62,10 +69,10 @@ typedef struct w_dialog_file {
 	int index;
 	const char *names;
 	const char *path;
-
+	w_iterator selectedfiles;
 } w_dialog_file;
 
-wresult w_dialog_file_open(struct w_toolkit *toolkit, w_dialog_file *dialog_file);
+wresult w_dialog_file_open(w_toolkit *toolkit, w_dialog_file *dialog_file);
 
 #ifdef __cplusplus
 }

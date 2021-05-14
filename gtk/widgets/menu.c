@@ -667,8 +667,8 @@ wresult _w_menu_set_orientation(w_menu *menu, int orientation) {
 void _w_menu_position_func(GtkMenu *menu, gint *x, gint *y, gboolean *push_in,
 		gpointer user_data) {
 	*push_in = TRUE;
-	*x = _W_MENU(menu)->x;
-	*y = _W_MENU(menu)->y;
+	*x = _W_MENU(user_data)->x;
+	*y = _W_MENU(user_data)->y;
 }
 wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 	w_event_menu ei;

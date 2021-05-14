@@ -116,18 +116,17 @@ wresult _w_textedit_compute_trim(w_widget *widget, w_event_compute_trim *e,
 	w_event_compute_size ee;
 	w_size widthNative;
 	_w_scrollable_compute_trim(widget, e, priv);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	int xborder = 0, yborder = 0;
 	if ((_W_WIDGET(widget)->style & W_SINGLE) != 0) {
 #if GTK3
 		GtkBorder tmp;
-		GtkStyleContext *context = gtk_widget_get_style_context(
-		_W_WIDGET(widget)->handle);
+		GtkStyleContext *context = gtk_widget_get_style_context(handle);
 		if (GTK_VERSION < VERSION(3, 18, 0)) {
 			gtk_style_context_get_padding(context, GTK_STATE_FLAG_NORMAL, &tmp);
 		} else {
 			gtk_style_context_get_padding(context,
-					gtk_widget_get_state_flags(_W_WIDGET(widget)->handle),
-					&tmp);
+					gtk_widget_get_state_flags(handle), &tmp);
 		}
 		e->result->x -= tmp.left;
 		e->result->y -= tmp.top;
@@ -137,8 +136,7 @@ wresult _w_textedit_compute_trim(w_widget *widget, w_event_compute_trim *e,
 			ee.wHint = e->result->width;
 			ee.hHint = W_DEFAULT;
 			ee.size = &widthNative;
-			_w_control_compute_native_size(widget, _W_WIDGET(widget)->handle,
-					&ee, priv);
+			_w_control_compute_native_size(widget, handle, &ee, priv);
 			e->result->height = widthNative.height;
 		} else {
 			e->result->height += tmp.top + tmp.bottom;
@@ -149,8 +147,7 @@ wresult _w_textedit_compute_trim(w_widget *widget, w_event_compute_trim *e,
 						&tmp);
 			} else {
 				gtk_style_context_get_border(context,
-						gtk_widget_get_state_flags(_W_WIDGET(widget)->handle),
-						&tmp);
+						gtk_widget_get_state_flags(handle), &tmp);
 			}
 			e->result->x -= tmp.left;
 			e->result->y -= tmp.top;
@@ -175,11 +172,10 @@ wresult _w_textedit_compute_trim(w_widget *widget, w_event_compute_trim *e,
 		yborder += borderWidth;
 	}
 	int property;
-	gtk_widget_style_get(_W_WIDGET(widget)->handle, "interior-focus", &property,
+	gtk_widget_style_get(handle, "interior-focus", &property,
 	NULL);
 	if (property == 0) {
-		gtk_widget_style_get(_W_WIDGET(widget)->handle, "focus-line-width",
-				&property, NULL);
+		gtk_widget_style_get(handle, "focus-line-width", &property, NULL);
 		xborder += property;
 		yborder += property;
 	}
@@ -196,8 +192,9 @@ wresult _w_textedit_compute_size(w_widget *widget, w_event_compute_size *e,
 	int w, h;
 	w_event_compute_trim ee;
 	w_rect rect, result;
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	if ((_W_WIDGET(widget)->style & W_SINGLE) != 0) {
-		gtk_widget_realize(_W_WIDGET(widget)->handle);
+		gtk_widget_realize(handle);
 		PangoLayout *layout = gtk_entry_get_layout(
 				GTK_ENTRY(_W_WIDGET(widget)->handle));
 		pango_layout_get_pixel_size(layout, &w, &h);
@@ -208,8 +205,7 @@ wresult _w_textedit_compute_size(w_widget *widget, w_event_compute_size *e,
 		gtk_text_buffer_get_bounds(bufferHandle, &start, &end);
 		gchar *text = gtk_text_buffer_get_text(bufferHandle, &start, &end,
 		TRUE);
-		PangoLayout *layout = gtk_widget_create_pango_layout(
-		_W_WIDGET(widget)->handle, text);
+		PangoLayout *layout = gtk_widget_create_pango_layout(handle, text);
 		g_free(text);
 		pango_layout_set_width(layout, e->wHint * PANGO_SCALE);
 		pango_layout_get_pixel_size(layout, &w, &h);
@@ -217,10 +213,9 @@ wresult _w_textedit_compute_size(w_widget *widget, w_event_compute_size *e,
 	}
 	int width = w;
 	int height = h;
-	if ((_W_WIDGET(widget)->style & W_SINGLE) != 0
-			&& _W_TEXTEDIT(widget)->message != 0) {
-		PangoLayout *layout = gtk_widget_create_pango_layout(
-		_W_WIDGET(widget)->handle, _W_TEXTEDIT(widget)->message);
+	char *message = _W_TEXTEDIT(widget)->message;
+	if ((_W_WIDGET(widget)->style & W_SINGLE) != 0 && message != 0) {
+		PangoLayout *layout = gtk_widget_create_pango_layout(handle, message);
 		pango_layout_get_pixel_size(layout, &w, &h);
 		g_object_unref(layout);
 		width = WMAX(width, w);
@@ -372,15 +367,16 @@ GtkWidget* _w_textedit_handle_scrolled(w_widget *control,
 	if ((_W_WIDGET(control)->style & W_SINGLE) != 0) {
 		return 0;
 	} else {
-		return gtk_widget_get_parent(_W_WIDGET(control)->handle);
+		GtkWidget *handle = _W_WIDGET(control)->handle;
+		return gtk_widget_get_parent(handle);
 	}
 }
 GtkWidget* _w_textedit_handle_fixed(w_widget *control, _w_control_priv *priv) {
+	GtkWidget *handle = _W_WIDGET(control)->handle;
 	if ((_W_WIDGET(control)->style & W_SINGLE) != 0) {
-		return gtk_widget_get_parent(_W_WIDGET(control)->handle);
+		return gtk_widget_get_parent(handle);
 	} else {
-		return gtk_widget_get_parent(
-				gtk_widget_get_parent(_W_WIDGET(control)->handle));
+		return gtk_widget_get_parent(gtk_widget_get_parent(handle));
 	}
 }
 wresult _w_textedit_get_caret_line_number(w_textedit *text) {
@@ -487,8 +483,8 @@ wresult _w_textedit_get_line_height(w_textedit *text) {
 }
 wresult _w_textedit_get_message(w_textedit *text, w_alloc alloc,
 		void *user_data, int enc) {
-	return _gtk_alloc_set_text(alloc, user_data, _W_TEXTEDIT(text)->message, -1,
-			enc);
+	char *message = _W_TEXTEDIT(text)->message;
+	return _gtk_alloc_set_text(alloc, user_data, message, -1, enc);
 }
 wresult _w_textedit_get_position(w_textedit *text, w_point *point, int enc) {
 	int position = -1;
@@ -585,8 +581,8 @@ wresult _w_textedit_get_selection_text(w_textedit *text, w_alloc alloc,
 	return W_TRUE;
 }
 int _w_textedit_get_tab_width(w_textedit *text) {
-	PangoLayout *layout = gtk_widget_create_pango_layout(
-	_W_WIDGET(text)->handle, " ");
+	GtkWidget *handle = _W_WIDGET(text)->handle;
+	PangoLayout *layout = gtk_widget_create_pango_layout(handle, " ");
 	gint width;
 	gint height;
 	pango_layout_get_size(layout, &width, &height);
@@ -831,42 +827,38 @@ wresult _w_textedit_set_text(w_textedit *text, const char *string,
 	_w_textedit_clear_segments(text, FALSE);
 	GtkWidget *handle = _W_WIDGET(text)->handle;
 	if ((_W_WIDGET(text)->style & W_SINGLE) != 0) {
-		if (s != 0) {
-			g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0,
-					0, 0, (void*) SIGNAL_CHANGED);
-			g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0,
-					0, 0, (void*) SIGNAL_DELETE_TEXT);
-			g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0,
-					0, 0, (void*) SIGNAL_INSERT_TEXT);
-			gtk_entry_set_text(GTK_ENTRY(handle), s);
-			g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0,
-					0, 0, (void*) SIGNAL_CHANGED);
-			g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0,
-					0, 0, (void*) SIGNAL_DELETE_TEXT);
-			g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0,
-					0, 0, (void*) SIGNAL_INSERT_TEXT);
-			result = W_TRUE;
-		}
+		g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+				(void*) SIGNAL_CHANGED);
+		g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+				(void*) SIGNAL_DELETE_TEXT);
+		g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+				(void*) SIGNAL_INSERT_TEXT);
+		gtk_entry_set_text(GTK_ENTRY(handle), s);
+		g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0,
+				0, (void*) SIGNAL_CHANGED);
+		g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0,
+				0, (void*) SIGNAL_DELETE_TEXT);
+		g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0,
+				0, (void*) SIGNAL_INSERT_TEXT);
+		result = W_TRUE;
 		_gtk_text_free(string, s, newlength);
 	} else {
 		GtkTextBuffer *bufferHandle = gtk_text_view_get_buffer(
 				GTK_TEXT_VIEW(handle));
-		if (s != 0) {
-			g_signal_handlers_block_matched(bufferHandle, G_SIGNAL_MATCH_DATA,
-					0, 0, 0, 0, (void*) SIGNAL_CHANGED);
-			g_signal_handlers_block_matched(bufferHandle, G_SIGNAL_MATCH_DATA,
-					0, 0, 0, 0, (void*) SIGNAL_DELETE_RANGE);
-			g_signal_handlers_block_matched(bufferHandle, G_SIGNAL_MATCH_DATA,
-					0, 0, 0, 0, (void*) SIGNAL_TEXT_BUFFER_INSERT_TEXT);
-			gtk_text_buffer_set_text(bufferHandle, s, newlength);
-			g_signal_handlers_unblock_matched(bufferHandle, G_SIGNAL_MATCH_DATA,
-					0, 0, 0, 0, (void*) SIGNAL_CHANGED);
-			g_signal_handlers_unblock_matched(bufferHandle, G_SIGNAL_MATCH_DATA,
-					0, 0, 0, 0, (void*) SIGNAL_DELETE_RANGE);
-			g_signal_handlers_unblock_matched(bufferHandle, G_SIGNAL_MATCH_DATA,
-					0, 0, 0, 0, (void*) SIGNAL_TEXT_BUFFER_INSERT_TEXT);
-			result = W_TRUE;
-		}
+		g_signal_handlers_block_matched(bufferHandle, G_SIGNAL_MATCH_DATA, 0, 0,
+				0, 0, (void*) SIGNAL_CHANGED);
+		g_signal_handlers_block_matched(bufferHandle, G_SIGNAL_MATCH_DATA, 0, 0,
+				0, 0, (void*) SIGNAL_DELETE_RANGE);
+		g_signal_handlers_block_matched(bufferHandle, G_SIGNAL_MATCH_DATA, 0, 0,
+				0, 0, (void*) SIGNAL_TEXT_BUFFER_INSERT_TEXT);
+		gtk_text_buffer_set_text(bufferHandle, s, newlength);
+		g_signal_handlers_unblock_matched(bufferHandle, G_SIGNAL_MATCH_DATA, 0,
+				0, 0, 0, (void*) SIGNAL_CHANGED);
+		g_signal_handlers_unblock_matched(bufferHandle, G_SIGNAL_MATCH_DATA, 0,
+				0, 0, 0, (void*) SIGNAL_DELETE_RANGE);
+		g_signal_handlers_unblock_matched(bufferHandle, G_SIGNAL_MATCH_DATA, 0,
+				0, 0, 0, (void*) SIGNAL_TEXT_BUFFER_INSERT_TEXT);
+		result = W_TRUE;
 		_gtk_text_free(string, s, newlength);
 		if (result > 0) {
 			GtkTextIter position;

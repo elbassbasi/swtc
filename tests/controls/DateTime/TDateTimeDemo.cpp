@@ -42,7 +42,7 @@ bool TDateTimeDemo::OnNotify(WEvent &e) {
 	char txt[0x100];
 	if (e.widget->GetId() == 1) {
 		snprintf(txt, sizeof(txt), "Date : ");
-		WMessageBox(GetShell(), W_OK, "Login", txt);
+		WMessageBox(GetFrame(), W_OK, "Login", txt);
 	}
 	return true;
 }

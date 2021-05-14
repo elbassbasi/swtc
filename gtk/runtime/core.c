@@ -39,6 +39,8 @@ int _mnemonics_from_gtk_0(const char *text, size_t text_length, char *out,
 }
 char* _gtk_text_fix(const char *text, int text_length, int enc, int *newlength,
 		int *mnemonic) {
+	if (text == 0)
+		return 0;
 	*mnemonic = -1;
 	if ((enc & 0xFF) == W_ENCODING_UNICODE) {
 		size_t new_size;

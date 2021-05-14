@@ -7,6 +7,9 @@
  */
 #include "widget.h"
 #include "toolkit.h"
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 GdkWindow* _gdk_window_get_device_position(GdkWindow *window, gint *x, gint *y,
 		GdkModifierType *mask) {
 #if GTK3
@@ -20,7 +23,8 @@ GdkWindow* _gdk_window_get_device_position(GdkWindow *window, gint *x, gint *y,
 	GdkDeviceManager *device_manager = gdk_display_get_device_manager(display);
 	GdkDevice *pointer = gdk_device_manager_get_client_pointer(device_manager);
 	return gdk_window_get_device_position(window, pointer, x, y, mask);
-#else
+#endif
+#if GTK2
 		return gdk_window_get_pointer(window, x, y, mask);
 #endif
 }
@@ -46,16 +50,17 @@ GtkWidget* _w_widget_h(w_widget *widget, _w_control_priv *priv) {
 	return _W_WIDGET(widget)->handle;
 }
 GtkWidget* _w_widget_hp(w_widget *widget, _w_control_priv *priv) {
-	return gtk_widget_get_parent(_W_WIDGET(widget)->handle);
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	return gtk_widget_get_parent(handle);
 }
 GtkWidget* _w_widget_hpp(w_widget *widget, _w_control_priv *priv) {
-	return gtk_widget_get_parent(
-			gtk_widget_get_parent(_W_WIDGET(widget)->handle));
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	return gtk_widget_get_parent(gtk_widget_get_parent(handle));
 }
 GtkWidget* _w_widget_hppp(w_widget *widget, _w_control_priv *priv) {
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	return gtk_widget_get_parent(
-			gtk_widget_get_parent(
-					gtk_widget_get_parent(_W_WIDGET(widget)->handle)));
+			gtk_widget_get_parent(gtk_widget_get_parent(handle)));
 }
 void _w_widget_check_open(w_widget *widget, _w_control_priv *priv) {
 
@@ -302,6 +307,210 @@ void _w_widget_get_handles(GtkWidget *handle, _w_widget_handles *handles) {
 				_w_widget_get_handles_callback, handles);
 	}
 }
+void _w_widget_set_location_state(w_event_key *event, GdkEventKey *keyEvent) {
+	switch (keyEvent->keyval) {
+	case GDK_KEY_Alt_L:
+	case GDK_KEY_Shift_L:
+	case GDK_KEY_Control_L:
+		event->keylocation = W_LEFT;
+		break;
+	case GDK_KEY_Alt_R:
+	case GDK_KEY_Shift_R:
+	case GDK_KEY_Control_R:
+		event->keylocation = W_RIGHT;
+		break;
+	case GDK_KEY_KP_0:
+	case GDK_KEY_KP_1:
+	case GDK_KEY_KP_2:
+	case GDK_KEY_KP_3:
+	case GDK_KEY_KP_4:
+	case GDK_KEY_KP_5:
+	case GDK_KEY_KP_6:
+	case GDK_KEY_KP_7:
+	case GDK_KEY_KP_8:
+	case GDK_KEY_KP_9:
+	case GDK_KEY_KP_Add:
+	case GDK_KEY_KP_Decimal:
+	case GDK_KEY_KP_Delete:
+	case GDK_KEY_KP_Divide:
+	case GDK_KEY_KP_Down:
+	case GDK_KEY_KP_End:
+	case GDK_KEY_KP_Enter:
+	case GDK_KEY_KP_Equal:
+	case GDK_KEY_KP_Home:
+	case GDK_KEY_KP_Insert:
+	case GDK_KEY_KP_Left:
+	case GDK_KEY_KP_Multiply:
+	case GDK_KEY_KP_Page_Down:
+	case GDK_KEY_KP_Page_Up:
+	case GDK_KEY_KP_Right:
+	case GDK_KEY_KP_Subtract:
+	case GDK_KEY_KP_Up:
+	case GDK_KEY_Num_Lock:
+		event->keylocation = W_KEYPAD;
+		break;
+	}
+}
+gboolean _w_widget_set_key_state(w_event_key *event, GdkEventKey *keyEvent,
+		int unicode_length) {
+	if (keyEvent->string != 0 && unicode_length > 1)
+		return FALSE;
+	gboolean isNull = FALSE;
+	event->keycode = _w_translate_key(keyEvent->keyval);
+	switch (keyEvent->keyval) {
+	case GDK_KEY_BackSpace:
+		event->character = W_BS;
+		break;
+	case GDK_KEY_Linefeed:
+		event->character = W_LF;
+		break;
+	case GDK_KEY_KP_Enter:
+	case GDK_KEY_Return:
+		event->character = W_CR;
+		break;
+	case GDK_KEY_KP_Delete:
+	case GDK_KEY_Delete:
+		event->character = W_DEL;
+		break;
+	case GDK_KEY_Escape:
+		event->character = W_ESC;
+		break;
+	case GDK_KEY_Tab:
+	case GDK_KEY_ISO_Left_Tab:
+		event->character = W_TAB;
+		break;
+	default: {
+		if (event->keycode == 0) {
+			guint keyval = 0;
+			gint effective_group, level;
+			GdkModifierType consumed_modifiers;
+			if (gdk_keymap_translate_keyboard_state(gdk_keymap_get_default(),
+					keyEvent->hardware_keycode, (GdkModifierType) 0,
+					gtk_toolkit->latinKeyGroup, &keyval, &effective_group,
+					&level, &consumed_modifiers)) {
+				event->keycode = (int) gdk_keyval_to_unicode(keyval);
+			}
+		}
+		int key = keyEvent->keyval;
+		if ((keyEvent->state & GDK_CONTROL_MASK) != 0
+				&& (0 <= key && key <= 0x7F)) {
+			if ('a' <= key && key <= 'z')
+				key -= 'a' - 'A';
+			if (64 <= key && key <= 95)
+				key -= 64;
+			event->character = key;
+			isNull = keyEvent->keyval == '@' && key == 0;
+		} else {
+			if (keyEvent->string != 0) {
+				event->character = g_utf8_get_char(keyEvent->string);
+			} else {
+				event->character = gdk_keyval_to_unicode(key);
+			}
+		}
+	}
+	}
+	_w_widget_set_location_state(event, keyEvent);
+	if (event->keycode == 0 && event->character == 0) {
+		if (!isNull)
+			return FALSE;
+	}
+	event->detail = _w_widget_set_input_state(keyEvent->state);
+	return TRUE;
+}
+
+gboolean _w_widget_send_IM_key_event(w_widget *widget, _w_event_platform *e,
+		int type, GdkEventKey *keyEvent, const char *chars, int length) {
+	GdkEventKey *ptr = 0;
+	int index = 0, count = 0;
+	GdkModifierType state = 0;
+	w_event_key event;
+	if (keyEvent == 0) {
+		keyEvent = (GdkEventKey*) gtk_get_current_event();
+		ptr = keyEvent;
+		if (keyEvent != 0) {
+			switch (keyEvent->type) {
+			case GDK_KEY_PRESS:
+			case GDK_KEY_RELEASE:
+				state = keyEvent->state;
+				break;
+			default:
+				keyEvent = 0;
+				break;
+			}
+		}
+	}
+	if (keyEvent == 0) {
+		gtk_get_current_event_state(&state);
+	}
+	gunichar c;
+	while (index < length) {
+		c = g_utf8_get_char(&chars[index]);
+		if (c == 0)
+			break;
+		event.event.type = type;
+		event.event.time = keyEvent->time;
+		event.event.platform_event = (w_event_platform*) e;
+		event.event.widget = widget;
+		event.event.time = keyEvent->time;
+		if (keyEvent != 0 && keyEvent->length <= 1) {
+			_w_widget_set_key_state(&event, keyEvent, length);
+		} else {
+			event.detail = _w_widget_set_input_state(state);
+		}
+		event.character = c;
+		int doit = _w_widget_send_event(widget, (w_event*) &event);
+
+		/*
+		 * It is possible (but unlikely), that application
+		 * code could have disposed the widget in the key
+		 * events.  If this happens, end the processing of
+		 * the key by returning null.
+		 */
+		//if (event.doit) chars [count++] = chars [index];
+		if (doit)
+			count++;
+		index += g_utf8_skip[*(const guchar*) (&chars[index])];
+	}
+	if (ptr != 0)
+		gdk_event_free((GdkEvent*) ptr);
+	if (count == 0)
+		return FALSE;
+	return TRUE;
+}
+gboolean _w_widget_send_key_event(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	GdkEventKey *keyEvent = (GdkEventKey*) e->args[0];
+	w_event_key event;
+	int length = keyEvent->length;
+	int unicode_length = w_utf8_to_utf16(keyEvent->string, length, 0, 0);
+	if (e->msg == SIGNAL_KEY_PRESS_EVENT) {
+		event.event.type = W_EVENT_KEYDOWN;
+	} else {
+		event.event.type = W_EVENT_KEYUP;
+	}
+	event.detail = 0;
+	if (keyEvent->string == 0 || unicode_length <= 1) {
+		event.event.time = keyEvent->time;
+		event.event.platform_event = (struct w_event_platform*) e;
+		event.event.widget = widget;
+		event.event.time = keyEvent->time;
+		if (!_w_widget_set_key_state(&event, keyEvent, unicode_length))
+			return TRUE;
+		return _w_widget_send_event(widget, (w_event*) &event);
+		// widget could be disposed at this point
+
+		/*
+		 * It is possible (but unlikely), that application
+		 * code could have disposed the widget in the key
+		 * events.  If this happens, end the processing of
+		 * the key by returning false.
+		 */
+		//if (isDisposed ()) return false;
+		//return event.doit;
+	}
+	return _w_widget_send_IM_key_event(widget, e, event.event.type, keyEvent,
+			keyEvent->string, unicode_length);
+}
 /*
  * signals
  */
@@ -419,6 +628,9 @@ _gtk_signal_info _gtk_signal_lookup[] = { //
 				{ SIGNAL_UNMAP_EVENT, 3, "unmap-event" }, //
 				{ SIGNAL_WINDOW_STATE_EVENT, 3, "window-state-event" }, //
 				/* */
+				{ SIGNAL_CHANGE_VALUE, 3, "change-value" }, //
+				{ SIGNAL_VALUE_CHANGED, 2, "value-changed" }, //
+				/* */
 				{ SIGNAL_SCROLL_CHILD, 3, "scroll-child" }, //
 				{ SIGNAL_DRAG_DATA_GET, 5, "drag_data_get" }, //
 				{ SIGNAL_DRAG_MOTION, 5, "drag_motion" }, //
@@ -447,7 +659,7 @@ void _w_widget_init_signal(_gtk_signal *signals, _gtk_signal_info *info,
 		signals[i].number_of_args = info[i].args;
 	}
 }
-void _w_widget_connect(GtkWidget *widget, _gtk_signal *signal, gboolean after) {
+void _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after) {
 	if (signal->closure == 0) {
 		GType type = ((GTypeInstance*) widget)->g_class->g_type;
 		signal->id = g_signal_lookup(signal->name, type);
@@ -503,6 +715,16 @@ wresult _w_widget_dispose(w_widget *widget) {
 	widget->clazz = 0;
 	return W_TRUE;
 }
+void _w_widget_set_font_description(w_widget *control, GtkWidget *widget,
+		PangoFontDescription *font, _w_control_priv *priv) {
+#if GTK3
+	gtk_widget_override_font(widget, font);
+	GtkStyleContext *context = gtk_widget_get_style_context(widget);
+	gtk_style_context_invalidate(context);
+#endif
+#if GTK2
+#endif
+}
 void _w_widget_class_init(struct _w_widget_class *clazz) {
 	clazz->is_ok = _w_widget_is_ok;
 	clazz->dispose = _w_widget_dispose;
@@ -520,6 +742,7 @@ void _w_widget_class_init(struct _w_widget_class *clazz) {
 		priv->create_widget = _w_widget_create_widget;
 		priv->set_orientation = _w_widget_set_orientation;
 		priv->hook_events = _w_widget_hook_events;
+		priv->send_key_event = _w_widget_send_key_event;
 		/*
 		 * signals
 		 */

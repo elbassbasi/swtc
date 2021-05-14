@@ -501,7 +501,7 @@ int w_textlayout_get_previous_offset(w_textlayout *textlayout, int offset,
 }
 typedef struct w_iterator_textlayout_ranges {
 	w_basic_iterator base;
-	w_textlayout *textlayout;
+	PangoAttrList *attrList;
 	PangoAttrIterator *iter;
 	gboolean next;
 	size_t count;
@@ -536,6 +536,30 @@ wresult w_iterator_textlayout_ranges_next(w_iterator *_it, void *obj) {
 		} else {
 			range->style.background = 0;
 		}
+		attrInt = (PangoAttrInt*) pango_attr_iterator_get(it->iter,
+				PANGO_ATTR_UNDERLINE);
+		if (attrInt != 0) {
+			range->style.underline = attrInt->value != PANGO_UNDERLINE_NONE;
+			range->style.underlineStyle = W_UNDERLINE_SINGLE;
+			switch (attrInt->value) {
+			case PANGO_UNDERLINE_DOUBLE:
+				range->style.underlineStyle = W_UNDERLINE_DOUBLE;
+				break;
+			case PANGO_UNDERLINE_ERROR:
+				range->style.underlineStyle = W_UNDERLINE_ERROR;
+				break;
+			}
+			if (range->style.underline) {
+				color = (PangoAttrColor*) pango_attr_iterator_get(it->iter,
+						PANGO_ATTR_UNDERLINE_COLOR);
+				if (color != 0) {
+					range->style.underlineColor = W_RGB(
+							color->color.red / 0x100,
+							color->color.green / 0x100,
+							color->color.blue / 0x100);
+				}
+			}
+		}
 		it->next = pango_attr_iterator_next(it->iter);
 	}
 	return ret;
@@ -543,8 +567,7 @@ wresult w_iterator_textlayout_ranges_next(w_iterator *_it, void *obj) {
 wresult w_iterator_textlayout_ranges_reset(w_iterator *_it) {
 	w_iterator_textlayout_ranges *it = (w_iterator_textlayout_ranges*) _it;
 	pango_attr_iterator_destroy(it->iter);
-	PangoAttrList *attrList = pango_layout_get_attributes(
-	_W_TEXTLAYOUT(it->textlayout)->layout);
+	PangoAttrList *attrList = it->attrList;
 	it->iter = pango_attr_list_get_iterator(attrList);
 	return W_TRUE;
 }
@@ -564,19 +587,22 @@ struct _w_iterator_class w_iterator_textlayout_ranges_class = { //
 				w_iterator_textlayout_ranges_remove, //
 				w_iterator_textlayout_ranges_get_count, //
 		};
+wresult _w_attr_list_get_ranges(PangoAttrList *attrList, w_iterator *ranges) {
+	w_iterator_textlayout_ranges *it = (w_iterator_textlayout_ranges*) ranges;
+	it->base.clazz = &w_iterator_textlayout_ranges_class;
+	it->attrList = attrList;
+	it->iter = pango_attr_list_get_iterator(attrList);
+	it->next = TRUE;
+	it->count = -1;
+	return W_TRUE;
+}
 wresult w_textlayout_get_ranges(w_textlayout *textlayout, w_iterator *ranges) {
 	w_iterator_close(ranges);
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-		w_iterator_textlayout_ranges *it =
-				(w_iterator_textlayout_ranges*) ranges;
 		PangoAttrList *attrList = pango_layout_get_attributes(_layout->layout);
-		it->base.clazz = &w_iterator_textlayout_ranges_class;
-		it->textlayout = textlayout;
-		it->iter = pango_attr_list_get_iterator(attrList);
-		it->next = TRUE;
-		it->count = -1;
+		return _w_attr_list_get_ranges(attrList, ranges);
 	}
 	return result;
 }

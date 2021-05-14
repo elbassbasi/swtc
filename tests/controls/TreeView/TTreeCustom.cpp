@@ -30,9 +30,15 @@ void TTreeCustom::CreateControl(WComposite *parent) {
 	char txt[50];
 	this->Create(parent,
 			W_VIRTUAL | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
-	this->SetImageList(MShell::GetImageList32_(this));
+	/* create text edit */
+	text.Create(this, W_NONE);
+	text.SetVisible(false);
+	/* init tree view */
+	MFrame *frame = (MFrame*) GetFrame();
+	this->SetImageList(frame->GetImageList32());
 	this->GetColumn(0, column).SetText("id");
 	this->AppendColumn(column, "progress").SetResizable(false);
+	column.SetWidth(60);
 	this->AppendColumn(column, "int");
 	column.SetAlignment(W_CENTER);
 	this->SetHeaderVisible(true);
@@ -56,12 +62,10 @@ void TTreeCustom::CreateControl(WComposite *parent) {
 			}
 		}
 	}
-	text.Create(this, W_NONE);
 	WFontData fontdata;
 	this->GetFont()->GetFontData(fontdata);
 	fontdata.SetStyle(W_BOLD);
 	this->fontBold.Create(fontdata);
-	text.SetVisible(false);
 }
 
 Person::Person(int i, int j) {
@@ -83,7 +87,7 @@ bool TTreeCustom::OnItemMeasure(WTreeEvent &e) {
 
 bool TTreeCustom::OnItemErase(WTreeEvent &e) {
 	e.detail &= ~W_HOT;
-	if ((e.detail & W_SELECTED) == 0)
+	if (!e.selected)
 		return false; /* item not selected */
 	WRect rect;
 	GetClientArea(rect);
@@ -197,6 +201,7 @@ bool TTreeCustom::OnItemDefaultSelection(WTreeEvent &e) {
 bool TTreeCustom::OnItemDispose(WTreeEvent &e) {
 	Person *p = (Person*) e.item->GetData();
 	if (p != 0) {
+		e.item->SetData(0);
 		delete p;
 	}
 	return false;
@@ -204,13 +209,23 @@ bool TTreeCustom::OnItemDispose(WTreeEvent &e) {
 
 bool TTreeCustomEdit::OnFocusOut(WEvent &e) {
 	bool ret = WTextEdit::OnFocusOut(e);
-	WString text = this->GetText();
-	item.SetText(text);
-	SetVisible(false);
+	SetTextAndHide();
 	return ret;
 }
 
 bool TTreeCustomEdit::OnTraverse(WKeyEvent &e) {
 	bool ret = WTextEdit::OnTraverse(e);
 	return ret;
+}
+
+bool TTreeCustomEdit::OnDefaultSelection(WTextEditEvent &e) {
+	bool ret = WTextEdit::OnDefaultSelection(e);
+	SetTextAndHide();
+	return ret;
+}
+
+void TTreeCustomEdit::SetTextAndHide() {
+	WString text = this->GetText();
+	item.SetText(text);
+	SetVisible(false);
 }

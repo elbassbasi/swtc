@@ -247,7 +247,7 @@ public:
 	 * @param shell the shell for which the task item is requested, or null to request the application item
 	 * @return the task item for the given shell or the application
 	 */
-	WTaskItem* GetItem(WShell *shell) {
+	WTaskItem* GetItem(WFrame *shell) {
 		WTaskItem *item;
 		w_taskbar_get_item_shell(W_TASKBAR(this), W_SHELL(shell),
 				(w_taskitem**) &item);

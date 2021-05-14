@@ -15,7 +15,7 @@ TCursorDemo::~TCursorDemo() {
 }
 void TCursorDemo::CreateControl(WComposite *parent) {
 	CanvasTreeItem::CreateControl(parent);
-	WImage *image = ((MShell*) GetShell())->GetImage32(IMAGELIST_DELETE);
+	WImage *image = ((MFrame*) GetFrame())->GetImage32(IMAGELIST_DELETE);
 	cursor.Create(*image, 0, 0);
 	SetCursor(&cursor);
 }

@@ -16,15 +16,97 @@ wresult _w_treeitem_clear(w_treeitem *item, int index, int all) {
 wresult _w_treeitem_clear_all(w_treeitem *item, int all) {
 	return W_FALSE;
 }
-wresult _w_treeitem_get_expanded(w_treeitem *item) {
-	return W_FALSE;
+wresult _w_treeitem_for_all_item(w_treeitem *_item, w_widget_callback callback,
+		void *user_data) {
+	w_widget *tree = _W_ITEM(_item)->parent;
+	GtkTreeView *_handle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(_handle);
+	w_treeitem item;
+	_W_WIDGETDATA(&item)->clazz = _W_WIDGETDATA(tree)->clazz;
+	_W_ITEM(&item)->parent = W_WIDGET(tree);
+	_W_ITEM(&item)->index = -1;
+	int i = 0;
+	gboolean ret;
+	GtkTreeIter *iter = &_W_TREEITEM(&item)->iter;
+	GtkTreeIter pIter;
+	memcpy(&pIter, & _W_TREEITEM(_item)->iter, sizeof(GtkTreeIter));
+	while (ret) {
+		ret = gtk_tree_model_iter_nth_child(modelHandle, iter, &pIter, 0);
+		if (ret) {
+			i++;
+			memcpy(&pIter, iter, sizeof(GtkTreeIter));
+		} else {
+			memcpy(iter, &pIter, sizeof(GtkTreeIter));
+			callback(tree, &item, user_data);
+			while (!ret) {
+				gtk_tree_model_iter_parent(modelHandle, iter, iter);
+				ret = gtk_tree_model_iter_next(modelHandle, iter);
+				if (!ret) {
+					callback(tree, &item, user_data);
+				}
+				i--;
+				if (i <= 0)
+					break;
+			}
+		}
+	}
+	return W_TRUE;
 }
-wresult _w_treeitem_get_first_child(w_treeitem *item, w_treeitem *child) {
+wresult _w_treeitem_get_expanded(w_treeitem *item) {
 	return W_FALSE;
 }
 wresult _w_treeitem_get_item(w_treeitem *item, int index, w_treeitem *subitem,
 		int flags) {
-	return W_FALSE;
+	wresult result = W_FALSE;
+	w_widget *tree = _W_ITEM(item)->parent;
+	GtkTreeView *_handle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(_handle);
+	GtkTreeIter *itemIter, *subitemIter, tmp;
+	if (subitem != 0) {
+		subitemIter = &_W_TREEITEM(subitem)->iter;
+	} else {
+		subitemIter = &tmp;
+	}
+	itemIter = &_W_TREEITEM(item)->iter;
+	gint n = -1;
+	switch (flags) {
+	case W_TREEITEM_INDEX:
+		result = gtk_tree_model_iter_nth_child(modelHandle, subitemIter,
+				itemIter, index);
+		n = index;
+		break;
+	case W_TREEITEM_PARENT:
+		result = gtk_tree_model_iter_parent(modelHandle, subitemIter, itemIter);
+		break;
+	case W_TREEITEM_NEXT:
+		memcpy(subitemIter, itemIter, sizeof(GtkTreeIter));
+		result = gtk_tree_model_iter_next(modelHandle, subitemIter);
+		break;
+	case W_TREEITEM_PREV:
+		memcpy(subitemIter, itemIter, sizeof(GtkTreeIter));
+		result = gtk_tree_model_iter_previous(modelHandle, subitemIter);
+		break;
+	case W_TREEITEM_LAST:
+		n = gtk_tree_model_iter_n_children(modelHandle, itemIter);
+		if (n > 0) {
+			result = gtk_tree_model_iter_nth_child(modelHandle, subitemIter,
+					itemIter, n - 1);
+		}
+		n -= 1;
+		break;
+	case W_TREEITEM_FIRST:
+		result = gtk_tree_model_iter_nth_child(modelHandle, subitemIter,
+				itemIter, 0);
+		n = 0;
+		break;
+	}
+	if (result > 0) {
+		_W_WIDGETDATA(subitem)->clazz = _W_WIDGETDATA(item)->clazz;
+		_W_ITEM(subitem)->parent = W_WIDGET(tree);
+		_W_ITEM(subitem)->index = n;
+		return W_TRUE;
+	}
+	return result;
 }
 wresult _w_treeitem_get_item_count(w_treeitem *item) {
 	return W_FALSE;
@@ -33,11 +115,18 @@ wresult _w_treeitem_get_items(w_treeitem *item, w_iterator *items) {
 	return W_FALSE;
 }
 wresult _w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
-		int index, w_treeitem *after, int flags) {
+		int index, w_treeitem *sibling, int flags) {
+	GtkTreeIter *parentIter, *handle, tmp, *_sibling;
+	if ((flags & W_TREEITEM_AFTER) || (flags & W_TREEITEM_BEFORE)) {
+		if (sibling == 0)
+			return W_ERROR_NULL_ARGUMENT;
+		if (_W_WIDGETDATA(sibling)->clazz == 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		_sibling = &_W_TREEITEM(sibling)->iter;
+	}
 	w_widget *tree = _W_ITEM(item)->parent;
 	GtkTreeView *_handle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
 	GtkTreeModel *modelHandle = gtk_tree_view_get_model(_handle);
-	GtkTreeIter *parentIter = 0, *handle, tmp;
 	if (subitem != 0) {
 		handle = &_W_TREEITEM(subitem)->iter;
 	} else {
@@ -51,24 +140,31 @@ wresult _w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
 	if (parentIter != 0) {
 		_w_treeitem_remove_children_flags(modelHandle, parentIter);
 	}
-	/*
-	 * Feature in GTK.  It is much faster to append to a tree store
-	 * than to insert at the end using gtk_tree_store_insert().
-	 */
-	if (index < 0) {
-		gtk_tree_store_append(GTK_TREE_STORE(modelHandle), handle, parentIter);
+	if (flags & W_TREEITEM_AFTER) {
+		if (sibling == 0)
+			return W_ERROR_INVALID_ARGUMENT;
+		gtk_tree_store_insert_after(GTK_TREE_STORE(modelHandle), handle,
+				parentIter, _sibling);
+	} else if (flags & W_TREEITEM_BEFORE) {
+		gtk_tree_store_insert_before(GTK_TREE_STORE(modelHandle), handle,
+				parentIter, _sibling);
 	} else {
-		int count = gtk_tree_model_iter_n_children(modelHandle, parentIter);
-		if (index > count) {
-			return -W_ERROR_INVALID_RANGE;
+		/*
+		 * Feature in GTK.  It is much faster to append to a tree store
+		 * than to insert at the end using gtk_tree_store_insert().
+		 */
+		if (index < 0) {
+			gtk_tree_store_append(GTK_TREE_STORE(modelHandle), handle,
+					parentIter);
+		} else {
+			int count = gtk_tree_model_iter_n_children(modelHandle, parentIter);
+			if (index > count) {
+				return -W_ERROR_INVALID_RANGE;
+			}
+			gtk_tree_store_insert(GTK_TREE_STORE(modelHandle), handle,
+					parentIter, index);
 		}
-		gtk_tree_store_insert(GTK_TREE_STORE(modelHandle), handle, parentIter,
-				index);
 	}
-	/*int id = getId(item.handle, false);
-	 items[id] = item;
-	 modelChanged = true;
-	 */
 	gtk_tree_store_set(GTK_TREE_STORE(modelHandle), handle, COLUMN_IMAGE, -1,
 			-1);
 	if (subitem != 0) {
@@ -127,9 +223,59 @@ wresult _w_treeview_clear(w_treeview *tree, w_treeitem *item) {
 wresult _w_treeview_deselect(w_treeview *tree, w_treeitem *item) {
 	return W_FALSE;
 }
+wresult _w_treeview_for_all_item(w_listviewbase *list,
+		w_widget_callback callback, void *user_data) {
+	w_treeitem root;
+	w_treeview_get_root_item(W_TREEVIEW(list), &root);
+	return _w_treeitem_for_all_item(&root, callback, user_data);
+}
 wresult _w_treeview_get_item_from_point(w_treeview *tree, w_point *point,
 		w_treeitem *item) {
-	return W_FALSE;
+	if (point == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	GtkTreePath *path = 0;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
+	gtk_widget_realize((GtkWidget*) handle);
+	int x = point->x;
+	int y = point->y;
+	/*
+	 * On GTK4 the header is included in the entire widget's surface, so we must subtract
+	 * its size from the y-coordinate. This does not apply on GTK3 as the header and
+	 * "main-widget" have separate GdkWindows.
+	 */
+#if GTK4
+#endif
+	if ((_W_WIDGET(tree)->style & W_MIRRORED) != 0) {
+		_w_control_priv *priv = _W_CONTROL_GET_PRIV(tree);
+		x = priv->get_client_width(W_CONTROL(tree), priv) - x;
+	}
+	GtkTreeViewColumn *columnHandle = 0;
+	if (!gtk_tree_view_get_path_at_pos(handle, x, y, &path, &columnHandle, NULL,
+	NULL))
+		return W_FALSE;
+	if (path == 0)
+		return W_FALSE;
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(handle);
+	GtkTreeIter *iter = &_W_TREEITEM(item)->iter;
+	if (gtk_tree_model_get_iter(modelHandle, iter, path)) {
+		gboolean overExpander = FALSE;
+		if (gtk_tree_view_get_expander_column(handle) == columnHandle) {
+			GdkRectangle rect;
+			gtk_tree_view_get_cell_area(handle, path, columnHandle, &rect);
+			if ((_W_WIDGET(tree)->style & W_MIRRORED) != 0) {
+				overExpander = x > rect.x + rect.width;
+			} else {
+				overExpander = x < rect.x;
+			}
+		}
+		if (!overExpander) {
+			_W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
+			_W_ITEM(item)->parent = W_WIDGET(tree);
+			_W_ITEM(item)->index = -1;
+		}
+	}
+	gtk_tree_path_free(path);
+	return W_TRUE;
 }
 wresult _w_treeview_get_parent_item(w_treeview *tree, w_treeitem *item) {
 	return W_FALSE;
@@ -266,13 +412,24 @@ gboolean _gtk_treeview_expand_collapse_cursor_row(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv) {
 	return W_FALSE;
 }
+void _gtk_treeview_draw_inherited_background(w_widget *widget,
+		_w_event_platform *e, _w_control_priv *priv) {
+
+}
 gboolean _gtk_treeview_draw(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	if ((_W_WIDGET(widget)->state & STATE_OBSCURED) != 0)
+		return FALSE;
+	_gtk_treeview_draw_inherited_background(widget, e, priv);
+	return _gtk_composite_draw(widget, e, priv);
 }
 gboolean _gtk_treeview_motion_notify_event(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv) {
-	return W_FALSE;
+	GdkEventMotion *gdkEvent = (GdkEventMotion*) e->args[0];
+	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	if (gdkEvent->window != gtk_tree_view_get_bin_window(GTK_TREE_VIEW(handle)))
+		return FALSE;
+	return _gtk_control_motion_notify_event(widget, e, priv);
 }
 gboolean _gtk_treeview_row_deleted(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -340,6 +497,7 @@ void _w_treeview_class_init(struct _w_treeview_class *clazz) {
 	/*
 	 * functions
 	 */
+	W_LISTVIEWBASE_CLASS(clazz)->for_all_item = _w_treeview_for_all_item;
 	clazz->clear = _w_treeview_clear;
 	clazz->deselect = _w_treeview_deselect;
 	clazz->get_item_from_point = _w_treeview_get_item_from_point;
@@ -361,7 +519,6 @@ void _w_treeview_class_init(struct _w_treeview_class *clazz) {
 	treeitem->clear = _w_treeitem_clear;
 	treeitem->clear_all = _w_treeitem_clear_all;
 	treeitem->get_expanded = _w_treeitem_get_expanded;
-	treeitem->get_first_child = _w_treeitem_get_first_child;
 	treeitem->get_item = _w_treeitem_get_item;
 	treeitem->get_item_count = _w_treeitem_get_item_count;
 	treeitem->get_items = _w_treeitem_get_items;

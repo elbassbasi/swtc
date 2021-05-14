@@ -8,6 +8,9 @@
 #ifndef SWTP_CONTROLS_TEXT_H_
 #define SWTP_CONTROLS_TEXT_H_
 #include "../widgets/Scrollable.h"
+class WTextEditEvent: public WEvent {
+public:
+};
 /**
  * Instances of this class are selectable user interface
  * objects that allow the user to enter and modify text.
@@ -89,7 +92,7 @@ public:
 	 * @param string the string to be appended
 	 */
 	bool Append(const char *string, size_t length) {
-		return _WReturnBool(_append(string, length,W_ENCODING_UTF8));
+		return _WReturnBool(_append(string, length, W_ENCODING_UTF8));
 	}
 	/**
 	 * Appends a string.
@@ -113,7 +116,8 @@ public:
 	 * @param string the string to be appended
 	 */
 	bool AppendUnicode(const wchar_t *string, size_t length) {
-		return _WReturnBool(_append((const char*)string, length,W_ENCODING_UNICODE));
+		return _WReturnBool(
+				_append((const char*) string, length, W_ENCODING_UNICODE));
 	}
 	/**
 	 * Appends a string.
@@ -300,7 +304,7 @@ public:
 	 */
 	WString GetMessage() {
 		w_string_ref *ref = 0;
-		_get_message(w_alloc_string_ref, &ref,W_ENCODING_UTF8);
+		_get_message(w_alloc_string_ref, &ref, W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -314,7 +318,7 @@ public:
 	 * @return the position of the caret
 	 */
 	int GetPosition(const WPoint &point) {
-		return _WReturnInt(_get_position(&point,W_ENCODING_UTF8));
+		return _WReturnInt(_get_position(&point, W_ENCODING_UTF8));
 	}
 	/**
 	 * Returns the character position at the given point in the receiver
@@ -327,7 +331,7 @@ public:
 	 * @return the position of the caret
 	 */
 	int GetPositionUnicode(const WPoint &point) {
-		return _WReturnInt(_get_position(&point,W_ENCODING_UNICODE));
+		return _WReturnInt(_get_position(&point, W_ENCODING_UNICODE));
 	}
 	/**
 	 * Returns a <code>Point</code> whose x coordinate is the
@@ -343,7 +347,7 @@ public:
 	 * @return a point representing the selection start and end
 	 */
 	WRange& GetSelection(WRange &range) {
-		_get_selection(&range,W_ENCODING_UTF8);
+		_get_selection(&range, W_ENCODING_UTF8);
 		return range;
 	}
 	/**
@@ -377,7 +381,7 @@ public:
 	 * @return a point representing the selection start and end
 	 */
 	WRange& GetSelectionUnicode(WRange &range) {
-		_get_selection(&range,W_ENCODING_UNICODE);
+		_get_selection(&range, W_ENCODING_UNICODE);
 		return range;
 	}
 	/**
@@ -412,7 +416,7 @@ public:
 	 */
 	WString GetSelectionText() {
 		w_string_ref *ref = 0;
-		_get_selection_text(w_alloc_string_ref, &ref,W_ENCODING_UTF8);
+		_get_selection_text(w_alloc_string_ref, &ref, W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -439,12 +443,12 @@ public:
 	 */
 	WString GetText() {
 		w_string_ref *ref = 0;
-		_get_text(w_alloc_string_ref, &ref,W_ENCODING_UTF8);
+		_get_text(w_alloc_string_ref, &ref, W_ENCODING_UTF8);
 		return ref;
 	}
 	std::string GetTextStd() {
 		std::string str;
-		_get_text(w_alloc_std_string, &str,W_ENCODING_UTF8);
+		_get_text(w_alloc_std_string, &str, W_ENCODING_UTF8);
 		return std::move(str);
 	}
 	/**
@@ -462,7 +466,8 @@ public:
 	 */
 	WString GetText(int start, int end) {
 		w_string_ref *ref = 0;
-		_get_text_range(WRange(start, end), w_alloc_string_ref, &ref,W_ENCODING_UTF8);
+		_get_text_range(WRange(start, end), w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -518,7 +523,7 @@ public:
 	 * @param string the string
 	 */
 	bool Insert(const char *text, size_t length) {
-		return _WReturnBool(_insert(text, length,W_ENCODING_UTF8));
+		return _WReturnBool(_insert(text, length, W_ENCODING_UTF8));
 	}
 	/**
 	 * Inserts a string.
@@ -600,7 +605,7 @@ public:
 	 * @param message the new message
 	 */
 	bool SetMessage(const char *message, size_t length) {
-		return _WReturnBool(_set_message(message, length,W_ENCODING_UTF8));
+		return _WReturnBool(_set_message(message, length, W_ENCODING_UTF8));
 	}
 	/**
 	 * Sets the widget message. The message text is displayed
@@ -633,7 +638,7 @@ public:
 	 * @param start new caret position
 	 */
 	bool SetSelection(int start) {
-		return _WReturnBool(_set_selection(start,W_ENCODING_UTF8));
+		return _WReturnBool(_set_selection(start, W_ENCODING_UTF8));
 	}
 	/**
 	 * Sets the selection to the range specified
@@ -680,7 +685,7 @@ public:
 	 * @param selection the point
 	 */
 	bool SetSelection(const WRange &selection) {
-		return _WReturnBool(_set_selection_range(&selection,W_ENCODING_UTF8));
+		return _WReturnBool(_set_selection_range(&selection, W_ENCODING_UTF8));
 	}
 	/**
 	 * Sets the number of tabs.
@@ -703,7 +708,7 @@ public:
 	 * @param string the new text
 	 */
 	bool SetText(const char *string, size_t length) {
-		return _WReturnBool(_set_text(string, length,W_ENCODING_UTF8));
+		return _WReturnBool(_set_text(string, length, W_ENCODING_UTF8));
 	}
 	/**
 	 * Sets the contents of the receiver to the given string. If the receiver has style
@@ -757,9 +762,13 @@ public:
 	}
 protected:
 	w_class_id _GetClassID();
+	bool PostEvent(WEvent *e);
+	virtual bool OnModify(WTextEditEvent &e);
+	virtual bool OnDefaultSelection(WTextEditEvent &e);
+	virtual bool OnVerify(WTextEditEvent &e);
 public:
-	wresult _append(const char *text, size_t length,int enc) {
-		return w_textedit_append(W_TEXTEDIT(this), text, length,enc);
+	wresult _append(const char *text, size_t length, int enc) {
+		return w_textedit_append(W_TEXTEDIT(this), text, length, enc);
 	}
 	wresult _clear_selection() {
 		return w_textedit_clear_selection(W_TEXTEDIT(this));
@@ -774,13 +783,14 @@ public:
 		return w_textedit_get_caret_line_number(W_TEXTEDIT(this));
 	}
 	wresult _get_caret_location(WPoint *location) {
-		return w_textedit_get_caret_location(W_TEXTEDIT(this), (w_point*) location);
+		return w_textedit_get_caret_location(W_TEXTEDIT(this),
+				(w_point*) location);
 	}
 	wresult _get_caret_position(int enc) {
-		return w_textedit_get_caret_position(W_TEXTEDIT(this),enc);
+		return w_textedit_get_caret_position(W_TEXTEDIT(this), enc);
 	}
 	wresult _get_char_count(int enc) {
-		return w_textedit_get_char_count(W_TEXTEDIT(this),enc);
+		return w_textedit_get_char_count(W_TEXTEDIT(this), enc);
 	}
 	wresult _get_doubleclick_enabled() {
 		return w_textedit_get_doubleclick_enabled(W_TEXTEDIT(this));
@@ -800,38 +810,39 @@ public:
 	wresult _get_line_height() {
 		return w_textedit_get_line_height(W_TEXTEDIT(this));
 	}
-	wresult _get_message(w_alloc alloc, void *user_data,int enc) {
-		return w_textedit_get_message(W_TEXTEDIT(this), alloc, user_data,enc);
+	wresult _get_message(w_alloc alloc, void *user_data, int enc) {
+		return w_textedit_get_message(W_TEXTEDIT(this), alloc, user_data, enc);
 	}
-	wresult _get_position(const WPoint *point,int enc) {
-		return w_textedit_get_position(W_TEXTEDIT(this), (w_point*) point,enc);
+	wresult _get_position(const WPoint *point, int enc) {
+		return w_textedit_get_position(W_TEXTEDIT(this), (w_point*) point, enc);
 	}
-	wresult _get_selection(WRange *range,int enc) {
-		return w_textedit_get_selection(W_TEXTEDIT(this), (w_range*) range,enc);
+	wresult _get_selection(WRange *range, int enc) {
+		return w_textedit_get_selection(W_TEXTEDIT(this), (w_range*) range, enc);
 	}
 	wresult _get_selection_count(int enc) {
-		return w_textedit_get_selection_count(W_TEXTEDIT(this),enc);
+		return w_textedit_get_selection_count(W_TEXTEDIT(this), enc);
 	}
-	wresult _get_selection_text(w_alloc alloc, void *user_data,int enc) {
-		return w_textedit_get_selection_text(W_TEXTEDIT(this), alloc, user_data,enc);
+	wresult _get_selection_text(w_alloc alloc, void *user_data, int enc) {
+		return w_textedit_get_selection_text(W_TEXTEDIT(this), alloc, user_data,
+				enc);
 	}
 	wresult _get_tabs() {
 		return w_textedit_get_tabs(W_TEXTEDIT(this));
 	}
-	wresult _get_text(w_alloc alloc, void *user_data,int enc) {
-		return w_textedit_get_text(W_TEXTEDIT(this), alloc, user_data,enc);
+	wresult _get_text(w_alloc alloc, void *user_data, int enc) {
+		return w_textedit_get_text(W_TEXTEDIT(this), alloc, user_data, enc);
 	}
-	wresult _get_text_range(const WRange *range, w_alloc alloc,
-			void *user_data,int enc) {
-		return w_textedit_get_text_range(W_TEXTEDIT(this), (w_range*) range, alloc,
-				user_data,enc);
+	wresult _get_text_range(const WRange *range, w_alloc alloc, void *user_data,
+			int enc) {
+		return w_textedit_get_text_range(W_TEXTEDIT(this), (w_range*) range,
+				alloc, user_data, enc);
 	}
-	wresult _get_text_range(const WRange &range, w_alloc alloc,
-			void *user_data,int enc) {
-		return _get_text_range(&range, alloc, user_data,enc);
+	wresult _get_text_range(const WRange &range, w_alloc alloc, void *user_data,
+			int enc) {
+		return _get_text_range(&range, alloc, user_data, enc);
 	}
 	wresult _get_text_limit(int enc) {
-		return w_textedit_get_text_limit(W_TEXTEDIT(this),enc);
+		return w_textedit_get_text_limit(W_TEXTEDIT(this), enc);
 	}
 	wresult _get_top_index() {
 		return w_textedit_get_top_index(W_TEXTEDIT(this));
@@ -839,8 +850,8 @@ public:
 	wresult _get_top_pixel() {
 		return w_textedit_get_top_pixel(W_TEXTEDIT(this));
 	}
-	wresult _insert(const char *text, size_t length,int enc) {
-		return w_textedit_insert(W_TEXTEDIT(this), text, length,enc);
+	wresult _insert(const char *text, size_t length, int enc) {
+		return w_textedit_insert(W_TEXTEDIT(this), text, length, enc);
 	}
 	wresult _paste() {
 		return w_textedit_paste(W_TEXTEDIT(this));
@@ -857,20 +868,21 @@ public:
 	wresult _set_editable(bool editable) {
 		return w_textedit_set_editable(W_TEXTEDIT(this), editable);
 	}
-	wresult _set_message(const char *message, size_t length,int enc) {
-		return w_textedit_set_message(W_TEXTEDIT(this), message, length,enc);
+	wresult _set_message(const char *message, size_t length, int enc) {
+		return w_textedit_set_message(W_TEXTEDIT(this), message, length, enc);
 	}
-	wresult _set_selection(int start,int enc) {
-		return w_textedit_set_selection(W_TEXTEDIT(this), start,enc);
+	wresult _set_selection(int start, int enc) {
+		return w_textedit_set_selection(W_TEXTEDIT(this), start, enc);
 	}
-	wresult _set_selection_range(const WRange *selection,int enc) {
-		return w_textedit_set_selection_range(W_TEXTEDIT(this), (w_range*) selection,enc);
+	wresult _set_selection_range(const WRange *selection, int enc) {
+		return w_textedit_set_selection_range(W_TEXTEDIT(this),
+				(w_range*) selection, enc);
 	}
 	wresult _set_tabs(int tabs) {
 		return w_textedit_set_tabs(W_TEXTEDIT(this), tabs);
 	}
-	wresult _set_text(const char *text, size_t length,int enc) {
-		return w_textedit_set_text(W_TEXTEDIT(this), text, length,enc);
+	wresult _set_text(const char *text, size_t length, int enc) {
+		return w_textedit_set_text(W_TEXTEDIT(this), text, length, enc);
 	}
 	wresult _set_text_limit(int limit) {
 		return w_textedit_set_text_limit(W_TEXTEDIT(this), limit);

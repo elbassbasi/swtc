@@ -13,13 +13,13 @@ wresult _w_progressbar_update(w_progressbar *progressbar) {
 	 * fix is to update the progress bar state only when realized and restore
 	 * the state when the progress bar becomes realized.
 	 */
-	if (!gtk_widget_get_realized(_W_WIDGET(progressbar)->handle))
+	GtkWidget *handle = _W_WIDGET(progressbar)->handle;
+	if (!gtk_widget_get_realized(handle))
 		return W_FALSE;
 
 	double fraction = (double) _W_PROGRESSBAR(progressbar)->selection
 			/ _W_PROGRESSBAR(progressbar)->maximum;
-	gtk_progress_bar_set_fraction(
-			GTK_PROGRESS_BAR(_W_WIDGET(progressbar)->handle), fraction);
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(handle), fraction);
 #if GTK3
 #else
 #endif

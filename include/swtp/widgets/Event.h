@@ -53,15 +53,12 @@ public:
  */
 class SWTP_PUBLIC WMouseEvent: public WEvent {
 public:
-	/**
-	 * the state of the keyboard modifier keys and mouse masks
-	 * at the time the event was generated.
-	 *
-	 * @see W_MODIFIER_MASK
-	 * @see W_BUTTON_MASK
-	 */
-	int statemask;
-	int detail;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
 	/**
 	 * the number times the mouse has been clicked, as defined
 	 * by the operating system; 1 for the first click, 2 for the
@@ -89,22 +86,22 @@ public:
 	int y;
 public:
 	bool IsAlt() {
-		return this->statemask & W_ALT;
+		return this->detail & W_ALT;
 	}
 	bool IsShift() {
-		return this->statemask & W_SHIFT;
+		return this->detail & W_SHIFT;
 	}
 	bool IsCtrl() {
-		return this->statemask & W_CTRL;
+		return this->detail & W_CTRL;
 	}
 	bool IsCommand() {
-		return this->statemask & W_COMMAND;
+		return this->detail & W_COMMAND;
 	}
 	int ToChars(char *text, size_t size, char separator, const char *label) {
 		return snprintf(text, size,
-				"%s%cstatemask = %x%cdetail = %x%cclickcount = %d%cbutton = %d%cx=%d%cy=%d",
-				label, separator, statemask, separator, detail, separator,
-				clickcount, separator, button, separator, x, separator, y);
+				"%s%cdetail = %x%cclickcount = %d%cbutton = %d%cx=%d%cy=%d",
+				label, separator, detail, separator, clickcount, separator,
+				button, separator, x, separator, y);
 	}
 	int ToChars(char *text, size_t size, char separator) {
 		return ToChars(text, size, separator, "");
@@ -135,13 +132,38 @@ public:
 class SWTP_PUBLIC WKeyEvent: public WEvent {
 public:
 	/**
-	 * the state of the keyboard modifier keys and mouse masks
-	 * at the time the event was generated.
+	 * The traversal type.
+	 * <p><ul>
+	 * <li>{@link W_TRAVERSE_NONE}</li>
+	 * <li>{@link W_TRAVERSE_ESCAPE}</li>
+	 * <li>{@link W_TRAVERSE_RETURN}</li>
+	 * <li>{@link W_TRAVERSE_TAB_NEXT}</li>
+	 * <li>{@link W_TRAVERSE_TAB_PREVIOUS}</li>
+	 * <li>{@link W_TRAVERSE_ARROW_NEXT}</li>
+	 * <li>{@link W_TRAVERSE_ARROW_PREVIOUS}</li>
+	 * <li>{@link W_TRAVERSE_MNEMONIC}</li>
+	 * <li>{@link W_TRAVERSE_PAGE_NEXT}</li>
+	 * <li>{@link W_TRAVERSE_PAGE_PREVIOUS}</li>
+	 * </ul></p>
 	 *
-	 * @see W_MODIFIER_MASK
-	 * @see W_BUTTON_MASK
+	 * Setting this field will change the type of traversal.
+	 * For example, setting the detail to <code>TRAVERSE_NONE</code>
+	 * causes no traversal action to be taken.
+	 *
+	 * When used in conjunction with the <code>doit</code> field, the
+	 * traversal detail field can be useful when overriding the default
+	 * traversal mechanism for a control. For example, setting the doit
+	 * field to <code>false</code> will cancel the operation and allow
+	 * the traversal key stroke to be delivered to the control. Setting
+	 * the doit field to <code>true</code> indicates that the traversal
+	 * described by the detail field is to be performed.
 	 */
-	int statemask;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
 	/**
 	 * the character represented by the key that was typed.
 	 * This is the final character that results after all modifiers have been
@@ -182,53 +204,25 @@ public:
 	 * @see W_KEYPAD
 	 */
 	int keylocation;
-	/**
-	 * The traversal type.
-	 * <p><ul>
-	 * <li>{@link W_TRAVERSE_NONE}</li>
-	 * <li>{@link W_TRAVERSE_ESCAPE}</li>
-	 * <li>{@link W_TRAVERSE_RETURN}</li>
-	 * <li>{@link W_TRAVERSE_TAB_NEXT}</li>
-	 * <li>{@link W_TRAVERSE_TAB_PREVIOUS}</li>
-	 * <li>{@link W_TRAVERSE_ARROW_NEXT}</li>
-	 * <li>{@link W_TRAVERSE_ARROW_PREVIOUS}</li>
-	 * <li>{@link W_TRAVERSE_MNEMONIC}</li>
-	 * <li>{@link W_TRAVERSE_PAGE_NEXT}</li>
-	 * <li>{@link W_TRAVERSE_PAGE_PREVIOUS}</li>
-	 * </ul></p>
-	 *
-	 * Setting this field will change the type of traversal.
-	 * For example, setting the detail to <code>TRAVERSE_NONE</code>
-	 * causes no traversal action to be taken.
-	 *
-	 * When used in conjunction with the <code>doit</code> field, the
-	 * traversal detail field can be useful when overriding the default
-	 * traversal mechanism for a control. For example, setting the doit
-	 * field to <code>false</code> will cancel the operation and allow
-	 * the traversal key stroke to be delivered to the control. Setting
-	 * the doit field to <code>true</code> indicates that the traversal
-	 * described by the detail field is to be performed.
-	 */
-	int detail;
 public:
 	bool IsAlt() {
-		return this->statemask & W_ALT;
+		return this->detail & W_ALT;
 	}
 	bool IsShift() {
-		return this->statemask & W_SHIFT;
+		return this->detail & W_SHIFT;
 	}
 	bool IsCtrl() {
-		return this->statemask & W_CTRL;
+		return this->detail & W_CTRL;
 	}
 	bool IsCommand() {
-		return this->statemask & W_COMMAND;
+		return this->detail & W_COMMAND;
 	}
 public:
 	int ToChars(char *text, size_t size, char separator, const char *label) {
 		return snprintf(text, size,
-				"%s%cstatemask = %x%cdetail = %x%ccharacter = %d%ckeycode = %d%ckeylocation=%d",
-				label, separator, statemask, separator, detail, separator,
-				character, separator, keycode, separator, keylocation);
+				"%s%cdetail = %x%ccharacter = %d%ckeycode = %d%ckeylocation=%d",
+				label, separator, detail, separator, character, separator,
+				keycode, separator, keylocation);
 	}
 	int ToChars(char *text, size_t size, char separator) {
 		return ToChars(text, size, separator, "");
@@ -247,17 +241,6 @@ public:
 class SWTP_PUBLIC WMenuDetectEvent: public WEvent {
 public:
 	/**
-	 * The display-relative x coordinate of the pointer
-	 * at the time the context menu trigger occurred.
-	 */
-	int x;
-
-	/**
-	 * The display-relative y coordinate of the pointer
-	 * at the time the context menu trigger occurred.
-	 */
-	int y;
-	/**
 	 * The context menu trigger type.
 	 * <p><ul>
 	 * <li>{@link W_MENU_MOUSE}</li>
@@ -271,7 +254,17 @@ public:
 	 * provide new display-relative x and y coordinates based on the current
 	 * selection or the current focus.
 	 */
-	int detail;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+	/**
+	 * The display-relative coordinate of the pointer
+	 * at the time the context menu trigger occurred.
+	 */
+	WPoint location;
 	WMenu *menu;
 };
 
@@ -281,15 +274,6 @@ public:
  */
 class SWTP_PUBLIC WGestureEvent: public WEvent {
 public:
-	/**
-	 * The state of the keyboard modifier keys and mouse masks
-	 * at the time the event was generated.
-	 *
-	 * @see W_MODIFIER_MASK
-	 * @see W_BUTTON_MASK
-	 */
-	int statemask;
-
 	/**
 	 * The gesture type.
 	 * <p><ul>
@@ -304,26 +288,16 @@ public:
 	 * This field determines the <code>GestureEvent</code> fields that contain valid data.
 	 */
 	int detail;
-
 	/**
 	 * The meaning of this field is dependent on the value of the <code>detail</code> field
-	 * and the platform.  It can represent either the x coordinate of the centroid of the
-	 * touches that make up the gesture, or the x coordinate of the cursor at the time the
+	 * and the platform.  It can represent either the coordinate of the centroid of the
+	 * touches that make up the gesture, or the coordinate of the cursor at the time the
 	 * gesture was performed.
 	 */
-	int x;
-
-	/**
-	 * The meaning of this field is dependent on the value of the <code>detail</code> field
-	 * and the platform.  It can represent either the y coordinate of the centroid of the
-	 * touches that make up the gesture, or the y coordinate of the cursor at the time the
-	 * gesture was performed.
-	 */
-	int y;
-
+	WPoint location;
 	/**
 	 * This field is valid when the <code>detail</code> field is set to <code>GESTURE_SWIPE</code>
-	 * or <code>GESTURE_PAN</code>.  Both <code>xDirection</code> and <code>yDirection</code>
+	 * or <code>GESTURE_PAN</code>.  Both <code>direction</code>
 	 * can be valid for an individual gesture.  The meaning of this field is dependent on the value
 	 * of the <code>detail</code> field.
 	 * <p>
@@ -334,22 +308,7 @@ public:
 	 * the right by this field's count of pixels and a negative value indicates a pan to the left
 	 * by this field's count of pixels.
 	 */
-	int xDirection;
-
-	/**
-	 * This field is valid when the <code>detail</code> field is set to <code>GESTURE_SWIPE</code>
-	 * or <code>GESTURE_PAN</code>.  Both <code>xDirection</code> and <code>yDirection</code>
-	 * can be valid for an individual gesture.  The meaning of this field is dependent on the value
-	 * of the <code>detail</code> field.
-	 *
-	 * If <code>detail</code> is <code>GESTURE_SWIPE</code> then a positive value indicates a downward
-	 * swipe and a negative value indicates an upward swipe.
-	 *
-	 * If <code>detail</code> is <code>GESTURE_PAN</code> then a positive value indicates a downward
-	 * pan by this field's count of pixels and a negative value indicates an upward pan by this
-	 * field's count of pixels.
-	 */
-	int yDirection;
+	WPoint direction;
 
 	/**
 	 * This field is valid when the <code>detail</code> field is set to <code>GESTURE_ROTATE</code>.
@@ -367,7 +326,18 @@ public:
 	double magnification;
 };
 class SWTP_PUBLIC WTouch {
-
+private:
+	void *handle;
+public:
+	void *id;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+	WRect bounds;
+	WPoint location;
 };
 /**
  * Instances of this class are sent in response to
@@ -375,35 +345,30 @@ class SWTP_PUBLIC WTouch {
  */
 class SWTP_PUBLIC WTouchEvent: public WEvent {
 public:
-	int touches_count;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+private:
 	/**
 	 * The set of touches representing the state of all contacts with touch input
 	 * device at the time the event was generated.
 	 *
-	 * @see org.eclipse.swt.widgets.Touch
+	 * @see WTouch
 	 */
-	WTouch *touches;
-
+	void *touches;
+public:
+	bool GetTouches(WIterator<WTouch> &touches) {
+		return w_event_touch_get_touches((w_event_touch*) this,
+				(w_iterator*) &touches);
+	}
 	/**
-	 * The state of the keyboard modifier keys and mouse masks
-	 * at the time the event was generated.
-	 *
-	 * @see W_MODIFIER_MASK
-	 * @see W_BUTTON_MASK
-	 */
-	int stateMask;
-
-	/**
-	 * The widget-relative x coordinate of the pointer
+	 * The widget-relative coordinate of the pointer
 	 * at the time the touch occurred.
 	 */
-	int x;
-
-	/**
-	 * The widget-relative y coordinate of the pointer
-	 * at the time the touch occurred.
-	 */
-	int y;
+	WPoint location;
 };
 class SWTP_PUBLIC WPaintEvent: public WEvent {
 public:
@@ -425,6 +390,34 @@ public:
 		};
 		int detail;
 	};
+};
+
+class SWTP_PUBLIC WTooltipTextEvent: public WEvent {
+public:
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+	WPoint location;
+	WValue text;
+	void SetText(const char *text) {
+		this->text.SetString(text);
+	}
+	bool CopyText(const char *text, size_t length) {
+		return this->text.CopyString(text, length);
+	}
+	bool CopyText(const char *text) {
+		return this->text.CopyString(text);
+	}
+	int Sprint(const char *format, ...) {
+		va_list args;
+		va_start(args, format);
+		int ret = this->text.Print(format, args);
+		va_end(args);
+		return ret;
+	}
 };
 
 #endif /* SWTP_WIDGETS_EVENT_H_ */

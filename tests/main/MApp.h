@@ -5,7 +5,7 @@
 #ifndef SWT_MAPP_H
 #define SWT_MAPP_H
 
-#include "MShell.h"
+#include "MFrame.h"
 
 typedef w_theme* (*_w_toolkit_custom_create_theme)(const char* name);
 class MApp : public WApp {
@@ -29,8 +29,8 @@ public:
     WToolkit* GetCustomToolkit();
     WTheme* SetCustomTheme(WTheme* theme);
     WTheme* CreateCustomTheme(const char* name);
-    WShell* NewCustomShell();
-    WShell* NewPlatformShell();
+    WFrame* NewCustomShell();
+    WFrame* NewPlatformShell();
 private:
     void LoadCustomToolkit();
 };

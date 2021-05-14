@@ -301,7 +301,10 @@ public:
 	};
 	WPoint location;
 	WToolItem *item;
-	WMenu *menu;
+	union {
+		WMenu *menu;
+		WControl *control;
+	};
 };
 /**
  * Instances of this class support the layout of selectable
@@ -542,6 +545,8 @@ protected:
 	virtual bool OnItemDefaultSelection(WToolBarEvent &e);
 	virtual bool OnItemGetMenu(WToolBarEvent &e);
 	virtual bool OnItemSetMenu(WToolBarEvent &e);
+	virtual bool OnItemGetControl(WToolBarEvent &e);
+	virtual bool OnItemSetControl(WToolBarEvent &e);
 private:
 	void *handles[(sizeof(w_toolbar) - sizeof(w_composite)) / sizeof(void*)];
 };

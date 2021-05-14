@@ -41,6 +41,7 @@ enum {
 	W_EVENT_DEFAULTSELECTION,
 	W_EVENT_FOCUSIN,
 	W_EVENT_FOCUSOUT,
+	W_EVENT_TOOLTIP_TEXT,
 	W_EVENT_ICONIFY,
 	W_EVENT_DEICONIFY,
 	W_EVENT_CLOSE,
@@ -80,6 +81,8 @@ enum {
 	W_EVENT_ITEM_ARM,
 	W_EVENT_ITEM_GET_CONTROL,
 	W_EVENT_ITEM_SET_CONTROL,
+	W_EVENT_ITEM_GET_MENU,
+	W_EVENT_ITEM_SET_MENU,
 	W_EVENT_ITEM_MEASURE,
 	W_EVENT_ITEM_ERASE,
 	W_EVENT_ITEM_PAINT,
@@ -154,10 +157,19 @@ typedef struct w_event_mouse {
 	union {
 		struct {
 			unsigned doit :1;
+			unsigned unused :14;
+			unsigned alt :1;
+			unsigned shift :1;
+			unsigned ctrl :1;
+			unsigned button1 :1;
+			unsigned button2 :1;
+			unsigned button3 :1;
+			unsigned command :1;
+			unsigned button4 :1;
+			unsigned button5 :1;
 		};
 		int detail;
 	};
-	int statemask;
 	wushort clickcount;
 	wushort button;
 	int x;
@@ -168,10 +180,19 @@ typedef struct w_event_key {
 	union {
 		struct {
 			unsigned doit :1;
+			unsigned unused :14;
+			unsigned alt :1;
+			unsigned shift :1;
+			unsigned ctrl :1;
+			unsigned button1 :1;
+			unsigned button2 :1;
+			unsigned button3 :1;
+			unsigned command :1;
+			unsigned button4 :1;
+			unsigned button5 :1;
 		};
 		int detail;
 	};
-	int statemask;
 	int character;
 	int keycode;
 	int keylocation;
@@ -203,10 +224,46 @@ typedef struct w_event_time {
 } w_event_time;
 typedef struct w_event_menu_detect {
 	w_event event;
-	w_point location;
 	int detail;
+	w_point location;
 	w_menu *menu;
 } w_event_menu_detect;
+typedef struct w_touch {
+	void *handle;
+	void *id;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+	w_rect bounds;
+	w_point location;
+} w_touch;
+typedef struct w_event_touch {
+	w_event event;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+	void *touches;
+	w_point location;
+} w_event_touch;
+SWT_PUBLIC wresult w_event_touch_get_touches(w_event_touch *event,
+		w_iterator *touches);
+typedef struct w_event_tooltip_text {
+	w_event event;
+	union {
+		struct {
+			unsigned doit :1;
+		};
+		int detail;
+	};
+	w_point location;
+	w_value text;
+} w_event_tooltip_text;
 #ifdef __cplusplus
 }
 #endif

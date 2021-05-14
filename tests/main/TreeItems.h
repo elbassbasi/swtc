@@ -10,7 +10,7 @@
 #include <swtp.h>
 class ITreeItem {
 protected:
-	friend class MPanel;
+	friend class MTreeView;
 	static void RegitreRoot(WTreeItem &root);
 public:
 	static void Regitre(WTreeItem &parent, const char *text, ITreeItem *obj);

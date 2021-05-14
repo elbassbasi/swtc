@@ -99,13 +99,11 @@ class WToolBar;
  * <p>
  * Note: Only one of the styles APPLICATION_MODAL, MODELESS,
  * PRIMARY_MODAL and SYSTEM_MODAL may be specified.
- * </p><p>
- * IMPORTANT: This class is <em>not</em> intended to be subclassed.
  * </p>
  */
-class SWTP_PUBLIC WShell: public WCanvas {
+class SWTP_PUBLIC WFrame: public WCanvas {
 public:
-	WShell() {
+	WFrame() {
 
 	}
 	/**
@@ -186,7 +184,7 @@ public:
 	 * @see SWT#SYSTEM_MODAL
 	 * @see SWT#SHEET
 	 */
-	WShell(wuint64 style) :
+	WFrame(wuint64 style) :
 			WCanvas() {
 		Create(style | W_FREE_MEMORY);
 	}
@@ -205,7 +203,7 @@ public:
 	 * @param display the display to create the shell on
 	 */
 	bool Create(WToolkit *toolkit) {
-		return Create(toolkit, W_SHELL_TRIM);
+		return Create(toolkit, W_FRAME_TRIM);
 	}
 	/**
 	 * Constructs a new instance of this class given only the display
@@ -221,9 +219,9 @@ public:
 	 *
 	 * @param display the display to create the shell on
 	 */
-	WShell(WToolkit *toolkit) :
+	WFrame(WToolkit *toolkit) :
 			WCanvas() {
-		Create(toolkit, W_SHELL_TRIM | W_FREE_MEMORY);
+		Create(toolkit, W_FRAME_TRIM | W_FREE_MEMORY);
 	}
 	/**
 	 * Constructs a new instance of this class given the display
@@ -312,7 +310,7 @@ public:
 	 * @see SWT#SYSTEM_MODAL
 	 * @see SWT#SHEET
 	 */
-	WShell(WToolkit *toolkit, wuint64 style) :
+	WFrame(WToolkit *toolkit, wuint64 style) :
 			WCanvas() {
 		Create(toolkit, style);
 	}
@@ -331,7 +329,7 @@ public:
 	 * @param parent a shell which will be the parent of the new instance
 	 *
 	 */
-	bool Create(WShell *parent) {
+	bool Create(WFrame *parent) {
 		return Create(parent, W_DIALOG_TRIM);
 	}
 	/**
@@ -348,7 +346,7 @@ public:
 	 *
 	 * @param parent a shell which will be the parent of the new instance
 	 */
-	WShell(WShell *parent) :
+	WFrame(WFrame *parent) :
 			WCanvas() {
 		Create(parent, W_DIALOG_TRIM);
 	}
@@ -393,7 +391,7 @@ public:
 	 * @see SWT#SYSTEM_MODAL
 	 * @see SWT#SHEET
 	 */
-	bool Create(WShell *parent, wuint64 style) {
+	bool Create(WFrame *parent, wuint64 style) {
 		return WControl::Create(0, parent, style);
 	}
 	/**
@@ -437,9 +435,63 @@ public:
 	 * @see SWT#SYSTEM_MODAL
 	 * @see SWT#SHEET
 	 */
-	WShell(WShell *parent, wuint64 style) :
+	WFrame(WFrame *parent, wuint64 style) :
 			WCanvas() {
 		Create(parent, style);
+	}
+	bool CreateFrame(WFrame *parent, bool delete_on_dispose,
+			bool dispose_on_close) {
+		wuint64 style = W_FRAME_TRIM;
+		if (delete_on_dispose)
+			style |= W_DELETE_ON_DISPOSE;
+		if (dispose_on_close)
+			style |= W_DISPOSE_ON_CLOSE;
+		return Create(parent, style);
+	}
+	bool CreateFrame(WFrame *parent) {
+		return Create(parent, W_FRAME_TRIM);
+	}
+	bool CreateFrame(bool delete_on_dispose, bool dispose_on_close) {
+		return CreateFrame(0, delete_on_dispose, dispose_on_close);
+	}
+	bool CreateFrame() {
+		return CreateFrame(0);
+	}
+	bool CreateDialog(WFrame *parent, bool delete_on_dispose,
+			bool dispose_on_close) {
+		wuint64 style = W_DIALOG_TRIM;
+		if (delete_on_dispose)
+			style |= W_DELETE_ON_DISPOSE;
+		if (dispose_on_close)
+			style |= W_DISPOSE_ON_CLOSE;
+		return Create(parent, style);
+	}
+	bool CreateDialog(WFrame *parent) {
+		return Create(parent, W_DIALOG_TRIM);
+	}
+	bool CreateDialog(bool delete_on_dispose, bool dispose_on_close) {
+		return CreateDialog(0, delete_on_dispose, dispose_on_close);
+	}
+	bool CreateDialog() {
+		return CreateDialog(0);
+	}
+	bool CreateWindow(WFrame *parent, bool delete_on_dispose,
+			bool dispose_on_close) {
+		wuint64 style = W_NO_TRIM;
+		if (delete_on_dispose)
+			style |= W_DELETE_ON_DISPOSE;
+		if (dispose_on_close)
+			style |= W_DISPOSE_ON_CLOSE;
+		return Create(parent, style);
+	}
+	bool CreateWindow(WFrame *parent) {
+		return Create(parent, W_NO_TRIM);
+	}
+	bool CreateWindow(bool delete_on_dispose, bool dispose_on_close) {
+		return CreateWindow(0, delete_on_dispose, dispose_on_close);
+	}
+	bool CreateWindow() {
+		return CreateWindow(0);
 	}
 	/**
 	 * Requests that the window manager close the receiver in
@@ -639,7 +691,7 @@ public:
 	 * <p>
 	 * @return the dialog shells
 	 */
-	bool GetShells(WIterator<WShell*> &shells) {
+	bool GetShells(WIterator<WFrame*> &shells) {
 		return _get_shells(shells) > 0;
 	}
 	/**
@@ -828,6 +880,9 @@ public:
 	bool SetMenuBar(WMenuBase *menu) {
 		return _set_menu_bar(menu) > 0;
 	}
+	bool SetMenuBar(WMenuBase& menu) {
+		return SetMenuBar(&menu);
+	}
 	/**
 	 * Sets the minimized stated of the receiver.
 	 * If the argument is <code>true</code> causes the receiver
@@ -929,9 +984,9 @@ public:
 	static bool IsShell(WWidget *widget) {
 		return widget->GetClassId() >= _W_CLASS_SHELL;
 	}
-	static WShell* ToShell(WWidget *widget) {
+	static WFrame* ToShell(WWidget *widget) {
 		if (IsShell(widget))
-			return (WShell*) widget;
+			return (WFrame*) widget;
 		else
 			return 0;
 	}
@@ -945,14 +1000,6 @@ protected:
 	virtual bool OnDeactivate(WEvent &e);
 	virtual bool OnNotify(WEvent &e);
 public:
-	WResult _create(WToolkit *toolkit, WShell *parent, wuint64 style,
-			w_widget_post_event_proc post_event) {
-		return w_shell_create(W_SHELL(this), (w_toolkit*) toolkit,
-				W_SHELL(parent), style, post_event_proc);
-	}
-	WResult _create(WToolkit *toolkit, WShell *parent, wuint64 style) {
-		return _create(toolkit, parent, style, WWidget::post_event_proc);
-	}
 	WResult _close() {
 		return w_shell_close(W_SHELL(this));
 	}
@@ -989,7 +1036,7 @@ public:
 	WResult _get_ime_input_mode() {
 		return w_shell_get_ime_input_mode(W_SHELL(this));
 	}
-	WResult _get_shells(WIterator<WShell*> &shells) {
+	WResult _get_shells(WIterator<WFrame*> &shells) {
 		return w_shell_get_shells(W_SHELL(this), (w_iterator*) &shells);
 	}
 	WResult _get_text(w_alloc alloc, void *user_data, int enc) {
@@ -1043,7 +1090,7 @@ private:
 };
 
 namespace swt {
-typedef ::WShell Shell;
+typedef ::WFrame Frame;
 }  // namespace swt
 
 #endif /* SWTP_WIDGETS_SHELL_H_ */
