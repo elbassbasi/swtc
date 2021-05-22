@@ -15,7 +15,7 @@ public:
 	static void Registre(WTreeItem &parent);
 	void CreateControl(WComposite *parent);
 protected:
-	bool OnNotify(WEvent &e);
+	bool OnNotifySelection(WEvent &e);
 public:
 	WGridLayout layout;
 	WLabel label[3];

@@ -178,9 +178,9 @@ typedef struct _w_control_priv _w_control_priv;
 struct _w_widget_priv {
 	void (*destroy)(w_widget *widget);
 	wresult (*window_proc)(w_widget *widget, _w_event_platform *e,
-			_w_widget_priv *priv);
+			_w_control_priv *priv);
 	wresult (*call_window_proc)(w_widget *widget, _w_event_platform *e,
-			_w_widget_priv *priv);
+			_w_control_priv *priv);
 };
 #define _W_WIDGET_PRIV(x) ((_w_widget_priv*)x)
 #define _W_WIDGET_GET_PRIV(x) ((_w_widget_priv*)_w_widget_get_priv(W_WIDGET(x)))
@@ -192,6 +192,8 @@ w_widget* _w_widget_find_control(HWND hwnd);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
 wresult _w_widget_send_event(w_widget *widget, w_event *event);
+int _w_translate_key(int key);
+int _w_untranslate_key(int key);
 void _w_widget_class_init(struct _w_widget_class *clazz);
 /*
  * messages

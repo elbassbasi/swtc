@@ -26,7 +26,7 @@ size_t WFileDialogSelectedFile::_alloc(void *user_data, size_t size,
 		void **buf) {
 	WFileDialogSelectedFile *file = (WFileDialogSelectedFile*) user_data;
 	if (file->mem_alloc < size) {
-		char *text =(char *) realloc(file->text, size);
+		char *text = (char*) realloc(file->text, size);
 		if (text != 0) {
 			file->text = text;
 			file->mem_alloc = size;
@@ -69,7 +69,7 @@ void WWidget::OnDispose(WEvent &e) {
 
 void WWidget::SetListener(IWListener *listener) {
 	IWListener *last = GetListener();
-	SetData(2, listener);
+	SetData(__DATA_LISTENER, listener);
 	if (listener != 0)
 		listener->IncRef();
 	if (last != 0)
@@ -118,6 +118,42 @@ void WWidget::SetListenerFunction(const WListenerFunction &function) {
 	listener->CreateRef();
 	SetListener(listener);
 }
+
+bool WWidget::OnNotifySelection(WEvent &e) {
+	return false;
+}
+
+bool WWidget::OnNotifyItemSelection(WEvent &e) {
+	return false;
+}
+
+bool WWidget::OnNotifyItemDispose(WEvent &e) {
+	return false;
+}
+
+bool WWidget::NotifySelection(WEvent &e) {
+	IWNotify *notify = GetNotify();
+	if (notify != 0) {
+		return notify->OnNotifySelection(e);
+	}
+	return false;
+}
+bool WWidget::NotifyItemSelection(WEvent &e) {
+	IWNotify *notify = GetNotify();
+	if (notify != 0) {
+		return notify->OnNotifyItemSelection(e);
+	}
+	return false;
+}
+
+bool WWidget::NotifyItemDispose(WEvent &e) {
+	IWNotify *notify = GetNotify();
+	if (notify != 0) {
+		return notify->OnNotifyItemDispose(e);
+	}
+	return false;
+}
+
 void WWidget::SetSelectionFunction(const WSelectionFunction &function) {
 	WSelectionListener *listener = new WSelectionListener();
 	listener->function = function;
@@ -323,7 +359,7 @@ bool WMenu::OnItemHelp(WMenuEvent &e) {
 	if (listener)
 		return listener->HandleEvent(static_cast<WEvent*>(&e));
 	else
-		return Notify(e);
+		return false;
 }
 
 bool WMenu::OnItemSelection(WMenuEvent &e) {
@@ -333,14 +369,14 @@ bool WMenu::OnItemSelection(WMenuEvent &e) {
 	else {
 		if (this->items != 0) {
 			wushort id = e.item->GetId();
-			WControl::SelectionAction action = this->items[id].action;
-			if (action != 0 && this->notifyControl != 0) {
-				WControl *c = this->notifyControl;
-				(c->*action)(&e);
+			IWNotify::SelectionAction action = this->items[id].action;
+			IWNotify *notify = GetNotify();
+			if (action != 0 && notify != 0) {
+				(notify->*action)(&e);
 			}
 		}
 	}
-	return Notify(e);
+	return NotifyItemSelection(e);
 }
 
 bool WMenu::OnItemDispose(WMenuEvent &e) {
@@ -349,8 +385,9 @@ bool WMenu::OnItemDispose(WMenuEvent &e) {
 		bool ret = listener->HandleEvent(static_cast<WEvent*>(&e));
 		e->SetListener(0);
 		return ret;
-	} else
-		return Notify(e);
+	} else {
+		return NotifyItemDispose(e);
+	}
 }
 
 bool WMenu::OnItemAdded(WMenuEvent &e) {
@@ -361,29 +398,15 @@ bool WMenu::OnItemAdded(WMenuEvent &e) {
 		return false;
 }
 
-bool WMenu::Notify(WEvent &e) {
-	WControl *c = this->GetParent();
-	WComposite *composite;
-	if (WComposite::IsComposite(c)) {
-		composite = (WComposite*) c;
-	} else {
-		composite = c->GetParent();
-	}
-	if (composite->IsOk()) {
-		return WComposite::_Notify(composite, e);
-	} else
-		return false;
-}
-
 void WMenu::OnDispose(WEvent &e) {
 	WWidget::OnDispose(e);
 	this->items = 0;
 }
 
-bool WMenu::CreateItems(WControl *notify, WImageList *imagelist,
+bool WMenu::CreateItems(IWNotify *notify, WImageList *imagelist,
 		WMenuItems *items, size_t length) {
 	WMenuItem item;
-	this->notifyControl = notify;
+	SetNotify(notify);
 	GetRoot(item);
 	size_t start = 0;
 	this->items = items;
@@ -637,14 +660,6 @@ bool WControl::OnTimer(WTimerEvent &e) {
 bool WControl::OnTooltipText(WTooltipTextEvent &e) {
 	return false;
 }
-
-bool WControl::Notify(WEvent &e) {
-	WComposite *parent = GetParent();
-	if (parent != 0) {
-		return WComposite::_Notify(parent, e);
-	} else
-		return false;
-}
 /*
  * Scrollable
  */
@@ -703,10 +718,6 @@ bool WComposite::PostEvent(WEvent *e) {
 
 bool WComposite::OnLayout(WEvent &e) {
 	return false;
-}
-
-bool WComposite::OnNotify(WEvent &e) {
-	return WControl::Notify(e);
 }
 /*
  * canvas
@@ -997,8 +1008,22 @@ bool WButton::PostEvent(WEvent *e) {
 w_class_id WButton::_GetClassID() {
 	return _W_CLASS_BUTTON;
 }
+
+WResult WButton::Create(WToolkit *toolkit, WComposite *parent, wuint64 style) {
+	WResult ret = WControl::Create(toolkit, parent, style);
+	SetNotify(parent);
+	return ret;
+}
+
 bool WButton::OnSelection(WSelectionEvent &e) {
-	return WControl::Notify(e);
+	void *_action = GetData(__DATA_CPP_FUNCTION);
+	IWNotify::SelectionAction action = *((IWNotify::SelectionAction*) &_action);
+	if (action != 0) {
+		IWNotify *notify = GetNotify();
+		(notify->*action)(&e);
+		return false;
+	} else
+		return NotifySelection(e);
 }
 /*
  * WComboBox
@@ -1061,8 +1086,14 @@ bool WSash::PostEvent(WEvent *e) {
 	}
 }
 
+WResult WSash::Create(WToolkit *toolkit, WComposite *parent, wuint64 style) {
+	WResult ret = WControl::Create(toolkit, parent, style);
+	SetNotify(parent);
+	return ret;
+}
+
 bool WSash::OnSelection(WSashEvent &e) {
-	return Notify(e);
+	return NotifySelection(e);
 }
 /*
  *
@@ -1079,7 +1110,7 @@ bool WSlider::PostEvent(WEvent *e) {
 }
 
 bool WSlider::OnSelection(WSelectionEvent &e) {
-	return WControl::Notify(e);
+	return NotifySelection(e);
 }
 /*
  *
@@ -1181,9 +1212,6 @@ bool WToolBar::PostEvent(WEvent *e) {
 	case W_EVENT_ITEM_SELECTION:
 		return OnItemSelection(static_cast<WToolBarEvent&>(*e));
 		break;
-	case W_EVENT_ITEM_DEFAULTSELECTION:
-		return OnItemDefaultSelection(static_cast<WToolBarEvent&>(*e));
-		break;
 	case W_EVENT_ITEM_GET_MENU:
 		return OnItemGetMenu(static_cast<WToolBarEvent&>(*e));
 		break;
@@ -1201,11 +1229,7 @@ bool WToolBar::PostEvent(WEvent *e) {
 }
 
 bool WToolBar::OnItemSelection(WToolBarEvent &e) {
-	return WControl::Notify(e);
-}
-
-bool WToolBar::OnItemDefaultSelection(WToolBarEvent &e) {
-	return false;
+	return NotifyItemSelection(e);
 }
 
 bool WToolBar::OnItemGetMenu(WToolBarEvent &e) {
@@ -1230,6 +1254,12 @@ bool WToolBar::OnItemGetControl(WToolBarEvent &e) {
 		return true;
 	} else
 		return false;
+}
+
+WResult WToolBar::Create(WToolkit *toolkit, WComposite *parent, wuint64 style) {
+	WResult result = WComposite::Create(toolkit, parent, style);
+	SetNotify(parent);
+	return result;
 }
 
 bool WToolBar::OnItemSetControl(WToolBarEvent &e) {

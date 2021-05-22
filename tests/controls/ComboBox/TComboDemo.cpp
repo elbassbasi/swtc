@@ -46,7 +46,7 @@ void TComboDemo::CreateControl(WComposite *parent) {
 	CreateControls(2, "Simple", W_SIMPLE);
 }
 
-bool TComboDemo::OnNotify(WEvent &e) {
+bool TComboDemo::OnNotifySelection(WEvent &e) {
 	wuint id = e.widget->GetId();
 	if (id != 0) {
 		WString text = combo[id - 1].GetText();

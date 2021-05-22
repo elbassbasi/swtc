@@ -22,6 +22,7 @@ void TSliderDemo::CreateControl(WComposite *parent) {
 		slider[i].Create(this, st);
 		if (st & W_VERTICAL) {
 			data.Init(W_GRID_FILL_VERTICAL);
+			data.verticalSpan = length;
 		} else {
 			data.Init(W_GRID_FILL_HORIZONTAL);
 			data.horizontalSpan = layout.numColumns;
@@ -30,25 +31,29 @@ void TSliderDemo::CreateControl(WComposite *parent) {
 		slider[i].SetMaximum(100);
 		slider[i].SetId(i);
 	}
-	label.Create(this, W_NONE);
-	data.Init(W_GRID_FILL_BOTH);
-	label.SetLayoutData(data);
-	SetLabelText(&slider[0]);
+	for (int i = 0; i < length; i++) {
+		label[i].Create(this, W_NONE);
+		data.Init(W_GRID_FILL_BOTH);
+		label[i].SetLayoutData(data);
+		SetLabelText(i);
+	}
 }
 
-void TSliderDemo::SetLabelText(WSlider *slider) {
+void TSliderDemo::SetLabelText(wuint index) {
+	if (index >= length)
+		return;
 	char txt[30];
+	WSlider *slider = &this->slider[index];
 	int maximum = slider->GetMaximum();
 	int selection = slider->GetSelection();
-	snprintf(txt, sizeof(txt), "slider %d : %d/%d", slider->GetId(), selection,
-			maximum);
-	label.SetText(txt);
+	snprintf(txt, sizeof(txt), "slider %d : %d/%d", index, selection, maximum);
+	label[index].SetText(txt);
 }
 
-bool TSliderDemo::OnNotify(WEvent &e) {
+bool TSliderDemo::OnNotifySelection(WEvent &e) {
 	if (WSlider::IsSlider(e.widget)) {
 		WSlider *slider = static_cast<WSlider*>(e.widget);
-		SetLabelText(slider);
+		SetLabelText(slider->GetId());
 		return true;
 	}
 	return false;

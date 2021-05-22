@@ -38,7 +38,7 @@ void TLogin::CreateControl(WComposite *parent) {
 	button.SetLayoutData(WGridData(WGridData::HORIZONTAL_ALIGN_CENTER, 2, 1));
 	button.SetId(1);
 }
-bool TLogin::OnNotify(WEvent &e) {
+bool TLogin::OnNotifySelection(WEvent &e) {
 	char txt[0x100];
 	if (e.widget->GetId() == 1) {
 		snprintf(txt, sizeof(txt), "User name:%s\nPassword:%s",

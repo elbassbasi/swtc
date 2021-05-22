@@ -13,7 +13,7 @@ public:
 	static void Registre(WTreeItem &parent);
 	void CreateControl(WComposite *parent);
 	bool OnTimer(WTimerEvent& e);
-	bool OnNotify(WEvent &e);
+	bool OnNotifySelection(WEvent &e);
 	WGridLayout layout;
 	WProgressBar progress;
 	WProgressBar vertical;

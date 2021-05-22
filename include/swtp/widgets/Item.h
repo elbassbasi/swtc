@@ -115,6 +115,11 @@ public:
 		_get_text(w_alloc_string_ref, &str.ref, W_ENCODING_UTF8);
 		return str;
 	}
+	std::string GetTextStd() {
+		std::string str;
+		_get_text(w_alloc_std_string, &str, W_ENCODING_UTF8);
+		return str;
+	}
 	/**
 	 * Sets the receiver's text.
 	 * <p>

@@ -46,7 +46,7 @@ void _w_scrollable_get_horizontal_bar(w_scrollable *scrollable,
 	_W_WIDGETDATA(scrollbar)->clazz = W_WIDGETDATA_CLASS(
 			W_SCROLLABLE_GET_CLASS(scrollable)->class_scrollbar);
 	_W_SCROLLBAR(scrollbar)->type = SB_HORZ;
-	_W_SCROLLBAR(scrollbar)->scrollable = scrollable;
+	_W_SCROLLBAR(scrollbar)->parent = scrollable;
 }
 int _w_scrollable_get_scrollbars_mode(w_scrollable *scrollable) {
 	return 0;
@@ -56,7 +56,7 @@ void _w_scrollable_get_vertical_bar(w_scrollable *scrollable,
 	_W_WIDGETDATA(scrollbar)->clazz = W_WIDGETDATA_CLASS(
 			W_SCROLLABLE_GET_CLASS(scrollable)->class_scrollbar);
 	_W_SCROLLBAR(scrollbar)->type = SB_VERT;
-	_W_SCROLLBAR(scrollbar)->scrollable = scrollable;
+	_W_SCROLLBAR(scrollbar)->parent = scrollable;
 }
 wresult _w_scrollable_compute_trim(w_widget *widget, w_event_compute_trim *e,
 		_w_control_priv *priv) {

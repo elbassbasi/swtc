@@ -19,7 +19,7 @@ public:
 	WButton copy;
 	WButton paste;
 protected:
-	bool OnNotify(WEvent &e);
+	bool OnNotifySelection(WEvent &e);
 	bool OnCopy();
 	bool OnPaste();
 };

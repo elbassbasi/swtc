@@ -30,7 +30,7 @@ typedef struct w_dialog_color {
 	size_t count;
 } w_dialog_color;
 
-wresult w_dialog_color_open(w_toolkit *toolkit, w_dialog_color *dialog_color);
+SWT_PUBLIC wresult w_dialog_color_open(w_toolkit *toolkit, w_dialog_color *dialog_color);
 
 typedef struct w_dialog_font {
 	w_shell *parent;

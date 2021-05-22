@@ -105,8 +105,9 @@ public:
 	 *
 	 * @return the receiver's bounding rectangle
 	 */
-	WRect& GetBounds(const WRect &rect = WRect()) {
-		return GetBounds((WRect&) rect);
+	WRect GetBounds() {
+		WRect rect;
+		return GetBounds(rect);
 	}
 	/**
 	 * Returns the control that is used to fill the bounds of
@@ -134,6 +135,9 @@ public:
 	}
 	wushort GetID() {
 		return w_toolitem_get_id(W_TOOLITEM(this));
+	}
+	int GetImage() {
+		return w_toolitem_get_image(W_TOOLITEM(this));
 	}
 	WMenu* GetMenu() {
 		WMenu *menu;
@@ -242,6 +246,9 @@ public:
 	bool SetMenu(WMenu *menu) {
 		return w_toolitem_set_menu(W_TOOLITEM(this), W_MENU(menu)) > 0;
 	}
+	bool SetMenu(WMenu &menu) {
+		return SetMenu(&menu);
+	}
 	/**
 	 * Sets the selection state of the receiver.
 	 * <p>
@@ -331,6 +338,7 @@ public:
  */
 class SWTP_PUBLIC WToolBar: public WComposite {
 public:
+	using WControl::Create;
 	WToolBar() {
 
 	}
@@ -362,6 +370,7 @@ public:
 	WToolBar(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
+	WResult Create(WToolkit *toolkit, WComposite *parent, wuint64 style);
 	WImageList* GetImageList() {
 		WImageList *imagelist;
 		w_toolbar_get_imagelist(W_TOOLBAR(this), (w_imagelist**) &imagelist);
@@ -456,8 +465,12 @@ public:
 			return 0;
 	}
 public:
-	WToolItem& Insert(WToolItem &item, const char *text, int style, int index) {
+	WToolItem& Insert(WToolItem &item, int style, int index) {
 		w_toolbar_insert_item(W_TOOLBAR(this), W_TOOLITEM(&item), style, index);
+		return item;
+	}
+	WToolItem& Insert(WToolItem &item, const char *text, int style, int index) {
+		Insert(item, style, index);
 		item.SetText(text);
 		return item;
 	}
@@ -476,9 +489,6 @@ public:
 	/*
 	 * insert with text null
 	 */
-	WToolItem& Insert(WToolItem &item, int style, int index) {
-		return Insert(item, 0, style, index);
-	}
 	WToolItem& InsertPush(WToolItem &item, int index) {
 		return Insert(item, W_PUSH, index);
 	}
@@ -516,7 +526,7 @@ public:
 	 * append
 	 */
 	WToolItem& Append(WToolItem &item, int style) {
-		return Append(item, 0, style);
+		return Insert(item, style, -1);
 	}
 	WToolItem& AppendPush(WToolItem &item) {
 		return Append(item, W_PUSH);
@@ -542,7 +552,6 @@ protected:
 	w_class_id _GetClassID();
 	virtual bool PostEvent(WEvent *e);
 	virtual bool OnItemSelection(WToolBarEvent &e);
-	virtual bool OnItemDefaultSelection(WToolBarEvent &e);
 	virtual bool OnItemGetMenu(WToolBarEvent &e);
 	virtual bool OnItemSetMenu(WToolBarEvent &e);
 	virtual bool OnItemGetControl(WToolBarEvent &e);

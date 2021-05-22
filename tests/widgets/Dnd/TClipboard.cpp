@@ -30,7 +30,7 @@ void TClipboard::CreateControl(WComposite *parent) {
 	text.SetLayoutData(WGridData(W_GRID_FILL_BOTH, 2, 1));
 }
 
-bool TClipboard::OnNotify(WEvent &e) {
+bool TClipboard::OnNotifySelection(WEvent &e) {
 	if (e.widget->GetId() == 1)
 		return OnCopy();
 	if (e.widget->GetId() == 2)

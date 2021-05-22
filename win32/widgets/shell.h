@@ -11,12 +11,26 @@
 /*
  * shell
  */
+typedef struct _w_menu_id {
+	HMENU menu;
+	int index;
+	int accelerator;
+	HBITMAP image;
+	char *tooltips;
+} _w_menu_id;
+typedef struct _w_menu_ids {
+	int alloc;
+	int count;
+	_w_menu_id id[0];
+} _w_menu_ids;
 typedef struct _w_shell _w_shell;
 struct _w_shell {
 	_w_canvas canvas;
 	_w_shell *next;
 	_w_shell *prev;
 	w_menu *menubar;
+	_w_menu_ids *ids;
+	HACCEL hAccel;
 	WNDPROC windowProc;
 	unsigned swFlags :4;
 	unsigned center :1;
@@ -34,7 +48,11 @@ struct _w_shell_priv {
 /*
  * functions
  */
-void _w_shell_bring_totop(w_shell* shell);
+int _w_shell_registre_menuitem_id(w_shell *shell, w_menuitem *item,
+		_w_menu_id **id);
+int _w_shell_create_accelerators(w_shell *shell);
+void _w_shell_destroy_accelerators(w_shell *shell);
+void _w_shell_bring_totop(w_shell *shell);
 void _w_shell_class_init(struct _w_shell_class *clazz);
 /*
  * messages

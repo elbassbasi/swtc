@@ -43,6 +43,7 @@ struct _w_toolitem_class {
 	wresult (*get_control)(w_toolitem *item, w_control **control);
 	wresult (*get_enabled)(w_toolitem *item);
 	wresult (*get_id)(w_toolitem *item);
+	wresult (*get_image)(w_toolitem *item);
 	wresult (*get_menu)(w_toolitem *item, w_menu **menu);
 	wresult (*get_selection)(w_toolitem *item);
 	wresult (*get_style)(w_toolitem *item);
@@ -80,6 +81,7 @@ SWT_PUBLIC wresult w_toolitem_get_control(w_toolitem *item,
 		w_control **control);
 SWT_PUBLIC wresult w_toolitem_get_enabled(w_toolitem *item);
 SWT_PUBLIC wresult w_toolitem_get_id(w_toolitem *item);
+SWT_PUBLIC wresult w_toolitem_get_image(w_toolitem *item);
 SWT_PUBLIC wresult w_toolitem_get_menu(w_toolitem *item, w_menu **menu);
 SWT_PUBLIC wresult w_toolitem_get_selection(w_toolitem *item);
 SWT_PUBLIC wresult w_toolitem_get_style(w_toolitem *item);

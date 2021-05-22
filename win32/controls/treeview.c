@@ -116,22 +116,20 @@ wresult _w_treeitem_clear(w_treeitem *item, int index, int all) {
 wresult _w_treeitem_clear_all(w_treeitem *item, int all) {
 	return W_FALSE;
 }
-wresult _w_treeitem_get_bounds(w_treeitem *item, w_rect *bounds) {
+wresult _w_treeitem_get_bounds(w_listitem *item, w_rect *bounds) {
 	return W_FALSE;
 }
-wresult _w_treeitem_get_checked(w_treeitem *item) {
+wresult _w_treeitem_get_checked(w_listitem *item) {
 	return W_FALSE;
 }
 wresult _w_treeitem_get_expanded(w_treeitem *item) {
 	return W_FALSE;
 }
-wresult _w_treeitem_get_first_child(w_treeitem *item, w_treeitem *child) {
+wresult _w_treeitem_get_grayed(w_listitem *item) {
 	return W_FALSE;
 }
-wresult _w_treeitem_get_grayed(w_treeitem *item) {
-	return W_FALSE;
-}
-wresult _w_treeitem_get_item(w_treeitem *item, int index, w_treeitem *subitem) {
+wresult _w_treeitem_get_item(w_treeitem *item, int index, w_treeitem *subitem,
+		int flags) {
 	return W_FALSE;
 }
 wresult _w_treeitem_get_item_count(w_treeitem *item) {
@@ -143,20 +141,8 @@ wresult _w_treeitem_get_items(w_treeitem *item, w_iterator *items) {
 wresult _w_treeitem_get_image(w_treeitem *item) {
 	return W_FALSE;
 }
-wresult _w_treeitem_get_last_child(w_treeitem *item, w_treeitem *child) {
-	return W_FALSE;
-}
-wresult _w_treeitem_get_next_sibling(w_treeitem *item, w_treeitem *next) {
-	return W_FALSE;
-}
-wresult _w_treeitem_get_parent_item(w_treeitem *item, w_treeitem *parent) {
-	return W_FALSE;
-}
-wresult _w_treeitem_get_prev_sibling(w_treeitem *item, w_treeitem *prev) {
-	return W_FALSE;
-}
 wresult _w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
-		int index) {
+		int index, w_treeitem *after, int flags) {
 	w_widget *tree = _W_ITEM(item)->parent;
 	HTREEITEM i = _w_treeview_find_previous(_W_WIDGET(tree)->handle,
 	_W_TREEITEM(item)->htreeitem, index);
@@ -164,20 +150,16 @@ wresult _w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
 		return W_ERROR_INVALID_RANGE;
 	return _w_treeitem_insert_item_0(item, subitem, i);
 }
-wresult _w_treeitem_insert_item_after(w_treeitem *item, w_treeitem *subitem,
-		w_treeitem *after) {
-	return W_FALSE;
-}
 wresult _w_treeitem_remove_all(w_treeitem *item) {
 	return W_FALSE;
 }
-wresult _w_treeitem_set_checked(w_treeitem *item, int checked) {
+wresult _w_treeitem_set_checked(w_listitem *item, int checked) {
 	return W_FALSE;
 }
 wresult _w_treeitem_set_expanded(w_treeitem *item, int expanded) {
 	return W_FALSE;
 }
-wresult _w_treeitem_set_grayed(w_treeitem *item, int grayed) {
+wresult _w_treeitem_set_grayed(w_listitem *item, int grayed) {
 	return W_FALSE;
 }
 wresult _w_treeitem_set_has_children(w_treeitem *item) {
@@ -645,28 +627,22 @@ void _w_treeview_class_init(struct _w_treeview_class *clazz) {
 	W_ITEM_CLASS(treeitem)->get_text = _w_treeitem_get_text;
 	W_ITEM_CLASS(treeitem)->set_data = _w_treeitem_set_data;
 	W_ITEM_CLASS(treeitem)->set_text = _w_treeitem_set_text;
+	W_LISTITEM_CLASS(treeitem)->get_bounds = _w_treeitem_get_bounds;
+	W_LISTITEM_CLASS(treeitem)->get_checked = _w_treeitem_get_checked;
+	W_LISTITEM_CLASS(treeitem)->get_grayed = _w_treeitem_get_grayed;
+	W_LISTITEM_CLASS(treeitem)->get_image = _w_treeitem_get_image;
+	W_LISTITEM_CLASS(treeitem)->set_checked = _w_treeitem_set_checked;
+	W_LISTITEM_CLASS(treeitem)->set_grayed = _w_treeitem_set_grayed;
+	W_LISTITEM_CLASS(treeitem)->set_image = _w_treeitem_set_image;
 	treeitem->clear = _w_treeitem_clear;
 	treeitem->clear_all = _w_treeitem_clear_all;
-	treeitem->get_bounds = _w_treeitem_get_bounds;
-	treeitem->get_checked = _w_treeitem_get_checked;
 	treeitem->get_expanded = _w_treeitem_get_expanded;
-	treeitem->get_first_child = _w_treeitem_get_first_child;
-	treeitem->get_grayed = _w_treeitem_get_grayed;
 	treeitem->get_item = _w_treeitem_get_item;
 	treeitem->get_item_count = _w_treeitem_get_item_count;
 	treeitem->get_items = _w_treeitem_get_items;
-	treeitem->get_image = _w_treeitem_get_image;
-	treeitem->get_last_child = _w_treeitem_get_last_child;
-	treeitem->get_next_sibling = _w_treeitem_get_next_sibling;
-	treeitem->get_parent_item = _w_treeitem_get_parent_item;
-	treeitem->get_prev_sibling = _w_treeitem_get_prev_sibling;
 	treeitem->insert_item = _w_treeitem_insert_item;
-	treeitem->insert_item_after = _w_treeitem_insert_item_after;
 	treeitem->remove_all = _w_treeitem_remove_all;
-	treeitem->set_checked = _w_treeitem_set_checked;
 	treeitem->set_expanded = _w_treeitem_set_expanded;
-	treeitem->set_grayed = _w_treeitem_set_grayed;
-	treeitem->set_image = _w_treeitem_set_image;
 	treeitem->set_has_children = _w_treeitem_set_has_children;
 	/*
 	 * private

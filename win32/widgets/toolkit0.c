@@ -450,10 +450,38 @@ wresult _w_toolkit_post_quit(w_toolkit *toolkit, int quit) {
 	PostQuitMessage(quit);
 	return TRUE;
 }
+wresult _w_toolkit_filter_message(MSG *msg) {
+	int message = msg->message;
+	if (WM_KEYFIRST <= message && message <= WM_KEYLAST) {
+		w_control *control = _w_widget_find_control(msg->hwnd);
+		if (control != 0) {
+			_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+			wresult result = W_FALSE;
+			win_toolkit->accelKeyHit = TRUE;
+			result = priv->translate_accelerator(control, msg, priv);
+			win_toolkit->accelKeyHit = FALSE;
+			if (!result) {
+				//result = priv->translate_mnemonic(control, msg, priv);
+			}
+			if (!result) {
+				//result = priv->translate_traversal(control, msg, priv);
+			}
+			if (result) {
+				win_toolkit->lastAscii = win_toolkit->lastKey = 0;
+				win_toolkit->lastVirtual = win_toolkit->lastNull =
+						win_toolkit->lastDead = FALSE;
+				return W_TRUE;
+			}
+		}
+	}
+	return W_FALSE;
+}
 wresult _w_toolkit_dispatch(w_toolkit *toolkit) {
 	w_event _e;
-	TranslateMessage(&win_toolkit->msg);
-	DispatchMessageW(&win_toolkit->msg);
+	if (!_w_toolkit_filter_message(&win_toolkit->msg)) {
+		TranslateMessage(&win_toolkit->msg);
+		DispatchMessageW(&win_toolkit->msg);
+	}
 	if (win_toolkit->msg.message == WM_ASYNCEXEC) {
 		((w_thread_start) win_toolkit->msg.lParam)(
 				(void*) win_toolkit->msg.wParam);

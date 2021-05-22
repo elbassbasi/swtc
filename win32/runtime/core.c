@@ -7,8 +7,8 @@
  */
 #include "core.h"
 #include "../widgets/toolkit.h"
-wresult _win_text_fix(const char *text, int text_length, int enc, WCHAR **str,
-		int *newlength) {
+wresult _win_text_fix_0(const char *text, int text_length, int enc, int adding,
+		WCHAR **str, int *newlength) {
 	*str = 0;
 	*newlength = 0;
 	if (text == 0)
@@ -16,16 +16,16 @@ wresult _win_text_fix(const char *text, int text_length, int enc, WCHAR **str,
 	WCHAR *s;
 	if ((enc & 0xFF) == W_ENCODING_UNICODE
 			|| (enc & 0xFF) == W_ENCODING_PLATFORM) {
-		if (text_length == -1) {
+		if (text_length == -1 && adding == 0) {
 			s = (WCHAR*) text;
 			*newlength = lstrlenW(s);
 		} else {
 			size_t total;
-			s = _w_toolkit_malloc((text_length + 1) * sizeof(WCHAR));
+			s = _w_toolkit_malloc((text_length + adding + 1) * sizeof(WCHAR));
 			if (s != 0) {
 				memcpy(s, text, text_length * sizeof(WCHAR));
 				s[text_length] = 0;
-				*newlength = text_length + 1;
+				*newlength = text_length + adding + 1;
 			} else
 				*newlength = 0;
 		}
@@ -35,19 +35,23 @@ wresult _win_text_fix(const char *text, int text_length, int enc, WCHAR **str,
 		size_t l = w_utf8_to_utf16(text, text_length, s, total / sizeof(WCHAR));
 		if (((l + 1) * sizeof(WCHAR)) > total) {
 			win_toolkit->tmp_length -= total;
-			s = _w_toolkit_malloc((l + 1) * sizeof(WCHAR));
+			s = _w_toolkit_malloc((l + adding + 1) * sizeof(WCHAR));
 			if (s != 0) {
-				w_utf8_to_utf16(text, text_length, s, l + 1);
-				*newlength = l + 1;
+				w_utf8_to_utf16(text, text_length, s, l + adding + 1);
+				*newlength = l + adding + 1;
 			} else
 				*newlength = 0;
 		} else {
-			win_toolkit->tmp_length += (l + 1) * sizeof(WCHAR) - total;
-			*newlength = l + 1;
+			win_toolkit->tmp_length += (l + adding + 1) * sizeof(WCHAR) - total;
+			*newlength = l + adding + 1;
 		}
 	}
 	*str = s;
 	return W_TRUE;
+}
+wresult _win_text_fix(const char *text, int text_length, int enc, WCHAR **str,
+		int *newlength) {
+	return _win_text_fix_0(text, text_length, enc, 0, str, newlength);
 }
 void _win_text_free(const char *text, WCHAR *alloc, int length) {
 	if ((WCHAR*) text == alloc || alloc == 0)

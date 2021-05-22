@@ -12,13 +12,17 @@
  * states
  */
 #define STATE_CANVAS (1 << (STATE_CONTROL_END + 0))
-#define STATE_SCROLLABLE_END (STATE_CONTROL_END + 1)
+#define STATE_HSCROLLBAR_DISABLED (1 << (STATE_CONTROL_END + 1))
+#define STATE_VSCROLLBAR_DISABLED (1 << (STATE_CONTROL_END + 2))
+#define STATE_HSCROLLBAR_HIDDEN (1 << (STATE_CONTROL_END + 3))
+#define STATE_VSCROLLBAR_HIDDEN (1 << (STATE_CONTROL_END + 4))
+#define STATE_SCROLLABLE_END (STATE_CONTROL_END + 5)
 /*
  * scrollbar
  */
 typedef struct _w_scrollbar {
 	w_widgetdata widgetdata;
-	w_scrollable *scrollable;
+	w_widget *parent;
 	int type;
 } _w_scrollbar;
 #define _W_SCROLLBAR(x) ((_w_scrollbar*)x)
@@ -46,6 +50,8 @@ struct _w_scrollable_priv {
 /*
  * functions
  */
+BOOL _SetScrollInfo(w_scrollbar *scrollbar, HWND hwnd, int flags,
+		SCROLLINFO *info, BOOL fRedraw);
 DWORD _w_scrollable_widget_extstyle(w_control *control, _w_control_priv *priv);
 const char* _w_scrollable_window_class(w_control *control,
 		_w_control_priv *priv);

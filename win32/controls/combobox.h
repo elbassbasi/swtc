@@ -10,14 +10,19 @@
 #include "../widgets/shell.h"
 typedef struct _w_combobox {
 	_w_composite composite;
+	int scrollWidth;
+	w_imagelist* imagelist;
 } _w_combobox;
 
 typedef struct _w_combobox_priv {
 	_w_composite_priv composite;
-
+	WNDPROC EditProc;
+	WNDPROC ListProc;
 } _w_combobox_priv;
 #define _W_COMBOBOX(x) ((_w_combobox*)x)
 #define _W_COMBOBOX_PRIV(x) ((_w_combobox_priv*)x)
+#define _W_COMBOBOX_GET_ITEM_CLASS(combo) (W_WIDGETDATA_CLASS(W_COMBOBOX_GET_CLASS(combo)->class_comboitem))
+
 /*
  * comboitem
  */

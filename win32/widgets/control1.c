@@ -21,8 +21,7 @@ wresult _w_control_post_event_platform(w_widget *widget, _w_event_platform *ee,
 		}
 	}
 	if (ret == W_FALSE) {
-		_W_WIDGET_PRIV(priv)->call_window_proc(widget, ee,
-				_W_WIDGET_PRIV(priv));
+		_W_WIDGET_PRIV(priv)->call_window_proc(widget, ee, priv);
 	}
 	return ret;
 }
@@ -111,7 +110,21 @@ wresult _CONTROL_WM_COMMAND(w_widget *widget, _w_event_platform *e,
 		 * When the WM_COMMAND message is sent from a
 		 * menu, the HWND parameter in LPARAM is zero.
 		 */
-
+		w_shell *shell;
+		w_control_get_shell(W_CONTROL(widget), &shell);
+		WPARAM lastWparam = e->wparam;
+		int id = LOWORD(e->wparam);
+		_w_menu_ids *acc = _W_SHELL(shell)->ids;
+		if (acc != 0) {
+			_w_menu_id *items = acc->id;
+			if (id < acc->count) {
+				e->lparam = (LPARAM) items[id].menu;
+				e->wparam = items[id].index;
+				_MENU_WM_MENUCOMMAND(widget, e, priv);
+			}
+		}
+		e->wparam = lastWparam;
+		e->lparam = 0;
 	}
 	return W_FALSE;
 }
@@ -227,6 +240,15 @@ wresult _CONTROL_WM_SETCURSOR(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_SIZE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	_W_WIDGET(widget)->state |= STATE_RESIZE_OCCURRED;
+	//if (_W_WIDGET(widget)->state & STATE_RESIZE_DEFERRED) {
+	w_event event;
+	memset(&event, 0, sizeof(event));
+	event.platform_event = (w_event_platform*) e;
+	event.type = W_EVENT_RESIZE;
+	event.widget = widget;
+	_w_widget_send_event(widget, &event);
+	//}
 	return W_FALSE;
 }
 wresult _CONTROL_WM_SYSCOMMAND(w_widget *widget, _w_event_platform *e,

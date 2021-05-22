@@ -13,8 +13,9 @@ void TToolBarDemo::Registre(WTreeItem &parent) {
 TToolBarDemoItems TToolBarDemo::items[] = { //
 		{ W_PUSH, 0, "Push" }, //
 				{ W_CHECK, 1, "Check" }, //
-				{ W_RADIO, 2, "Radio" }, //
-				{ W_SEPARATOR, 3, 0 }, //
+				{ W_RADIO, 2, "Radio1" }, //
+				{ W_RADIO, 3, "Radio2" }, //
+				{ W_SEPARATOR, -1, 0 }, //
 				{ W_DROP_DOWN, 4, "Dropdown" }, //
 				{ 0, 0, 0 }, //
 
@@ -74,13 +75,32 @@ void TToolBarDemo::CreateControl(WComposite *parent) {
 	/* text */
 	CreateToolBar(0, W_HORIZONTAL, true, false);
 	bar[0].SetLayoutData(WGridData(0, layout.numColumns, 1));
-	CreateToolBar(1, W_HORIZONTAL, true, true);
+	CreateToolBar(1, W_HORIZONTAL, false, true);
 	bar[1].SetLayoutData(WGridData(0, layout.numColumns, 1));
 	/* image */
-	CreateToolBar(2, W_VERTICAL, false, true);
+	CreateToolBar(2, W_VERTICAL, true, false);
 	CreateToolBar(3, W_VERTICAL, false, true);
 	MFrame *frame = (MFrame*) GetFrame();
-	bar[2].SetImageList(frame->GetImageList16());
+	bar[1].SetImageList(frame->GetImageList16());
 	bar[3].SetImageList(frame->GetImageList32());
 }
 
+bool TToolBarDemo::OnNotifyItemSelection(WEvent &e) {
+	if (WToolBar::IsToolBar(e.widget)) {
+		OnToolBarSelection(reinterpret_cast<WToolBarEvent&>(e));
+	}
+	return WComposite::OnNotifyItemSelection(e);
+}
+
+bool TToolBarDemo::OnToolBarSelection(WToolBarEvent &e) {
+	if ((e.detail & W_ARROW) == 0) {
+		char txt[100];
+		WToolItem *item = e.item;
+		WString text = item->GetText();
+		int image = item->GetImage();
+		snprintf(txt, sizeof(txt), "text = %s || image = %d",
+				text.GetCharsNotNull(), image);
+		WMessageBox(GetFrame(), W_YES | W_NO, "Item Selected", txt);
+	}
+	return true;
+}

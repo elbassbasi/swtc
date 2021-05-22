@@ -26,6 +26,15 @@ public:
 	virtual bool HandleEvent(WEvent *e)=0;
 };
 
+class SWTP_PUBLIC IWNotify: public IDestruct {
+public:
+	typedef bool (IWNotify::*SelectionAction)(WEvent *e);
+	virtual bool OnNotifySelection(WEvent &e) = 0;
+	virtual bool OnNotifyItemSelection(WEvent &e) = 0;
+	virtual bool OnNotifyItemDispose(WEvent &e) = 0;
+};
+#define W_ACTION(x) ((IWNotify::SelectionAction)&x)
+
 class SWTP_PUBLIC WListenerBase: public IWListener {
 protected:
 	volatile int ref;
@@ -81,7 +90,7 @@ public:
  * implemented as subclasses of this class.
  * </p>
  */
-class SWTP_PUBLIC WWidget {
+class SWTP_PUBLIC WWidget: public IWNotify {
 public:
 	WWidget() {
 		Init();
@@ -102,19 +111,29 @@ protected:
 	virtual void OnFreeMemory(WEvent &e, WWidget *widget);
 	virtual void OnDispose(WEvent &e);
 	virtual void OnExec();
+	bool OnNotifySelection(WEvent &e);
+	bool OnNotifyItemSelection(WEvent &e);
+	bool OnNotifyItemDispose(WEvent &e);
 protected:
 	static WResult post_event_proc(w_widget *widget, w_event *event);
 	static int exec_function(void *args);
 	bool DefaultPostEvent(WEvent *e) {
 		return w_widget_default_post_event(W_WIDGET(this), W_EVENT(e));
 	}
+	enum {
+		__DATA_USER = 0,
+		__DATA_C_FUNCTION,
+		__DATA_LISTENER,
+		__DATA_NOTIFY,
+		__DATA_CPP_FUNCTION
+	};
 	/**
 	 * index 0..4
 	 *  0 : void* data
 	 *  1 : used in c as function
 	 *  2 : used in c++ as listener
-	 *  3 :
-	 *  4 :
+	 *  3 : used as notifylistener
+	 *  4 : used as pointer c++ function
 	 */
 	void* GetData(int index) {
 		return w_widget_get_data(W_WIDGET(this), index);
@@ -193,7 +212,10 @@ public:
 	 * @see #setData(Object)
 	 */
 	void* GetData() {
-		return GetData(0);
+		return GetData(__DATA_USER);
+	}
+	IWNotify* GetNotify() {
+		return (IWNotify*)GetData(__DATA_NOTIFY);
 	}
 	/**
 	 * Sets the application defined widget data associated
@@ -213,7 +235,10 @@ public:
 	 * @see #getData()
 	 */
 	void* SetData(void *data) {
-		return SetData(0, data);
+		return SetData(__DATA_USER, data);
+	}
+	void SetNotify(IWNotify *notify) {
+		SetData(__DATA_NOTIFY, notify);
 	}
 	int GetId() {
 		return w_widget_get_id(W_WIDGET(this));
@@ -222,7 +247,7 @@ public:
 		w_widget_set_id(W_WIDGET(this), id);
 	}
 	IWListener* GetListener() {
-		return (IWListener*) GetData(2);
+		return (IWListener*) GetData(__DATA_LISTENER);
 	}
 	void SetListener(IWListener *listener);
 #if __cplusplus >= 201103L
@@ -232,6 +257,9 @@ public:
 	}
 protected:
 	void SetSelectionFunction(const WSelectionFunction &function);
+	bool NotifySelection(WEvent &e);
+	bool NotifyItemSelection(WEvent &e);
+	bool NotifyItemDispose(WEvent &e);
 #endif
 private:
 	void Init() {

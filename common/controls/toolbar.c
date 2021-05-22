@@ -108,6 +108,13 @@ wresult w_toolitem_get_id(w_toolitem *item) {
 	} else
 		return result;
 }
+wresult w_toolitem_get_image(w_toolitem *item) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_TOOLITEM_GET_CLASS(item)->get_image(item);
+	} else
+		return result;
+}
 wresult w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {

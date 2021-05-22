@@ -20,7 +20,7 @@ public:
 	WLabel label[4];
 	WButton btn[4];
 protected:
-	bool OnNotify(WEvent &e);
+	bool OnNotifySelection(WEvent &e);
 };
 
 #endif /* TESTS_CONTROLS_COMBOBOX_TCOMBODEMO_H_ */

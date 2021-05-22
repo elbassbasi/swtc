@@ -42,7 +42,7 @@ bool TProgressBarDemo::OnTimer(WTimerEvent &e) {
 	return true;
 }
 
-bool TProgressBarDemo::OnNotify(WEvent &e) {
+bool TProgressBarDemo::OnNotifySelection(WEvent &e) {
 	if (e.widget == &this->start) {
 		SetTimer(500);
 		start.SetEnabled(false);

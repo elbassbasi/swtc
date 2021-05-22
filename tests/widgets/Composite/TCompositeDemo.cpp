@@ -48,7 +48,7 @@ bool TCompositeDemo::OnPaint(WPaintEvent &e) {
 	return false;
 }
 
-bool TCompositeDemo::OnNotify(WEvent &e) {
+bool TCompositeDemo::OnNotifySelection(WEvent &e) {
 	if(e.widget->GetId() == 1){
 		menu.SetLocation(300,300);
 		menu.SetVisible(true);

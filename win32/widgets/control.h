@@ -76,6 +76,8 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	wresult (*set_cursor_0)(w_control *control, _w_control_priv *priv);
 	w_cursor* (*find_cursor)(w_control *control, _w_control_priv *priv);
+	wresult (*translate_accelerator)(w_control *control, MSG *msg,
+			_w_control_priv *priv);
 };
 #define _W_CONTROL_PRIV(x) ((_w_control_priv*)x)
 #define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)_w_widget_get_priv(W_WIDGET(x)))
@@ -88,7 +90,7 @@ wresult _w_control_post_event(w_widget *widget, w_event *e);
 LRESULT CALLBACK _w_control_window_proc(HWND hWnd, UINT message, WPARAM wParam,
 		LPARAM lParam);
 wresult _w_control_call_window_proc(w_widget *widget, _w_event_platform *e,
-		_w_widget_priv *priv);
+		_w_control_priv *priv);
 wresult _w_control_check_background(w_control *control, _w_control_priv *priv);
 wresult _w_control_check_border(w_control *control, _w_control_priv *priv);
 wresult _w_control_check_buffered(w_control *control, _w_control_priv *priv);

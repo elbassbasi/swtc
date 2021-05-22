@@ -43,14 +43,14 @@ wresult _w_progressbar_compute_size(w_widget *widget, w_event_compute_size *e,
 	e->size->height = height;
 	return W_TRUE;
 }
-int _w_progressbar_get_maximum(w_progressbar *progressbar) {
+wresult _w_progressbar_get_maximum(w_progressbar *progressbar) {
 	return (int) SendMessageW(_W_WIDGET(progressbar)->handle, PBM_GETRANGE, 0,
 			0);
 }
-int _w_progressbar_get_selection(w_progressbar *progressbar) {
+wresult _w_progressbar_get_selection(w_progressbar *progressbar) {
 	return (int) SendMessageW(_W_WIDGET(progressbar)->handle, PBM_GETPOS, 0, 0);
 }
-int _w_progressbar_get_state(w_progressbar *progressbar) {
+wresult _w_progressbar_get_state(w_progressbar *progressbar) {
 	int state = (int) SendMessageW(_W_WIDGET(progressbar)->handle,
 	PBM_GETSTATE, 0, 0);
 	switch (state) {

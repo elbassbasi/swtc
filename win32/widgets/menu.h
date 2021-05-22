@@ -8,6 +8,7 @@
 #ifndef WIN32_WIDGETS_MENU_H_
 #define WIN32_WIDGETS_MENU_H_
 #include "item.h"
+#define STATE_MENU_HAS_LOCATION (1 << (STATE_CONTROL_END + 1))
 /*
  * menu
  */
@@ -31,11 +32,6 @@ typedef struct _w_menuitem {
 	HMENU menu;
 } _w_menuitem;
 #define _W_MENUITEM(x) ((_w_menuitem*)x)
-typedef struct _w_menuitem_data {
-	void *userdata;
-	HBITMAP image;
-	WCHAR tooltip[0];
-} _w_menuitem_data;
 /*
  * private
  */
@@ -47,5 +43,7 @@ struct _w_menu_priv {
 /*
  * functions
  */
+wresult _w_menuitem_fill_accel(ACCEL *accel, struct _w_menu_id *item);
+wresult _w_menu_get_shell(w_menu *menu, w_shell **shell);
 void _w_menu_class_init(struct _w_menu_class *clazz);
 #endif /* WIN32_WIDGETS_MENU_H_ */

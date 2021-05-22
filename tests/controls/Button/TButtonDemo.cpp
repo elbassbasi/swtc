@@ -37,7 +37,7 @@ void TButtonDemo::CreateControl(WComposite *parent) {
 	btn[5][3].Create(this, W_ARROW | W_UP);
 }
 
-bool TButtonDemo::OnNotify(WEvent &e) {
+bool TButtonDemo::OnNotifySelection(WEvent &e) {
 	if (WButton::IsButton(e.widget)) {
 		WButton *b = static_cast<WButton*>(e.widget);
 		WString text = b->GetText();

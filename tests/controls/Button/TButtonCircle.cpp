@@ -46,7 +46,7 @@ void TButtonCircle::CreateControl(WComposite *parent) {
 	}
 }
 
-bool TButtonCircle::OnNotify(WEvent &e) {
+bool TButtonCircle::OnNotifySelection(WEvent &e) {
 	if (WButton::IsButton(e.widget)) {
 		WButton *b = static_cast<WButton*>(e.widget);
 		WString text = b->GetText();

@@ -19,7 +19,7 @@ public:
 	WFillLayoutVertical layout;
 	WButton btn[length];
 protected:
-	bool OnNotify(WEvent &e);
+	bool OnNotifySelection(WEvent &e);
 };
 
 #endif /* TESTS_CONTROLS_BUTTON_TBUTTONCIRCLE_H_ */

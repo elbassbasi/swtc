@@ -19,7 +19,7 @@ public:
 	void CreateControl(WComposite *parent);
 protected:
 	bool OnPaint(WPaintEvent &e);
-	bool OnNotify(WEvent& e);
+	bool OnNotifySelection(WEvent& e);
 };
 
 #endif /* TESTS_WIDGETS_COMPOSITE_TCOMPOSITEDEMO_H_ */

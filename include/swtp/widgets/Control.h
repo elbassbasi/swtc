@@ -29,7 +29,6 @@ class WLayoutData;
 class SWTP_PUBLIC WControl: public WWidget {
 public:
 	friend class WLayout;
-	typedef bool (WControl::*SelectionAction)(WEvent *e);
 	WControl() {
 
 	}
@@ -1230,7 +1229,6 @@ protected:
 	virtual bool OnReserved2(WEvent &e);
 	virtual bool OnReserved3(WEvent &e);
 	virtual bool OnReserved4(WEvent &e);
-	bool Notify(WEvent &e);
 protected:
 	/**
 	 * allocate the layout data associated with the receiver to the argument.
@@ -1484,7 +1482,6 @@ public:
 private:
 	void *handles[(sizeof(w_control) - sizeof(w_widget)) / sizeof(void*)];
 };
-#define W_ACTION(x) ((WControl::SelectionAction)&x)
 namespace swt {
 typedef ::WControl Control;
 }  // namespace swt

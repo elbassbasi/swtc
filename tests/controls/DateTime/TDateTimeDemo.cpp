@@ -38,7 +38,7 @@ void TDateTimeDemo::CreateControl(WComposite *parent) {
 	ok.SetId(1);
 
 }
-bool TDateTimeDemo::OnNotify(WEvent &e) {
+bool TDateTimeDemo::OnNotifySelection(WEvent &e) {
 	char txt[0x100];
 	if (e.widget->GetId() == 1) {
 		snprintf(txt, sizeof(txt), "Date : ");

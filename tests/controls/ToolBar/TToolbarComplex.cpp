@@ -71,19 +71,19 @@ void TToolbarComplex::CreateToolbar() {
 			"This is dropdown one");
 	menu[0].CreatePopUp(&toolBar);
 	menu[0].GetRoot(rootItem);
-	rootItem.AppendItem(rootItem, "Option One for One");
-	rootItem.AppendItem(rootItem, "Option Two for One");
-	rootItem.AppendItem(rootItem, "Option Three for One");
-	item.SetMenu(&menu[0]);
+	rootItem.AppendItem(menuItem, "Option One for One");
+	rootItem.AppendItem(menuItem, "Option Two for One");
+	rootItem.AppendItem(menuItem, "Option Three for One");
+	item.SetMenu(menu[0]);
 
 	CreateToolItem(item, W_DROP_DOWN, 2, "Dropdown Two",
 			"This is dropdown two");
 	menu[1].CreatePopUp(&toolBar);
 	menu[1].GetRoot(rootItem);
-	rootItem.AppendItem(rootItem, "Option One for Two");
-	rootItem.AppendItem(rootItem, "Option Two for Two");
-	rootItem.AppendItem(rootItem, "Option Three for Two");
-	item.SetMenu(&menu[1]);
+	rootItem.AppendItem(menuItem, "Option One for Two");
+	rootItem.AppendItem(menuItem, "Option Two for Two");
+	rootItem.AppendItem(menuItem, "Option Three for Two");
+	item.SetMenu(menu[1]);
 }
 
 void TToolbarComplex::CreateToolItem(WToolItem &item, int type, int image,

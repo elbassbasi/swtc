@@ -11,7 +11,7 @@
  * function
  */
 wresult _w_control_call_window_proc(w_widget *widget, _w_event_platform *e,
-		_w_widget_priv *priv) {
+		_w_control_priv *priv) {
 	if (_W_WIDGET(widget)->handle == 0) {
 		e->result = 0;
 		return W_FALSE;
@@ -683,10 +683,28 @@ wresult _w_control_subclass(w_control *control, _w_control_priv *priv) {
 }
 wresult _w_control_to_control(w_control *control, w_point *result,
 		w_point *point) {
-	return W_FALSE;
+	HWND handle = _W_WIDGET(control)->handle;
+	POINT pt, res;
+	pt.x = point->x;
+	pt.y = point->y;
+	ScreenToClient(handle, &pt);
+	result->x = pt.x;
+	result->y = pt.y;
+	return W_TRUE;
 }
 wresult _w_control_to_display(w_control *control, w_point *result,
 		w_point *point) {
+	HWND handle = _W_WIDGET(control)->handle;
+	POINT pt, res;
+	pt.x = point->x;
+	pt.y = point->y;
+	ClientToScreen(handle, &pt);
+	result->x = pt.x;
+	result->y = pt.y;
+	return W_TRUE;
+}
+wresult _w_control_translate_accelerator(w_control *control, MSG *msg,
+		_w_control_priv *priv) {
 	return W_FALSE;
 }
 wresult _w_control_traverse(w_control *control, int traversal,
@@ -858,6 +876,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->unsubclass = _w_control_unsubclass;
 	priv->set_cursor_0 = _w_control_set_cursor_0;
 	priv->find_cursor = _w_control_find_cursor;
+	priv->translate_accelerator = _w_control_translate_accelerator;
 	/*
 	 * messages
 	 */

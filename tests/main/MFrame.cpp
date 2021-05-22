@@ -70,7 +70,7 @@ void MFrame::UpdateSize() {
 				area.width - (this->width + 3) - 3, area.height - 3);
 	}
 }
-bool MFrame::OnNotify(WEvent &e) {
+bool MFrame::OnNotifySelection(WEvent &e) {
 	if (e.widget == &sash) {
 		WSashEvent &event = reinterpret_cast<WSashEvent&>(e);
 		WRect sashBounds;

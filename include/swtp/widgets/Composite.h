@@ -295,9 +295,6 @@ public:
 	void SetLayoutDeferred(bool defer) {
 		w_composite_set_layout_deferred(W_COMPOSITE(this), defer);
 	}
-	static bool _Notify(WComposite *composite, WEvent &e) {
-		return composite->OnNotify(e);
-	}
 	static bool IsComposite(WWidget *widget) {
 		return widget->GetClassId() >= _W_CLASS_COMPOSITE;
 	}
@@ -311,7 +308,6 @@ protected:
 	w_class_id _GetClassID();
 	bool PostEvent(WEvent *e);
 	virtual bool OnLayout(WEvent &e);
-	virtual bool OnNotify(WEvent &e);
 };
 
 namespace swt {

@@ -206,7 +206,7 @@ wresult _COMPOSITE_WM_GETFONT(w_widget *widget, _w_event_platform *e,
 }
 wresult _COMPOSITE_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	return _WIDGET_WM_LBUTTONDOWN(widget, e, priv);
 }
 wresult _COMPOSITE_WM_NCHITTEST(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {

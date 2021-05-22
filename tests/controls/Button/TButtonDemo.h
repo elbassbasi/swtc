@@ -18,7 +18,7 @@ public:
 	WGridLayout layout;
 	WButton btn[6][length];
 protected:
-	bool OnNotify(WEvent &e);
+	bool OnNotifySelection(WEvent &e);
 };
 
 #endif /* TESTS_CONTROLS_BUTTON_TBUTTONDEMO_H_ */

@@ -550,7 +550,9 @@ public:
 	 * @see Widget#getStyle
 	 */
 	bool Create(WControl *parent, int style) {
-		return _WReturnBool(_create(parent, style, WWidget::post_event_proc));
+		WResult ret = _create(parent, style, WWidget::post_event_proc);
+		SetNotify(parent);
+		return _WReturnBool(ret);
 	}
 	bool Create(WControl &parent, int style) {
 		return Create(&parent, style);
@@ -758,6 +760,92 @@ public:
 		return _WReturnBool(_set_visible(visible));
 	}
 public:
+	WMenuItem& Insert(WMenuItem &item, int style, int index) {
+		GetRoot().Insert(item, style, index);
+		return item;
+	}
+	WMenuItem& Insert(WMenuItem &item, const char *text, int style, int index) {
+		Insert(item, style, index);
+		item.SetText(text);
+		return item;
+	}
+	WMenuItem Insert(const char *text, int style, int index) {
+		WMenuItem item;
+		return Insert(item, text, style, index);
+	}
+	WMenuItem InsertItem(const char *text, int index) {
+		WMenuItem item;
+		return Insert(item, text, W_PUSH, index);
+	}
+	WMenuItem& InsertItem(WMenuItem &item, const char *text, int index) {
+		return Insert(item, text, W_PUSH, index);
+	}
+	WMenuItem InsertCheckItem(const char *text, int index) {
+		WMenuItem item;
+		return Insert(item, text, W_CHECK, index);
+	}
+	WMenuItem& InsertCheckItem(WMenuItem &item, const char *text, int index) {
+		return Insert(item, text, W_CHECK, index);
+	}
+	WMenuItem InsertRadioItem(const char *text, int index) {
+		WMenuItem item;
+		return Insert(item, text, W_RADIO, index);
+	}
+	WMenuItem& InsertRadioItem(WMenuItem &item, const char *text, int index) {
+		return Insert(item, text, W_RADIO, index);
+	}
+	WMenuItem InsertSeparator(int index) {
+		WMenuItem item;
+		return Insert(item, 0, W_SEPARATOR, index);
+	}
+	WMenuItem InsertSubMenu(const char *text, int index) {
+		WMenuItem item;
+		return Insert(item, text, W_CASCADE, index);
+	}
+	WMenuItem& InsertSubMenu(WMenuItem &item, const char *text, int index) {
+		return Insert(item, text, W_CASCADE, index);
+	}
+public:
+	WMenuItem& Append(WMenuItem &item, const char *text, int style) {
+		return Insert(item, text, style, -1);
+	}
+	WMenuItem Append(const char *text, int style) {
+		WMenuItem item;
+		return Insert(item, text, style, -1);
+	}
+	WMenuItem AppendItem(const char *text) {
+		WMenuItem item;
+		return Append(item, text, W_PUSH);
+	}
+	WMenuItem& AppendItem(WMenuItem &item, const char *text) {
+		return Append(item, text, W_PUSH);
+	}
+	WMenuItem AppendCheckItem(const char *text) {
+		WMenuItem item;
+		return Append(item, text, W_CHECK);
+	}
+	WMenuItem& AppendCheckItem(WMenuItem &item, const char *text) {
+		return Append(item, text, W_CHECK);
+	}
+	WMenuItem AppendRadioItem(const char *text) {
+		WMenuItem item;
+		return Append(item, text, W_RADIO);
+	}
+	WMenuItem& AppendRadioItem(WMenuItem &item, const char *text) {
+		return Append(item, text, W_RADIO);
+	}
+	WMenuItem AppendSeparator() {
+		WMenuItem item;
+		return Append(item, 0, W_SEPARATOR);
+	}
+	WMenuItem AppendSubMenu(const char *text) {
+		WMenuItem item;
+		return Append(item, text, W_CASCADE);
+	}
+	WMenuItem& AppendSubMenu(WMenuItem &item, const char *text) {
+		return Append(item, text, W_CASCADE);
+	}
+public:
 	wresult _create(WControl *parent, wuint64 style,
 			w_widget_post_event_proc post_event) {
 		return w_menu_create(W_MENU(this), (w_control*) parent, style,
@@ -801,16 +889,15 @@ struct WMenuItems {
 	int accelerator;
 	int image;
 	const char *name;
-	WControl::SelectionAction action;
+	IWNotify::SelectionAction action;
 };
 class SWTP_PUBLIC WMenu: public WMenuBase {
 public:
 	WMenu() {
 		this->items = 0;
 		this->items_length = 0;
-		this->notifyControl = 0;
 	}
-	bool CreateItems(WControl *notify, WImageList *imagelist, WMenuItems *items,
+	bool CreateItems(IWNotify *notify, WImageList *imagelist, WMenuItems *items,
 			size_t length);
 	bool CreateItems(WImageList *imagelist, WMenuItems *items, size_t length) {
 		return CreateItems(GetParent(), imagelist, items, length);
@@ -818,11 +905,11 @@ public:
 	bool CreateItems(WMenuItems *items, size_t length) {
 		return CreateItems(0, items, length);
 	}
-	bool CreateItems(WControl *notify, WImageList *imagelist,
+	bool CreateItems(IWNotify *notify, WImageList *imagelist,
 			WMenuItems *items) {
 		return CreateItems(GetParent(), imagelist, items, -1);
 	}
-	bool CreateItems(WControl *notify, WMenuItems *items) {
+	bool CreateItems(IWNotify *notify, WMenuItems *items) {
 		return CreateItems(notify, 0, items);
 	}
 	bool CreateItems(WImageList *imagelist, WMenuItems *items) {
@@ -830,12 +917,6 @@ public:
 	}
 	bool CreateItems(WMenuItems *items) {
 		return CreateItems(GetParent(), 0, items, -1);
-	}
-	WControl* GetNotifyControl() {
-		return this->notifyControl;
-	}
-	void SetNotifyControl(WControl *control) {
-		this->notifyControl = control;
 	}
 protected:
 	void OnDispose(WEvent &e);
@@ -847,13 +928,11 @@ protected:
 	bool OnItemSelection(WMenuEvent &e);
 	bool OnItemDispose(WMenuEvent &e);
 	bool OnItemAdded(WMenuEvent &e);
-	bool Notify(WEvent &e);
 protected:
 	bool CreateSubItems(WMenuItem &parent, WImageList *imagelist,
 			size_t &start);
 	WMenuItems *items;
 	size_t items_length;
-	WControl *notifyControl;
 };
 
 #endif /* SWTP_WIDGETS_MENU_H_ */

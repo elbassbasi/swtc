@@ -45,7 +45,7 @@ wresult _CANVAS_WM_KILLFOCUS(w_widget *widget, _w_event_platform *e,
 }
 wresult _CANVAS_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	return _COMPOSITE_WM_LBUTTONDOWN(widget, e, priv);
 }
 wresult _CANVAS_WM_SETFOCUS(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {

@@ -30,6 +30,7 @@
  */
 class SWTP_PUBLIC WButton: public WControl {
 public:
+	using WControl::Create;
 	WButton() {
 
 	}
@@ -74,6 +75,7 @@ public:
 	WButton(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
+	WResult Create(WToolkit *toolkit, WComposite *parent, wuint64 style);
 	bool CreatePush(WComposite *parent, const char *text) {
 		bool ret = Create(parent, W_PUSH);
 		this->SetText(text);
@@ -184,6 +186,10 @@ public:
 	 */
 	bool SetAlignment(int alignment) {
 		return _WReturnBool(_set_alignment(alignment));
+	}
+	void SetAction(IWNotify *notify, IWNotify::SelectionAction action) {
+		SetNotify(notify);
+		SetData(__DATA_CPP_FUNCTION, *((void**) &action));
 	}
 	/**
 	 * Sets the grayed state of the receiver.  This state change

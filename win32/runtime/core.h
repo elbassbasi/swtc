@@ -22,6 +22,8 @@ extern "C" {
 extern HINSTANCE hinst;
 wresult _win_text_fix(const char *text, int text_length, int enc, WCHAR **str,
 		int *newlength);
+wresult _win_text_fix_0(const char *text, int text_length, int enc, int adding,
+		WCHAR **str, int *newlength);
 void _win_text_free(const char *text, WCHAR *str, int length);
 wresult _win_text_set(WCHAR *text, int length, w_alloc alloc, void *user_data,
 		int enc);

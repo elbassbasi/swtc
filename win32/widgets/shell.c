@@ -58,6 +58,7 @@ wresult _w_shell_create_embedded(w_widget *widget, w_widget *parent,
 			_W_WIDGET(widget)->state |= STATE_FOREIGN_HANDLE;
 		}
 	}
+	_W_SHELL(widget)->hAccel = INVALID_HANDLE_VALUE;
 	_w_control_priv *reserved = _W_CONTROL_GET_PRIV(widget);
 	wresult result = reserved->create_widget(W_CONTROL(widget), reserved);
 	if (result > 0) {
@@ -69,6 +70,78 @@ wresult _w_shell_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
 	return _w_shell_create_embedded(widget, parent, style, post_event, 0,
 			W_FALSE);
+}
+#define W_SHELL_ACCEL_GROW 0x10
+int _w_shell_registre_menuitem_id(w_shell *shell, w_menuitem *item,
+		_w_menu_id **id) {
+	_w_menu_ids *acc = _W_SHELL(shell)->ids, *newacc;
+	int alloc = 0;
+	int count = 0;
+	if (acc != 0) {
+		_w_menu_id *_acc = acc->id;
+		for (int i = 0; i < acc->count; i++) {
+			if (_acc[i].menu == 0) {
+				_acc[i].accelerator = 0;
+				_acc[i].menu = _W_MENUITEM(item)->menu;
+				_acc[i].index = _W_ITEM(item)->index;
+				_acc[i].image = 0;
+				_acc[i].tooltips = 0;
+				*id = &_acc[i];
+				return i;
+			}
+		}
+		alloc = acc->alloc;
+		count = acc->count;
+	}
+	int newalloc = alloc + W_SHELL_ACCEL_GROW;
+	const int sz = sizeof(_w_menu_ids) + newalloc * sizeof(_w_menu_id);
+	newacc = realloc(acc, sz);
+	if (newacc != 0) {
+		newacc->alloc = newalloc;
+		newacc->count = count;
+		_w_menu_id *_acc = &newacc->id[newacc->count];
+		_acc->accelerator = 0;
+		_acc->menu = _W_MENUITEM(item)->menu;
+		_acc->index = _W_ITEM(item)->index;
+		_acc->image = 0;
+		_acc->tooltips = 0;
+		newacc->count++;
+		_W_SHELL(shell)->ids = newacc;
+		*id = _acc;
+		return newacc->count;
+	}
+	return -1;
+}
+
+int _w_shell_create_accelerators(w_shell *shell) {
+	_w_menu_ids *acc = _W_SHELL(shell)->ids;
+	if (acc == 0)
+		return W_FALSE;
+	if (acc->count == 0)
+		return W_FALSE;
+	ACCEL *_acc = malloc(acc->count * sizeof(ACCEL));
+	if (_acc == 0)
+		return W_FALSE;
+	int nAccel = 0;
+	_w_menu_id *_iacc = acc->id;
+	for (int i = 0; i < acc->count; i++) {
+		if (_iacc[i].menu != 0 && _iacc[i].accelerator != 0) {
+			if (_w_menuitem_fill_accel(&_acc[nAccel], &_iacc[i])) {
+				_acc[nAccel].cmd = i;
+				nAccel++;
+			}
+		}
+	}
+	if (nAccel != 0)
+		_W_SHELL(shell)->hAccel = CreateAcceleratorTableW(_acc, nAccel);
+	free(_acc);
+	return W_TRUE;
+}
+void _w_shell_destroy_accelerators(w_shell *shell) {
+	HACCEL hAccel = _W_SHELL(shell)->hAccel;
+	if (hAccel != INVALID_HANDLE_VALUE)
+		DestroyAcceleratorTable(hAccel);
+	_W_SHELL(shell)->hAccel = INVALID_HANDLE_VALUE;
 }
 void _w_shell_set_system_menu(w_shell *shell) {
 	HMENU hMenu = GetSystemMenu(_W_WIDGET(shell)->handle, FALSE);
@@ -323,7 +396,7 @@ wresult _w_shell_get_shell(w_control *control, w_shell **shell) {
 	*shell = W_SHELL(control);
 	return W_TRUE;
 }
-void _w_shell_bring_totop(w_shell* shell){
+void _w_shell_bring_totop(w_shell *shell) {
 
 }
 void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
@@ -445,9 +518,6 @@ wresult _w_shell_set_ime_input_mode(w_shell *shell, int mode) {
 wresult _w_shell_set_maximized(w_shell *shell, int maximized) {
 	return W_FALSE;
 }
-void _w_shell_destroy_accelerators(w_shell *shell) {
-
-}
 wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 	if (_W_SHELL(shell)->menubar == menu)
 		return W_TRUE;
@@ -481,6 +551,14 @@ wresult _w_shell_set_modified(w_shell *shell, int modified) {
 wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
 		int enc) {
 	return W_FALSE;
+}
+wresult _w_shell_translate_accelerator(w_control *control, MSG *msg,
+		_w_control_priv *priv) {
+	if (_W_SHELL(control)->hAccel == INVALID_HANDLE_VALUE)
+		_w_shell_create_accelerators(W_SHELL(control));
+	return _W_SHELL(control)->hAccel != 0
+			&& TranslateAcceleratorW(_W_WIDGET(control)->handle,
+			_W_SHELL(control)->hAccel, msg) != 0;
 }
 /*
  * messages
@@ -645,6 +723,7 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	priv->subclass = _w_shell_subclass;
 	priv->unsubclass = _w_shell_unsubclass;
 	priv->find_cursor = _w_shell_find_cursor;
+	priv->translate_accelerator = _w_shell_translate_accelerator;
 	/*
 	 * messages
 	 */
