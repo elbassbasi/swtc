@@ -11,10 +11,117 @@
 class WTheme;
 class WBasicThemeData {
 public:
-	wuint clazz;
+	wushort clazz;
+	wushort part;
 	wuint state;
 	wuint64 style;
-	w_rect *clientArea;
+	WRect *clientArea;
+public:
+	void ComputeTrim(WTheme *theme, WGraphics &gc, WRect &bounds,
+			WRect &result) {
+		w_theme_compute_trim((w_theme*) theme, (w_themedata*) this,
+				W_GRAPHICS(&gc), (w_rect*) &result);
+	}
+	void DrawBackground(WTheme *theme, WGraphics &gc, WRect &bounds) {
+		w_theme_draw_background((w_theme*) theme, (w_themedata*) this,
+				W_GRAPHICS(&gc), (w_rect*) &bounds);
+	}
+	void DrawFocus(WTheme *theme, WGraphics &gc, WRect &bounds) {
+		w_theme_draw_focus((w_theme*) theme, (w_themedata*) this,
+				W_GRAPHICS(&gc), (w_rect*) &bounds);
+	}
+	void DrawImage(WTheme *theme, WGraphics &gc, WRect &bounds, WImage &image,
+			int flags) {
+		w_theme_draw_image((w_theme*) theme, (w_themedata*) this,
+				W_GRAPHICS(&gc), (w_rect*) &bounds, (w_image*) &image, flags);
+	}
+	void DrawText(WTheme *theme, WGraphics &gc, WRect &bounds, const char *text,
+			int length, int enc, int flags) {
+		w_theme_draw_text((w_theme*) theme, (w_themedata*) this,
+				W_GRAPHICS(&gc), (w_rect*) &bounds, text, length, enc, flags);
+	}
+	void DrawText(WTheme *theme, WGraphics &gc, WRect &bounds, const char *text,
+			int length, int flags) {
+		DrawText(theme, gc, bounds, text, length, W_ENCODING_UTF8, flags);
+	}
+	void DrawText(WTheme *theme, WGraphics &gc, WRect &bounds, const char *text,
+			int flags) {
+		DrawText(theme, gc, bounds, text, -1, flags);
+	}
+	void DrawTextLeft(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text, int length) {
+		return DrawText(theme, gc, bounds, text, length, W_THEME_DRAW_LEFT);
+	}
+	void DrawTextLeft(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text) {
+		return DrawTextLeft(theme, gc, bounds, text, -1);
+	}
+	void DrawTextTop(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text, int length) {
+		return DrawText(theme, gc, bounds, text, length, W_THEME_DRAW_TOP);
+	}
+	void DrawTextTop(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text) {
+		return DrawTextTop(theme, gc, bounds, text, -1);
+	}
+	void DrawTextRight(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text, int length) {
+		return DrawText(theme, gc, bounds, text, length, W_THEME_DRAW_RIGHT);
+	}
+	void DrawTextRight(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text) {
+		return DrawTextRight(theme, gc, bounds, text, -1);
+	}
+	void DrawTextBottom(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text, int length) {
+		return DrawText(theme, gc, bounds, text, length, W_THEME_DRAW_BOTTOM);
+	}
+	void DrawTextBottom(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text) {
+		return DrawTextBottom(theme, gc, bounds, text, -1);
+	}
+	void DrawTextHCenter(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text, int length) {
+		return DrawText(theme, gc, bounds, text, length, W_THEME_DRAW_HCENTER);
+	}
+	void DrawTextHCenter(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text) {
+		return DrawTextHCenter(theme, gc, bounds, text, -1);
+	}
+	void DrawTextVCenter(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text, int length) {
+		return DrawText(theme, gc, bounds, text, length, W_THEME_DRAW_VCENTER);
+	}
+	void DrawTextVCenter(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text) {
+		return DrawTextVCenter(theme, gc, bounds, text, -1);
+	}
+	void DrawTextCenter(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text, int length) {
+		return DrawText(theme, gc, bounds, text, length, W_THEME_DRAW_CENTER);
+	}
+	void DrawTextCenter(WTheme *theme, WGraphics &gc, WRect &bounds,
+			const char *text) {
+		return DrawTextCenter(theme, gc, bounds, text, -1);
+	}
+	void GetBounds(WTheme *theme, WRect &bounds, WRect &result) {
+		w_theme_get_bounds((w_theme*) theme, (w_themedata*) this,
+				(w_rect*) &bounds, (w_rect*) &result);
+	}
+	int GetSelection(WTheme *theme, WPoint &offset, WRect &bounds) {
+		return w_theme_get_selection((w_theme*) theme, (w_themedata*) this,
+				(w_point*) &offset, (w_rect*) &bounds);
+	}
+	int HitBackground(WTheme *theme, WPoint &position, WRect &bounds) {
+		return w_theme_hit_background((w_theme*) theme, (w_themedata*) this,
+				(w_point*) &position, (w_rect*) &bounds);
+	}
+	void MeasureText(WTheme *theme, WGraphics &gc, WRect &bounds, WRect &result,
+			const char *text, size_t length, int flags) {
+		w_theme_measure_text((w_theme*) theme, (w_themedata*) this,
+				W_GRAPHICS(&gc), (w_rect*) &bounds, (w_rect*) &result, text,
+				length, flags);
+	}
 public:
 	void SetStateNull() {
 		this->state = 0;
@@ -56,7 +163,7 @@ public:
 			int thumb;
 		} range;
 		struct {
-			w_rect *tabsArea;
+			WRect *tabsArea;
 			int tabsWidth;
 			int tabsHeight;
 			int selectedX;
@@ -69,7 +176,7 @@ public:
 		struct {
 			int headerWidth;
 			int headerHeight;
-			w_rect *headerArea;
+			WRect *headerArea;
 		} group;
 	};
 public:
@@ -140,9 +247,13 @@ public:
 				W_GRAPHICS(&gc), (w_rect*) &bounds, (w_image*) &image, flags);
 	}
 	void DrawText(WBasicThemeData &data, WGraphics &gc, WRect &bounds,
-			const char *text, int length, int flags) {
+			const char *text, int length, int enc, int flags) {
 		w_theme_draw_text((w_theme*) this, (w_themedata*) &data,
-				W_GRAPHICS(&gc), (w_rect*) &bounds, text, length, flags);
+				W_GRAPHICS(&gc), (w_rect*) &bounds, text, length, enc, flags);
+	}
+	void DrawText(WBasicThemeData &data, WGraphics &gc, WRect &bounds,
+			const char *text, int length, int flags) {
+		DrawText(data, gc, bounds, text, length, W_ENCODING_UTF8, flags);
 	}
 	void DrawText(WBasicThemeData &data, WGraphics &gc, WRect &bounds,
 			const char *text, int flags) {
@@ -154,7 +265,7 @@ public:
 	}
 	void DrawTextLeft(WBasicThemeData &data, WGraphics &gc, WRect &bounds,
 			const char *text) {
-		return DrawTextLeft(data, gc, bounds, text,-1);
+		return DrawTextLeft(data, gc, bounds, text, -1);
 	}
 	void DrawTextTop(WBasicThemeData &data, WGraphics &gc, WRect &bounds,
 			const char *text, int length) {
@@ -204,9 +315,8 @@ public:
 			const char *text) {
 		return DrawTextCenter(data, gc, bounds, text, -1);
 	}
-	void GetBounds(WBasicThemeData &data, int part, WRect &bounds,
-			WRect &result) {
-		w_theme_get_bounds((w_theme*) this, (w_themedata*) &data, part,
+	void GetBounds(WBasicThemeData &data, WRect &bounds, WRect &result) {
+		w_theme_get_bounds((w_theme*) this, (w_themedata*) &data,
 				(w_rect*) &bounds, (w_rect*) &result);
 	}
 	int GetSelection(WBasicThemeData &data, WPoint &offset, WRect &bounds) {

@@ -194,7 +194,18 @@ wresult _w_composite_set_layout_deferred(w_composite *composite, int defer) {
  */
 wresult _COMPOSITE_WM_ERASEBKGND(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _CONTROL_WM_ERASEBKGND(widget, e, priv);
+	if (result != W_FALSE)
+		return result;
+	if ((_W_WIDGET(widget)->state & STATE_CANVAS) != 0) {
+		/* Return zero to indicate that the background was not erased */
+		if ((_W_WIDGET(widget)->style & (W_NO_BACKGROUND | W_TRANSPARENT))
+				!= 0) {
+			e->result = 0;
+			return W_TRUE;
+		}
+	}
+	return result;
 }
 wresult _COMPOSITE_WM_GETDLGCODE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -474,7 +485,7 @@ wresult _COMPOSITE_WM_PAINT(w_widget *widget, _w_event_platform *e,
 			 * event.  If this happens, don't attempt to restore
 			 * the style.
 			 */
-			SetWindowLong(_W_WIDGET(widget)->handle, GWL_STYLE, oldBits);
+			SetWindowLongW(_W_WIDGET(widget)->handle, GWL_STYLE, oldBits);
 		}
 	}
 	e->result = 0;

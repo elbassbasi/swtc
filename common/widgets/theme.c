@@ -12,8 +12,9 @@ void w_theme_dispose(w_theme *theme) {
 }
 const char* w_theme_get_name(w_theme *theme) {
 	if (theme != 0 && theme->clazz != 0) {
-		theme->clazz->get_name(theme);
-	}else return 0;
+		return theme->clazz->get_name(theme);
+	} else
+		return 0;
 }
 void w_theme_compute_trim(w_theme *theme, w_themedata *data, w_graphics *gc,
 		w_rect *result) {
@@ -39,16 +40,24 @@ void w_theme_draw_image(w_theme *theme, w_themedata *data, w_graphics *gc,
 		theme->clazz->draw_image(theme, data, gc, bounds, image, flags);
 	}
 }
-void w_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
-		w_rect *bounds, const char *text, int length, int flags) {
+void w_theme_draw_image_index(w_theme *theme, w_themedata *data, w_graphics *gc,
+		w_rect *bounds, w_imagelist *imagelist, int index, int flags) {
 	if (theme != 0 && theme->clazz != 0) {
-		theme->clazz->draw_text(theme, data, gc, bounds, text, length, flags);
+		theme->clazz->draw_image_index(theme, data, gc, bounds, imagelist,
+				index, flags);
 	}
 }
-void w_theme_get_bounds(w_theme *theme, w_themedata *data, int part,
-		w_rect *bounds, w_rect *result) {
+void w_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
+		w_rect *bounds, const char *text, int length, int enc, int flags) {
 	if (theme != 0 && theme->clazz != 0) {
-		theme->clazz->get_bounds(theme, data, part, bounds, result);
+		theme->clazz->draw_text(theme, data, gc, bounds, text, length, enc,
+				flags);
+	}
+}
+void w_theme_get_bounds(w_theme *theme, w_themedata *data, w_rect *bounds,
+		w_rect *result) {
+	if (theme != 0 && theme->clazz != 0) {
+		theme->clazz->get_bounds(theme, data, bounds, result);
 	}
 }
 int w_theme_get_selection(w_theme *theme, w_themedata *data, w_point *offset,
@@ -98,16 +107,29 @@ w_image* w_theme_get_image(w_theme *theme, wuint id) {
 	} else
 		return 0;
 }
-wuchar themeclasses0[_W_THEME_CLASS_INTERNAL_LAST] = { W_THEME_CLASS_UNKNOWN,
-		W_THEME_CLASS_MENU, W_THEME_CLASS_BUTTON, W_THEME_CLASS_LABEL,
-		W_THEME_CLASS_PROGRESSBAR, W_THEME_CLASS_SASH,
-		W_THEME_CLASS_SLIDER, W_THEME_CLASS_SCROLLBAR,
-		W_THEME_CLASS_TEXTEDIT, W_THEME_CLASS_COMPOSITE,
-		W_THEME_CLASS_WEBVIEW, W_THEME_CLASS_TREEVIEW, W_THEME_CLASS_TABVIEW,
-		W_THEME_CLASS_TABITEM, W_THEME_CLASS_COMBOBOX, W_THEME_CLASS_COOLBAR,
-		W_THEME_CLASS_DATETIME, W_THEME_CLASS_EXPANDBAR, W_THEME_CLASS_GROUPBOX,
-		W_THEME_CLASS_SPINNER, W_THEME_CLASS_LISTVIEW, W_THEME_CLASS_TOOLBAR,
-		W_THEME_CLASS_TOOLITEM, };
+wuchar themeclasses0[_W_THEME_CLASS_INTERNAL_LAST] = {
+		[_W_THEME_CLASS_INTERNAL_UNKNOWN] = W_THEME_CLASS_UNKNOWN, //
+		[_W_THEME_CLASS_INTERNAL_MENU] =W_THEME_CLASS_MENU, //
+		[_W_THEME_CLASS_INTERNAL_BUTTON] =W_THEME_CLASS_BUTTON, //
+		[_W_THEME_CLASS_INTERNAL_LABEL] =W_THEME_CLASS_LABEL, //
+		[_W_THEME_CLASS_INTERNAL_PROGRESSBAR] =W_THEME_CLASS_PROGRESSBAR, //
+		[_W_THEME_CLASS_INTERNAL_SASH] =W_THEME_CLASS_SASH, //
+		[_W_THEME_CLASS_INTERNAL_SLIDER] =W_THEME_CLASS_SLIDER, //
+		[_W_THEME_CLASS_INTERNAL_SCROLLBAR] =W_THEME_CLASS_SCROLLBAR, //
+		[_W_THEME_CLASS_INTERNAL_TEXTEDIT] =W_THEME_CLASS_TEXTEDIT, //
+		[_W_THEME_CLASS_INTERNAL_COMPOSITE] =W_THEME_CLASS_COMPOSITE, //
+		[_W_THEME_CLASS_INTERNAL_WEBVIEW] =W_THEME_CLASS_WEBVIEW, //
+		[_W_THEME_CLASS_INTERNAL_TREEVIEW] =W_THEME_CLASS_TREEVIEW, //
+		[_W_THEME_CLASS_INTERNAL_TABVIEW] =W_THEME_CLASS_TABVIEW, //
+		[_W_THEME_CLASS_INTERNAL_COMBOBOX] =W_THEME_CLASS_COMBOBOX, //
+		[_W_THEME_CLASS_INTERNAL_COOLBAR] =W_THEME_CLASS_COOLBAR, //
+		[_W_THEME_CLASS_INTERNAL_DATETIME] =W_THEME_CLASS_DATETIME, //
+		[_W_THEME_CLASS_INTERNAL_EXPANDBAR] =W_THEME_CLASS_EXPANDBAR, //
+		[_W_THEME_CLASS_INTERNAL_GROUPBOX] =W_THEME_CLASS_GROUPBOX, //
+		[_W_THEME_CLASS_INTERNAL_SPINNER] =W_THEME_CLASS_SPINNER, //
+		[_W_THEME_CLASS_INTERNAL_LISTVIEW] =W_THEME_CLASS_LISTVIEW, //
+		[_W_THEME_CLASS_INTERNAL_TOOLBAR] =W_THEME_CLASS_TOOLBAR, //
+		};
 wuchar themeclasses[W_THEME_CLASS_LAST];
 wuint w_theme_internal_class_id(wuint clazz) {
 	if (themeclasses[W_THEME_CLASS_BUTTON] == 0) {

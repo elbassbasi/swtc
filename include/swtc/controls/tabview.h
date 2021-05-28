@@ -21,17 +21,17 @@ typedef struct w_tabview {
 	void *handle[10];
 } w_tabview;
 
-typedef struct w_event_tabitem {
+typedef struct w_event_tabview {
 	w_event event;
 	w_tabitem *item;
 	w_control *control;
-} w_event_tabitem;
+} w_event_tabview;
 #define W_TABVIEW(x) ((w_tabview*)x)
 
 struct _w_tabitem_class {
 	struct _w_item_class item;
 	wresult (*get_bounds)(w_tabitem *item, w_rect *rect);
-	int (*get_image)(w_tabitem *item);
+	wresult (*get_image)(w_tabitem *item);
 	wresult (*remove)(w_tabitem *item, int destroy_Control);
 	wresult (*set_image)(w_tabitem *item, int image);
 	wresult (*pack)(w_tabitem *item, w_control *control);
@@ -54,7 +54,7 @@ struct _w_tabview_class {
  */
 SWT_PUBLIC w_control* w_tabitem_get_control(w_tabitem *item);
 SWT_PUBLIC wresult w_tabitem_get_bounds(w_tabitem *item, w_rect *rect);
-SWT_PUBLIC int w_tabitem_get_image(w_tabitem *item);
+SWT_PUBLIC wresult w_tabitem_get_image(w_tabitem *item);
 SWT_PUBLIC wresult w_tabitem_remove(w_tabitem *item, int destroy_Control);
 SWT_PUBLIC wresult w_tabitem_set_image(w_tabitem *item, int image);
 SWT_PUBLIC wresult w_tabitem_set_control(w_tabitem *item, w_control *control);

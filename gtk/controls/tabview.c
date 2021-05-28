@@ -420,7 +420,7 @@ gboolean _gtk_tabview_focus(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_tabview_switch_page(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	w_event_tabitem _e;
+	w_event_tabview _e;
 	_w_tabitem item;
 	_w_tabview_get_selection(W_TABVIEW(widget), W_TABITEM(&item));
 	w_control *c = 0;
@@ -464,7 +464,7 @@ gboolean _gtk_tabview_switch_page(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	w_event_tabitem _e;
+	w_event_tabview _e;
 	_w_tabitem item;
 	GtkWidget *pageHandle = (GtkWidget*) g_object_get_qdata(G_OBJECT(e->widget),
 			gtk_toolkit->quark[1]);

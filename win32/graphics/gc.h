@@ -176,6 +176,29 @@ GpFont* w_graphics_create_gdip_font(HDC hDC, HFONT hFont, GpGraphics *graphics,
 		GpFontCollection *fontCollection, GpFontFamily **outFamily,
 		HFONT *outFont);
 #define _W_GRAPHICS(x) ((_w_graphics*)x)
+/*
+ * textlayout
+ */
+
+typedef struct _w_textlayout {
+	w_font *font;
+	struct _w_textlayout_text *text;
+	int textDirection;
+	int *tabs;
+	int tabs_length;
+	int lineSpacingInPoints;
+	int ascentInPixels;
+	int descentInPixels;
+	int alignment;
+	int wrapWidth;
+	int orientation;
+	int indent;
+	int wrapIndent;
+	unsigned justify :1;
+	unsigned created :1;
+	unsigned is_complex :1;
+} _w_textlayout;
+#define _W_TEXTLAYOUT(x) ((_w_textlayout*)x)
 #ifdef __cplusplus
 }
 #endif

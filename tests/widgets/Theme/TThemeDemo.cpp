@@ -9,23 +9,24 @@
 
 void TThemeDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Button_PUSH",
-			new TThemeDemo(W_THEME_CLASS_BUTTON, W_PUSH));
+			new TThemeDemo(W_THEME_CLASS_BUTTON, 0, W_PUSH));
 	ITreeItem::Regitre(parent, "Button_CHECK",
-			new TThemeDemo(W_THEME_CLASS_BUTTON, W_CHECK));
+			new TThemeDemo(W_THEME_CLASS_BUTTON, 0, W_CHECK));
 	ITreeItem::Regitre(parent, "Button_RADIO",
-			new TThemeDemo(W_THEME_CLASS_BUTTON, W_RADIO));
+			new TThemeDemo(W_THEME_CLASS_BUTTON, 0, W_RADIO));
 	ITreeItem::Regitre(parent, "ProgressBar_VERTICAL",
-			new TThemeDemo(W_THEME_CLASS_PROGRESSBAR, W_VERTICAL));
+			new TThemeDemo(W_THEME_CLASS_PROGRESSBAR, 0, W_VERTICAL));
 	ITreeItem::Regitre(parent, "ProgressBar_HORIZONTAL",
-			new TThemeDemo(W_THEME_CLASS_PROGRESSBAR, W_HORIZONTAL));
+			new TThemeDemo(W_THEME_CLASS_PROGRESSBAR, 0, W_HORIZONTAL));
 	ITreeItem::Regitre(parent, "ComboBox",
-			new TThemeDemo(W_THEME_CLASS_COMBOBOX, 0));
+			new TThemeDemo(W_THEME_CLASS_COMBOBOX, 0, 0));
 	ITreeItem::Regitre(parent, "TabItem",
-			new TThemeDemo(W_THEME_CLASS_TABITEM, 0));
+			new TThemeDemo(W_THEME_CLASS_TABVIEW, W_THEME_TABITEM, 0));
 }
 
-TThemeDemo::TThemeDemo(int clazz, int style) {
+TThemeDemo::TThemeDemo(wushort clazz, wushort part, int style) {
 	this->clazz = clazz;
+	this->part = part;
 	this->style = style;
 }
 int TThemeDemo::states[] = { W_THEME_SELECTED, W_THEME_FOCUSED, W_THEME_HOT,
@@ -47,6 +48,7 @@ bool TThemeDemo::OnPaint(WPaintEvent &e) {
 	rect.height = height;
 	data.style = this->style;
 	data.clazz = this->clazz;
+	data.part = this->part;
 	for (int i = 0; i < states_length; i++) {
 		data.state = states[i];
 		theme->DrawBackground(data, *e.gc, rect);

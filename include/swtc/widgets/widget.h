@@ -23,6 +23,8 @@ struct w_widget {
 	volatile int ref;
 	wuint id;
 	wuint64 style;
+	wuint state;
+	wuint state0;
 	void *handle;
 	w_widget_post_event_proc post_event;
 	void *data[5];

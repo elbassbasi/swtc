@@ -95,8 +95,8 @@ wresult _w_groupbox_compute_size(w_widget *widget, w_event_compute_size *e,
 			_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed() ? 0 : 1;
 			e->size->width = WMAX(e->size->width,
 					rect.right - rect.left + CLIENT_INSET * 6 + offsetY);
-			_w_toolkit_free(buffer, (length + 3) * sizeof(WCHAR));
 		}
+		_w_toolkit_free(buffer, (length + 3) * sizeof(WCHAR));
 	}
 	return ret;
 }

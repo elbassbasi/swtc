@@ -40,10 +40,11 @@ typedef struct _w_widget {
 	volatile int ref;
 	wuint id;
 	wuint64 style;
+	wuint state0;
+	wuint state;
 	GtkWidget *handle;
 	w_widget_post_event_proc post_event;
 	void *data[5];
-	wuint state;
 } _w_widget;
 #define _W_WIDGET(x) ((_w_widget*)x)
 /*

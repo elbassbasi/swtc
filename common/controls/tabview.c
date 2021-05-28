@@ -13,7 +13,7 @@ w_control* w_tabitem_get_control(w_tabitem *item) {
 		w_widget *widget;
 		w_item_get_parent_widget(W_ITEM(item), &widget);
 		if (widget != 0) {
-			w_event_tabitem event;
+			w_event_tabview event;
 			event.event.type = W_EVENT_ITEM_GET_CONTROL;
 			event.event.platform_event = 0;
 			event.event.data = 0;
@@ -32,7 +32,7 @@ wresult w_tabitem_get_bounds(w_tabitem *item, w_rect *rect) {
 	} else
 		return W_ERROR_NO_HANDLES;
 }
-int w_tabitem_get_image(w_tabitem *item) {
+wresult w_tabitem_get_image(w_tabitem *item) {
 	if (W_WIDGETDATA_CHECK(item)) {
 		return W_TABITEM_GET_CLASS(item)->get_image(item);
 	} else
@@ -56,7 +56,7 @@ wresult w_tabitem_set_control(w_tabitem *item, w_control *control) {
 		w_widget *widget;
 		w_item_get_parent_widget(W_ITEM(item), &widget);
 		if (widget != 0) {
-			w_event_tabitem event;
+			w_event_tabview event;
 			event.event.type = W_EVENT_ITEM_SET_CONTROL;
 			event.event.platform_event = 0;
 			event.event.data = 0;

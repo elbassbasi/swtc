@@ -151,6 +151,152 @@ void _win32_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		DrawFrameControl(_W_GRAPHICS(gc)->handle, &rect, part[0], part[1]);
 	}
 }
+void _win32_theme_tabview_part_id(w_theme *theme, w_themedata *data, int *ids,
+		int part) {
+	if (data->part == W_THEME_TABITEM) {
+		int iPartId = TABP_TABITEM, iStateId = TIS_NORMAL;
+		if ((data->style & W_LEFT) != 0 && (data->style & W_RIGHT) != 0) {
+			iPartId = TABP_TABITEMLEFTEDGE;
+		} else if ((data->style & W_LEFT) != 0) {
+			iPartId = TABP_TABITEMLEFTEDGE;
+		} else if ((data->style & W_RIGHT) != 0) {
+		}
+		if ((data->state & W_THEME_HOT) != 0)
+			iStateId = TIS_HOT;
+		if ((data->state & W_THEME_FOCUSED) != 0)
+			iStateId = TIS_FOCUSED;
+		if ((data->state & W_THEME_SELECTED) != 0)
+			iStateId = TIS_SELECTED;
+		if ((data->state & W_THEME_DISABLED) != 0)
+			iStateId = TIS_DISABLED;
+		ids[0] = iPartId;
+		ids[1] = iStateId;
+	} else if (data->part == W_THEME_TABITEM_CLOSE) {
+		int iPartId = WP_SMALLCLOSEBUTTON, iStateId = CBS_NORMAL;
+		if ((data->state & W_THEME_HOT) != 0)
+			iStateId = CBS_HOT;
+		if ((data->state & W_THEME_SELECTED) != 0)
+			iStateId = CBS_PUSHED;
+		if ((data->state & W_THEME_DISABLED) != 0)
+			iStateId = CBS_DISABLED;
+		ids[0] = iPartId;
+		ids[1] = iStateId;
+	} else {
+		int iPartId = TABP_PANE, iStateId = TIS_NORMAL;
+		if ((data->state & W_THEME_DISABLED) != 0) {
+			iStateId = TIS_DISABLED;
+		} else {
+			if ((data->state & W_THEME_HOT) != 0)
+				iStateId = TIS_HOT;
+			if ((data->state & W_THEME_SELECTED) != 0)
+				iStateId = TIS_SELECTED;
+		}
+		ids[0] = iPartId;
+		ids[1] = iStateId;
+	}
+}
+#define TABITEM_INSET  2
+#define TABITEM_INSET2 6
+#define TABITEM_CLOSE_WIDTH  10
+#define TABITEM_CLOSE_HEIGTH 10
+void _win32_theme_tabview_draw_background(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds, wuint clazz) {
+	if (data->part == W_THEME_TABITEM) {
+		int state = data->state;
+		int x = bounds->x, y = bounds->y, width = bounds->width, height =
+				bounds->height;
+		if ((data->tabitem.position & W_LEFT) != 0) {
+			x += TABITEM_INSET;
+			width -= TABITEM_INSET;
+		}
+		y += TABITEM_INSET;
+		height -= TABITEM_INSET;
+		if ((state & W_THEME_SELECTED) != 0) {
+			x -= TABITEM_INSET;
+			y -= TABITEM_INSET;
+			width += TABITEM_INSET * 2;
+			height += TABITEM_INSET * 2;
+		}
+		RECT rect;
+		rect.left = x;
+		rect.right = x + width;
+		rect.top = y;
+		rect.bottom = y + height;
+		int part[2];
+		_win32_theme_tabview_part_id(theme, data, part, W_THEME_WIDGET_WHOLE);
+		if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
+			HTHEME hTheme = OpenThemeData(NULL, L"TAB");
+			if (hTheme != 0) {
+				DrawThemeBackground(hTheme, _W_GRAPHICS(gc)->handle, part[0],
+						part[1], &rect, NULL);
+				w_rect *clientArea = data->clientArea;
+				if (clientArea != 0) {
+					RECT contentRect;
+					GetThemeBackgroundContentRect(hTheme,
+					_W_GRAPHICS(gc)->handle, part[0], part[1], &rect,
+							&contentRect);
+					clientArea->x = contentRect.left;
+					clientArea->y = contentRect.top;
+					clientArea->width = contentRect.right - contentRect.left;
+					clientArea->height = contentRect.bottom - contentRect.top;
+				}
+				CloseThemeData(hTheme);
+			}
+		} else {
+			DrawFrameControl(_W_GRAPHICS(gc)->handle, &rect, part[0], part[1]);
+		}
+	}
+	if (data->part == W_THEME_TABITEM_CLOSE) {
+		HTHEME hTheme = OpenThemeData(NULL, L"WINDOW");
+		if (hTheme != 0) {
+			RECT rect;
+			rect.left = bounds->x;
+			rect.right = bounds->x + bounds->width;
+			rect.top = bounds->y;
+			if ((data->style & W_BOTTOM) != 0) {
+				rect.bottom = bounds->y + bounds->height - data->tab.tabsHeight;
+			} else {
+				rect.top += data->tab.tabsHeight;
+				rect.bottom = bounds->y + bounds->height;
+			}
+			int part[2];
+			_win32_theme_tabview_part_id(theme, data, part,
+					W_THEME_WIDGET_WHOLE);
+			DrawThemeBackground(hTheme, _W_GRAPHICS(gc)->handle, part[0],
+					part[1], &rect, NULL);
+			CloseThemeData(hTheme);
+		}
+	} else {
+		HTHEME hTheme = OpenThemeData(NULL, L"TAB");
+		if (hTheme != 0) {
+			RECT rect;
+			rect.left = bounds->x;
+			rect.right = bounds->x + bounds->width;
+			rect.top = bounds->y;
+			if ((data->style & W_BOTTOM) != 0) {
+				rect.bottom = bounds->y + bounds->height - data->tab.tabsHeight;
+			} else {
+				rect.top += data->tab.tabsHeight;
+				rect.bottom = bounds->y + bounds->height;
+			}
+			int part[2];
+			_win32_theme_tabview_part_id(theme, data, part,
+					W_THEME_WIDGET_WHOLE);
+			DrawThemeBackground(hTheme, _W_GRAPHICS(gc)->handle, part[0],
+					part[1], &rect, NULL);
+			if (data->tab.tabsArea != 0) {
+				data->tab.tabsArea->x = bounds->x;
+				data->tab.tabsArea->y = bounds->y;
+				data->tab.tabsArea->width = bounds->width;
+				data->tab.tabsArea->height = data->tab.tabsHeight;
+				if ((data->style & W_BOTTOM) != 0) {
+					data->tab.tabsArea->y += bounds->height
+							- data->tab.tabsHeight;
+				}
+			}
+		}
+	}
+}
 _win32_theme_clazz_info __win32_theme_clazz_info[] = {
 		[_W_THEME_CLASS_INTERNAL_UNKNOWN] = { }, //
 		[_W_THEME_CLASS_INTERNAL_MENU] = { _win32_themedata_part_id, }, //
@@ -163,10 +309,10 @@ _win32_theme_clazz_info __win32_theme_clazz_info[] = {
 		[_W_THEME_CLASS_INTERNAL_SCROLLBAR] = { _win32_themedata_part_id, }, //
 		[_W_THEME_CLASS_INTERNAL_TEXTEDIT] = { _win32_themedata_part_id, }, //
 		[_W_THEME_CLASS_INTERNAL_COMPOSITE] = { _win32_themedata_part_id, }, //
-		[_W_THEME_CLASS_INTERNAL_BROWSER] = { _win32_themedata_part_id, }, //
+		[_W_THEME_CLASS_INTERNAL_WEBVIEW] = { _win32_themedata_part_id, }, //
 		[_W_THEME_CLASS_INTERNAL_TREEVIEW] = { _win32_themedata_part_id, }, //
-		[_W_THEME_CLASS_INTERNAL_TABVIEW] = { _win32_themedata_part_id, }, //
-		[_W_THEME_CLASS_INTERNAL_TABITEM] = { _win32_themedata_part_id, }, //
+		[_W_THEME_CLASS_INTERNAL_TABVIEW] = { _win32_theme_tabview_part_id,
+				_win32_theme_tabview_draw_background }, //
 		[_W_THEME_CLASS_INTERNAL_COMBOBOX] = { _win32_themedata_part_id, }, //
 		[_W_THEME_CLASS_INTERNAL_COOLBAR] = { _win32_themedata_part_id, }, //
 		[_W_THEME_CLASS_INTERNAL_DATETIME] = { _win32_themedata_part_id, }, //
@@ -175,7 +321,6 @@ _win32_theme_clazz_info __win32_theme_clazz_info[] = {
 		[_W_THEME_CLASS_INTERNAL_SPINNER] = { _win32_themedata_part_id, }, //
 		[_W_THEME_CLASS_INTERNAL_LISTVIEW] = { _win32_themedata_part_id, }, //
 		[_W_THEME_CLASS_INTERNAL_TOOLBAR] = { _win32_themedata_part_id, }, //
-		[_W_THEME_CLASS_INTERNAL_TOOLITEM] = { _win32_themedata_part_id, }, //
 		};
 void _win32_theme_dispose(w_theme *theme) {
 }
@@ -200,13 +345,35 @@ void _win32_theme_draw_focus(w_theme *theme, w_themedata *data, w_graphics *gc,
 void _win32_theme_draw_image(w_theme *theme, w_themedata *data, w_graphics *gc,
 		w_rect *bounds, w_image *image, int flags) {
 }
+void _win32_theme_draw_image_index(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds, w_imagelist *imagelist, int index,
+		int flags) {
+	w_point p;
+	w_size sz;
+	p.x = bounds->x;
+	p.y = bounds->y;
+	w_imagelist_get_size(imagelist, &sz);
+	if ((flags & W_THEME_DRAW_HCENTER) != 0) {
+		p.x += (bounds->width - sz.width) / 2;
+	}
+	if ((flags & W_THEME_DRAW_RIGHT) != 0) {
+		p.x += bounds->width - sz.width;
+	}
+	if ((flags & W_THEME_DRAW_BOTTOM) != 0) {
+		p.y += bounds->height - sz.height;
+	}
+	if ((flags & W_THEME_DRAW_VCENTER) != 0) {
+		p.y += (bounds->height - sz.height) / 2;
+	}
+	w_imagelist_draw(imagelist, gc, index, &p, data->state);
+}
 void _win32_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
-		w_rect *bounds, const char *text, int length, int flags) {
+		w_rect *bounds, const char *text, int length, int enc, int flags) {
 	_win32_theme_part_id part_id = _win32_theme_button_part_id;
-	size_t charsength = w_utf8_to_utf16(text, length, 0, 0);
-	WCHAR *chars = _w_toolkit_malloc((charsength + 1) * sizeof(WCHAR));
+	WCHAR *chars;
+	int newlength;
+	_win_text_fix(text, length, enc, &chars, &newlength);
 	if (chars != 0) {
-		w_utf8_to_utf16(text, length, chars, charsength + 1);
 		int textFlags = DT_SINGLELINE;
 		if ((flags & W_THEME_DRAW_LEFT) != 0)
 			textFlags |= DT_LEFT;
@@ -225,54 +392,71 @@ void _win32_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 		rect.right = bounds->x + bounds->width;
 		rect.top = bounds->y;
 		rect.bottom = bounds->y + bounds->height;
-		/*HFONT oldFont = (HFONT) SelectObject(_W_GRAPHICS(gc)->handle,
-		 win_toolkit->systemfont.handle);*/
+		HDC hdc = _W_GRAPHICS(gc)->handle;
+		HFONT oldFont = (HFONT) SelectObject(hdc,
+				win_toolkit->systemFont.handle);
 		if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
 			HTHEME hTheme = OpenThemeData(NULL, L"BUTTON");
 			int part[2];
-			part_id(theme,data, part, W_THEME_WIDGET_WHOLE);
+			part_id(theme, data, part, W_THEME_WIDGET_WHOLE);
 			int iPartId = part[0];
 			int iStateId = part[1];
-			DrawThemeText(hTheme, _W_GRAPHICS(gc)->handle, iPartId, iStateId,
-					chars, charsength, textFlags, 0, &rect);
+			DrawThemeText(hTheme, hdc, iPartId, iStateId, chars, newlength,
+					textFlags, 0, &rect);
 		} else {
 			RECT r;
 			memcpy(&r, &rect, sizeof(RECT));
-			DrawTextW(_W_GRAPHICS(gc)->handle, chars, charsength, &r,
-					textFlags /*| DT_CALCRECT*/);
-			/*int width = r.right - r.left;
-			 int height = r.bottom - r.top;
-			 HBITMAP hBitmap = CreateCompatibleBitmap(_W_GRAPHICS(gc)->handle,
-			 width, height);
-			 if (hBitmap != 0) {
-			 HDC memDC = CreateCompatibleDC(_W_GRAPHICS(gc)->handle);
-			 HBITMAP hOldBitmap = SelectObject(memDC, hBitmap);
-			 PatBlt(memDC, 0, 0, width, height, BLACKNESS);
-			 SetBkMode(memDC, TRANSPARENT);
-			 SelectObject(memDC,
-			 GetCurrentObject(_W_GRAPHICS(gc)->handle, OBJ_FONT));
-			 DrawTextW(memDC, chars, charsength, &r, textFlags);
-			 BitBlt(_W_GRAPHICS(gc)->handle, 0, 0, width,
-			 height, memDC, 0, 0, SRCINVERT);
-			 SelectObject(memDC, hOldBitmap);
-			 DeleteDC(memDC);
-			 DeleteObject(hBitmap);
-			 }*/
+			DrawTextW(_W_GRAPHICS(gc)->handle, chars, newlength, &r,
+					textFlags | DT_CALCRECT);
+			int width = r.right - r.left;
+			int height = r.bottom - r.top;
+			HBITMAP hBitmap = CreateCompatibleBitmap(hdc, width, height);
+			if (hBitmap != 0) {
+				HDC memDC = CreateCompatibleDC(hdc);
+				HBITMAP hOldBitmap = SelectObject(memDC, hBitmap);
+				PatBlt(memDC, 0, 0, width, height, BLACKNESS);
+				SetBkMode(memDC, TRANSPARENT);
+				SelectObject(memDC, GetCurrentObject(hdc, OBJ_FONT));
+				DrawTextW(memDC, chars, newlength, &r, textFlags);
+				BitBlt(hdc, 0, 0, width, height, memDC, 0, 0, SRCINVERT);
+				SelectObject(memDC, hOldBitmap);
+				DeleteDC(memDC);
+				DeleteObject(hBitmap);
+			}
 		}
-		//SelectObject(_W_GRAPHICS(gc)->handle, oldFont);
-		_w_toolkit_free(chars, (charsength + 1) * sizeof(WCHAR));
+		SelectObject(_W_GRAPHICS(gc)->handle, oldFont);
+		_win_text_free(text, chars, newlength);
 	}
 }
-void _win32_theme_get_bounds(w_theme *theme, w_themedata *data, int part,
+void _win32_theme_tabitem_get_close_bounds(w_theme *theme, w_themedata *data,
 		w_rect *bounds, w_rect *result) {
+	result->width = TABITEM_CLOSE_WIDTH;
+	result->height = TABITEM_CLOSE_HEIGTH;
+	result->x = bounds->x + bounds->width - result->width - 2;
+	result->y = bounds->y + (bounds->height - result->height) / 2;
 }
-int _win32_theme_get_selection(w_theme *theme, w_themedata *data,
-		w_point *offset, w_rect *bounds) {
-	return 0;
+void _win32_theme_get_bounds(w_theme *theme, w_themedata *data, w_rect *bounds,
+		w_rect *result) {
+	if (data->clazz == W_THEME_CLASS_TABVIEW
+			&& data->part == W_THEME_TABITEM_CLOSE) {
+		_win32_theme_tabitem_get_close_bounds(theme, data, bounds, result);
+	}
 }
 int _win32_theme_hit_background(w_theme *theme, w_themedata *data,
 		w_point *position, w_rect *bounds) {
-	return 0;
+	if (w_rect_contains(bounds, position->x, position->y) <= 0)
+		return W_THEME_WIDGET_NOWHERE;
+	w_rect r;
+	if (data->clazz == W_THEME_CLASS_TABVIEW && data->part == W_THEME_TABITEM) {
+		_win32_theme_tabitem_get_close_bounds(theme, data, bounds, &r);
+		if (w_rect_contains(&r, position->x, position->y) > 0)
+			return W_THEME_TABITEM_CLOSE;
+	}
+	return W_THEME_WIDGET_WHOLE;
+}
+int _win32_theme_get_selection(w_theme *theme, w_themedata *data,
+		w_point *offset, w_rect *bounds) {
+	return _win32_theme_hit_background(theme, data, offset, bounds);
 }
 void _win32_theme_measure_text(w_theme *theme, w_themedata *data,
 		w_graphics *gc, w_rect *bounds, w_rect *result, const char *text,
@@ -293,11 +477,11 @@ w_image* _win32_theme_get_image(w_theme *theme, wuint id) {
 _w_theme_class _win32_theme_clazz = { _win32_theme_dispose,
 		_win32_theme_get_name, _win32_theme_compute_trim,
 		_win32_theme_draw_background_0, _win32_theme_draw_focus,
-		_win32_theme_draw_image, _win32_theme_draw_text,
-		_win32_theme_get_bounds, _win32_theme_get_selection,
-		_win32_theme_hit_background, _win32_theme_measure_text,
-		_win32_theme_get_color, _win32_theme_get_font, _win32_theme_get_cursor,
-		_win32_theme_get_image };
+		_win32_theme_draw_image, _win32_theme_draw_image_index,
+		_win32_theme_draw_text, _win32_theme_get_bounds,
+		_win32_theme_get_selection, _win32_theme_hit_background,
+		_win32_theme_measure_text, _win32_theme_get_color,
+		_win32_theme_get_font, _win32_theme_get_cursor, _win32_theme_get_image };
 void _w_theme_init() {
 	win_toolkit->theme = (w_theme*) &win_toolkit->win32theme;
 	win_toolkit->win32theme.theme.clazz = &_win32_theme_clazz;

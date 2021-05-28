@@ -40,9 +40,6 @@ enum {
 	W_THEME_CLASS_SPINNER = _W_CLASS_SPINNER,
 	W_THEME_CLASS_LISTVIEW = _W_CLASS_LISTVIEW,
 	W_THEME_CLASS_TOOLBAR = _W_CLASS_TOOLBAR,
-	// item
-	W_THEME_CLASS_TABITEM = _W_CLASS_LAST + 1,
-	W_THEME_CLASS_TOOLITEM = _W_CLASS_LAST + 2,
 	W_THEME_CLASS_LAST,
 	/*
 	 * internal class
@@ -58,10 +55,9 @@ enum {
 	_W_THEME_CLASS_INTERNAL_TEXTEDIT,
 	_W_THEME_CLASS_INTERNAL_LISTVIEW,
 	_W_THEME_CLASS_INTERNAL_COMPOSITE,
-	_W_THEME_CLASS_INTERNAL_BROWSER,
+	_W_THEME_CLASS_INTERNAL_WEBVIEW,
 	_W_THEME_CLASS_INTERNAL_TREEVIEW,
 	_W_THEME_CLASS_INTERNAL_TABVIEW,
-	_W_THEME_CLASS_INTERNAL_TABITEM,
 	_W_THEME_CLASS_INTERNAL_COMBOBOX,
 	_W_THEME_CLASS_INTERNAL_COOLBAR,
 	_W_THEME_CLASS_INTERNAL_DATETIME,
@@ -69,7 +65,6 @@ enum {
 	_W_THEME_CLASS_INTERNAL_GROUPBOX,
 	_W_THEME_CLASS_INTERNAL_SPINNER,
 	_W_THEME_CLASS_INTERNAL_TOOLBAR,
-	_W_THEME_CLASS_INTERNAL_TOOLITEM,
 	_W_THEME_CLASS_INTERNAL_LAST,
 };
 
@@ -116,6 +111,10 @@ enum {
 	W_THEME_SCALE_RIGHT_TRACK = W_THEME_SCALE_DOWN_TRACK,
 	W_THEME_SCALE_THUMB = 3,
 
+	/** TabItem parts */
+	W_THEME_TABITEM = 1,
+	W_THEME_TABITEM_CLOSE = 2,
+
 	/** ToolItem parts */
 	W_THEME_TOOLITEM_ARROW = 1,
 
@@ -127,7 +126,8 @@ struct w_theme {
 	struct _w_theme_class *clazz;
 };
 typedef struct w_themedata {
-	wuint clazz;
+	wushort clazz;
+	wushort part;
 	wuint state;
 	wuint64 style;
 	w_rect *clientArea;
@@ -169,10 +169,12 @@ typedef struct _w_theme_class {
 			w_rect *bounds);
 	void (*draw_image)(w_theme *theme, w_themedata *data, w_graphics *gc,
 			w_rect *bounds, w_image *image, int flags);
+	void (*draw_image_index)(w_theme *theme, w_themedata *data, w_graphics *gc,
+			w_rect *bounds, w_imagelist *imagelist, int index, int flags);
 	void (*draw_text)(w_theme *theme, w_themedata *data, w_graphics *gc,
-			w_rect *bounds, const char *text, int length, int flags);
-	void (*get_bounds)(w_theme *theme, w_themedata *data, int part,
-			w_rect *bounds, w_rect *result);
+			w_rect *bounds, const char *text, int length, int enc, int flags);
+	void (*get_bounds)(w_theme *theme, w_themedata *data, w_rect *bounds,
+			w_rect *result);
 	int (*get_selection)(w_theme *theme, w_themedata *data, w_point *offset,
 			w_rect *bounds);
 	int (*hit_background)(w_theme *theme, w_themedata *data, w_point *position,
@@ -195,10 +197,13 @@ SWT_PUBLIC void w_theme_draw_focus(w_theme *theme, w_themedata *data,
 		w_graphics *gc, w_rect *bounds);
 SWT_PUBLIC void w_theme_draw_image(w_theme *theme, w_themedata *data,
 		w_graphics *gc, w_rect *bounds, w_image *image, int flags);
-SWT_PUBLIC void w_theme_draw_text(w_theme *theme, w_themedata *data,
-		w_graphics *gc, w_rect *bounds, const char *text, int length,
+SWT_PUBLIC void w_theme_draw_image_index(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds, w_imagelist *imagelist, int index,
 		int flags);
-SWT_PUBLIC void w_theme_get_bounds(w_theme *theme, w_themedata *data, int part,
+SWT_PUBLIC void w_theme_draw_text(w_theme *theme, w_themedata *data,
+		w_graphics *gc, w_rect *bounds, const char *text, int length, int enc,
+		int flags);
+SWT_PUBLIC void w_theme_get_bounds(w_theme *theme, w_themedata *data,
 		w_rect *bounds, w_rect *result);
 SWT_PUBLIC int w_theme_get_selection(w_theme *theme, w_themedata *data,
 		w_point *offset, w_rect *bounds);

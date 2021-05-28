@@ -12,9 +12,10 @@ class TThemeDemo: public CanvasTreeItem {
 public:
 	static int states[];
 	static const char* texts[];
-	int clazz;
+	wushort clazz;
+	wushort part;
 	int style;
-	TThemeDemo(int clazz, int style);
+	TThemeDemo(wushort clazz,wushort part,int style);
 	static void Registre(WTreeItem &parent);
 	bool OnPaint(WPaintEvent &e);
 };
