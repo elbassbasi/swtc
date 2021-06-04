@@ -9,9 +9,11 @@
 
 TWordJumbles::TWordJumbles() {
 	this->word = 0;
+	this->font = 0;
 }
 
 TWordJumbles::~TWordJumbles() {
+	font->Dispose();
 }
 
 void TWordJumbles::Registre(WTreeItem &parent) {
@@ -22,7 +24,7 @@ void TWordJumbles::CreateControl(WComposite *parent) {
 	this->Create(parent, W_FREE_MEMORY);
 	this->word = "ECLIPSE";
 	int width = 40;
-	font.Create("Arial", 18, W_BOLD);
+	font = WFont::Create("Arial", 18, W_BOLD);
 	for (size_t i = 0; i < NUM_LABEL; i++) {
 		CreateLabel(i, width);
 	}
@@ -116,14 +118,14 @@ bool TWordJumblesDragSource::OnDragStart(WDragSourceEvent &e) {
 	if (str.IsEmpty())
 		e.doit = false;
 	/*WSurface surface;
-	surface.Create(48, 48);
-	WGraphics gc;
-	surface.GetGraphics(gc);
-	gc.SetForeground(W_COLOR_WHITE);
-	gc.SetBackground(W_COLOR_BLACK);
-	gc.DrawText(str, 0, 0);
-	WImage image;
-	surface.GetImage(e.image);*/
+	 surface.Create(48, 48);
+	 WGraphics gc;
+	 surface.GetGraphics(gc);
+	 gc.SetForeground(W_COLOR_WHITE);
+	 gc.SetBackground(W_COLOR_BLACK);
+	 gc.DrawText(str, 0, 0);
+	 WImage image;
+	 surface.GetImage(e.image);*/
 	return false;
 }
 

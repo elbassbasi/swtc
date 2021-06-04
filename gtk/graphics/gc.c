@@ -87,8 +87,7 @@ wresult _w_graphics_check(w_graphics *gc, int mask) {
 	if ((state & GRAPHICS_STATE_FONT) != 0) {
 		if (_gc->layout != 0) {
 			if (_gc->font != 0)
-				pango_layout_set_font_description(_gc->layout,
-				_W_FONT(_gc->font)->handle);
+				pango_layout_set_font_description(_gc->layout, _gc->font);
 		}
 	}
 	if ((state & GRAPHICS_STATE_LINE_CAP) != 0) {
@@ -1326,7 +1325,7 @@ int w_graphics_get_fill_rule(w_graphics *gc) {
 w_font* w_graphics_get_font(w_graphics *gc) {
 	wresult result = _w_graphics_check(gc, 0);
 	if (result > 0) {
-		return _W_GRAPHICS(gc)->font;
+		return (w_font*) _W_GRAPHICS(gc)->font;
 	}
 	return 0;
 }
@@ -1342,11 +1341,10 @@ wresult w_graphics_get_font_metrics(w_graphics *gc, w_fontmetrics *fm) {
 	result = _w_graphics_check(gc, GRAPHICS_STATE_FONT);
 	if (result < 0)
 		return 0;
-	w_font *font = _W_GRAPHICS(gc)->font;
+	PangoFontDescription *font = _W_GRAPHICS(gc)->font;
 	PangoContext *context = _W_GRAPHICS(gc)->context;
 	PangoLanguage *lang = pango_context_get_language(context);
-	PangoFontMetrics *metrics = pango_context_get_metrics(context,
-	_W_FONT(font)->handle, lang);
+	PangoFontMetrics *metrics = pango_context_get_metrics(context, font, lang);
 	int ascent = pango_font_metrics_get_ascent(metrics);
 	int descent = pango_font_metrics_get_descent(metrics);
 	int ascentInPoints = ascent;
@@ -1738,9 +1736,8 @@ wresult w_graphics_set_font(w_graphics *gc, w_font *font) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	if (_gc->cairo == 0)
 		return W_ERROR_NO_HANDLES;
-	if (font != 0 && _W_FONT(font)->handle == 0)
-		return W_ERROR_INVALID_ARGUMENT;
-	_gc->font = font != 0 ? font : w_toolkit_get_system_font(0);
+	_gc->font = (PangoFontDescription*) (
+			font != 0 ? font : w_toolkit_get_system_font(0));
 	_gc->state &= ~GRAPHICS_STATE_FONT;
 	_gc->stringWidth = _gc->stringHeight = -1;
 	return W_TRUE;

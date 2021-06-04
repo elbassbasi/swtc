@@ -222,14 +222,19 @@ private:
  *
  * @see FontData
  */
-class WFont: public WResource {
-public:
+class WFont {
+private:
+	WFont(const WFont &font) {
+
+	}
+	WFont& operator =(const WFont &font) {
+		return *this;
+	}
 	WFont() {
-		w_font_init(W_FONT(this));
 	}
 	~ WFont() {
-		w_font_dispose(W_FONT(this));
 	}
+public:
 	void Dispose() {
 		w_font_dispose(W_FONT(this));
 	}
@@ -246,9 +251,10 @@ public:
 	 * @param height the font height in points
 	 * @param style a bit or combination of NORMAL, BOLD, ITALIC
 	 */
-	bool Create(const char *name, int style, int size) {
-		return w_font_create(W_FONT(this), name, -1, W_ENCODING_UTF8, style,
-				size) > 0;
+	static WFont* Create(const char *name, int style, int size) {
+		WFont *font;
+		w_font_create((w_font**) &font, name, -1, W_ENCODING_UTF8, style, size);
+		return font;
 	}
 	/**
 	 * Constructs a new font given a device and font data
@@ -260,8 +266,10 @@ public:
 	 * @param device the device to create the font on
 	 * @param fd the FontData that describes the desired font (must not be null)
 	 */
-	bool Create(const WFontData &data) {
-		return w_font_create_from_fontdata(W_FONT(this), W_FONTDATA(&data)) > 0;
+	static WFont* Create(const WFontData &data) {
+		WFont *font;
+		w_font_create_from_fontdata((w_font**) &font, W_FONTDATA(&data));
+		return font;
 	}
 	/**
 	 * Returns an array of <code>FontData</code>s representing the receiver.
@@ -274,8 +282,42 @@ public:
 	bool GetFontData(WFontData &data) {
 		return w_font_get_fontdata(W_FONT(this), W_FONTDATA(&data)) > 0;
 	}
-private:
-	void *handle[sizeof(w_font) / sizeof(void*)];
+};
+class WFontAuto {
+protected:
+	bool _Create(const char *name, int style, int size) {
+		return w_font_create((w_font**) &font, name, -1, W_ENCODING_UTF8, style,
+				size) > 0;
+	}
+	bool _Create(const WFontData &data) {
+		return w_font_create_from_fontdata((w_font**) &font, W_FONTDATA(&data))
+				> 0;
+	}
+public:
+	WFontAuto() {
+		this->font = 0;
+	}
+	WFontAuto(const char *name, int style, int size) {
+		_Create(name, style, size);
+	}
+	WFontAuto(const WFontData &data) {
+		_Create(data);
+	}
+	~WFontAuto() {
+		this->font->Dispose();
+	}
+	bool Create(const char *name, int style, int size) {
+		font->Dispose();
+		return _Create(name, style, size);
+	}
+	bool Create(const WFontData &data) {
+		font->Dispose();
+		return _Create(data);
+	}
+	bool GetFontData(WFontData &data) {
+		return font->GetFontData(data);
+	}
+	WFont *font;
 };
 
 /**

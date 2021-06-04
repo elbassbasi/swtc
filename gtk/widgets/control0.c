@@ -459,7 +459,7 @@ void _w_control_get_thickness(GtkWidget *widget, w_point *thickness) {
 wresult _w_control_get_tooltip_text(w_control *control, w_alloc alloc,
 		void *user_data, int enc) {
 	return _gtk_alloc_set_text(alloc, user_data,
-			_W_CONTROL(control)->tooltiptext, -1, enc);
+	_W_CONTROL(control)->tooltiptext, -1, enc);
 }
 wresult _w_control_get_touch_enabled(w_control *control) {
 	return W_FALSE;
@@ -964,21 +964,12 @@ wresult _w_control_set_focus(w_control *control) {
 	return _w_control_force_focus(control);
 }
 wresult _w_control_set_font(w_control *control, w_font *font) {
-	if (((_W_WIDGET(control)->state & STATE_FONT) == 0) && font == 0)
-		return W_TRUE;
-	_W_CONTROL(control)->font = font;
+	_W_CONTROL(control)->font = (PangoFontDescription*) font;
 	PangoFontDescription *fontDesc;
 	if (font == 0) {
-		fontDesc = _W_FONT(_w_control_default_font(control))->handle;
+		fontDesc = (PangoFontDescription*) _w_control_default_font(control);
 	} else {
-		if (!w_font_is_ok(font))
-			return W_ERROR_INVALID_ARGUMENT;
-		fontDesc = _W_FONT(font)->handle;
-	}
-	if (font == 0) {
-		_W_WIDGET(control)->state &= ~STATE_FONT;
-	} else {
-		_W_WIDGET(control)->state |= STATE_FONT;
+		fontDesc = (PangoFontDescription*) font;
 	}
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
 	priv->set_font_description(control, fontDesc, priv);

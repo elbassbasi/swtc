@@ -25,13 +25,13 @@ wresult _w_progressbar_update(w_progressbar *progressbar) {
 #endif
 	return W_TRUE;
 }
-int _w_progressbar_get_maximum(w_progressbar *progressbar) {
+wresult _w_progressbar_get_maximum(w_progressbar *progressbar) {
 	return _W_PROGRESSBAR(progressbar)->maximum;
 }
-int _w_progressbar_get_selection(w_progressbar *progressbar) {
+wresult _w_progressbar_get_selection(w_progressbar *progressbar) {
 	return _W_PROGRESSBAR(progressbar)->selection;
 }
-int _w_progressbar_get_state(w_progressbar *progressbar) {
+wresult _w_progressbar_get_state(w_progressbar *progressbar) {
 	return W_NORMAL;
 }
 wresult _w_progressbar_set_maximum(w_progressbar *progressbar, int value) {

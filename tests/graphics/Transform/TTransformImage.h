@@ -17,7 +17,7 @@ public:
 	void CreateControl(WComposite *parent);
 	bool OnPaint(WPaintEvent &e);
 	WImage image;
-	WFont font;
+	WFont *font;
 };
 
 #endif /* TESTS_GRAPHICS_TRANSFORM_TTRANSFORMIMAGE_H_ */

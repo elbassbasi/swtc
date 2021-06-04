@@ -1069,7 +1069,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			}
 			const PangoFontDescription *pangoHandle = 0;
 			if (attr.font != 0) {
-				pangoHandle = _W_FONT(attr.font)->handle;
+				pangoHandle = (PangoFontDescription*) attr.font;
 			}
 			g_object_set(cell, "font-desc", pangoHandle, NULL);
 			GtkTreeViewColumn *firstColumn = gtk_tree_view_get_column(handle,

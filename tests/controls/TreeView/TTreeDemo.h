@@ -19,6 +19,7 @@ public:
 };
 class TTreeDemo: public WTreeView, public ITreeItem {
 public:
+	static const int font_length = 3;
 	static void Registre(WTreeItem &parent);
 	TTreeDemo();
 	~TTreeDemo();
@@ -31,7 +32,7 @@ protected:
 	bool OnItemGetValue(WTreeEvent &e);
 	bool OnItemGetAttr(WTreeEvent &e);
 	bool OnItemDispose(WTreeEvent &e);
-	WFont fonts[3];
+	WFont* fonts[font_length];
 };
 
 #endif /* TESTS_CONTROLS_TREEVIEW_TTREEDEMO_H_ */

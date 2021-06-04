@@ -252,7 +252,7 @@ void _w_label_set_text_hyperlink(w_label *label, const char *text, int length,
 			if (link->layout != 0) {
 				_w_label_parse(s, newlength, link);
 				w_font *sysfont = w_toolkit_get_system_font(0);
-				PangoFontDescription *hfont = _W_FONT(sysfont)->handle;
+				PangoFontDescription *hfont = (PangoFontDescription*) sysfont;
 				pango_layout_set_font_description(link->layout, hfont);
 				pango_layout_set_text(link->layout, link->text,
 						link->text_length);

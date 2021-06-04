@@ -105,7 +105,7 @@ typedef struct _w_toolkit {
 	//theme
 	_gtk_theme gtktheme;
 	w_theme *theme;
-	_w_font system_font;
+	PangoFontDescription* system_font;
 	/*
 	 * classes
 	 */

@@ -40,7 +40,7 @@ public:
 	bool OnItemGetAttr(WTreeEvent &e);
 	bool OnItemDefaultSelection(WTreeEvent &e);
 	bool OnItemDispose(WTreeEvent &e);
-	WFont fontBold;
+	WFont* fontBold;
 	TTreeCustomEdit text;
 };
 

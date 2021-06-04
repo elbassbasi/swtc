@@ -34,7 +34,7 @@ public:
 	void check();
 public:
 	const char* word;
-	WFont font;
+	WFont *font;
 	WLabel labelsRowOne[NUM_LABEL];
 	WLabel labelsRowTwo[NUM_LABEL];
 	TWordJumblesDragSource dragSource[NUM_LABEL];

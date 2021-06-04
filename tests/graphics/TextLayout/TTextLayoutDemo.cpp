@@ -10,12 +10,20 @@
 void TTextLayoutDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Demo", new TTextLayoutDemo());
 }
+TTextLayoutDemo::TTextLayoutDemo() {
+	memset(this->font,0,sizeof(font));
+}
 
+TTextLayoutDemo::~TTextLayoutDemo() {
+	for(int i=0;i<font_length;i++){
+		font[i]->Dispose();
+	}
+}
 void TTextLayoutDemo::CreateControl(WComposite *parent) {
 	CanvasTreeItem::CreateControl(parent);
-	this->font[0].Create("Arial", W_BOLD, 14);
-	this->font[1].Create("Arial", W_ITALIC, 20);
-	this->font[2].Create("Arial", W_NORMAL, 30);
+	this->font[0] = WFont::Create("Arial", W_BOLD, 14);
+	this->font[1] = WFont::Create("Arial", W_ITALIC, 20);
+	this->font[2] = WFont::Create("Arial", W_NORMAL, 30);
 }
 
 bool TTextLayoutDemo::OnPaint(WPaintEvent &e) {
@@ -33,18 +41,18 @@ bool TTextLayoutDemo::OnPaint(WPaintEvent &e) {
 	style.SetBackground(W_COLOR_BLUE);
 	style.SetForeground(W_COLOR_YELLOW);
 	style.SetStrikeout(W_COLOR_RED);
-	style.SetFont(&this->font[0]);
+	style.SetFont(this->font[0]);
 	layout.SetStyle(style, 0, 10);
 	style.Init();
 	style.SetBackground(W_COLOR_GREEN);
 	style.SetForeground(W_COLOR_BLUE);
-	style.SetFont(&this->font[1]);
+	style.SetFont(this->font[1]);
 	layout.SetStyle(style, 10, 15);
 	style.Init();
 	style.SetUnderline(W_UNDERLINE_DOUBLE, W_COLOR_MAGENTA);
 	style.SetBackground(W_COLOR_BLUE);
 	style.SetForeground(W_COLOR_MAGENTA);
-	style.SetFont(&this->font[1]);
+	style.SetFont(this->font[1]);
 	style.SetRise(5);
 	layout.SetStyle(style, 15, -1);
 	layout.Draw(*e.gc, r.x, r.y);

@@ -31,9 +31,8 @@
 #define STATE_LAYOUT_CHANGED (1 << (STATE_WIDGET_END + 18))
 #define STATE_LAYOUT_CHILD (1 << (STATE_WIDGET_END + 19))
 #define STATE_HIDDEN (1 << (STATE_WIDGET_END + 20))
-#define STATE_FONT (1 << (STATE_WIDGET_END + 21))
-#define STATE_FOREGROUND (1 << (STATE_WIDGET_END + 22))
-#define STATE_DROPTARGET_IS_ACTIVE (1 << (STATE_WIDGET_END + 23))
+#define STATE_FOREGROUND (1 << (STATE_WIDGET_END + 21))
+#define STATE_DROPTARGET_IS_ACTIVE (1 << (STATE_WIDGET_END + 22))
 #define STATE_CONTROL_END (STATE_WIDGET_END + 23)
 /*
  * zorder
@@ -65,10 +64,7 @@ typedef struct _w_control {
 	w_composite *parent;
 	w_menu *menu;
 	w_cursor *cursor;
-	union {
-		w_font *font;
-		_w_font _font;
-	};
+	PangoFontDescription *font;
 	_w_control_timer timer;
 	GdkPixbuf *backgroundImage;
 	w_dragsource *dragsource;

@@ -198,7 +198,7 @@ wresult w_path_add_string(w_path *path, const char *string, int length, int enc,
 	if (layout == 0)
 		return W_ERROR_NO_HANDLES;
 	pango_layout_set_text(layout, string, length);
-	pango_layout_set_font_description(layout, _W_FONT(font)->handle);
+	pango_layout_set_font_description(layout, (PangoFontDescription*) font);
 	double currentX, currentY;
 	cairo_get_current_point(_W_PATH(path)->handle, &currentX, &currentY);
 	if (currentX != pt->x || currentY != pt->y) {

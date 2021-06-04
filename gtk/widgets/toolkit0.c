@@ -239,7 +239,7 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 		return 0;
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
-	if (_W_TOOLKIT(toolkit)->system_font.handle == 0) {
+	if (_W_TOOLKIT(toolkit)->system_font == 0) {
 		/* Initialize the system font slot */
 		PangoFontDescription *defaultFont = 0;
 #if GTK3
@@ -259,9 +259,9 @@ w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
 					&defaultFont, NULL);
 		}
 #endif
-		_W_TOOLKIT(toolkit)->system_font.handle = defaultFont;
+		_W_TOOLKIT(toolkit)->system_font = defaultFont;
 	}
-	return (w_font*) (&_W_TOOLKIT(toolkit)->system_font);
+	return (w_font*) (_W_TOOLKIT(toolkit)->system_font);
 }
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {

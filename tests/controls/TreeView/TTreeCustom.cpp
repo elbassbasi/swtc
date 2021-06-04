@@ -19,9 +19,11 @@ WControl* TTreeCustom::GetControl(WComposite *parent) {
 }
 
 TTreeCustom::TTreeCustom() {
+	this->fontBold = 0;
 }
 
 TTreeCustom::~TTreeCustom() {
+	this->fontBold->Dispose();
 }
 
 void TTreeCustom::CreateControl(WComposite *parent) {
@@ -65,7 +67,7 @@ void TTreeCustom::CreateControl(WComposite *parent) {
 	WFontData fontdata;
 	this->GetFont()->GetFontData(fontdata);
 	fontdata.SetStyle(W_BOLD);
-	this->fontBold.Create(fontdata);
+	this->fontBold= WFont::Create(fontdata);
 }
 
 Person::Person(int i, int j) {
@@ -175,7 +177,7 @@ bool TTreeCustom::OnItemGetAttr(WTreeEvent &e) {
 			if (e.item->GetChecked()) {
 				e.attr->foreground = W_COLOR_RED;
 				e.attr->background = W_COLOR_MAGENTA;
-				e.attr->font = &this->fontBold;
+				e.attr->font = this->fontBold;
 			} else {
 				e.attr->foreground = W_COLOR_BLUE;
 			}

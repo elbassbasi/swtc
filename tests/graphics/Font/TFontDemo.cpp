@@ -10,8 +10,12 @@ void TFontDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Demo", new TFontDemo());
 }
 TFontDemo::TFontDemo() {
+	memset(fonts,0,sizeof(fonts));
 }
 TFontDemo::~TFontDemo() {
+	for(int i=0;i<length;i++){
+		fonts[i]->Dispose();
+	}
 }
 struct Fonts_Types {
 	const char *name;
@@ -27,7 +31,7 @@ Fonts_Types types[] = { //
 void TFontDemo::CreateControl(WComposite *parent) {
 	CanvasTreeItem::CreateControl(parent);
 	for (size_t i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
-		fonts[i].Create(types[i].name, types[i].style, types[i].size);
+		fonts[i] = WFont::Create(types[i].name, types[i].style, types[i].size);
 	}
 }
 
@@ -39,7 +43,7 @@ bool TFontDemo::OnPaint(WPaintEvent &e) {
 	int x, prev_heigth = 0, heigth = 0;
 	char txt[50];
 	for (size_t i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
-		e->SetFont(&this->fonts[i]);
+		e->SetFont(this->fonts[i]);
 		snprintf(txt, sizeof(txt), "%s %d", types[i].name, types[i].size);
 		if (i % 2 == 0) {
 			x = bounds.x;

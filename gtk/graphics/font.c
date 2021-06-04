@@ -72,35 +72,31 @@ wresult w_fontdata_set_style(w_fontdata *fontdata, int style) {
 /*
  * font
  */
-void w_font_init(w_font *font) {
-	_W_FONT(font)->handle = 0;
-}
 void w_font_dispose(w_font *font) {
-	if (_W_FONT(font)->handle != 0) {
-		pango_font_description_free(_W_FONT(font)->handle);
-		_W_FONT(font)->handle = 0;
+	if (font != 0) {
+		pango_font_description_free((PangoFontDescription*) font);
 	}
 }
 wresult w_font_is_ok(w_font *font) {
-	return _W_FONT(font)->handle != 0;
+	return font != 0;
 }
-wresult w_font_create(w_font *font, const char *name, int length, int enc,
+wresult w_font_create(w_font **font, const char *name, int length, int enc,
 		int style, int size) {
-	w_font_dispose(font);
+	*font = 0;
 	if (name == 0)
 		return W_ERROR_NULL_ARGUMENT;
 	if (size < 0)
 		return W_ERROR_INVALID_ARGUMENT;
-	_W_FONT(font)->handle = pango_font_description_new();
-	if (_W_FONT(font)->handle == 0)
+	PangoFontDescription *handle = pango_font_description_new();
+	if (handle == 0)
 		return W_ERROR_NO_HANDLES;
-	pango_font_description_set_family(_W_FONT(font)->handle, name);
+	*font = (w_font*) handle;
+	pango_font_description_set_family(handle, name);
 	if (size > 0) {
-		pango_font_description_set_size(_W_FONT(font)->handle,
+		pango_font_description_set_size(handle,
 				(int) (0.5f + size * PANGO_SCALE));
 	}
-	pango_font_description_set_stretch(_W_FONT(font)->handle,
-			PANGO_STRETCH_NORMAL);
+	pango_font_description_set_stretch(handle, PANGO_STRETCH_NORMAL);
 	PangoStyle pangoStyle = PANGO_STYLE_NORMAL;
 	PangoWeight pangoWeight = PANGO_WEIGHT_NORMAL;
 	if ((style & W_ITALIC) != 0)
@@ -109,41 +105,38 @@ wresult w_font_create(w_font *font, const char *name, int length, int enc,
 		pangoStyle = PANGO_STYLE_OBLIQUE;
 	if ((style & W_BOLD) != 0)
 		pangoWeight = PANGO_WEIGHT_BOLD;
-	pango_font_description_set_style(_W_FONT(font)->handle, pangoStyle);
-	pango_font_description_set_weight(_W_FONT(font)->handle, pangoWeight);
+	pango_font_description_set_style(handle, pangoStyle);
+	pango_font_description_set_weight(handle, pangoWeight);
 	return W_TRUE;
 }
-wresult w_font_create_from_fontdata(w_font *font, w_fontdata *fontdata) {
-	w_font_dispose(font);
-	_W_FONT(font)->handle = pango_font_description_new();
-	if (_W_FONT(font)->handle == 0)
+wresult w_font_create_from_fontdata(w_font **font, w_fontdata *fontdata) {
+	*font = 0;
+	PangoFontDescription *handle = pango_font_description_new();
+	if (handle == 0)
 		return W_ERROR_NO_HANDLES;
-	pango_font_description_set_family(_W_FONT(font)->handle,
+	*font = (w_font*) handle;
+	pango_font_description_set_family(handle,
 	_W_FONTDATA(fontdata)->family);
-	pango_font_description_set_size(_W_FONT(font)->handle,
+	pango_font_description_set_size(handle,
 			(int) (0.5f + _W_FONTDATA(fontdata)->size * PANGO_SCALE));
-	pango_font_description_set_stretch(_W_FONT(font)->handle,
-			PANGO_STRETCH_NORMAL);
-	pango_font_description_set_style(_W_FONT(font)->handle,
+	pango_font_description_set_stretch(handle, PANGO_STRETCH_NORMAL);
+	pango_font_description_set_style(handle,
 	_W_FONTDATA(fontdata)->style);
-	pango_font_description_set_weight(_W_FONT(font)->handle,
+	pango_font_description_set_weight(handle,
 	_W_FONTDATA(fontdata)->weight);
 	return W_TRUE;
 }
 wresult w_font_get_fontdata(w_font *font, w_fontdata *fontdata) {
-	if (_W_FONT(font)->handle == 0)
+	if (font == 0)
 		return W_ERROR_NO_HANDLES;
-	w_fontdata_set_name(fontdata,
-			pango_font_description_get_family(_W_FONT(font)->handle), -1,
+	PangoFontDescription *handle = (PangoFontDescription*) font;
+	w_fontdata_set_name(fontdata, pango_font_description_get_family(handle), -1,
 			W_ENCODING_UTF8);
 	_W_FONTDATA(fontdata)->size = pango_font_description_get_size(
-	_W_FONT(font)->handle) / PANGO_SCALE;
-	_W_FONTDATA(fontdata)->stretch = pango_font_description_get_stretch(
-	_W_FONT(font)->handle);
-	_W_FONTDATA(fontdata)->style = pango_font_description_get_style(
-	_W_FONT(font)->handle);
-	_W_FONTDATA(fontdata)->weight = pango_font_description_get_weight(
-	_W_FONT(font)->handle);
+			handle) / PANGO_SCALE;
+	_W_FONTDATA(fontdata)->stretch = pango_font_description_get_stretch(handle);
+	_W_FONTDATA(fontdata)->style = pango_font_description_get_style(handle);
+	_W_FONTDATA(fontdata)->weight = pango_font_description_get_weight(handle);
 	return W_TRUE;
 }
 /*

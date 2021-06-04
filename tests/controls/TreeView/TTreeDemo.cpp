@@ -21,8 +21,12 @@ PersonDemo::PersonDemo(int i, int j) {
 	}
 }
 TTreeDemo::TTreeDemo() {
+	memset(fonts, 0, sizeof(fonts));
 }
 TTreeDemo::~TTreeDemo() {
+	for (int i = 0; i < font_length; i++) {
+		fonts[i]->Dispose();
+	}
 }
 void TTreeDemo::CreateControl(WComposite *parent) {
 	this->Create(parent, W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
@@ -78,11 +82,11 @@ void TTreeDemo::CreateFonts() {
 	WFontData fontdata;
 	this->GetFont()->GetFontData(fontdata);
 	fontdata.SetStyle(W_NORMAL);
-	this->fonts[0].Create(fontdata);
+	this->fonts[0] = WFont::Create(fontdata);
 	fontdata.SetStyle(W_BOLD);
-	this->fonts[1].Create(fontdata);
+	this->fonts[1] = WFont::Create(fontdata);
 	fontdata.SetStyle(W_ITALIC);
-	this->fonts[2].Create(fontdata);
+	this->fonts[2] = WFont::Create(fontdata);
 }
 bool TTreeDemo::OnItemGetValue(WTreeEvent &e) {
 	PersonDemo *p = (PersonDemo*) e.item->GetData();
@@ -108,11 +112,11 @@ bool TTreeDemo::OnItemGetAttr(WTreeEvent &e) {
 			if (e.item->GetChecked()) {
 				e.attr->foreground = W_COLOR_RED;
 				e.attr->background = W_COLOR_DARK_GREEN;
-				e.attr->font = &this->fonts[2];
+				e.attr->font = this->fonts[2];
 			} else {
 				e.attr->foreground = W_COLOR_MAGENTA;
 				e.attr->background = W_COLOR_DARK_GREEN;
-				e.attr->font = &this->fonts[1];
+				e.attr->font = this->fonts[1];
 			}
 		}
 		return true;

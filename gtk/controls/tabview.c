@@ -36,7 +36,7 @@ wresult _w_tabitem_get_bounds(w_tabitem *item, w_rect *rect) {
 	}
 	return W_TRUE;
 }
-int _w_tabitem_get_image(w_tabitem *item) {
+wresult _w_tabitem_get_image(w_tabitem *item) {
 	_w_widget_handles handles;
 	wresult result = _w_tabitem_find_handles(item, &handles);
 	if (handles.image != 0) {

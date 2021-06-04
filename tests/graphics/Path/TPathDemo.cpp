@@ -11,13 +11,15 @@ void TPathDemo::Registre(WTreeItem &parent) {
 }
 TPathDemo::TPathDemo() {
 	this->rotate = 0;
+	this->font = 0;
 }
 
 TPathDemo::~TPathDemo() {
+	this->font->Dispose();
 }
 void TPathDemo::CreateControl(WComposite *parent) {
 	CanvasTreeItem::CreateControl(parent);
-	this->font.Create("Arial", W_BOLD, 30);
+	this->font = WFont::Create("Arial", W_BOLD, 30);
 	this->transform.Create();
 	this->SetTimer(500);
 }
@@ -35,7 +37,7 @@ bool TPathDemo::OnPaint(WPaintEvent &e) {
 	WPath path;
 	WRectF bounds;
 	path.Create();
-	path.AddString("Test", 0, 0, &font);
+	path.AddString("Test", 0, 0, font);
 	path.GetBounds(bounds);
 	e->SetTransform(&transform);
 	e->SetBackground(W_COLOR_BLACK);

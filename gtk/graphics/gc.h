@@ -14,10 +14,6 @@ extern "C" {
 /*
  * font
  */
-typedef struct _w_font {
-	PangoFontDescription *handle;
-} _w_font;
-#define _W_FONT(x) ((struct _w_font*)x)
 typedef struct _w_fontdata {
 	PangoStyle style :2;
 	PangoStretch stretch :4;
@@ -151,7 +147,7 @@ typedef struct _w_graphics {
 	w_color background;
 	w_pattern *foregroundPattern;
 	w_pattern *backgroundPattern;
-	w_font *font;
+	PangoFontDescription *font;
 	w_line_attributes line;
 	cairo_region_t *clipRgn;
 	cairo_region_t *damageRgn;

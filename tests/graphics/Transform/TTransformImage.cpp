@@ -10,12 +10,14 @@ void TTransformImage::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "image", new TTransformImage());
 }
 TTransformImage::TTransformImage() {
+	this->font = 0;
 }
 TTransformImage::~TTransformImage() {
+	font->Dispose();
 }
 void TTransformImage::CreateControl(WComposite *parent) {
 	CanvasTreeItem::CreateControl(parent);
-	font.Create("Arial", 30, W_BOLD);
+	font = WFont::Create("Arial", 30, W_BOLD);
 }
 
 void TTransformImage::DrawText(WGraphics &gc, const char *text, int x, int y) {

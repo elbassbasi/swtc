@@ -85,7 +85,7 @@ wresult w_textlayout_create(w_textlayout *textlayout) {
 	}
 	memset(textlayout, 0, sizeof(_w_textlayout));
 	w_font *sysfont = w_toolkit_get_system_font(0);
-	PangoFontDescription *hfont = _W_FONT(sysfont)->handle;
+	PangoFontDescription *hfont = (PangoFontDescription*) sysfont;
 	pango_layout_set_font_description(layout, hfont);
 	pango_layout_set_wrap(layout, PANGO_WRAP_WORD_CHAR);
 	pango_layout_set_tabs(layout, gtk_toolkit->empty_tab);
@@ -730,23 +730,21 @@ wresult w_textlayout_set_font(w_textlayout *textlayout, w_font *font) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
 
 		PangoLayout *layout = _layout->layout;
-		if (font != 0 && _W_FONT(font)->handle == 0)
-			return W_ERROR_INVALID_ARGUMENT;
 		w_font *oldFont = _layout->font;
 		if (oldFont == font)
 			return W_TRUE;
 		//freeRuns();
 		_layout->font = font;
-		if (oldFont != 0 && _W_FONT(oldFont)->handle == _W_FONT(font)->handle)
+		if (oldFont != 0 && oldFont == font)
 			return W_TRUE;
 		PangoFontDescription *_font;
 		if (font == 0) {
-			w_font *sysFont = w_toolkit_get_system_font(0);
-			_font = _W_FONT(sysFont)->handle;
+			_font = w_toolkit_get_system_font(0);
 		} else {
-			_font = _W_FONT(font)->handle;
+			_font = font;
 		}
-		pango_layout_set_font_description(layout, _font);
+		pango_layout_set_font_description(layout,
+				(PangoFontDescription*) _font);
 	}
 	return result;
 }
@@ -838,8 +836,9 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 	PangoAttrList *selAttrList = _layout->selAttrList;
 	w_font *font = style->font;
 	if ((style->flags & W_TEXTSTYLE_MASK_FONT) != 0 && font != 0
-			&& _W_FONT(font)->handle != 0 && font != _layout->font) {
-		PangoAttribute *attr = pango_attr_font_desc_new(_W_FONT(font)->handle);
+			&& font != _layout->font) {
+		PangoAttribute *attr = pango_attr_font_desc_new(
+				(PangoFontDescription*) font);
 		attr->start_index = byteStart;
 		attr->end_index = byteEnd;
 		pango_attr_list_insert(attrList, attr);

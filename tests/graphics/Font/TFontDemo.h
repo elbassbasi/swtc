@@ -10,12 +10,13 @@
 #include "TFonts.h"
 class TFontDemo: public CanvasTreeItem {
 public:
+	static const int length = 10;
 	static void Registre(WTreeItem &parent);
 	TFontDemo();
 	virtual ~TFontDemo();
 	void CreateControl(WComposite *parent);
 	bool OnPaint(WPaintEvent &e);
 public:
-	WFont fonts[10];
+	WFont* fonts[length];
 };
 #endif /* TESTS_GRAPHICS_FONT_TFONTDEMO_H_ */

@@ -16,7 +16,7 @@ public:
 	void CreateControl(WComposite *parent);
 	bool OnPaint(WPaintEvent &e);
 	bool OnTimer(WTimerEvent &e);
-	WFont font;
+	WFont* font;
 	WTransform transform;
 	int rotate;
 };
