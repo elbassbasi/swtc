@@ -257,9 +257,6 @@ public:
 	}
 protected:
 	void SetSelectionFunction(const WSelectionFunction &function);
-	bool NotifySelection(WEvent &e);
-	bool NotifyItemSelection(WEvent &e);
-	bool NotifyItemDispose(WEvent &e);
 #endif
 	bool NotifySelection(WEvent &e);
 	bool NotifyItemSelection(WEvent &e);
