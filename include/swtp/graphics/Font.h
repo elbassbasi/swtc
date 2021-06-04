@@ -306,6 +306,12 @@ public:
 	~WFontAuto() {
 		this->font->Dispose();
 	}
+	operator WFont*() {
+		return this->font;
+	}
+	WFont* operator->() {
+		return this->font;
+	}
 	bool Create(const char *name, int style, int size) {
 		font->Dispose();
 		return _Create(name, style, size);
