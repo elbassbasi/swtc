@@ -307,7 +307,6 @@ void _w_treeview_class_init(struct _w_treeview_class *clazz) {
 	treeitem->clear = _w_treeitem_clear;
 	treeitem->clear_all = _w_treeitem_clear_all;
 	treeitem->get_expanded = _w_treeitem_get_expanded;
-	treeitem->get_first_child = _w_treeitem_get_first_child;
 	treeitem->get_item = _w_treeitem_get_item;
 	treeitem->get_item_count = _w_treeitem_get_item_count;
 	treeitem->get_items = _w_treeitem_get_items;

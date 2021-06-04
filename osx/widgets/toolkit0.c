@@ -232,11 +232,11 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
 	_w_toolkit *_toolkit = _W_TOOLKIT(toolkit);
-	if (_toolkit->systemFont.handle == 0) {
+	if (_toolkit->systemFont == 0) {
 		CGFloat fontSize = NSFont_systemFontSize();
-		_toolkit->systemFont.handle = NSFont_systemFontOfSize(fontSize);
+		_toolkit->systemFont = NSFont_systemFontOfSize(fontSize);
 	}
-	return (w_font*) &_toolkit->systemFont;
+	return (w_font*) _toolkit->systemFont;
 }
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {

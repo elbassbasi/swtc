@@ -86,7 +86,8 @@ NSString* _NSDeviceRGBColorSpace();
 /*
  *  NSImageView
  */
-
+w_widget* SWTImageView_get_widget(NSView* view);
+NSImageView* SWTImageView_new(w_widget* widget);
 NSImage* NSImageView_image(NSImageView *view);
 void NSImageView_setImage(NSImageView *view, NSImage *newImage);
 void NSImageView_setImageAlignment(NSImageView *view, int newAlign);

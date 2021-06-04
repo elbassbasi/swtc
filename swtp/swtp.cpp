@@ -194,6 +194,41 @@ void WItem::SetSelectionFunction(const WSelectionItemFunction &function) {
 }
 #endif
 
+bool WWidget::OnNotifySelection(WEvent &e) {
+	return false;
+}
+
+bool WWidget::OnNotifyItemSelection(WEvent &e) {
+	return false;
+}
+
+bool WWidget::OnNotifyItemDispose(WEvent &e) {
+	return false;
+}
+
+bool WWidget::NotifySelection(WEvent &e) {
+	IWNotify *notify = GetNotify();
+	if (notify != 0) {
+		return notify->OnNotifySelection(e);
+	}
+	return false;
+}
+bool WWidget::NotifyItemSelection(WEvent &e) {
+	IWNotify *notify = GetNotify();
+	if (notify != 0) {
+		return notify->OnNotifyItemSelection(e);
+	}
+	return false;
+}
+
+bool WWidget::NotifyItemDispose(WEvent &e) {
+	IWNotify *notify = GetNotify();
+	if (notify != 0) {
+		return notify->OnNotifyItemDispose(e);
+	}
+	return false;
+}
+
 WListenerBase::WListenerBase() {
 	this->ref = -1;
 }

@@ -29,7 +29,7 @@ typedef struct _w_font_metrics {
 	int height;
 } _w_font_metrics;
 #define _W_FONTMETRICS(x) ((_w_font_metrics*)x)
-typedef struct _w_font {
+/*typedef struct _w_font {
 	NSFont *handle;
 	unsigned isItalic :1;
 	unsigned isBold :1;
@@ -44,7 +44,7 @@ typedef struct _w_font {
 	unsigned avgWidth :9;
 #endif
 } _w_font;
-#define _W_FONT(x) ((_w_font*)x)
+#define _W_FONT(x) ((_w_font*)x)*/
 void _w_font_add_traits_1(w_font *font, NSMutableDictionary *dict);
 /*
  * image
@@ -157,7 +157,7 @@ typedef struct _w_graphics {
 	unsigned isFlipped :1;
 	wushort state;
 	wushort style;
-	int heigth;
+	int height;
 	CGFloat drawXOffset;
 	CGFloat drawYOffset;
 	NSRect paintRect;

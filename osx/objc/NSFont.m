@@ -2,6 +2,19 @@
 /*
  * NSFont
  */
+@interface SWTFont : NSFont{
+@public int _var[4];
+}
+@end
+@implementation SWTFont
+@end
+int* SWTFont_get_var(NSFont* font) {
+    if([font isKindOfClass:[SWTFont class]]){
+        SWTFont* _f =(SWTFont*) font;
+        return _f->_var;
+    }
+    return 0;
+}
 CGFloat NSFont_ascender(NSFont* font) {
     return [font ascender];
 }

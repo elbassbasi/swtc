@@ -26,8 +26,6 @@ void NSTableColumn_setResizingMask(NSTableColumn* tablecolumn,long ops);
 void NSTableColumn_setDataCell(NSTableColumn* tablecolumn,NSCell* cell);
 NSCell* NSTableColumn_headerCell(NSTableColumn* tablecolumn);
 NSCell* SWTImageTextCell_new(NSString* identifier);
-void NSCell_setTitle(NSCell* cell,NSString* str);
-void NSCell_setLineBreakMode(NSCell* cell,int lineBreak);
 
 
 #endif /* OSX_OBJC_NSTABLE_H_ */

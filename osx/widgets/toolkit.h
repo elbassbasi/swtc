@@ -34,14 +34,17 @@ typedef struct _w_toolkit {
 	NSNumber *SYNTHETIC_BOLD;
 	NSNumber *SYNTHETIC_ITALIC;
 	NSString *emptyString;
-	_w_font systemFont;
+	w_font* systemFont;
 	w_menu appMenuBar;
 	w_menu *menuBar;
-	NSWindow* screenWindow, *keyWindow;
+	NSWindow *screenWindow, *keyWindow;
 	int exit_code;
 	unsigned exit_loop :1;
 	unsigned sheet :1;
 	unsigned lockCursor :1;
+	int screenID[32];
+	char screenCascade_created[32];
+	NSPoint screenCascade[32];
 	/*
 	 * shell
 	 */
@@ -198,6 +201,9 @@ void _w_toolkit_class_init(_w_toolkit *toolkit);
 void _w_theme_init();
 void _w_toolkit_set_cursor(w_control *control);
 void _w_toolkit_set_menubar(w_menu *menu);
+void _w_toolkit_cascade_window(NSWindow *window, NSScreen *screen);
+wresult _w_toolkit_set_text(NSString *str, w_alloc string, void *user_data,
+		int enc);
 /**
  * public function
  */

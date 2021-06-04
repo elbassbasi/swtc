@@ -261,6 +261,9 @@ protected:
 	bool NotifyItemSelection(WEvent &e);
 	bool NotifyItemDispose(WEvent &e);
 #endif
+	bool NotifySelection(WEvent &e);
+	bool NotifyItemSelection(WEvent &e);
+	bool NotifyItemDispose(WEvent &e);
 private:
 	void Init() {
 		w_widget_init(W_WIDGET(this));

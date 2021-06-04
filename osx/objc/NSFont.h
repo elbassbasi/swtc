@@ -13,6 +13,7 @@ typedef struct NSFontManager NSFontManager;
 /*
  * NSFont
  */
+int* SWTFont_get_var(NSFont* font);
 CGFloat NSFont_ascender(NSFont* font);
 NSFont* NSFont_controlContentFontOfSize(CGFloat fontSize);
 CGFloat NSFont_descender(NSFont* font);

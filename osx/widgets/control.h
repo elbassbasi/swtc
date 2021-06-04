@@ -35,10 +35,7 @@ typedef struct _w_control {
 	w_composite *parent;
 	w_menu *menu;
 	w_cursor *cursor;
-	union {
-		w_font *font;
-		_w_font _font;
-	};
+	w_font *font;
 	w_color foreground;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)

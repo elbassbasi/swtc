@@ -186,9 +186,30 @@ NSString* _NSDeviceRGBColorSpace(){
     return NSDeviceRGBColorSpace;
 }
 /*
- *  NSImageView
+ *  SWTImageView
  */
+@interface SWTImageView : NSImageView {
+ @public w_widget* widget;
+}
+@end
+@implementation SWTImageView
 
+@end
+w_widget* SWTImageView_get_widget(NSView* view){
+    if([view isKindOfClass:SWTImageView.class]){
+        return ((SWTImageView*)view)->widget;
+    }
+    return 0;
+}
+NSImageView* SWTImageView_new(w_widget* widget){
+    SWTImageView* ImageView =  [[SWTImageView alloc] init];
+    _w_toolkit_registre_class(_NS_CLASS_IMAGEVIEW,ImageView.class,SWTImageView_get_widget);
+    ImageView->widget = widget;
+    return ImageView;
+}
+/*
+* NSImageView
+*/
 NSImage* NSImageView_image(NSImageView* view) {
     return [view image];
 }

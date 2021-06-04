@@ -185,11 +185,11 @@ wresult _w_shell_create_handle(w_widget *widget, _w_control_priv *priv) {
 			 */
 			NSWindow_setAllowsAutomaticWindowTabbing(false);
 		}
-		//display.cascadeWindow(window, screen);
+		_w_toolkit_cascade_window(window, screen);
 		NSRect screenFrame;
 		NSScreen_frame(screen, &screenFrame);
-		CGFloat width = screenFrame.width * 5 / 8, height = screenFrame.height
-				* 5 / 8;
+		CGFloat width = screenFrame.width * 5 / 8;
+		CGFloat height = screenFrame.height * 5 / 8;
 		NSWindow_frame(window, &frame);
 		NSRect primaryFrame;
 		NSScreen_frame(primaryScreen, &primaryFrame);
@@ -730,23 +730,23 @@ wresult _ns_shell_windowDidBecomeKey(w_widget *widget, _w_event_platform *e,
 		_w_toolkit_set_menubar(_W_SHELL(widget)->menubar);
 	}
 	/*sendEvent (SWT.Activate);
-	if (isDisposed ()) return;
-	if (!restoreFocus () && !traverseGroup (true)) setFocus ();
-	if (isDisposed ()) return;
-	if ((window.collectionBehavior() & OS.NSWindowCollectionBehaviorFullScreenPrimary) == 0) {
-		Shell parentShell = this;
-		while (parentShell.parent != null) {
-			parentShell = (Shell) parentShell.parent;
-			if (parentShell._getFullScreen ()) {
-				break;
-			}
-		}
-		if (!parentShell._getFullScreen () || menuBar != null) {
-			updateSystemUIMode ();
-		} else {
-			parentShell.updateSystemUIMode ();
-		}
-	}*/
+	 if (isDisposed ()) return;
+	 if (!restoreFocus () && !traverseGroup (true)) setFocus ();
+	 if (isDisposed ()) return;
+	 if ((window.collectionBehavior() & OS.NSWindowCollectionBehaviorFullScreenPrimary) == 0) {
+	 Shell parentShell = this;
+	 while (parentShell.parent != null) {
+	 parentShell = (Shell) parentShell.parent;
+	 if (parentShell._getFullScreen ()) {
+	 break;
+	 }
+	 }
+	 if (!parentShell._getFullScreen () || menuBar != null) {
+	 updateSystemUIMode ();
+	 } else {
+	 parentShell.updateSystemUIMode ();
+	 }
+	 }*/
 	return W_FALSE;
 }
 wresult _ns_shell_windowDidDeminiturize(w_widget *widget, _w_event_platform *e,

@@ -19,6 +19,7 @@ typedef struct NSClipView NSClipView;
 typedef struct NSCell NSCell;
 typedef struct NSText NSText;
 typedef struct NSFormatter NSFormatter;
+typedef struct NSActionCell NSActionCell;
 /*
  * messages
  */
@@ -122,6 +123,52 @@ void NSControl_setTarget(NSControl* control,NSObject* anObject);
 void NSControl_sizeToFit(NSControl* control);
 NSString* NSControl_stringValue(NSControl* control);
 NSObject* NSControl_target(NSControl* control);
+/*
+ *  NSCell
+ */
+NSAttributedString* NSCell_attributedStringValue(NSCell *cell);
+void NSCell_cellSize(NSCell *cell,NSSize* result);
+void NSCell_cellSizeForBounds(NSCell *cell,NSSize* result,NSRect *aRect);
+NSUInteger NSCell_controlSize(NSCell *cell);
+void NSCell_drawInteriorWithFrame(NSCell *cell,NSRect* cellFrame, NSView* controlView);
+void NSCell_drawWithExpansionFrame(NSCell *cell,NSRect* cellFrame, NSView *view);
+void NSCell_drawingRectForBounds(NSCell *cell,NSRect *result,NSRect* theRect);
+void NSCell_expansionFrameWithFrame(NSCell *cell,NSRect *result,NSRect* cellFrame, NSView *view);
+void NSCell_focusRingMaskBoundsForFrame(NSCell *cell,NSRect *result,NSRect* cellFrame, NSView* controlView);
+NSFont* NSCell_font(NSCell *cell);
+NSColor* NSCell_highlightColorWithFrame(NSCell *cell,NSRect* cellFrame, NSView *controlView);
+NSInteger NSCell_hitTestForEvent(NSCell *cell,NSEvent* event, NSRect* cellFrame, NSView* controlView);
+NSImage* NSCell_image(NSCell *cell);
+void NSCell_imageRectForBounds(NSCell *cell,NSRect* result,NSRect* theRect);
+NSInteger NSCell_isEnabled(NSCell *cell);
+NSInteger NSCell_isHighlighted(NSCell *cell);
+NSInteger NSCell_nextState(NSCell *cell);
+void NSCell_setAlignment(NSCell *cell,NSUInteger mode);
+void NSCell_setAllowsMixedState(NSCell *cell,NSUInteger flag);
+void NSCell_setAttributedStringValue(NSCell *cell,NSAttributedString* obj);
+void NSCell_setBackgroundStyle(NSCell *cell,NSUInteger style);
+void NSCell_setBaseWritingDirection(NSCell *cell,NSUInteger writingDirection);
+void NSCell_setControlSize(NSCell *cell,NSUInteger size);
+void NSCell_setEnabled(NSCell *cell,NSInteger flag);
+void NSCell_setFont(NSCell *cell,NSFont* fontObj);
+void NSCell_setFormatter(NSCell *cell,NSFormatter* newFormatter);
+void NSCell_setHighlighted(NSCell *cell,NSInteger flag);
+void NSCell_setImage(NSCell *cell,NSImage* image);
+void NSCell_setLineBreakMode(NSCell *cell,NSUInteger mode);
+void NSCell_setObjectValue(NSCell *cell,NSObject* obj);
+void NSCell_setScrollable(NSCell *cell,NSInteger flag);
+void NSCell_setTitle(NSCell *cell,NSString* aString);
+void NSCell_setUsesSingleLineMode(NSCell *cell,NSInteger flag);
+void NSCell_setWraps(NSCell *cell,NSInteger flag);
+NSString* NSCell_title(NSCell *cell);
+void NSCell_titleRectForBounds(NSCell *cell,NSRect* result,NSRect *theRect);
+NSInteger NSCell_wraps(NSCell *cell);
 
-
+/*
+ *  NSActionCell
+ */
+SEL NSActionCell_action(NSActionCell* cell);
+void NSActionCell_setAction(NSActionCell* cell,SEL aSelector);
+void NSActionCell_setTarget(NSActionCell* cell,NSObject* anObject);
+NSObject* NSActionCell_target(NSActionCell* cell);
 #endif /* OSX_OBJC_NSVIEW_H_ */

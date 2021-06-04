@@ -394,3 +394,172 @@ NSString* NSControl_stringValue(NSControl* control) {
 NSObject* NSControl_target(NSControl* control) {
     return [control target];
 }
+/*
+ *  NSCell
+ */
+NSAttributedString* NSCell_attributedStringValue(NSCell *cell) {
+    return [cell attributedStringValue];
+}
+
+void NSCell_cellSize(NSCell *cell,NSSize* result) {
+    *result = [cell cellSize];
+}
+
+void NSCell_cellSizeForBounds(NSCell *cell,NSSize* result,NSRect *aRect) {
+   *result = [cell cellSizeForBounds:*aRect];
+}
+
+NSUInteger NSCell_controlSize(NSCell *cell) {
+    return [cell controlSize];
+}
+
+void NSCell_drawInteriorWithFrame(NSCell *cell,NSRect* cellFrame, NSView* controlView) {
+    [cell drawInteriorWithFrame:*cellFrame inView:controlView];
+}
+
+void NSCell_drawWithExpansionFrame(NSCell *cell,NSRect* cellFrame, NSView *view) {
+    [cell drawWithExpansionFrame:*cellFrame inView:view];
+}
+
+void NSCell_drawingRectForBounds(NSCell *cell,NSRect *result,NSRect* theRect) {
+    *result =[cell drawingRectForBounds:*theRect];
+}
+
+void NSCell_expansionFrameWithFrame(NSCell *cell,NSRect *result,NSRect* cellFrame, NSView *view) {
+    *result = [cell expansionFrameWithFrame:*cellFrame inView:view];
+}
+
+void NSCell_focusRingMaskBoundsForFrame(NSCell *cell,NSRect *result,NSRect* cellFrame, NSView* controlView) {
+    *result = [cell focusRingMaskBoundsForFrame:*cellFrame inView:controlView];
+}
+
+NSFont* NSCell_font(NSCell *cell) {
+    return [cell font];
+}
+
+NSColor* NSCell_highlightColorWithFrame(NSCell *cell,NSRect* cellFrame, NSView *controlView) {
+    return [cell highlightColorWithFrame:*cellFrame inView:controlView];
+}
+
+NSInteger NSCell_hitTestForEvent(NSCell *cell,NSEvent* event, NSRect* cellFrame, NSView* controlView) {
+    return [cell hitTestForEvent:event inRect:*cellFrame ofView:controlView];
+}
+
+NSImage* NSCell_image(NSCell *cell) {
+    return [cell image];
+}
+
+void NSCell_imageRectForBounds(NSCell *cell,NSRect* result,NSRect* theRect) {
+    *result = [cell imageRectForBounds:*theRect];
+}
+
+NSInteger NSCell_isEnabled(NSCell *cell) {
+    return [cell isEnabled];
+}
+
+NSInteger NSCell_isHighlighted(NSCell *cell) {
+    return [cell isHighlighted];
+}
+
+NSInteger NSCell_nextState(NSCell *cell) {
+    return [cell nextState];
+}
+
+void NSCell_setAlignment(NSCell *cell,NSUInteger mode) {
+    return [cell setAlignment:mode];
+}
+
+void NSCell_setAllowsMixedState(NSCell *cell,NSUInteger flag) {
+    return [cell setAllowsMixedState:flag];
+}
+
+void NSCell_setAttributedStringValue(NSCell *cell,NSAttributedString* obj) {
+    return [cell setAttributedStringValue:obj];
+}
+
+void NSCell_setBackgroundStyle(NSCell *cell,NSUInteger style) {
+    return [cell setBackgroundStyle:style];
+}
+
+void NSCell_setBaseWritingDirection(NSCell *cell,NSUInteger writingDirection) {
+    return [cell setBaseWritingDirection:writingDirection];
+}
+
+void NSCell_setControlSize(NSCell *cell,NSUInteger size) {
+    return [cell setControlSize:size];
+}
+
+void NSCell_setEnabled(NSCell *cell,NSInteger flag) {
+    return [cell setEnabled:flag];
+}
+
+void NSCell_setFont(NSCell *cell,NSFont* fontObj) {
+    return [cell setFont:fontObj];
+}
+
+void NSCell_setFormatter(NSCell *cell,NSFormatter* newFormatter) {
+    return [cell setFormatter:newFormatter];
+}
+
+void NSCell_setHighlighted(NSCell *cell,NSInteger flag) {
+    return [cell setHighlighted:flag];
+}
+
+void NSCell_setImage(NSCell *cell,NSImage* image) {
+    return [cell setImage:image];
+}
+
+void NSCell_setLineBreakMode(NSCell *cell,NSUInteger mode) {
+    return [cell setLineBreakMode:mode];
+}
+
+void NSCell_setObjectValue(NSCell *cell,NSObject* obj) {
+    return [cell setObjectValue:obj];
+}
+
+void NSCell_setScrollable(NSCell *cell,NSInteger flag) {
+    return [cell setScrollable:flag];
+}
+
+void NSCell_setTitle(NSCell *cell,NSString* aString) {
+    return [cell setTitle:aString];
+}
+
+void NSCell_setUsesSingleLineMode(NSCell *cell,NSInteger flag) {
+    return [cell setUsesSingleLineMode:flag];
+}
+
+void NSCell_setWraps(NSCell *cell,NSInteger flag) {
+    return [cell setWraps:flag];
+}
+
+NSString* NSCell_title(NSCell *cell) {
+    return [cell title];
+}
+
+void NSCell_titleRectForBounds(NSCell *cell,NSRect* result,NSRect *theRect) {
+    *result = [cell titleRectForBounds:*theRect];
+}
+
+NSInteger NSCell_wraps(NSCell *cell) {
+    return [cell wraps];
+}
+
+/*
+ *  NSActionCell
+ */
+SEL NSActionCell_action(NSActionCell* cell) {
+    return [cell action];
+}
+
+void NSActionCell_setAction(NSActionCell* cell,SEL aSelector) {
+    [cell setAction:aSelector];
+}
+
+void NSActionCell_setTarget(NSActionCell* cell,NSObject* anObject) {
+    [cell setTarget:anObject];
+}
+
+NSObject* NSActionCell_target(NSActionCell* cell) {
+    return [cell target];
+}

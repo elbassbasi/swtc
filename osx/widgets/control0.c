@@ -53,7 +53,7 @@ NSAttributedString* _w_control_create_string(w_control *control,
 	if (font == 0) {
 		w_control_get_font(control, &font);
 	}
-	NSFont *hFont = _W_FONT(font)->handle;
+	NSFont *hFont =(NSFont*) font;
 	NSMutableDictionary_setObject(dict, NSOBJECT(hFont),
 			NSOBJECT(_NSFontAttributeName()));
 	_w_font_add_traits_1(font, dict);
@@ -152,7 +152,7 @@ wresult _w_control_init_graphics(w_widget *widget, _w_graphics *gc,
 	if ((gc->style & mask) == 0) {
 		gc->style |= _W_WIDGET(widget)->style & (mask | W_MIRRORED);
 	}
-	gc->font = W_FONT(&mac_toolkit->systemFont);
+	gc->font = W_FONT(mac_toolkit->systemFont);
 	return W_TRUE;
 }
 wresult _w_control_draw_widget(w_widget *widget, NSView *view,
@@ -160,8 +160,11 @@ wresult _w_control_draw_widget(w_widget *widget, NSView *view,
 	/* Send paint event */
 	w_event_paint e;
 	_w_graphics gc;
+	NSRect frame;
 	_w_graphics_init(W_GRAPHICS(&gc), context, 0);
 	gc.view = view;
+	NSView_frame(view, &frame);
+	gc.height = frame.height;
 	_w_control_init_graphics(widget, &gc, priv);
 	e.event.type = W_EVENT_PAINT;
 	e.event.platform_event = 0;
@@ -214,9 +217,9 @@ wresult _w_control_get_enabled(w_control *control) {
 	return W_FALSE;
 }
 wresult _w_control_get_font(w_control *control, w_font **font) {
-	if(_W_CONTROL(control)->font != 0){
+	if (_W_CONTROL(control)->font != 0) {
 		*font = _W_CONTROL(control)->font;
-	}else{
+	} else {
 		*font = w_toolkit_get_system_font(0);
 	}
 	return W_FALSE;
@@ -356,15 +359,27 @@ wresult _w_control_set_bounds(w_control *control, w_point *location,
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
 	NSView *topView = priv->top_view(W_WIDGET(control));
 	NSRect r;
+	CGFloat y = 0;
+	if (location != 0) {
+		NSView *parent = NSView_superview(topView);
+		NSView_frame(parent, &r);
+		y = r.height - location->y;
+		if (size != 0) {
+			y -= size->height;
+		} else {
+			NSView_frame(topView, &r);
+			y -= r.height;
+		}
+	}
 	if (location != 0 && size != 0) {
 		r.origin.x = location->x;
-		r.origin.y = location->y;
+		r.origin.y = y;
 		r.size.width = size->width;
 		r.size.height = size->height;
 		NSView_setFrame(topView, &r);
 	} else if (location != 0) {
 		r.origin.x = location->x;
-		r.origin.y = location->y;
+		r.origin.y = y;
 		NSView_setFrameOrigin(topView, &r.origin);
 	} else if (size != 0) {
 		r.size.width = size->width;

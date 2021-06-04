@@ -29,6 +29,31 @@ void _w_toolkit_free(void *ptr, size_t size) {
 	} else
 		free(ptr);
 }
+wresult _w_toolkit_set_text(NSString *str, w_alloc string, void *user_data,
+		int enc) {
+	wresult result = W_FALSE;
+	if (str != 0) {
+		NSUInteger _enc = NSUTF8StringEncoding;
+		if (enc == W_ENCODING_UNICODE)
+			_enc = NSUTF16StringEncoding;
+		NSRange range, newrange;
+		NSUInteger usedLength;
+		NSUInteger options = NSStringEncodingConversionExternalRepresentation;
+		range.location = 0;
+		range.length = -1;
+		if (NSString_getBytes(str, 0, -1, &usedLength, _enc, options, &range,
+				&newrange)) {
+			char *buf = 0;
+			size_t size = string(user_data, usedLength + 1, (void**) &buf);
+			if (buf != 0) {
+				NSString_getBytes(str, buf, usedLength, 0, _enc, options,
+						&range, &newrange);
+				result = W_TRUE;
+			}
+		}
+	}
+	return result;
+}
 void _w_toolkit_add_shell(_w_shell *shell) {
 	shell->next = 0;
 	if (mac_toolkit->shells == 0) {
@@ -109,6 +134,29 @@ void _w_toolkit_set_cursor(w_control *control) {
 	NSCursor_set(_W_CURSOR(cursor)->handle);
 	mac_toolkit->lockCursor = W_TRUE;
 }
+void _w_toolkit_cascade_window(NSWindow *window, NSScreen *screen) {
+	NSDictionary *dictionary = NSScreen_deviceDescription(screen);
+	NSString *aKey = NSString_stringWithUTF8String("NSScreenNumber");
+	NSNumber *number = NSDictionary_objectForKey(dictionary, aKey);
+	int screenNumber = NSNumber_intValue(number);
+	int index = 0;
+	int *screenID = mac_toolkit->screenID;
+	while (screenID[index] != 0 && screenID[index] != screenNumber)
+		index++;
+	screenID[index] = screenNumber;
+	NSPoint *cascade = &mac_toolkit->screenCascade[index];
+	if (mac_toolkit->screenCascade_created[index] == 0) {
+		mac_toolkit->screenCascade_created[index] = 1;
+		NSRect frame;
+		NSScreen_frame(screen, &frame);
+		cascade->x = frame.x;
+		cascade->y = frame.y + frame.height;
+	}
+	NSPoint result;
+	NSWindow_cascadeTopLeftFromPoint(window, &result, cascade);
+	cascade->x = result.x;
+	cascade->y = result.y;
+}
 NSMenuItem* _w_toolkit_create_item(char *title, char *action, char *key) {
 	NSString *_title = NSString_stringWithUTF8String(title);
 	return NSMenuItem_initWithTitle(_title, 0, mac_toolkit->emptyString);
@@ -156,7 +204,7 @@ void _w_toolkit_set_menubar(w_menu *menu) {
 		}
 	}
 	/*if (menu == mac_toolkit->menuBar)
-		return;*/
+	 return;*/
 	mac_toolkit->menuBar = menu;
 	//remove all existing menu items except the application menu
 	NSMenu *menubar = NSApplication_mainMenu(mac_toolkit->application);
@@ -183,21 +231,21 @@ void _w_toolkit_set_menubar(w_menu *menu) {
 		}
 	}
 }
-wresult _w_toolkit_notify(int msg,void* obj){
+wresult _w_toolkit_notify(int msg, void *obj) {
 	switch (msg) {
-		case _NS_applicationDidBecomeActive:{
-			NSWindow* keyWindow = NSApplication_keyWindow(mac_toolkit->application);
-			if (keyWindow != 0) {
-				NSWindow_orderFrontRegardless(keyWindow);
-			} else {
-				_w_toolkit_set_menubar(mac_toolkit->menuBar);
-			}
-			/*checkFocus();
-			checkEnterExit(findControl(true), null, false);*/
+	case _NS_applicationDidBecomeActive: {
+		NSWindow *keyWindow = NSApplication_keyWindow(mac_toolkit->application);
+		if (keyWindow != 0) {
+			NSWindow_orderFrontRegardless(keyWindow);
+		} else {
+			_w_toolkit_set_menubar(mac_toolkit->menuBar);
 		}
-			break;
-		default:
-			break;
+		/*checkFocus();
+		 checkEnterExit(findControl(true), null, false);*/
+	}
+		break;
+	default:
+		break;
 	}
 	return W_FALSE;
 }
@@ -401,16 +449,16 @@ void _w_toolkit_init_thread(_w_toolkit *toolkit) {
 void _w_toolkit_init(_w_toolkit *toolkit) {
 	_w_toolkit_class_init(toolkit);
 	_w_toolkit_widget_class_init(toolkit);
-	_w_theme_init();
 	_W_TOOLKIT(toolkit)->pool = NSAutoreleasePool_New();
 	_W_TOOLKIT(toolkit)->application = NSApplication_sharedApplication();
+	_w_theme_init();
 	toolkit->isPainting = NSMutableArray_initWithCapacity(12);
 	toolkit->SYNTHETIC_BOLD = NSNumber_numberWithDouble(-2.5);
 	toolkit->SYNTHETIC_ITALIC = NSNumber_numberWithDouble(0.2);
 	CGFloat systemFontSize = NSFont_systemFontSize();
 	NSFont *font = NSFont_systemFontOfSize(systemFontSize);
 	NSObject_retain(NSOBJECT(font));
-	toolkit->systemFont.handle = font;
+	toolkit->systemFont = font;
 	NSApp_Init();
 	NSCursor_init();
 	toolkit->emptyString = NSString_stringWithUTF8String("");

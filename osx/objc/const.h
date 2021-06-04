@@ -260,7 +260,6 @@ enum {
     NSURLErrorSecureConnectionFailed = -1200,//
     NSURLErrorServerCertificateNotYetValid = -1204,//
     NSURLRequestReloadIgnoringLocalCacheData = 1,//
-    NSUTF8StringEncoding = 4,//
 	NSLeftTextAlignment = 0,//
 	NSRightTextAlignment = 1,//
 	NSCenterTextAlignment = 2,//

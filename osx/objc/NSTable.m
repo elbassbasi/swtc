@@ -60,12 +60,6 @@ NSCell* SWTImageTextCell_new(NSString* identifier){
     SWTImageTextCell* cell = [[SWTImageTextCell alloc] init];
     return cell;
 }
-void NSCell_setTitle(NSCell* cell,NSString* str){
-    [cell setTitle:str];
-}
-void NSCell_setLineBreakMode(NSCell* cell,int lineBreak){
-    [cell setLineBreakMode:lineBreak];
-}
 /*
  
  */

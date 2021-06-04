@@ -19,5 +19,6 @@
 #include "NSButton.h"
 #include "NSBox.h"
 #include "NSProgressIndicator.h"
+#include "NSTextField.h"
 
 #endif /* OSX_OBJC_OBJC_H_ */

@@ -98,3 +98,12 @@ NSString* NSString_new(const void *bytes,int length, int encoding){
         return NSString_initWithBytes_utf8(bytes,length);
     }
 }
+const char* NSString_UTF8String(NSString* str){
+    return [str UTF8String];
+}
+NSUInteger NSString_lengthOfBytesUsingEncoding(NSString* str,NSUInteger enc){
+    return [str lengthOfBytesUsingEncoding:enc];
+}
+NSUInteger NSString_getBytes(NSString* str,void* buffer,NSUInteger maxLength,NSUInteger* usedLength,NSUInteger encoding,NSUInteger options,NSRange* range,NSRange* remainingRange){
+    return [str getBytes:buffer maxLength:maxLength usedLength:usedLength encoding:encoding options:options range:*range remainingRange:remainingRange];
+}

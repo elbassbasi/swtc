@@ -14,7 +14,7 @@ void w_graphics_init(w_graphics *gc) {
 void _w_graphics_init(w_graphics *gc, NSGraphicsContext *context, int flags) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	memset(gc, 0, sizeof(_w_graphics));
-	_gc->state = -1;
+	_gc->state = 0;
 	_gc->handle = context;
 	_gc->path = NSBezierPath_bezierPath();
 	_gc->alpha = 0xFF;
@@ -301,7 +301,7 @@ NSAttributedString* _w_graphics_create_string(w_graphics *gc,
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	NSMutableDictionary *dict = NSMutableDictionary_initWithCapacity(5);
 	w_font *font = _gc->font;
-	NSMutableDictionary_setObject(dict, (NSObject*) _W_FONT(font)->handle,
+	NSMutableDictionary_setObject(dict, (NSObject*) font,
 			(NSObject*) _NSFontAttributeName());
 	_w_font_add_traits_1(font, dict);
 	if (draw) {
@@ -311,7 +311,7 @@ NSAttributedString* _w_graphics_create_string(w_graphics *gc,
 					&& _W_PATTERN(pattern)->is_color) {
 				NSMutableDictionary_setObject(dict,
 						(NSObject*) _W_PATTERN(pattern)->color,
-						(NSObject*) _NSForegroundColorAttributeName);
+						(NSObject*) _NSForegroundColorAttributeName());
 			}
 		} else {
 			/*NSColor *fg = _gc->fg;
@@ -343,7 +343,7 @@ wresult w_graphics_draw_arc(w_graphics *gc, w_rect *rect, int startAngle,
 	if (result > 0) {
 		_w_graphics *_gc = _W_GRAPHICS(gc);
 		int x = rect->x;
-		int y = rect->y;
+		int y = _gc->height - rect->y - rect->height;
 		int width = rect->width;
 		int height = rect->height;
 		if (width < 0) {
@@ -390,14 +390,15 @@ wresult w_graphics_draw_arc(w_graphics *gc, w_rect *rect, int startAngle,
 wresult w_graphics_draw_image_0(w_graphics *gc, w_image *image,
 		w_surface *surface, w_rect *src, w_rect *dest, int state) {
 	NSImage *imageHandle = (NSImage*) _W_IMAGE(image)->handle;
+	_w_graphics *_gc = _W_GRAPHICS(gc);
 	NSSize size;
 	NSImage_size(imageHandle, &size);
 	int imgWidth = (int) size.width;
 	int imgHeight = (int) size.height;
-	int srcX = src->x, srcY = src->y, srcWidth = src->width, srcHeight =
-			src->height;
-	int destX = dest->x, destY = dest->y, destWidth = dest->width, destHeight =
-			dest->height;
+	int srcX = src->x, srcY = _gc->height - src->y, srcWidth = src->width,
+			srcHeight = src->height;
+	int destX = dest->x, destY = _gc->height - dest->y, destWidth = dest->width,
+			destHeight = dest->height;
 	if (srcWidth < 0)
 		srcWidth = imgWidth;
 	if (srcHeight < 0)
@@ -407,7 +408,7 @@ wresult w_graphics_draw_image_0(w_graphics *gc, w_image *image,
 	if (destHeight < 0)
 		destHeight = imgHeight;
 	wresult result = _w_graphics_check(gc,
-			GRAPHICS_STATE_CLIPPING | GRAPHICS_STATE_TRANSFORM);
+	GRAPHICS_STATE_CLIPPING | GRAPHICS_STATE_TRANSFORM);
 	if (result > 0) {
 		if (surface != 0) {
 			//srcImage.createAlpha();
@@ -449,10 +450,10 @@ wresult w_graphics_draw_line(w_graphics *gc, w_point *pt1, w_point *pt2) {
 		NSBezierPath *path = _gc->path;
 		NSPoint pt;
 		pt.x = pt1->x + _gc->drawXOffset;
-		pt.y = pt1->y + _gc->drawYOffset;
+		pt.y = _gc->height - pt1->y + _gc->drawYOffset;
 		NSBezierPath_moveToPoint(path, &pt);
 		pt.x = pt2->x + _gc->drawXOffset;
-		pt.y = pt2->y + _gc->drawYOffset;
+		pt.y = _gc->height - pt2->y + _gc->drawYOffset;
 		NSBezierPath_lineToPoint(path, &pt);
 		w_pattern *pattern = _gc->foregroundPattern;
 		if (pattern != 0)
@@ -481,7 +482,7 @@ wresult w_graphics_draw_oval(w_graphics *gc, w_rect *rect) {
 			r.size.width = -rect->width;
 		}
 		if (rect->height >= 0) {
-			r.origin.y = rect->y + _gc->drawYOffset;
+			r.origin.y = _gc->height - rect->y + _gc->drawYOffset;
 			r.size.height = rect->height;
 		} else {
 			r.origin.y = rect->y + rect->height + _gc->drawYOffset;
@@ -514,7 +515,7 @@ wresult w_graphics_draw_point(w_graphics *gc, w_point *pt) {
 		_w_graphics *_gc = _W_GRAPHICS(gc);
 		NSRect rect;
 		rect.origin.x = pt->x;
-		rect.origin.y = pt->y;
+		rect.origin.y = _gc->height - pt->y;
 		rect.size.width = 1;
 		rect.size.height = 1;
 		NSBezierPath *path = _gc->path;
@@ -539,11 +540,11 @@ wresult w_graphics_draw_polygon(w_graphics *gc, w_point *pointArray,
 		NSBezierPath *path = _gc->path;
 		NSPoint pt;
 		pt.x = pointArray[0].x + xOffset;
-		pt.y = pointArray[0].y + yOffset;
+		pt.y = _gc->height - pointArray[0].y + yOffset;
 		NSBezierPath_moveToPoint(path, &pt);
 		for (int i = 1; i < count; i++) {
 			pt.x = pointArray[i].x + xOffset;
-			pt.y = pointArray[i].y + yOffset;
+			pt.y = _gc->height - pointArray[i].y + yOffset;
 			NSBezierPath_lineToPoint(path, &pt);
 		}
 		NSBezierPath_closePath(path);
@@ -572,11 +573,11 @@ wresult w_graphics_draw_polygonv(w_graphics *gc, int count, va_list args) {
 		NSBezierPath *path = _gc->path;
 		NSPoint pt;
 		pt.x = va_arg(args, int) + xOffset;
-		pt.y = va_arg(args, int) + yOffset;
+		pt.y = _gc->height - va_arg(args, int) + yOffset;
 		NSBezierPath_moveToPoint(path, &pt);
 		for (int i = 1; i < count; i++) {
 			pt.x = va_arg(args, int) + xOffset;
-			pt.y = va_arg(args, int) + yOffset;
+			pt.y = _gc->height - va_arg(args, int) + yOffset;
 			NSBezierPath_lineToPoint(path, &pt);
 		}
 		NSBezierPath_closePath(path);
@@ -608,11 +609,11 @@ wresult w_graphics_draw_polyline(w_graphics *gc, w_point *pointArray,
 		NSBezierPath *path = _gc->path;
 		NSPoint pt;
 		pt.x = pointArray[0].x + xOffset;
-		pt.y = pointArray[0].y + yOffset;
+		pt.y = _gc->height - pointArray[0].y + yOffset;
 		NSBezierPath_moveToPoint(path, &pt);
 		for (int i = 1; i < count; i++) {
 			pt.x = pointArray[i].x + xOffset;
-			pt.y = pointArray[i].y + yOffset;
+			pt.y = _gc->height - pointArray[i].y + yOffset;
 			NSBezierPath_lineToPoint(path, &pt);
 		}
 		w_pattern *pattern = _gc->foregroundPattern;
@@ -640,11 +641,11 @@ wresult w_graphics_draw_polylinev(w_graphics *gc, int count, va_list args) {
 		NSBezierPath *path = _gc->path;
 		NSPoint pt;
 		pt.x = va_arg(args, int) + xOffset;
-		pt.y = va_arg(args, int) + yOffset;
+		pt.y = _gc->height - va_arg(args, int) + yOffset;
 		NSBezierPath_moveToPoint(path, &pt);
 		for (int i = 1; i < count; i++) {
 			pt.x = va_arg(args, int) + xOffset;
-			pt.y = va_arg(args, int) + yOffset;
+			pt.y = _gc->height - va_arg(args, int) + yOffset;
 			NSBezierPath_lineToPoint(path, &pt);
 		}
 		w_pattern *pattern = _gc->foregroundPattern;
@@ -674,7 +675,8 @@ wresult w_graphics_draw_rectangle(w_graphics *gc, w_rect *rect) {
 			r.size.width = -rect->width;
 		}
 		if (rect->height >= 0) {
-			r.origin.y = rect->y + _gc->drawYOffset;
+			r.origin.y = _gc->height - rect->y - rect->height
+					+ _gc->drawYOffset;
 			r.size.height = rect->height;
 		} else {
 			r.origin.y = rect->y + rect->height + _gc->drawYOffset;
@@ -706,7 +708,7 @@ wresult w_graphics_draw_roundrectangle(w_graphics *gc, w_rect *rect,
 		NSRect r;
 		_w_graphics *_gc = _W_GRAPHICS(gc);
 		r.origin.x = rect->x + _gc->drawXOffset;
-		r.origin.y = rect->y + _gc->drawYOffset;
+		r.origin.y = _gc->height - rect->y - rect->height + _gc->drawYOffset;
 		r.size.height = rect->height;
 		r.size.width = rect->width;
 		NSBezierPath *path = _gc->path;
@@ -762,7 +764,7 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 		NSObject_release(NSOBJECT(attribStr));
 		NSPoint pt;
 		pt.x = rect->x;
-		pt.y = rect->y;
+		pt.y = _gc->height - rect->y;
 		NSRange range;
 		NSLayoutManager_glyphRangeForTextContainer(_gc->layoutManager,
 				_gc->textContainer, &range);
@@ -771,7 +773,7 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 			NSLayoutManager_usedRectForTextContainer(_gc->layoutManager,
 					_gc->textContainer, &r);
 			r.x = rect->x;
-			r.y = rect->y;
+			r.y = _gc->height - rect->y;
 			w_pattern *pattern = _gc->backgroundPattern;
 			if (pattern != 0)
 				_w_graphics_set_pattern_phase(gc, pattern);
@@ -805,7 +807,7 @@ wresult w_graphics_fill_arc(w_graphics *gc, w_rect *rect, int startAngle,
 	if (result > 0) {
 		_w_graphics *_gc = _W_GRAPHICS(gc);
 		int x = rect->x;
-		int y = rect->y;
+		int y = _gc->height - rect->y - rect->height;
 		int width = rect->width;
 		int height = rect->height;
 		if (width < 0) {
@@ -897,7 +899,7 @@ wresult w_graphics_fill_gradientrectangle(w_graphics *gc, w_rect *rect,
 					startingColor, endingColor);
 			NSRect _rect;
 			_rect.origin.x = r.x;
-			_rect.origin.y = r.y;
+			_rect.origin.y = _gc->height - r.y - r.height;
 			_rect.size.width = r.width;
 			_rect.size.height = r.height;
 			NSGradient_drawInRect(gradient, &_rect, vertical ? 90 : 0);
@@ -920,7 +922,7 @@ wresult w_graphics_fill_oval(w_graphics *gc, w_rect *rect) {
 			r.size.width = -rect->width;
 		}
 		if (rect->height >= 0) {
-			r.origin.y = rect->y;
+			r.origin.y = _gc->height - rect->y - rect->height;
 			r.size.height = rect->height;
 		} else {
 			r.origin.y = rect->y + rect->height;
@@ -1067,11 +1069,11 @@ wresult w_graphics_fill_polygon(w_graphics *gc, w_point *pointArray,
 		NSBezierPath *path = _gc->path;
 		NSPoint pt;
 		pt.x = pointArray[0].x;
-		pt.y = pointArray[0].y;
+		pt.y = _gc->height - pointArray[0].y;
 		NSBezierPath_moveToPoint(path, &pt);
 		for (int i = 1; i < count; i++) {
 			pt.x = pointArray[i].x;
-			pt.y = pointArray[i].y;
+			pt.y = _gc->height - pointArray[i].y;
 			NSBezierPath_lineToPoint(path, &pt);
 		}
 		NSBezierPath_closePath(path);
@@ -1098,11 +1100,11 @@ wresult w_graphics_fill_polygonv(w_graphics *gc, int count, va_list args) {
 		NSBezierPath *path = _gc->path;
 		NSPoint pt;
 		pt.x = va_arg(args, int);
-		pt.y = va_arg(args, int);
+		pt.y = _gc->height - va_arg(args, int);
 		NSBezierPath_moveToPoint(path, &pt);
 		for (int i = 1; i < count; i++) {
 			pt.x = va_arg(args, int);
-			pt.y = va_arg(args, int);
+			pt.y = _gc->height - va_arg(args, int);
 			NSBezierPath_lineToPoint(path, &pt);
 		}
 		NSBezierPath_closePath(path);
@@ -1133,7 +1135,7 @@ wresult w_graphics_fill_rectangle(w_graphics *gc, w_rect *rect) {
 			r.size.width = -rect->width;
 		}
 		if (rect->height >= 0) {
-			r.origin.y = rect->y;
+			r.origin.y = _gc->height - rect->y - rect->height;
 			r.size.height = rect->height;
 		} else {
 			r.origin.y = rect->y + rect->height;
@@ -1165,7 +1167,7 @@ wresult w_graphics_fill_roundrectangle(w_graphics *gc, w_rect *rect,
 		NSRect r;
 		_w_graphics *_gc = _W_GRAPHICS(gc);
 		r.origin.x = rect->x;
-		r.origin.y = rect->y;
+		r.origin.y = _gc->height - rect->y - rect->height;
 		r.size.height = rect->height;
 		r.size.width = rect->width;
 		NSBezierPath *path = _gc->path;
@@ -1283,46 +1285,36 @@ wresult w_graphics_get_font_metrics(w_graphics *gc,
 		if (font == 0)
 			return W_ERROR_NO_HANDLES;
 		_w_font_metrics *m = (_w_font_metrics*) fontMetrics;
-		_w_font *desc = _W_FONT(font);
-		if (desc->isMetrics == 0) {
-			NSRange range;
-			NSRect rect;
-			const char *s =
-					"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-			NSMutableDictionary *dict = NSMutableDictionary_initWithCapacity(3);
-			NSMutableDictionary_setObject(dict,
-					(NSObject*) _W_FONT(font)->handle,
-					(NSObject*) _NSFontAttributeName);
-			_w_font_add_traits_1(font, dict);
-			NSString *str = NSString_stringWithUTF8String(s);
-			NSAttributedString *attribStr = NSAttributedString_initWithString_0(
-					str, (NSDictionary*) dict);
-			NSMutableAttributedString_setAttributedString(
-					(NSMutableAttributedString*) _gc->textStorage, attribStr);
-			NSObject_release(NSOBJECT(attribStr));
-			NSObject_release(NSOBJECT(dict));
-			NSLayoutManager *layoutManager = _gc->layoutManager;
-			NSLayoutManager_glyphRangeForTextContainer(layoutManager,
-					_gc->textContainer, &range);
-			NSLayoutManager_usedRectForTextContainer(layoutManager,
-					_gc->textContainer, &rect);
-			int avgWidth = ceil(rect.width) / strlen(s);
-			int ascent = NSLayoutManager_defaultBaselineOffsetForFont(
-					layoutManager, _W_FONT(font)->handle);
-			int height = NSLayoutManager_defaultLineHeightForFont(layoutManager,
-			_W_FONT(font)->handle);
-			m->ascent = ascent;
-			m->descent = height - ascent;
-			m->averageCharWidth = avgWidth;
-			m->leading = 0;
-			m->height = height;
-		} else {
-			m->ascent = desc->ascent;
-			m->descent = desc->height - desc->ascent;
-			m->averageCharWidth = desc->avgWidth;
-			m->leading = 0;
-			m->height = desc->height;
-		}
+		NSRange range;
+		NSRect rect;
+		const char *s =
+				"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		NSMutableDictionary *dict = NSMutableDictionary_initWithCapacity(3);
+		NSMutableDictionary_setObject(dict, (NSObject*) font,
+				(NSObject*) _NSFontAttributeName);
+		_w_font_add_traits_1(font, dict);
+		NSString *str = NSString_stringWithUTF8String(s);
+		NSAttributedString *attribStr = NSAttributedString_initWithString_0(str,
+				(NSDictionary*) dict);
+		NSMutableAttributedString_setAttributedString(
+				(NSMutableAttributedString*) _gc->textStorage, attribStr);
+		NSObject_release(NSOBJECT(attribStr));
+		NSObject_release(NSOBJECT(dict));
+		NSLayoutManager *layoutManager = _gc->layoutManager;
+		NSLayoutManager_glyphRangeForTextContainer(layoutManager,
+				_gc->textContainer, &range);
+		NSLayoutManager_usedRectForTextContainer(layoutManager,
+				_gc->textContainer, &rect);
+		int avgWidth = ceil(rect.width) / strlen(s);
+		int ascent = NSLayoutManager_defaultBaselineOffsetForFont(layoutManager,
+				(NSFont*) font);
+		int height = NSLayoutManager_defaultLineHeightForFont(layoutManager,
+				(NSFont*) font);
+		m->ascent = ascent;
+		m->descent = height - ascent;
+		m->averageCharWidth = avgWidth;
+		m->leading = 0;
+		m->height = height;
 		_w_graphics_uncheck(gc);
 	}
 	return result;
@@ -1621,8 +1613,6 @@ wresult w_graphics_set_font(w_graphics *gc, w_font *font) {
 	_w_graphics *_gc = _W_GRAPHICS(gc);
 	wresult result = _w_graphics_check(gc, 0);
 	if (result > 0) {
-		if (font != 0 && w_font_is_ok(font) <= 0)
-			return W_ERROR_INVALID_ARGUMENT;
 		if (font != 0) {
 			_gc->font = font;
 		} else {
