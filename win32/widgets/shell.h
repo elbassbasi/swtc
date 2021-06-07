@@ -8,30 +8,24 @@
 #ifndef WIN32_WIDGETS_SHELL_H_
 #define WIN32_WIDGETS_SHELL_H_
 #include "canvas.h"
+#include "tooltip.h"
 /*
  * shell
  */
-typedef struct _w_menu_id {
-	HMENU menu;
-	int index;
-	int accelerator;
-	HBITMAP image;
-	char *tooltips;
-} _w_menu_id;
-typedef struct _w_menu_ids {
-	int alloc;
-	int count;
-	_w_menu_id id[0];
-} _w_menu_ids;
 typedef struct _w_shell _w_shell;
 struct _w_shell {
 	_w_canvas canvas;
 	_w_shell *next;
 	_w_shell *prev;
 	w_menu *menubar;
-	_w_menu_ids *ids;
-	HACCEL hAccel;
+	_w_tooltip *tooltips;
+	HWND toolTipHandle;
+	HWND balloonTipHandle;
+	HWND menuItemToolTipHandle;
 	WNDPROC windowProc;
+	WNDPROC ToolTipProc;
+	WNDPROC DialogProc;
+	char* toolTitle;
 	unsigned swFlags :4;
 	unsigned center :1;
 };
@@ -48,10 +42,12 @@ struct _w_shell_priv {
 /*
  * functions
  */
-int _w_shell_registre_menuitem_id(w_shell *shell, w_menuitem *item,
-		_w_menu_id **id);
-int _w_shell_create_accelerators(w_shell *shell);
-void _w_shell_destroy_accelerators(w_shell *shell);
+wresult _w_shell_create_tooltip(w_shell *shell, _w_tooltip *tooltip);
+wresult _w_shell_balloontip_handle(w_shell *shell, HWND *handle);
+wresult _w_shell_tooltip_handle(w_shell *shell, HWND *handle);
+wresult _w_shell_menu_item_tooltip_handle(w_shell *shell, HWND *handle);
+void _w_shell_set_tooltip_title(w_shell *shell, HWND hwndToolTip, char *text,
+		int icon);
 void _w_shell_bring_totop(w_shell *shell);
 void _w_shell_class_init(struct _w_shell_class *clazz);
 /*

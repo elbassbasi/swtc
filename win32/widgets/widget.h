@@ -257,14 +257,4 @@ wresult _WIDGET_WM_XBUTTONUP(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 wresult _WIDGET_WM_PAINT(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
-wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
-wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
-wresult _MENU_WM_UNINITMENUPOPUP(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
-wresult _MENU_WM_DRAWITEM(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
-wresult _MENU_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
 #endif /* WIN32_WIDGETS_WIDGET_H_ */

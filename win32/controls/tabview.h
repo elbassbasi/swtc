@@ -11,6 +11,9 @@
 #define STATE_CREATE_AS_RTL (1 << (STATE_COMPOSITE_END + 0))
 #define STATE_CLOSE_HOVER (1 << (STATE_COMPOSITE_END + 1))
 
+#define TABITEM_CLOSE_WIDTH  10
+#define TABITEM_CLOSE_HEIGTH 10
+
 typedef struct _w_tabview {
 	_w_composite composite;
 	w_imagelist *imagelist;

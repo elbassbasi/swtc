@@ -13,13 +13,6 @@
 extern "C" {
 #endif
 /*
- * font
- */
-typedef struct _w_font {
-	HFONT handle;
-} _w_font;
-#define _W_FONT(x) ((_w_font*)x)
-/*
  * image
  */
 enum {
@@ -142,7 +135,6 @@ typedef struct _w_graphics {
 	HDC handle;
 	HWND hwnd;
 	w_font *font;
-	_w_font native_font;
 	int state;
 	w_color foreground;
 	w_color background;

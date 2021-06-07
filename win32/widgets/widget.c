@@ -1789,6 +1789,7 @@ wresult _WIDGET_WM_PAINT(w_widget *widget, _w_event_platform *e,
 	GetRgnBox(rgn, &rect);
 	int width = rect.right - rect.left;
 	int height = rect.bottom - rect.top;
+	wresult result = W_FALSE;
 	if (width != 0 && height != 0) {
 		HDC hDC = _W_GRAPHICS(&gc)->handle;
 		SelectClipRgn(hDC, rgn);
@@ -1803,12 +1804,12 @@ wresult _WIDGET_WM_PAINT(w_widget *widget, _w_event_platform *e,
 		event.bounds.width = rect.right - rect.left;
 		event.bounds.height = rect.bottom - rect.top;
 		event.gc = &gc;
-		_w_widget_send_event(widget, W_EVENT(&event));
+		result = _w_widget_send_event(widget, W_EVENT(&event));
 	}
 	w_graphics_dispose(&gc);
 	ShowCaret(e->hwnd);
 	DeleteObject(rgn);
-	return W_TRUE;
+	return result;
 }
 void _w_widget_class_init(struct _w_widget_class *clazz) {
 	clazz->is_ok = _w_widget_is_ok;

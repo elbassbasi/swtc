@@ -82,6 +82,31 @@ public:
 	WTextEdit(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
+	bool CreateReadOnly(WComposite *parent) {
+		return Create(parent, W_READ_ONLY | W_BORDER);
+	}
+	bool CreateReadOnly(WComposite &parent) {
+		return CreateReadOnly(&parent);
+	}
+	bool CreateMulti(WComposite *parent) {
+		return Create(parent,
+				W_MULTI | W_BORDER | W_WRAP | W_VSCROLL | W_HSCROLL);
+	}
+	bool CreateMulti(WComposite &parent) {
+		return CreateMulti(&parent);
+	}
+	bool CreateNormal(WComposite *parent) {
+		return Create(parent, W_BORDER);
+	}
+	bool CreateNormal(WComposite &parent) {
+		return CreateNormal(&parent);
+	}
+	bool CreatePassword(WComposite *parent) {
+		return Create(parent, W_PASSWORD | W_BORDER);
+	}
+	bool CreatePassword(WComposite &parent) {
+		return CreatePassword(&parent);
+	}
 	/**
 	 * Appends a string.
 	 * <p>

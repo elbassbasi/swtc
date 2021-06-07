@@ -382,15 +382,6 @@ wresult w_control_is_reparentable(w_control *control) {
 	} else
 		return result;
 }
-wresult w_control_get_shell(w_control *control, w_shell **shell) {
-	wresult result = W_WIDGET_CHECK0(control);
-	if (result > 0) {
-		return W_CONTROL_GET_CLASS(control)->get_shell(control, shell);
-	} else {
-		*shell = 0;
-		return result;
-	}
-}
 wresult w_control_get_tooltip_text(w_control *control, w_alloc alloc,
 		void *user_data,int enc) {
 	wresult result = W_WIDGET_CHECK0(control);

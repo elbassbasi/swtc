@@ -59,7 +59,7 @@ w_shell* _w_toolkit_get_active_shell(w_toolkit *toolkit) {
 		w_control *control = W_CONTROL(_w_widget_find_control(hwnd));
 		if (control != 0) {
 			w_shell *shell;
-			w_control_get_shell(control, &shell);
+			w_widget_get_shell(W_WIDGET(control), &shell);
 			return shell;
 		}
 	}
@@ -301,12 +301,12 @@ w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
 	_w_toolkit *t = (_w_toolkit*) toolkit;
-	if (t->systemFont.handle == 0) {
-		t->systemFont.handle = GetStockObject(DEFAULT_GUI_FONT);
-		if (t->systemFont.handle == 0)
-			t->systemFont.handle = GetStockObject(SYSTEM_FONT);
+	if (t->systemFont == 0) {
+		t->systemFont = GetStockObject(DEFAULT_GUI_FONT);
+		if (t->systemFont == 0)
+			t->systemFont = GetStockObject(SYSTEM_FONT);
 	}
-	return (w_font*) &t->systemFont;
+	return (w_font*) t->systemFont;
 }
 #ifndef OIC_HAND
 #define OIC_HAND 32513
@@ -369,7 +369,16 @@ w_tray* _w_toolkit_get_system_tray(w_toolkit *toolkit) {
 	w_tray *tray = &_W_TOOLKIT(toolkit)->tray;
 	if (w_widget_is_ok(W_WIDGET(tray)))
 		return tray;
-	//create tray
+	if (win_toolkit->hwndMessage == 0) {
+		win_toolkit->hwndMessage = CreateWindowExA(0, WindowClass, NULL,
+		WS_OVERLAPPED, 0, 0, 0, 0, 0, 0, hinst, NULL);
+		if (win_toolkit->hwndMessage == 0)
+			return 0;
+		SetWindowLongPtrW(win_toolkit->hwndMessage, GWLP_WNDPROC,
+				(LONG_PTR) messageProc);
+	}
+	_w_tray_class_init(&win_toolkit->class_tray);
+	_w_widget_create(W_WIDGET(tray), toolkit, 0, 0, _W_CLASS_TRAY, 0);
 	return tray;
 }
 w_thread* _w_toolkit_get_thread(w_toolkit *toolkit) {
@@ -453,7 +462,7 @@ wresult _w_toolkit_post_quit(w_toolkit *toolkit, int quit) {
 wresult _w_toolkit_filter_message(MSG *msg) {
 	int message = msg->message;
 	if (WM_KEYFIRST <= message && message <= WM_KEYLAST) {
-		w_control *control = _w_widget_find_control(msg->hwnd);
+		w_control *control = (w_control*) _w_widget_find_control(msg->hwnd);
 		if (control != 0) {
 			_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
 			wresult result = W_FALSE;
@@ -461,10 +470,10 @@ wresult _w_toolkit_filter_message(MSG *msg) {
 			result = priv->translate_accelerator(control, msg, priv);
 			win_toolkit->accelKeyHit = FALSE;
 			if (!result) {
-				//result = priv->translate_mnemonic(control, msg, priv);
+				result = priv->translate_mnemonic(control, msg, priv);
 			}
 			if (!result) {
-				//result = priv->translate_traversal(control, msg, priv);
+				result = priv->translate_traversal(control, msg, priv);
 			}
 			if (result) {
 				win_toolkit->lastAscii = win_toolkit->lastKey = 0;

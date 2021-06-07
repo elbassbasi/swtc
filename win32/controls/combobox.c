@@ -28,7 +28,7 @@ wresult _w_comboitem_set_data(w_item *item, void *data) {
 	COMBOBOXEXITEMW cbei;
 	cbei.mask = CBEIF_LPARAM;
 	cbei.iItem = _W_ITEM(item)->index;
-	cbei.lParam =(LPARAM) data;
+	cbei.lParam = (LPARAM) data;
 	if (SendMessageW(handle, CBEM_SETITEMW, 0, (LPARAM) &cbei) != -1) {
 		result = W_TRUE;
 	}
@@ -228,7 +228,7 @@ wresult _w_combobox_create_handle(w_control *control, _w_control_priv *priv) {
 
 	_w_combobox_priv *cpriv = _W_COMBOBOX_PRIV(priv);
 	/* Get the text and list window procs */
-	HWND hwndText = GetDlgItem(handle, CBID_EDIT);
+	HWND hwndText = (HWND) SendMessageW(handle, CBEM_GETCOMBOCONTROL, 0, 0);
 	if (hwndText != 0 && cpriv->EditProc == 0) {
 		cpriv->EditProc = (WNDPROC) GetWindowLongPtrW(hwndText, GWLP_WNDPROC);
 	}
@@ -311,10 +311,11 @@ wresult _w_combobox_insert_item(w_combobox *combo, w_comboitem *item,
 		index = -1;
 	}
 	COMBOBOXEXITEMW cbei;
+	ZeroMemory(&cbei, sizeof(cbei));
 	cbei.mask = CBEIF_TEXT | CBEIF_INDENT;
 	cbei.iItem = index;
 	cbei.cchTextMax = 1;
-	cbei.pszText = L"";
+	cbei.pszText = L" ";
 	cbei.iIndent = 0;
 	int newIndex = SendMessageW(handle, CBEM_INSERTITEMW, 0, (LPARAM) &cbei);
 	if (newIndex != -1) {

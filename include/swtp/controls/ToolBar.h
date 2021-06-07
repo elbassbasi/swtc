@@ -338,7 +338,6 @@ public:
  */
 class SWTP_PUBLIC WToolBar: public WComposite {
 public:
-	using WControl::Create;
 	WToolBar() {
 
 	}
@@ -370,7 +369,6 @@ public:
 	WToolBar(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
-	WResult Create(WToolkit *toolkit, WComposite *parent, wuint64 style);
 	WImageList* GetImageList() {
 		WImageList *imagelist;
 		w_toolbar_get_imagelist(W_TOOLBAR(this), (w_imagelist**) &imagelist);

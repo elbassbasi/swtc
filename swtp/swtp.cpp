@@ -65,15 +65,68 @@ void WWidget::OnFreeMemory(WEvent &e, WWidget *widget) {
 		delete widget;
 }
 void WWidget::OnDispose(WEvent &e) {
+	FreeListenerData();
+}
+IWNotify* WWidget::GetNotify() {
+	if ((this->state & __DATA_MASK_LISTENER) == __DATA_FLAGS_SELECTION_ACTION) {
+		return 0;
+	}
+	return (IWNotify*) GetData(__DATA_NOTIFY);
 }
 
+void WWidget::SetNotify(IWNotify *notify) {
+	if ((this->state & __DATA_MASK_LISTENER) == __DATA_FLAGS_SELECTION_ACTION) {
+		this->state &= ~__DATA_FLAGS_SELECTION_ACTION;
+		SetData(__DATA_LISTENER, 0);
+	}
+	SetData(__DATA_NOTIFY, notify);
+}
+bool WWidget::GetSelectionAction(void **_this, SelectionAction *function) {
+	if ((this->state & __DATA_MASK_LISTENER) == __DATA_FLAGS_SELECTION_ACTION) {
+		*function = (SelectionAction) GetData(__DATA_LISTENER);
+		*_this = GetData(__DATA_NOTIFY);
+		return true;
+	} else {
+		*function = 0;
+		*_this = 0;
+		return false;
+	}
+}
+void WWidget::SetSelectionAction(void *_this, SelectionAction function) {
+	FreeListenerData();
+	SetData(__DATA_LISTENER, (void*) function);
+	SetData(__DATA_NOTIFY, _this);
+	this->state &= ~__DATA_MASK_LISTENER;
+	this->state |= __DATA_FLAGS_SELECTION_ACTION;
+}
+void WWidget::SetSelectionAction(void *_this, __SelectionAction function) {
+	SelectionAction fun = *((SelectionAction*) &function);
+	SetSelectionAction(_this, fun);
+}
+
+void WWidget::FreeListenerData() {
+	IWListener *listenner = GetListener();
+	if (listenner != 0) {
+		listenner->DecRef();
+	}
+}
+IWListener* WWidget::GetListener() {
+	if ((this->state & __DATA_MASK_LISTENER) == __DATA_FLAGS_LISTENER) {
+		return (IWListener*) GetData(__DATA_LISTENER);
+	} else {
+		return 0;
+	}
+}
 void WWidget::SetListener(IWListener *listener) {
 	IWListener *last = GetListener();
-	SetData(__DATA_LISTENER, listener);
 	if (listener != 0)
 		listener->IncRef();
 	if (last != 0)
 		last->DecRef();
+	FreeListenerData();
+	SetData(__DATA_LISTENER, listener);
+	this->state &= ~__DATA_MASK_LISTENER;
+	this->state |= __DATA_FLAGS_LISTENER;
 }
 void WItem::SetListener(IWListener *listener) {
 	IWListener *last = GetListener();
@@ -118,7 +171,6 @@ void WWidget::SetListenerFunction(const WListenerFunction &function) {
 	listener->CreateRef();
 	SetListener(listener);
 }
-
 void WWidget::SetSelectionFunction(const WSelectionFunction &function) {
 	WSelectionListener *listener = new WSelectionListener();
 	listener->function = function;
@@ -158,7 +210,29 @@ void WItem::SetSelectionFunction(const WSelectionItemFunction &function) {
 	SetListener(listener);
 }
 #endif
+bool WWidget::_OnSelection(WEvent &e) {
+	IWNotify *notify = GetNotify();
+	if (notify != 0) {
+		return notify->OnNotifySelection(e);
+	}
+	SelectionAction action;
+	void *_this;
+	if (GetSelectionAction(&_this, &action)) {
+		if (_this != 0 && action != 0) {
+			return action(_this, e);
+		}
+	}
+	return false;
+}
 
+WResult WWidget::Create(WToolkit *toolkit, WWidget *parent, wuint64 style) {
+	WResult result = _w_widget_create(W_WIDGET(this), W_TOOLKIT(toolkit),
+			W_WIDGET(parent), style, _GetClassID(), WWidget::post_event_proc);
+	if (result > 0) {
+		SetNotify(parent);
+	}
+	return result;
+}
 bool WWidget::OnNotifySelection(WEvent &e) {
 	return false;
 }
@@ -369,10 +443,11 @@ bool WMenu::OnItemSelection(WMenuEvent &e) {
 	else {
 		if (this->items != 0) {
 			wushort id = e.item->GetId();
-			IWNotify::SelectionAction action = this->items[id].action;
-			IWNotify *notify = GetNotify();
-			if (action != 0 && notify != 0) {
-				(notify->*action)(&e);
+			__SelectionAction   __action = this->items[id].action;
+			void *notify = GetData(__DATA_NOTIFY);
+			if (__action != 0 && notify != 0) {
+				SelectionAction action = *((SelectionAction*) &__action);
+				return action(notify, e);
 			}
 		}
 	}
@@ -449,8 +524,7 @@ bool WMenu::CreateSubItems(WMenuItem &parent, WImageList *imagelist,
  * Control
  */
 WResult WControl::Create(WToolkit *toolkit, WComposite *parent, wuint64 style) {
-	return _w_widget_create(W_WIDGET(this), W_TOOLKIT(toolkit),
-			W_WIDGET(parent), style, _GetClassID(), WWidget::post_event_proc);
+	return WWidget::Create(toolkit, parent, style);
 }
 
 bool WControl::Create(WComposite *parent, wuint64 style) {
@@ -1009,21 +1083,8 @@ w_class_id WButton::_GetClassID() {
 	return _W_CLASS_BUTTON;
 }
 
-WResult WButton::Create(WToolkit *toolkit, WComposite *parent, wuint64 style) {
-	WResult ret = WControl::Create(toolkit, parent, style);
-	SetNotify(parent);
-	return ret;
-}
-
 bool WButton::OnSelection(WSelectionEvent &e) {
-	void *_action = GetData(__DATA_CPP_FUNCTION);
-	IWNotify::SelectionAction action = *((IWNotify::SelectionAction*) &_action);
-	if (action != 0) {
-		IWNotify *notify = GetNotify();
-		(notify->*action)(&e);
-		return false;
-	} else
-		return NotifySelection(e);
+	return _OnSelection(e);
 }
 /*
  * WComboBox
@@ -1086,14 +1147,8 @@ bool WSash::PostEvent(WEvent *e) {
 	}
 }
 
-WResult WSash::Create(WToolkit *toolkit, WComposite *parent, wuint64 style) {
-	WResult ret = WControl::Create(toolkit, parent, style);
-	SetNotify(parent);
-	return ret;
-}
-
 bool WSash::OnSelection(WSashEvent &e) {
-	return NotifySelection(e);
+	return _OnSelection(e);
 }
 /*
  *
@@ -1110,7 +1165,7 @@ bool WSlider::PostEvent(WEvent *e) {
 }
 
 bool WSlider::OnSelection(WSelectionEvent &e) {
-	return NotifySelection(e);
+	return _OnSelection(e);
 }
 /*
  *
@@ -1143,7 +1198,7 @@ bool WTabView::PostEvent(WEvent *e) {
 }
 
 bool WTabView::OnItemSelection(WTabEvent &e) {
-	return false;
+	return NotifyItemSelection(e);
 }
 
 bool WTabView::OnItemGetControl(WTabEvent &e) {
@@ -1256,12 +1311,6 @@ bool WToolBar::OnItemGetControl(WToolBarEvent &e) {
 		return false;
 }
 
-WResult WToolBar::Create(WToolkit *toolkit, WComposite *parent, wuint64 style) {
-	WResult result = WComposite::Create(toolkit, parent, style);
-	SetNotify(parent);
-	return result;
-}
-
 bool WToolBar::OnItemSetControl(WToolBarEvent &e) {
 	if (e.item->GetStyle() & W_SEPARATOR) {
 		SetItemData(e.item, e.control);
@@ -1351,6 +1400,52 @@ bool WTreeView::OnItemDefaultSelection(WTreeEvent &e) {
 	return false;
 }
 bool WTreeView::OnItemDispose(WTreeEvent &e) {
+	return false;
+}
+/*
+ * TrayItem
+ */
+w_class_id WTrayItem::_GetClassID() {
+	return _W_CLASS_TRAYITEM;
+}
+bool WTrayItem::PostEvent(WEvent *e) {
+	switch (e->type) {
+	case W_EVENT_SELECTION:
+		return OnTrayItemSelection(static_cast<WEvent&>(*e));
+		break;
+	case W_EVENT_DEFAULTSELECTION:
+		return OnTrayItemDefaultSelection(static_cast<WEvent&>(*e));
+		break;
+	case W_EVENT_MENUDETECT:
+		return OnTrayItemMenuDetect(static_cast<WEvent&>(*e));
+		break;
+	case W_EVENT_SHOW:
+		return OnShow(static_cast<WEvent&>(*e));
+		break;
+	case W_EVENT_HIDE:
+		return OnHide(static_cast<WEvent&>(*e));
+		break;
+	}
+	return WWidget::PostEvent(e);
+}
+
+bool WTrayItem::OnTrayItemSelection(WEvent &e) {
+	return false;
+}
+
+bool WTrayItem::OnTrayItemDefaultSelection(WEvent &e) {
+	return false;
+}
+
+bool WTrayItem::OnTrayItemMenuDetect(WEvent &e) {
+	return false;
+}
+
+bool WTrayItem::OnShow(WEvent &e) {
+	return false;
+}
+
+bool WTrayItem::OnHide(WEvent &e) {
 	return false;
 }
 /*

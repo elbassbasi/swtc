@@ -224,18 +224,6 @@ wresult w_menu_get_parent(w_menu *menu, w_control **parent) {
 		return result;
 	}
 }
-wresult w_menu_get_shell(w_menu *menu, w_shell **shell) {
-	*shell = 0;
-	wresult result = W_WIDGET_CHECK0(menu);
-	if (result > 0) {
-		w_control *parent;
-		result = W_MENU_GET_CLASS(menu)->get_parent(menu, &parent);
-		if (result > 0) {
-			return w_control_get_shell(parent, shell);
-		}
-	}
-	return result;
-}
 wresult w_menu_get_visible(w_menu *menu) {
 	wresult result = W_WIDGET_CHECK0(menu);
 	if (result > 0) {

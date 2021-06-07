@@ -23,7 +23,7 @@ class WTray;
  * IMPORTANT: This class is <em>not</em> intended to be subclassed.
  * </p>
  */
-class SWTP_PUBLIC WTrayItem: public WItem {
+class SWTP_PUBLIC WTrayItem: public WWidget {
 public:
 	WTrayItem() {
 
@@ -53,13 +53,18 @@ public:
 	WTrayItem(WTray *parent, int style) {
 
 	}
+	bool Create(WTray *parent, int style) {
+		return WWidget::Create(0,(WWidget*) parent, style);
+	}
 	/**
 	 * Returns the receiver's parent, which must be a <code>Tray</code>.
 	 *
 	 * @return the receiver's parent
 	 */
 	WTray* GetParent() {
-		return (WTray*) WItem::GetParentWidget();
+		WTray *tray;
+		w_trayitem_get_parent(W_TRAYITEM(this), (w_tray**) &tray);
+		return tray;
 	}
 	/**
 	 * Returns the receiver's tool tip, or null if it has
@@ -68,8 +73,8 @@ public:
 	 * @return the receiver's tool tip text
 	 */
 	WToolTip* GetToolTip() {
-		WToolTip* tooltip;
-		w_trayitem_get_tooltip(W_TRAYITEM(this),(w_tooltip**)&tooltip);
+		WToolTip *tooltip;
+		w_trayitem_get_tooltip(W_TRAYITEM(this), (w_tooltip**) &tooltip);
 		return tooltip;
 	}
 	/**
@@ -80,7 +85,8 @@ public:
 	 */
 	WString GetToolTipText() {
 		w_string_ref *ref = 0;
-		w_trayitem_get_tooltip_text(W_TRAYITEM(this),w_alloc_string_ref, &ref);
+		w_trayitem_get_tooltip_text(W_TRAYITEM(this), w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -126,7 +132,8 @@ public:
 	 * @param string the new tool tip text (or null)
 	 */
 	bool SetToolTipText(const char *string) {
-		return w_trayitem_set_tooltip_text(W_TRAYITEM(this), string) > 0;
+		return w_trayitem_set_tooltip_text(W_TRAYITEM(this), string, -1,
+				W_ENCODING_UTF8) > 0;
 	}
 	/**
 	 * Makes the receiver visible if the argument is <code>true</code>,
@@ -137,7 +144,16 @@ public:
 	bool SetVisible(bool visible) {
 		return w_trayitem_set_visible(W_TRAYITEM(this), visible) > 0;
 	}
-
+protected:
+	w_class_id _GetClassID();
+	bool PostEvent(WEvent *e);
+	virtual bool OnTrayItemSelection(WEvent &e);
+	virtual bool OnTrayItemDefaultSelection(WEvent &e);
+	virtual bool OnTrayItemMenuDetect(WEvent &e);
+	virtual bool OnShow(WEvent &e);
+	virtual bool OnHide(WEvent &e);
+private:
+	void *handles[(sizeof(w_trayitem) - sizeof(w_widget)) / sizeof(void*)];
 };
 /**
  * Instances of this class represent the system tray that is part
@@ -169,8 +185,8 @@ public:
 	 * @return the item at the given index
 	 */
 	WTrayItem* GetItem(int index) {
-		WTrayItem* item;
-		w_tray_get_item(W_TRAY(this), index,(w_trayitem**) &item);
+		WTrayItem *item;
+		w_tray_get_item(W_TRAY(this), index, (w_trayitem**) &item);
 		return item;
 	}
 	/**
@@ -192,7 +208,7 @@ public:
 	 *
 	 * @return the items in the receiver
 	 */
-	void GetItems(WIterator<WTrayItem> &items) {
+	void GetItems(WIterator<WTrayItem*> &items) {
 		w_tray_get_items(W_TRAY(this), (w_iterator*) &items);
 	}
 private:

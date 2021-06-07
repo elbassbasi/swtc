@@ -58,6 +58,30 @@ void _win_text_free(const char *text, WCHAR *alloc, int length) {
 		return;
 	_w_toolkit_free(alloc, length * sizeof(WCHAR));
 }
+wresult _win_text_copy(char **newtext, const char *text, int length, int enc) {
+	if (*newtext != 0)
+		free(*newtext);
+	if (enc == W_ENCODING_UNICODE || enc == W_ENCODING_PLATFORM) {
+		int l = w_utf8_from_utf16((const wchar*) text, length, 0, 0);
+		*newtext = malloc(l + 1);
+		if (*newtext != 0) {
+			w_utf8_from_utf16((const wchar*) text, length, *newtext, l);
+		}
+	} else {
+		if (length < 0)
+			*newtext = strdup(text);
+		else {
+			*newtext = malloc(length + 1);
+			if (*newtext != 0) {
+				strncpy(*newtext, text, length);
+				(*newtext)[length] = 0;
+			}
+		}
+	}
+	if (*newtext == 0)
+		return W_ERROR_NO_MEMORY;
+	return W_TRUE;
+}
 wresult _win_text_set(WCHAR *text, int length, w_alloc alloc, void *user_data,
 		int enc) {
 	if ((enc & 0xFF) == W_ENCODING_UNICODE
@@ -79,6 +103,28 @@ wresult _win_text_set(WCHAR *text, int length, w_alloc alloc, void *user_data,
 			return W_ERROR_NO_MEMORY;
 		int ll = WMIN(l, l2);
 		w_utf8_from_utf16(text, length, (char*) buf, ll);
+		return W_TRUE;
+	}
+}
+wresult _win_text_set_0(char *text, int length, w_alloc alloc, void *user_data,
+		int enc) {
+	if ((enc & 0xFF) == W_ENCODING_UNICODE
+			|| (enc & 0xFF) == W_ENCODING_PLATFORM) {
+		int l = w_utf8_to_utf16(text, length, 0, 0);
+		void *buf = 0;
+		int l1 = alloc(user_data, (l + 1) * sizeof(wchar), &buf);
+		if (buf == 0)
+			return W_ERROR_NO_MEMORY;
+		w_utf8_to_utf16(text, length, (wchar*) buf, l1);
+		return W_TRUE;
+	} else {
+		if (length < 0)
+			length = strlen(text);
+		void *buf = 0;
+		int l = alloc(user_data, length + 1, &buf);
+		if (buf == 0)
+			return W_ERROR_NO_MEMORY;
+		memcpy(buf, text, l);
 		return W_TRUE;
 	}
 }

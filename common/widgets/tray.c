@@ -5,53 +5,61 @@
  *      Author: azeddine El Bassbasi
  */
 #include <swtc.h>
+wresult w_trayitem_get_parent(w_trayitem *trayitem, w_tray **parent) {
+	wresult result = W_WIDGET_CHECK0(trayitem);
+	if (result > 0) {
+		return W_TRAYITEM_GET_CLASS(trayitem)->get_parent(trayitem, parent);
+	} else
+		return result;
+}
 wresult w_trayitem_get_tooltip(w_trayitem *trayitem, w_tooltip **tooltip) {
-	wresult result = W_WIDGETDATA_CHECK0(trayitem);
+	wresult result = W_WIDGET_CHECK0(trayitem);
 	if (result > 0) {
 		return W_TRAYITEM_GET_CLASS(trayitem)->get_tooltip(trayitem, tooltip);
 	} else
 		return result;
 }
 wresult w_trayitem_get_tooltip_text(w_trayitem *trayitem, w_alloc alloc,
-		void *user_data) {
-	wresult result = W_WIDGETDATA_CHECK0(trayitem);
+		void *user_data, int enc) {
+	wresult result = W_WIDGET_CHECK0(trayitem);
 	if (result > 0) {
 		return W_TRAYITEM_GET_CLASS(trayitem)->get_tooltip_text(trayitem, alloc,
-				user_data);
+				user_data, enc);
 	} else
 		return result;
 }
 wresult w_trayitem_get_visible(w_trayitem *trayitem) {
-	wresult result = W_WIDGETDATA_CHECK0(trayitem);
+	wresult result = W_WIDGET_CHECK0(trayitem);
 	if (result > 0) {
 		return W_TRAYITEM_GET_CLASS(trayitem)->get_visible(trayitem);
 	} else
 		return result;
 }
 wresult w_trayitem_set_image(w_trayitem *trayitem, w_image *image) {
-	wresult result = W_WIDGETDATA_CHECK0(trayitem);
+	wresult result = W_WIDGET_CHECK0(trayitem);
 	if (result > 0) {
 		return W_TRAYITEM_GET_CLASS(trayitem)->set_image(trayitem, image);
 	} else
 		return result;
 }
 wresult w_trayitem_set_tooltip(w_trayitem *trayitem, w_tooltip *toolTip) {
-	wresult result = W_WIDGETDATA_CHECK0(trayitem);
+	wresult result = W_WIDGET_CHECK0(trayitem);
 	if (result > 0) {
 		return W_TRAYITEM_GET_CLASS(trayitem)->set_tooltip(trayitem, toolTip);
 	} else
 		return result;
 }
-wresult w_trayitem_set_tooltip_text(w_trayitem *trayitem, const char *string) {
-	wresult result = W_WIDGETDATA_CHECK0(trayitem);
+wresult w_trayitem_set_tooltip_text(w_trayitem *trayitem, const char *string,
+		int length, int enc) {
+	wresult result = W_WIDGET_CHECK0(trayitem);
 	if (result > 0) {
 		return W_TRAYITEM_GET_CLASS(trayitem)->set_tooltip_text(trayitem,
-				string);
+				string, length, enc);
 	} else
 		return result;
 }
 wresult w_trayitem_set_visible(w_trayitem *trayitem, int visible) {
-	wresult result = W_WIDGETDATA_CHECK0(trayitem);
+	wresult result = W_WIDGET_CHECK0(trayitem);
 	if (result > 0) {
 		return W_TRAYITEM_GET_CLASS(trayitem)->set_visible(trayitem, visible);
 	} else

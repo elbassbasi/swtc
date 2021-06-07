@@ -27,6 +27,7 @@ public:
 	WToolBar bar[num_toolbar];
 	WMenu menu[num_toolbar];
 	WComboBox combo;
+	WLabel label;
 protected:
 	bool OnNotifyItemSelection(WEvent &e);
 	bool OnToolBarSelection(WToolBarEvent &e);

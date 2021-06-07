@@ -14,6 +14,8 @@
 		${CURRENT_DIR}/theme.c
 		${CURRENT_DIR}/toolkit0.c
 		${CURRENT_DIR}/toolkit1.c
+		${CURRENT_DIR}/tooltip.c
+		${CURRENT_DIR}/tray.c
 		${CURRENT_DIR}/widget.c
 		PARENT_SCOPE
 	)

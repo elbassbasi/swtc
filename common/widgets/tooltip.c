@@ -25,11 +25,11 @@ wresult w_tooltip_get_auto_hide(w_tooltip *tooltip) {
 		return result;
 }
 wresult w_tooltip_get_message(w_tooltip *tooltip, w_alloc alloc,
-		void *user_data) {
+		void *user_data, int enc) {
 	wresult result = W_WIDGET_CHECK0(tooltip);
 	if (result > 0) {
 		return W_TOOLTIP_GET_CLASS(tooltip)->get_message(tooltip, alloc,
-				user_data);
+				user_data, enc);
 	} else
 		return result;
 }
@@ -40,10 +40,12 @@ wresult w_tooltip_get_parent(w_tooltip *tooltip, w_shell **parent) {
 	} else
 		return result;
 }
-wresult w_tooltip_get_text(w_tooltip *tooltip, w_alloc alloc, void *user_data) {
+wresult w_tooltip_get_text(w_tooltip *tooltip, w_alloc alloc, void *user_data,
+		int enc) {
 	wresult result = W_WIDGET_CHECK0(tooltip);
 	if (result > 0) {
-		return W_TOOLTIP_GET_CLASS(tooltip)->get_text(tooltip, alloc, user_data);
+		return W_TOOLTIP_GET_CLASS(tooltip)->get_text(tooltip, alloc, user_data,
+				enc);
 	} else
 		return result;
 }
@@ -75,17 +77,21 @@ wresult w_tooltip_set_location(w_tooltip *tooltip, w_point *location) {
 	} else
 		return result;
 }
-wresult w_tooltip_set_message(w_tooltip *tooltip, const char *string) {
+wresult w_tooltip_set_message(w_tooltip *tooltip, const char *message,
+		int length, int enc) {
 	wresult result = W_WIDGET_CHECK0(tooltip);
 	if (result > 0) {
-		return W_TOOLTIP_GET_CLASS(tooltip)->set_message(tooltip, string);
+		return W_TOOLTIP_GET_CLASS(tooltip)->set_message(tooltip, message,
+				length, enc);
 	} else
 		return result;
 }
-wresult w_tooltip_set_text(w_tooltip *tooltip, const char *string) {
+wresult w_tooltip_set_text(w_tooltip *tooltip, const char *text, int length,
+		int enc) {
 	wresult result = W_WIDGET_CHECK0(tooltip);
 	if (result > 0) {
-		return W_TOOLTIP_GET_CLASS(tooltip)->set_text(tooltip, string);
+		return W_TOOLTIP_GET_CLASS(tooltip)->set_text(tooltip, text, length,
+				enc);
 	} else
 		return result;
 }

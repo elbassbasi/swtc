@@ -12,6 +12,29 @@
 /*
  * menu
  */
+enum {
+	_MENU_FLAGS_ID = (1 << 1), //
+	_MENU_FLAGS_CHECK = (1 << 2), //
+	_MENU_ID_ID = (1 << 15),
+	_MENU_ID_STYLE_CHECK = (1 << 14),
+	_MENU_ID_ACCEL = (1 << 14),
+	_MENU_ID_MASK = 0x3FFF,
+	_MENU_HELPID_BIT_CHECK = (1 << 31),
+	_MENU_HELPID_MASK = (0x7F << 23),
+	_MENU_HELPID_ADD = (1 << 23),
+	ID_TOOLTIP_TIMER = 110,
+};
+typedef struct _w_menu_id {
+	wushort flags;
+	wushort index;
+	HMENU menu;
+	HBITMAP image;
+} _w_menu_id;
+typedef struct _w_menu_ids {
+	int alloc;
+	int count;
+	_w_menu_id id[0];
+} _w_menu_ids;
 typedef struct _w_menu _w_menu;
 struct _w_menu {
 	_w_widget widget;
@@ -19,6 +42,7 @@ struct _w_menu {
 	_w_menu *prev;
 	w_control *parent;
 	HMENU handle;
+	_w_menu_ids *ids;
 	int x;
 	int y;
 };
@@ -43,7 +67,26 @@ struct _w_menu_priv {
 /*
  * functions
  */
-wresult _w_menuitem_fill_accel(ACCEL *accel, struct _w_menu_id *item);
-wresult _w_menu_get_shell(w_menu *menu, w_shell **shell);
+wresult _w_menuitem_fill_accel(ACCEL *accel, struct _w_accel_id *item);
+wresult _w_menu_get_shell(w_widget *menu, w_shell **shell);
 void _w_menu_class_init(struct _w_menu_class *clazz);
+/*
+ * message
+ */
+wresult _MENU_WM_COMMAND(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+wresult _MENU_WM_UNINITMENUPOPUP(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+wresult _MENU_WM_MENUCHAR(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+wresult _MENU_WM_MENUSELECT(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+wresult _MENU_WM_DRAWITEM(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
+wresult _MENU_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
 #endif /* WIN32_WIDGETS_MENU_H_ */

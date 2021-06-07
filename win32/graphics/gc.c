@@ -253,10 +253,10 @@ wresult w_graphics_check(w_graphics *gc, int mask) {
 		if ((state & GRAPHICS_STATE_FONT) != 0) {
 			w_font *font = _W_GRAPHICS(gc)->font;
 			if (font != 0) {
-				SelectObject(_W_GRAPHICS(gc)->handle, _W_FONT(font)->handle);
+				SelectObject(_W_GRAPHICS(gc)->handle, (HFONT) font);
 				HFONT hFont = 0;
 				GpFont *gdipFont = w_graphics_create_gdip_font(
-				_W_GRAPHICS(gc)->handle, _W_FONT(font)->handle,
+				_W_GRAPHICS(gc)->handle, (HFONT) font,
 				_W_GRAPHICS(gc)->gdipGraphics, win_toolkit->fontCollection, 0,
 						&hFont);
 				if (hFont != 0)
@@ -423,7 +423,7 @@ wresult w_graphics_check(w_graphics *gc, int mask) {
 		if ((state & GRAPHICS_STATE_FONT) != 0) {
 			w_font *font = _W_GRAPHICS(gc)->font;
 			if (font != 0) {
-				SelectObject(_W_GRAPHICS(gc)->handle, _W_FONT(font)->handle);
+				SelectObject(_W_GRAPHICS(gc)->handle, (HFONT) font);
 			}
 		}
 	}
@@ -1312,7 +1312,7 @@ GpRectF* w_graphics_draw_text_1(w_graphics *gc, GpGraphics *gdipGraphics,
 		GdipGetDC(gdipGraphics, &hdc);
 		HFONT hFont = _W_GRAPHICS(gc)->hGDIFont;
 		if (hFont == 0 && _W_GRAPHICS(gc)->font != 0)
-			hFont = _W_FONT(_W_GRAPHICS(gc)->font)->handle;
+			hFont = (HFONT) _W_GRAPHICS(gc)->font;
 		HFONT oldFont = 0;
 		if (hFont != 0)
 			oldFont = SelectObject(hdc, hFont);
@@ -1433,7 +1433,7 @@ wresult _w_graphics_draw_text_0(w_graphics *gc, GpGraphics *gdipGraphics,
 	GdipGetDC(gdipGraphics, &hdc);
 	HFONT hFont = _W_GRAPHICS(gc)->hGDIFont;
 	if (hFont == 0 && _W_GRAPHICS(gc)->font != 0)
-		hFont = _W_FONT(_W_GRAPHICS(gc)->font)->handle;
+		hFont = (HFONT) _W_GRAPHICS(gc)->font;
 	HFONT oldFont = 0;
 	if (hFont != 0)
 		oldFont = SelectObject(hdc, hFont);

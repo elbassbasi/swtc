@@ -83,7 +83,7 @@ wresult _SASH_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_W_SASH(widget)->last.x = event.bounds.x;
 		_W_SASH(widget)->last.y = event.bounds.y;
 		w_shell *shell;
-		W_CONTROL_GET_CLASS(widget)->get_shell(W_CONTROL(widget), &shell);
+		W_WIDGET_GET_CLASS(widget)->get_shell(widget, &shell);
 		_w_shell_bring_totop(shell);
 		if (w_widget_is_ok(widget) <= 0) {
 			e->result = 0;
@@ -93,7 +93,8 @@ wresult _SASH_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		RedrawWindow(hwndTrack, 0, 0, flags);
 		_w_sash_draw_band(widget, &event.bounds.pt, &size);
 		if ((_W_WIDGET(widget)->style & W_SMOOTH) != 0) {
-			W_CONTROL_GET_CLASS(widget)->set_bounds(W_CONTROL(widget),&event.bounds.pt, &size);
+			W_CONTROL_GET_CLASS(widget)->set_bounds(W_CONTROL(widget),
+					&event.bounds.pt, &size);
 		}
 	}
 	return ret;

@@ -32,7 +32,6 @@ public:
  */
 class SWTP_PUBLIC WSash: public WControl {
 public:
-	using WControl::Create;
 	WSash() {
 
 	}
@@ -61,7 +60,6 @@ public:
 	WSash(WComposite *parent, wuint64 style) {
 		Create(parent, style);
 	}
-	WResult Create(WToolkit *toolkit, WComposite *parent, wuint64 style);
 	bool DefaultSelection(WSashEvent &e) {
 		return w_layout_sash_default_selection(W_WIDGET(this), (w_event*) &e);
 	}

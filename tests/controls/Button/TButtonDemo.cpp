@@ -11,15 +11,17 @@ void TButtonDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Demo", new TButtonDemo());
 
 }
-int TButtonDemo::styles[] = { W_PUSH, W_CHECK, W_TOGGLE, W_RADIO, W_FLAT };
-const char *TButtonDemo::names[] =
-		{ "push", "check", "toggle", "radio", "flat" };
+int TButtonDemo::styles[] = { W_PUSH, W_CHECK, W_TOGGLE, W_RADIO, W_FLAT,
+		W_COMMAND };
+int TButtonDemo::styles_arrow[] = { W_RIGHT, W_LEFT, W_DOWN, W_UP };
+const char *TButtonDemo::names[] = { "push", "check", "toggle", "radio", "flat",
+		"command", 0 };
 void TButtonDemo::CreateControl(WComposite *parent) {
 	char txt[30];
 	this->Create(parent, W_FREE_MEMORY);
 	this->layout.numColumns = length;
 	this->SetLayout(this->layout);
-	for (size_t i = 0; i < 5; i++) {
+	for (size_t i = 0; i < 6; i++) {
 		for (size_t j = 0; j < length; j++) {
 			btn[i][j].Create(this, styles[i]);
 			sprintf(txt, "%s %d", names[i], (int) j + 1);
@@ -31,18 +33,21 @@ void TButtonDemo::CreateControl(WComposite *parent) {
 	btn[0][3].SetImage(frame->GetImage32(4));
 
 	// Create three arrow buttons
-	btn[5][0].Create(this, W_ARROW);
-	btn[5][1].Create(this, W_ARROW | W_LEFT);
-	btn[5][2].Create(this, W_ARROW | W_DOWN);
-	btn[5][3].Create(this, W_ARROW | W_UP);
+	for (size_t j = 0; j < length; j++) {
+		wuint64 _style = W_ARROW | styles_arrow[j % 4];
+		btn[6][j].Create(this, _style);
+	}
+
+	label.Create(this, W_NONE);
+	label.SetLayoutData(WGridData(W_GRID_FILL_BOTH, length, 1));
+	label.SetText("No Selection");
 }
 
 bool TButtonDemo::OnNotifySelection(WEvent &e) {
 	if (WButton::IsButton(e.widget)) {
 		WButton *b = static_cast<WButton*>(e.widget);
 		WString text = b->GetText();
-		WMessageBox(GetFrame(), W_OK, "button selected",
-				text.GetCharsNotNull());
+		label.SetText("button selected : " + text);
 		return true;
 	}
 	return false;

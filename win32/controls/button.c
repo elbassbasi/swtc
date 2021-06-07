@@ -513,7 +513,7 @@ wresult _BUTTON_WM_SETFOCUS(w_widget *widget, _w_event_platform *e,
 	}
 	if ((_W_WIDGET(widget)->style & W_PUSH) != 0) {
 		w_shell *shell;
-		w_control_get_shell(W_CONTROL(widget), &shell);
+		w_widget_get_shell(widget, &shell);
 		w_shell_set_default_button(shell, W_BUTTON(widget));
 	}
 	return result;
@@ -613,10 +613,10 @@ wresult _BUTTON_WM_DRAWCHILD(w_widget *widget, _w_event_platform *e,
 			iStateId += ABS_UPDISABLED - ABS_UPNORMAL;
 		if ((item->itemState & ODS_SELECTED) != 0)
 			iStateId += ABS_UPPRESSED - ABS_UPNORMAL;
-		/*HTHEME hTheme = _w_theme_get_htheme(_W_THEME_CLASS_SCROLLBAR,
-		 "SCROLLBAR");
-		 DrawThemeBackground(hTheme, item->hDC, SBP_ARROWBTN, iStateId,
-		 &item->rcItem, NULL);*/
+		HTHEME hTheme = OpenThemeData(NULL, L"SCROLLBAR");
+		DrawThemeBackground(hTheme, item->hDC, SBP_ARROWBTN, iStateId,
+				&item->rcItem, NULL);
+		CloseThemeData(hTheme);
 	} else {
 		int uState = DFCS_SCROLLLEFT;
 		switch (_W_WIDGET(widget)->style & (W_UP | W_DOWN | W_LEFT | W_RIGHT)) {

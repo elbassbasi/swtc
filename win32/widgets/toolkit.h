@@ -9,15 +9,30 @@
 #define WIN32_WIDGETS_TOOLKIT_H_
 #include "shell.h"
 #include "menu.h"
+#include "tooltip.h"
+#include "tray.h"
 #include "../controls/controls.h"
 typedef struct _win32_theme {
 	w_theme theme;
 
 } _win32_theme;
+#define ID_START 108
+/* Private SWT Window Messages */
+enum {	 //
+	SWT_GETACCELCOUNT = WM_APP, //
+	SWT_GETACCEL,
+	SWT_KEYMSG,
+	SWT_DESTROY,
+	SWT_TRAYICONMSG,
+	SWT_NULL,
+	SWT_RUNASYNC,
+};
+LRESULT CALLBACK messageProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 typedef struct _w_toolkit {
 	w_toolkit toolkit;
 	int win32_version;
 	int comctrl32_version;
+	int shell32_version;
 	w_thread thread;
 	int exit_code;
 	unsigned exit_loop :1;
@@ -41,8 +56,10 @@ typedef struct _w_toolkit {
 	int clickCount;
 	int scrollHRemainder;
 	int scrollRemainder;
+	int nextTrayId;
 	RECT clickRect;
 	HWND lastClickHwnd;
+	HWND hwndMessage;
 	MSG msg;
 	w_widget *widget_free;
 	w_control *focusControl;
@@ -54,7 +71,7 @@ typedef struct _w_toolkit {
 	_w_image images[5];
 	w_taskbar taskbar;
 	w_tray tray;
-	_w_font systemFont;
+	HFONT systemFont;
 	GpFontCollection *fontCollection;
 	/*
 	 * shell
@@ -183,6 +200,17 @@ typedef struct _w_toolkit {
 	struct _w_toolbar_class class_toolbar;
 	_w_toolbar_priv class_toolbar_priv;
 	struct _w_toolitem_class class_toolitem;
+	/*
+	 * tray
+	 */
+	struct _w_tray_class class_tray;
+	_w_tray_priv class_tray_priv;
+	struct _w_trayitem_class class_trayitem;
+	/*
+	 * tooltip
+	 */
+	struct _w_tooltip_class class_tooltip;
+	_w_tooltip_priv class_tooltip_priv;
 	/*
 	 * internal memory
 	 */

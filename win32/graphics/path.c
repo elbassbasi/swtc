@@ -156,8 +156,6 @@ wresult w_path_add_string(w_path *path, const char *text, int length, int enc,
 		return W_ERROR_NO_HANDLES;
 	if (font == 0)
 		return W_ERROR_NULL_ARGUMENT;
-	if (_W_FONT(font)->handle == 0)
-		return W_ERROR_INVALID_ARGUMENT;
 	wresult result = W_TRUE;
 	int newlength;
 	WCHAR *s;
@@ -165,8 +163,8 @@ wresult w_path_add_string(w_path *path, const char *text, int length, int enc,
 	if (s != 0) {
 		HDC hDC = CreateCompatibleDC(NULL);
 		GpFontFamily *family = 0;
-		GpFont *gdipFont = w_graphics_create_gdip_font(hDC,
-		_W_FONT(font)->handle, 0, win_toolkit->fontCollection, &family, 0);
+		GpFont *gdipFont = w_graphics_create_gdip_font(hDC, (HFONT) font, 0,
+				win_toolkit->fontCollection, &family, 0);
 		GpRectF rect;
 		REAL fontSize;
 		INT fontStyle;

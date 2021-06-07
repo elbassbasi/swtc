@@ -8,20 +8,19 @@
 #include "MFrame.h"
 #include "MApp.h"
 WMenuItems MFrame::menuitems[] = { //
-				{ W_CASCADE, 0, IMAGELIST_FILE, "File", 0 },	//
+		{ W_CASCADE, 0, IMAGELIST_FILE, "File", 0 },	//
 				{ W_PUSH, 0, IMAGELIST_ADD, "NewPlatform", W_ACTION(
-						MFrame::NewPlatformShell) },	//
-				{ W_PUSH, 0, -1, "NewCustom", W_ACTION(MFrame::NewCustomShell) },//
+						NewPlatformShell) },	//
+				{ W_PUSH, 0, -1, "NewCustom", W_ACTION(NewCustomShell) },	//
 				{ W_SEPARATOR, 0, -1, 0, 0 },	//
-				{ W_PUSH, W_ALT | 'Q', -1, "Exit", W_ACTION(MFrame::Exit) },//
+				{ W_PUSH, W_ALT | 'Q', -1, "Exit", W_ACTION(Exit) },	//
 				{ W_CASCADE_END, 0, -1, 0, 0 },	//
 				{ W_CASCADE, 0, -1, "Dialogs", 0 },	//
-				{ W_PUSH, 0, -1, "MessageBox", W_ACTION(MFrame::MessageBox) },//
-				{ W_PUSH, 0, -1, "FileDialog", W_ACTION(MFrame::FileDialog) },//
-				{ W_PUSH, 0, -1, "DirectoryDialog", W_ACTION(
-						MFrame::DirectoryDialog) },	//
-				{ W_PUSH, 0, -1, "FontDialog", W_ACTION(MFrame::FontDialog) },//
-				{ W_PUSH, 0, -1, "ColorDialog", W_ACTION(MFrame::ColorDialog) },//
+				{ W_PUSH, 0, -1, "MessageBox", W_ACTION(MessageBox) },	//
+				{ W_PUSH, 0, -1, "FileDialog", W_ACTION(FileDialog) },	//
+				{ W_PUSH, 0, -1, "DirectoryDialog", W_ACTION(DirectoryDialog) },//
+				{ W_PUSH, 0, -1, "FontDialog", W_ACTION(FontDialog) },	//
+				{ W_PUSH, 0, -1, "ColorDialog", W_ACTION(ColorDialog) },	//
 				{ W_CASCADE_END, 0, -1, 0, 0 },	//
 				{ W_CASCADE, 0, -1, "Source", 0 },	//
 				{ W_CASCADE_END, 0, -1, 0, 0 },	//

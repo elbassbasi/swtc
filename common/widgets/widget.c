@@ -89,6 +89,15 @@ w_widget* w_widget_ref_dec(w_widget *widget) {
 	}
 	return widget;
 }
+wresult w_widget_get_shell(w_widget *widget, w_shell **shell){
+	wresult result = W_WIDGET_CHECK0(widget);
+	if (result > 0) {
+		return W_WIDGET_GET_CLASS(widget)->get_shell(widget, shell);
+	} else {
+		*shell = 0;
+		return result;
+	}
+}
 w_toolkit* w_widget_get_toolkit(w_widget *widget) {
 	if (w_widget_is_ok(widget) > 0) {
 		return widget->clazz->toolkit;

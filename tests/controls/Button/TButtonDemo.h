@@ -11,12 +11,14 @@
 class TButtonDemo: public CompositeTreeItem {
 public:
 	static const int length = 5;
-	static int styles[6];
-	static const char *names[6];
+	static int styles[7];
+	static int styles_arrow[4];
+	static const char *names[7];
 	static void Registre(WTreeItem &parent);
 	void CreateControl(WComposite *parent);
 	WGridLayout layout;
-	WButton btn[6][length];
+	WLabel label;
+	WButton btn[7][length];
 protected:
 	bool OnNotifySelection(WEvent &e);
 };

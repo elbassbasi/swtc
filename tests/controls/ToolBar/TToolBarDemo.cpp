@@ -70,7 +70,7 @@ void TToolBarDemo::SetToolCombo(int index, WToolItem &item) {
 }
 void TToolBarDemo::CreateControl(WComposite *parent) {
 	this->Create(parent, W_NONE);
-	layout.numColumns = 2;
+	layout.numColumns = 3;
 	this->SetLayout(layout);
 	/* text */
 	CreateToolBar(0, W_HORIZONTAL, true, false);
@@ -83,6 +83,8 @@ void TToolBarDemo::CreateControl(WComposite *parent) {
 	MFrame *frame = (MFrame*) GetFrame();
 	bar[1].SetImageList(frame->GetImageList16());
 	bar[3].SetImageList(frame->GetImageList32());
+	label.Create(this, W_WRAP);
+	label.SetLayoutData(WGridData(W_GRID_FILL_BOTH));
 }
 
 bool TToolBarDemo::OnNotifyItemSelection(WEvent &e) {
@@ -100,7 +102,7 @@ bool TToolBarDemo::OnToolBarSelection(WToolBarEvent &e) {
 		int image = item->GetImage();
 		snprintf(txt, sizeof(txt), "text = %s || image = %d",
 				text.GetCharsNotNull(), image);
-		WMessageBox(GetFrame(), W_YES | W_NO, "Item Selected", txt);
+		label.SetText(txt);
 	}
 	return true;
 }

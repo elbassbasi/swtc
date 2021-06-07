@@ -13,27 +13,30 @@ extern "C" {
 #endif
 typedef struct w_tray {
 	w_widget widget;
+	void *handle[4];
 } w_tray;
 
 #define W_TRAY(x) ((w_tray*)x)
 typedef struct w_trayitem {
 	w_widget widget;
-	void *handle[6];
+	void *handle[0x10];
 } w_trayitem;
 #define W_TRAYITEM(x) ((w_trayitem*)x)
 struct _w_trayitem_class {
 	struct _w_widget_class widget;
-	wresult (*get_tooltip)(w_trayitem *trayitem,w_tooltip** tooltip);
+	wresult (*get_parent)(w_trayitem *trayitem, w_tray **parent);
+	wresult (*get_tooltip)(w_trayitem *trayitem, w_tooltip **tooltip);
 	wresult (*get_tooltip_text)(w_trayitem *trayitem, w_alloc alloc,
-			void *user_data);
+			void *user_data, int enc);
 	wresult (*get_visible)(w_trayitem *trayitem);
 	wresult (*set_image)(w_trayitem *trayitem, w_image *image);
 	wresult (*set_tooltip)(w_trayitem *trayitem, w_tooltip *toolTip);
-	wresult (*set_tooltip_text)(w_trayitem *trayitem, const char *string);
+	wresult (*set_tooltip_text)(w_trayitem *trayitem, const char *string,
+			int length, int enc);
 	wresult (*set_visible)(w_trayitem *trayitem, int visible);
 };
 #define W_TRAYITEM_CLASS(x) ((struct _w_trayitem_class*)x)
-#define W_TRAYITEM_GET_CLASS(x) ((struct _w_trayitem_class*)W_WIDGETDATA_GET_CLASS(x))
+#define W_TRAYITEM_GET_CLASS(x) ((struct _w_trayitem_class*)W_WIDGET_GET_CLASS(x))
 struct _w_tray_class {
 	struct _w_widget_class widget;
 	struct _w_trayitem_class *class_trayitem;
@@ -43,15 +46,17 @@ struct _w_tray_class {
 };
 #define W_TRAY_CLASS(x) ((struct _w_tray_class*)x)
 #define W_TRAY_GET_CLASS(x) ((struct _w_tray_class*)W_WIDGET_GET_CLASS(x))
-SWT_PUBLIC wresult w_trayitem_get_tooltip(w_trayitem *trayitem,w_tooltip** tooltip);
+SWT_PUBLIC wresult w_trayitem_get_parent(w_trayitem *trayitem, w_tray **parent);
+SWT_PUBLIC wresult w_trayitem_get_tooltip(w_trayitem *trayitem,
+		w_tooltip **tooltip);
 SWT_PUBLIC wresult w_trayitem_get_tooltip_text(w_trayitem *trayitem,
-		w_alloc alloc, void *user_data);
+		w_alloc alloc, void *user_data, int enc);
 SWT_PUBLIC wresult w_trayitem_get_visible(w_trayitem *trayitem);
 SWT_PUBLIC wresult w_trayitem_set_image(w_trayitem *trayitem, w_image *image);
 SWT_PUBLIC wresult w_trayitem_set_tooltip(w_trayitem *trayitem,
 		w_tooltip *toolTip);
 SWT_PUBLIC wresult w_trayitem_set_tooltip_text(w_trayitem *trayitem,
-		const char *string);
+		const char *string, int length, int enc);
 SWT_PUBLIC wresult w_trayitem_set_visible(w_trayitem *trayitem, int visible);
 /*
  *

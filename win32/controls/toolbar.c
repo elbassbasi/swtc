@@ -939,8 +939,13 @@ wresult _w_toolbar_set_imagelist(w_toolbar *toolbar, w_imagelist *imagelist) {
 			_W_TOOLBAR(toolbar)->imagelist = imagelist;
 		}
 	}
-	SendMessageW(_W_WIDGET(toolbar)->handle, TB_SETIMAGELIST, 0,
-			(LPARAM) _imagelist);
+	if (result > 0) {
+		HWND handle = _W_WIDGET(toolbar)->handle;
+		SendMessageW(handle, TB_SETIMAGELIST, 0, (LPARAM) _imagelist);
+		/*HFONT hFont = (HFONT) SendMessageW(handle, WM_GETFONT, 0, 0);
+		 SendMessageW(handle, WM_SETFONT, (WPARAM) hFont, 0);
+		 _w_toolbar_layout_items(toolbar);*/
+	}
 	return result;
 }
 void _w_toolbar_set_row_count(w_toolbar *toolbar, int count) {

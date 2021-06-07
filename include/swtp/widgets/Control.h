@@ -683,21 +683,6 @@ public:
 		return _get_region(region) > 0;
 	}
 	/**
-	 * Returns the receiver's shell. For all controls other than
-	 * shells, this simply returns the control's nearest ancestor
-	 * shell. Shells return themselves, even if they are children
-	 * of other shells.
-	 *
-	 * @return the receiver's shell
-	 *
-	 * @see #getParent
-	 */
-	WFrame* GetFrame() {
-		WFrame *frame;
-		_get_shell(&frame);
-		return frame;
-	}
-	/**
 	 * Returns the receiver's tool tip text, or null if it has
 	 * not been set.
 	 *
@@ -1415,9 +1400,6 @@ public:
 	}
 	WResult _is_reparentable() {
 		return w_control_is_reparentable(W_CONTROL(this));
-	}
-	WResult _get_shell(WFrame **shell) {
-		return w_control_get_shell(W_CONTROL(this), (w_shell**) shell);
 	}
 	WResult _get_tooltip_text(w_alloc alloc, void *user_data, int enc) {
 		return w_control_get_tooltip_text(W_CONTROL(this), alloc, user_data,

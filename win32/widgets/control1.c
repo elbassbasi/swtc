@@ -13,9 +13,10 @@
 wresult _w_control_post_event_platform(w_widget *widget, _w_event_platform *ee,
 		_w_control_priv *priv) {
 	wresult ret = W_FALSE;
+	wuchar msgid;
 	if (ee->msg
 			< (sizeof(win_toolkit->wm_msg) / sizeof(win_toolkit->wm_msg[0]))) {
-		wuchar msgid = win_toolkit->wm_msg[ee->msg];
+		msgid = win_toolkit->wm_msg[ee->msg];
 		if (msgid != 0) {
 			ret = priv->messages[msgid](widget, ee, priv);
 		}
@@ -106,25 +107,7 @@ wresult _CONTROL_WM_COMMAND(w_widget *widget, _w_event_platform *e,
 			return cpriv->messages[_WM_COMMANDCHILD](control, e, cpriv);
 		}
 	} else {
-		/*
-		 * When the WM_COMMAND message is sent from a
-		 * menu, the HWND parameter in LPARAM is zero.
-		 */
-		w_shell *shell;
-		w_control_get_shell(W_CONTROL(widget), &shell);
-		WPARAM lastWparam = e->wparam;
-		int id = LOWORD(e->wparam);
-		_w_menu_ids *acc = _W_SHELL(shell)->ids;
-		if (acc != 0) {
-			_w_menu_id *items = acc->id;
-			if (id < acc->count) {
-				e->lparam = (LPARAM) items[id].menu;
-				e->wparam = items[id].index;
-				_MENU_WM_MENUCOMMAND(widget, e, priv);
-			}
-		}
-		e->wparam = lastWparam;
-		e->lparam = 0;
+		return _MENU_WM_COMMAND(widget, e, priv);
 	}
 	return W_FALSE;
 }
@@ -184,14 +167,6 @@ wresult _CONTROL_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
 			return cpriv->messages[_WM_MEASURECHILD](control, e, cpriv);
 		}
 	}
-	return W_FALSE;
-}
-wresult _CONTROL_WM_MENUCHAR(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv) {
-	return W_FALSE;
-}
-wresult _CONTROL_WM_MENUSELECT(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv) {
 	return W_FALSE;
 }
 wresult _CONTROL_WM_MOVE(w_widget *widget, _w_event_platform *e,

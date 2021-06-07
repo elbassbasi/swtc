@@ -197,8 +197,6 @@ void _win32_theme_tabview_part_id(w_theme *theme, w_themedata *data, int *ids,
 }
 #define TABITEM_INSET  2
 #define TABITEM_INSET2 6
-#define TABITEM_CLOSE_WIDTH  10
-#define TABITEM_CLOSE_HEIGTH 10
 void _win32_theme_tabview_draw_background(w_theme *theme, w_themedata *data,
 		w_graphics *gc, w_rect *bounds, wuint clazz) {
 	if (data->part == W_THEME_TABITEM) {
@@ -393,8 +391,9 @@ void _win32_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 		rect.top = bounds->y;
 		rect.bottom = bounds->y + bounds->height;
 		HDC hdc = _W_GRAPHICS(gc)->handle;
-		HFONT oldFont = (HFONT) SelectObject(hdc,
-				win_toolkit->systemFont.handle);
+		HFONT sysfont = (HFONT) w_toolkit_get_system_font(
+				W_TOOLKIT(win_toolkit));
+		HFONT oldFont = (HFONT) SelectObject(hdc, sysfont);
 		if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
 			HTHEME hTheme = OpenThemeData(NULL, L"BUTTON");
 			int part[2];

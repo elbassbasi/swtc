@@ -58,7 +58,6 @@ wresult _w_shell_create_embedded(w_widget *widget, w_widget *parent,
 			_W_WIDGET(widget)->state |= STATE_FOREIGN_HANDLE;
 		}
 	}
-	_W_SHELL(widget)->hAccel = INVALID_HANDLE_VALUE;
 	_w_control_priv *reserved = _W_CONTROL_GET_PRIV(widget);
 	wresult result = reserved->create_widget(W_CONTROL(widget), reserved);
 	if (result > 0) {
@@ -71,77 +70,156 @@ wresult _w_shell_create(w_widget *widget, w_widget *parent, wuint64 style,
 	return _w_shell_create_embedded(widget, parent, style, post_event, 0,
 			W_FALSE);
 }
-#define W_SHELL_ACCEL_GROW 0x10
-int _w_shell_registre_menuitem_id(w_shell *shell, w_menuitem *item,
-		_w_menu_id **id) {
-	_w_menu_ids *acc = _W_SHELL(shell)->ids, *newacc;
-	int alloc = 0;
-	int count = 0;
-	if (acc != 0) {
-		_w_menu_id *_acc = acc->id;
-		for (int i = 0; i < acc->count; i++) {
-			if (_acc[i].menu == 0) {
-				_acc[i].accelerator = 0;
-				_acc[i].menu = _W_MENUITEM(item)->menu;
-				_acc[i].index = _W_ITEM(item)->index;
-				_acc[i].image = 0;
-				_acc[i].tooltips = 0;
-				*id = &_acc[i];
-				return i;
-			}
-		}
-		alloc = acc->alloc;
-		count = acc->count;
+wresult _w_shell_create_tooltip(w_shell *shell, _w_tooltip *tooltip) {
+	int id = 110;
+	tooltip->next = 0;
+	if (_W_SHELL(shell)->tooltips == 0) {
+		_W_SHELL(shell)->tooltips = tooltip;
+		tooltip->prev = tooltip;
+	} else {
+		_w_tooltip *last = _W_SHELL(shell)->tooltips->prev;
+		last->next = tooltip;
+		tooltip->prev = last;
+		_W_SHELL(shell)->tooltips->prev = tooltip;
 	}
-	int newalloc = alloc + W_SHELL_ACCEL_GROW;
-	const int sz = sizeof(_w_menu_ids) + newalloc * sizeof(_w_menu_id);
-	newacc = realloc(acc, sz);
-	if (newacc != 0) {
-		newacc->alloc = newalloc;
-		newacc->count = count;
-		_w_menu_id *_acc = &newacc->id[newacc->count];
-		_acc->accelerator = 0;
-		_acc->menu = _W_MENUITEM(item)->menu;
-		_acc->index = _W_ITEM(item)->index;
-		_acc->image = 0;
-		_acc->tooltips = 0;
-		newacc->count++;
-		_W_SHELL(shell)->ids = newacc;
-		*id = _acc;
-		return newacc->count;
+	_W_TOOLTIP(tooltip)->id = id + ID_START;
+	TOOLINFOW lpti;
+	lpti.cbSize = sizeof(TOOLINFOW);
+	lpti.hwnd = _W_WIDGET(shell)->handle;
+	lpti.uId = _W_TOOLTIP(tooltip)->id;
+	lpti.uFlags = TTF_TRACK;
+	lpti.lpszText = LPSTR_TEXTCALLBACKW;
+	HWND hwndToolTip;
+	if ((_W_WIDGET(tooltip)->style & W_BALLOON) != 0) {
+		hwndToolTip = _W_SHELL(shell)->balloonTipHandle;
+	} else {
+		hwndToolTip = _W_SHELL(shell)->toolTipHandle;
 	}
-	return -1;
-}
-
-int _w_shell_create_accelerators(w_shell *shell) {
-	_w_menu_ids *acc = _W_SHELL(shell)->ids;
-	if (acc == 0)
-		return W_FALSE;
-	if (acc->count == 0)
-		return W_FALSE;
-	ACCEL *_acc = malloc(acc->count * sizeof(ACCEL));
-	if (_acc == 0)
-		return W_FALSE;
-	int nAccel = 0;
-	_w_menu_id *_iacc = acc->id;
-	for (int i = 0; i < acc->count; i++) {
-		if (_iacc[i].menu != 0 && _iacc[i].accelerator != 0) {
-			if (_w_menuitem_fill_accel(&_acc[nAccel], &_iacc[i])) {
-				_acc[nAccel].cmd = i;
-				nAccel++;
-			}
-		}
-	}
-	if (nAccel != 0)
-		_W_SHELL(shell)->hAccel = CreateAcceleratorTableW(_acc, nAccel);
-	free(_acc);
+	SendMessageW(hwndToolTip, TTM_ADDTOOLW, 0, (LPARAM) &lpti);
 	return W_TRUE;
 }
-void _w_shell_destroy_accelerators(w_shell *shell) {
-	HACCEL hAccel = _W_SHELL(shell)->hAccel;
-	if (hAccel != INVALID_HANDLE_VALUE)
-		DestroyAcceleratorTable(hAccel);
-	_W_SHELL(shell)->hAccel = INVALID_HANDLE_VALUE;
+wresult _w_shell_balloontip_handle(w_shell *shell, HWND *handle) {
+	if (_W_SHELL(shell)->balloonTipHandle == 0) {
+		_W_SHELL(shell)->balloonTipHandle = CreateWindowExW(0, TOOLTIPS_CLASSW,
+		NULL, TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_BALLOON, CW_USEDEFAULT, 0,
+		CW_USEDEFAULT, 0, _W_WIDGET(shell)->handle, 0, hinst, NULL);
+		if (_W_SHELL(shell)->balloonTipHandle == 0)
+			return W_ERROR_NO_HANDLES;
+		if (_W_SHELL(shell)->ToolTipProc == 0) {
+			_W_SHELL(shell)->ToolTipProc = (WNDPROC) GetWindowLongPtrW(
+			_W_SHELL(shell)->balloonTipHandle, GWLP_WNDPROC);
+		}
+		/*
+		 * Feature in Windows.  Despite the fact that the
+		 * tool tip text contains \r\n, the tooltip will
+		 * not honour the new line unless TTM_SETMAXTIPWIDTH
+		 * is set.  The fix is to set TTM_SETMAXTIPWIDTH to
+		 * a large value.
+		 */
+		SendMessageW(_W_SHELL(shell)->balloonTipHandle, TTM_SETMAXTIPWIDTH, 0,
+				0x7FFF);
+		SetWindowLongPtrW(_W_SHELL(shell)->balloonTipHandle, GWLP_USERDATA,
+				(LONG_PTR) shell);
+		SetWindowLongPtrW(_W_SHELL(shell)->balloonTipHandle, GWLP_WNDPROC,
+				(LONG_PTR) _w_control_window_proc);
+	}
+	*handle = _W_SHELL(shell)->balloonTipHandle;
+	return W_TRUE;
+}
+HWND _w_shell_create_tooltip_handle(w_shell *shell, HWND parent) {
+	HWND toolTipHandle = CreateWindowExW(0, TOOLTIPS_CLASSW, NULL,
+	TTS_ALWAYSTIP | TTS_NOPREFIX, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, parent, 0,
+			hinst, NULL);
+	if (toolTipHandle == 0)
+		return 0;
+	if (_W_SHELL(shell)->ToolTipProc == 0) {
+		_W_SHELL(shell)->ToolTipProc = (WNDPROC) GetWindowLongPtrW(
+				toolTipHandle, GWLP_WNDPROC);
+	}
+	/*
+	 * Feature in Windows.  Despite the fact that the
+	 * tool tip text contains \r\n, the tooltip will
+	 * not honour the new line unless TTM_SETMAXTIPWIDTH
+	 * is set.  The fix is to set TTM_SETMAXTIPWIDTH to
+	 * a large value.
+	 */
+	SendMessageW(toolTipHandle, TTM_SETMAXTIPWIDTH, 0, 0x7FFF);
+	SetWindowLongPtrW(toolTipHandle, GWLP_USERDATA, (LONG_PTR) shell);
+	SetWindowLongPtrW(toolTipHandle, GWLP_WNDPROC,
+			(LONG_PTR) _w_control_window_proc);
+	return toolTipHandle;
+}
+wresult _w_shell_tooltip_handle(w_shell *shell, HWND *handle) {
+	wresult result = W_TRUE;
+	if (_W_SHELL(shell)->toolTipHandle == 0) {
+		_W_SHELL(shell)->toolTipHandle = _w_shell_create_tooltip_handle(shell,
+		_W_WIDGET(shell)->handle);
+		if (_W_SHELL(shell)->toolTipHandle == 0)
+			result = W_ERROR_NO_HANDLES;
+	}
+	*handle = _W_SHELL(shell)->toolTipHandle;
+	return result;
+}
+wresult _w_shell_menu_item_tooltip_handle(w_shell *shell, HWND *handle) {
+	wresult result = W_TRUE;
+	if (_W_SHELL(shell)->toolTipHandle == 0) {
+		_W_SHELL(shell)->toolTipHandle = _w_shell_create_tooltip_handle(shell,
+		_W_WIDGET(shell)->handle);
+		if (_W_SHELL(shell)->toolTipHandle == 0)
+			result = W_ERROR_NO_HANDLES;
+	}
+	*handle = _W_SHELL(shell)->toolTipHandle;
+	return result;
+}
+void _w_shell_set_item_enabled(w_widget *widget, int cmd, boolean enabled) {
+	HMENU hMenu = GetSystemMenu(_W_WIDGET(widget)->handle, FALSE);
+	if (hMenu == 0)
+		return;
+	int flags = MF_ENABLED;
+	if (!enabled)
+		flags = MF_DISABLED | MF_GRAYED;
+	EnableMenuItem(hMenu, cmd, MF_BYCOMMAND | flags);
+}
+wresult _w_shell_call_window_proc(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	if (_W_WIDGET(widget)->handle == 0)
+		return W_FALSE;
+	if (e->hwnd == _W_SHELL(widget)->toolTipHandle
+			|| e->hwnd == _W_SHELL(widget)->balloonTipHandle
+			|| e->hwnd == _W_SHELL(widget)->menuItemToolTipHandle) {
+		e->result = CallWindowProcW(_W_SHELL(widget)->ToolTipProc, e->hwnd,
+				e->msg, e->wparam, e->lparam);
+		return W_TRUE;
+	}
+
+	if (_W_SHELL(widget)->windowProc != 0) {
+		e->result = CallWindowProcW(_W_SHELL(widget)->windowProc, e->hwnd,
+				e->msg, e->wparam, e->lparam);
+		return W_TRUE;
+	}
+	wuint64 style = _W_WIDGET(widget)->style;
+	if ((style & W_TOOL) != 0) {
+		int trim = W_TITLE | W_CLOSE | W_MIN | W_MAX | W_BORDER | W_RESIZE;
+		if ((style & trim) == 0)
+			e->result = DefWindowProcW(e->hwnd, e->msg, e->wparam, e->lparam);
+		return W_TRUE;
+	}
+	if ((style & W_NO_MOVE) != 0) {
+		_w_shell_set_item_enabled(widget, SC_MOVE, FALSE);
+	}
+	if (_W_CONTROL(widget)->parent != 0) {
+		switch (e->msg) {
+		case WM_KILLFOCUS:
+		case WM_SETFOCUS:
+			e->result = DefWindowProcW(e->hwnd, e->msg, e->wparam, e->lparam);
+			return W_TRUE;
+		}
+		e->result = CallWindowProcW(_W_SHELL(widget)->DialogProc, e->hwnd,
+				e->msg, e->wparam, e->lparam);
+		return W_TRUE;
+	}
+	e->result = DefWindowProcW(e->hwnd, e->msg, e->wparam, e->lparam);
+	return W_TRUE;
 }
 void _w_shell_set_system_menu(w_shell *shell) {
 	HMENU hMenu = GetSystemMenu(_W_WIDGET(shell)->handle, FALSE);
@@ -389,10 +467,7 @@ wresult _w_shell_unsubclass(w_control *control, _w_control_priv *priv) {
 	wresult result = _w_control_unsubclass(control, priv);
 	return result;
 }
-wresult _w_shell_post_event(w_widget *widget, w_event *ee) {
-	return _w_control_post_event(widget, ee);
-}
-wresult _w_shell_get_shell(w_control *control, w_shell **shell) {
+wresult _w_shell_get_shell(w_widget *control, w_shell **shell) {
 	*shell = W_SHELL(control);
 	return W_TRUE;
 }
@@ -536,7 +611,7 @@ wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 		result = W_TRUE;
 	} else
 		result = W_ERROR_CANNOT_SET_MENU;
-	_w_shell_destroy_accelerators(shell);
+	_w_control_destroy_accelerators(W_CONTROL(shell));
 	return result;
 }
 wresult _w_shell_set_minimized(w_shell *shell, int minimized) {
@@ -552,23 +627,58 @@ wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
 		int enc) {
 	return W_FALSE;
 }
+void _w_shell_set_tooltip_title(w_shell *shell, HWND hwndToolTip, char *text,
+		int icon) {
+	/*
+	 * Bug in Windows.  For some reason, when TTM_SETTITLE
+	 * is used to set the title of a tool tip, Windows leaks
+	 * GDI objects.  This happens even when TTM_SETTITLE is
+	 * called with TTI_NONE and NULL.  The documentation
+	 * states that Windows copies the icon and that the
+	 * programmer must free the copy but does not provide
+	 * API to get the icon.  For example, when TTM_SETTITLE
+	 * is called with ICON_ERROR, when TTM_GETTITLE is used
+	 * to query the title and the icon, the uTitleBitmap
+	 * field in the TTGETTITLE struct is zero.  The fix
+	 * is to remember these values, only set them when then
+	 * change and leak less.
+	 *
+	 * NOTE:  This only happens on Vista.
+	 */
+	if (hwndToolTip != _W_SHELL(shell)->toolTipHandle
+			&& hwndToolTip != _W_SHELL(shell)->balloonTipHandle
+			&& hwndToolTip != _W_SHELL(shell)->menuItemToolTipHandle) {
+		return;
+	}
+	if (text != 0) {
+		/*
+		 * Feature in Windows. The text point to by pszTitle
+		 * must not exceed 100 characters in length, including
+		 * the null terminator.
+		 */
+		WCHAR pszTitle[99];
+		w_utf8_to_utf16(text, -1, pszTitle,
+				sizeof(pszTitle) / sizeof(pszTitle[0]));
+		pszTitle[98] = 0;
+		SendMessageW(hwndToolTip, TTM_SETTITLE, icon, (LPARAM) pszTitle);
+	} else {
+		SendMessageW(hwndToolTip, TTM_SETTITLE, 0, 0);
+	}
+}
+
 wresult _w_shell_translate_accelerator(w_control *control, MSG *msg,
 		_w_control_priv *priv) {
-	if (_W_SHELL(control)->hAccel == INVALID_HANDLE_VALUE)
-		_w_shell_create_accelerators(W_SHELL(control));
-	return _W_SHELL(control)->hAccel != 0
-			&& TranslateAcceleratorW(_W_WIDGET(control)->handle,
-			_W_SHELL(control)->hAccel, msg) != 0;
+	return _w_control_translate_accelerator(control, msg, priv);
 }
 /*
  * messages
  */
 wresult _SHELL_WM_CLOSE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	//if (w_control_is_enabled(W_CONTROL(widget)) > 0
-	//		&& _w_shell_is_active(W_SHELL(widget)) > 0) {
+//if (w_control_is_enabled(W_CONTROL(widget)) > 0
+//		&& _w_shell_is_active(W_SHELL(widget)) > 0) {
 	_w_shell_close_widget(W_SHELL(widget), e);
-	//}
+//}
 	e->result = 0;
 	return W_FALSE;
 }
@@ -680,8 +790,7 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	 * functions
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_shell_create;
-	W_WIDGET_CLASS(clazz)->post_event = _w_shell_post_event;
-	W_CONTROL_CLASS(clazz)->get_shell = _w_shell_get_shell;
+	W_WIDGET_CLASS(clazz)->get_shell = _w_shell_get_shell;
 	clazz->close = _w_shell_close;
 	clazz->get_toolbar = _w_shell_get_toolbar;
 	clazz->get_alpha = _w_shell_get_alpha;
@@ -714,6 +823,7 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	 * private
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
+	priv->widget.call_window_proc = _w_shell_call_window_proc;
 	priv->check_style = _w_shell_check_style;
 	priv->create_handle = _w_shell_create_handle;
 	priv->window_class = _w_shell_window_class;

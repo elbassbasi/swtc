@@ -1088,7 +1088,6 @@ public:
 private:
 	void *handles[(sizeof(w_shell) - sizeof(w_canvas)) / sizeof(void*)];
 };
-
 namespace swt {
 typedef ::WFrame Frame;
 }  // namespace swt

@@ -19,6 +19,8 @@ class WControl;
 class WToolkit;
 class WTheme;
 
+typedef WFrame WShell;
+
 class SWTP_PUBLIC IWListener: public IDestruct {
 public:
 	virtual void IncRef() = 0;
@@ -28,12 +30,13 @@ public:
 
 class SWTP_PUBLIC IWNotify: public IDestruct {
 public:
-	typedef bool (IWNotify::*SelectionAction)(WEvent *e);
 	virtual bool OnNotifySelection(WEvent &e) = 0;
 	virtual bool OnNotifyItemSelection(WEvent &e) = 0;
 	virtual bool OnNotifyItemDispose(WEvent &e) = 0;
 };
-#define W_ACTION(x) ((IWNotify::SelectionAction)&x)
+typedef bool (__thiscall IWNotify::*__SelectionAction)(WEvent &e);
+typedef bool (__thiscall *SelectionAction)(void *_this, WEvent &e);
+#define W_ACTION(x) ((__SelectionAction)&x)
 
 class SWTP_PUBLIC WListenerBase: public IWListener {
 protected:
@@ -114,6 +117,8 @@ protected:
 	bool OnNotifySelection(WEvent &e);
 	bool OnNotifyItemSelection(WEvent &e);
 	bool OnNotifyItemDispose(WEvent &e);
+	void FreeListenerData();
+	bool _OnSelection(WEvent &e);
 protected:
 	static WResult post_event_proc(w_widget *widget, w_event *event);
 	static int exec_function(void *args);
@@ -122,18 +127,21 @@ protected:
 	}
 	enum {
 		__DATA_USER = 0,
-		__DATA_C_FUNCTION,
-		__DATA_LISTENER,
-		__DATA_NOTIFY,
-		__DATA_CPP_FUNCTION
+		__DATA_NOTIFY = 1,
+		__DATA_LISTENER = 2,
+
+		__DATA_MASK_LISTENER = 0xFF000000,
+		__DATA_FLAGS_C_FUNCTION = 0x01000000,
+		__DATA_FLAGS_LISTENER = 0x02000000,
+		__DATA_FLAGS_SELECTION_ACTION = 0x03000000,
 	};
 	/**
 	 * index 0..4
-	 *  0 : void* data
-	 *  1 : used in c as function
-	 *  2 : used in c++ as listener
-	 *  3 : used as notifylistener
-	 *  4 : used as pointer c++ function
+	 *  0 : user data
+	 *  1 : used as notify
+	 *  2 : used as listener
+	 *  3 : not used
+	 *  4 : not used
 	 */
 	void* GetData(int index) {
 		return w_widget_get_data(W_WIDGET(this), index);
@@ -142,6 +150,7 @@ protected:
 		return w_widget_set_data(W_WIDGET(this), index, data);
 	}
 public:
+	virtual WResult Create(WToolkit *toolkit, WWidget *parent, wuint64 style);
 	static void* GetItemData(WItem *item) {
 		void *data;
 		w_item_get_data(W_ITEM(item), &data);
@@ -161,6 +170,24 @@ public:
 	}
 	int GetClassId() {
 		return w_widget_class_id(W_WIDGET(this));
+	}
+	/**
+	 * Returns the receiver's shell. For all controls other than
+	 * shells, this simply returns the control's nearest ancestor
+	 * shell. Shells return themselves, even if they are children
+	 * of other shells.
+	 *
+	 * @return the receiver's shell
+	 *
+	 * @see #getParent
+	 */
+	WFrame* GetFrame() {
+		WFrame *frame;
+		w_widget_get_shell(W_WIDGET(this), (w_shell**) &frame);
+		return frame;
+	}
+	WShell* GetShell() {
+		return (WShell*) GetFrame();
 	}
 	WToolkit* GetToolkit() {
 		return (WToolkit*) w_widget_get_toolkit(W_WIDGET(this));
@@ -214,9 +241,7 @@ public:
 	void* GetData() {
 		return GetData(__DATA_USER);
 	}
-	IWNotify* GetNotify() {
-		return (IWNotify*)GetData(__DATA_NOTIFY);
-	}
+	IWNotify* GetNotify();
 	/**
 	 * Sets the application defined widget data associated
 	 * with the receiver to be the argument. The <em>widget
@@ -237,18 +262,17 @@ public:
 	void* SetData(void *data) {
 		return SetData(__DATA_USER, data);
 	}
-	void SetNotify(IWNotify *notify) {
-		SetData(__DATA_NOTIFY, notify);
-	}
+	void SetNotify(IWNotify *notify);
 	int GetId() {
 		return w_widget_get_id(W_WIDGET(this));
 	}
 	void SetId(int id) {
 		w_widget_set_id(W_WIDGET(this), id);
 	}
-	IWListener* GetListener() {
-		return (IWListener*) GetData(__DATA_LISTENER);
-	}
+	bool GetSelectionAction(void **_this, SelectionAction *function);
+	void SetSelectionAction(void *_this, SelectionAction function);
+	void SetSelectionAction(void *_this, __SelectionAction function);
+	IWListener* GetListener();
 	void SetListener(IWListener *listener);
 #if __cplusplus >= 201103L
 	void SetListenerFunction(const WListenerFunction &function);
@@ -269,6 +293,8 @@ private:
 	volatile int ref;
 	wuint id;
 	wuint64 style;
+	wuint state;
+	wuint state0;
 	void *handle;
 	w_widget_post_event_proc post_event;
 	void *data[5];

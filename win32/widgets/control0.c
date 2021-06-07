@@ -28,6 +28,77 @@ wresult _w_control_call_window_proc(w_widget *widget, _w_event_platform *e,
 		return W_TRUE;
 	}
 }
+#define W_CONTROL_ACCEL_GROW 0x10
+int _w_control_new_id(w_control *control, _w_accel_id **id) {
+	_w_accel_ids *acc = _W_CONTROL(control)->ids, *newacc;
+	int alloc = 0;
+	int count = 0;
+	if (acc != 0) {
+		_w_accel_id *_acc = acc->id;
+		for (int i = 0; i < acc->count; i++) {
+			if (_acc[i].menu == 0) {
+				*id = &_acc[i];
+				return i;
+			}
+		}
+		alloc = acc->alloc;
+		count = acc->count;
+	}
+	int newalloc = alloc + W_CONTROL_ACCEL_GROW;
+	const int sz = sizeof(_w_accel_ids) + newalloc * sizeof(_w_accel_id);
+	newacc = realloc(acc, sz);
+	if (newacc != 0) {
+		newacc->alloc = newalloc;
+		newacc->count = count;
+		_w_accel_id *_acc = &newacc->id[newacc->count];
+		newacc->count++;
+		_W_CONTROL(control)->ids = newacc;
+		*id = _acc;
+		return newacc->count;
+	}
+	return -1;
+}
+int _w_control_remove_id(w_control *control, int index) {
+	_w_accel_ids *acc = _W_CONTROL(control)->ids;
+	if (acc == 0)
+		return 0;
+	if (index < acc->count) {
+		acc->id[index].menu = 0;
+		acc->id[index].accelerator = 0;
+	}
+	return 0;
+}
+
+int _w_control_create_accelerators(w_control *control) {
+	_w_accel_ids *acc = _W_CONTROL(control)->ids;
+	if (acc == 0)
+		return W_FALSE;
+	if (acc->count == 0)
+		return W_FALSE;
+	ACCEL *_acc = _w_toolkit_malloc(acc->count * sizeof(ACCEL));
+	if (_acc == 0)
+		return W_FALSE;
+	int nAccel = 0;
+	_w_accel_id *_iacc = acc->id;
+	for (int i = 0; i < acc->count; i++) {
+		if (_iacc[i].menu != 0 && _iacc[i].accelerator != 0) {
+			if (_w_menuitem_fill_accel(&_acc[nAccel], &_iacc[i])) {
+				_acc[nAccel].cmd = i | _MENU_ID_ACCEL | _MENU_ID_ID;
+				nAccel++;
+			}
+		}
+	}
+	if (nAccel != 0)
+		_W_CONTROL(control)->hAccel = CreateAcceleratorTableW(_acc, nAccel);
+	_w_toolkit_free(_acc, acc->count * sizeof(ACCEL));
+	return W_TRUE;
+}
+void _w_control_destroy_accelerators(w_control *control) {
+	HACCEL hAccel = _W_CONTROL(control)->hAccel;
+	if (hAccel != INVALID_HANDLE_VALUE)
+		DestroyAcceleratorTable(hAccel);
+	_W_CONTROL(control)->hAccel = INVALID_HANDLE_VALUE;
+}
 WNDPROC* _w_control_get_def_window_proc(w_control *control,
 		_w_control_priv *priv) {
 	return &priv->def_window_proc;
@@ -78,6 +149,7 @@ wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 		return W_ERROR_INVALID_ARGUMENT;
 	if (w_widget_class_id(parent) < _W_CLASS_COMPOSITE)
 		return W_ERROR_INVALID_ARGUMENT;
+	_W_CONTROL(widget)->hAccel = INVALID_HANDLE_VALUE;
 	_W_CONTROL(widget)->parent = W_COMPOSITE(parent);
 	_W_WIDGET(widget)->post_event = post_event;
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(widget);
@@ -235,18 +307,13 @@ wresult _w_control_get_enabled(w_control *control) {
 	return IsWindowEnabled(_W_WIDGET(control)->handle);
 }
 wresult _w_control_get_font(w_control *control, w_font **font) {
-	if (_W_WIDGET(control)->state & STATE_SET_FONT) {
-		*font = _W_CONTROL(control)->font;
+	HFONT hFont = (HFONT) SendMessageW(_W_WIDGET(control)->handle,
+	WM_GETFONT, 0, 0);
+	if (hFont == 0) {
+		*font = w_toolkit_get_system_font(
+				w_widget_get_toolkit(W_WIDGET(control)));
 	} else {
-		HFONT hFont = (HFONT) SendMessageW(_W_WIDGET(control)->handle,
-		WM_GETFONT, 0, 0);
-		if (hFont == 0) {
-			*font = w_toolkit_get_system_font(
-					w_widget_get_toolkit(W_WIDGET(control)));
-		} else {
-			_W_CONTROL(control)->_font.handle = hFont;
-			*font = (w_font*) & _W_CONTROL(control)->_font;
-		}
+		*font = (w_font*) hFont;
 	}
 	return W_TRUE;
 }
@@ -288,9 +355,9 @@ wresult _w_control_get_parent(w_control *control, w_composite **parent) {
 wresult _w_control_get_region(w_control *control, w_region *region) {
 	return W_FALSE;
 }
-wresult _w_control_get_shell(w_control *control, w_shell **shell) {
+wresult _w_control_get_shell(w_widget *control, w_shell **shell) {
 	w_composite *parent = _W_CONTROL(control)->parent;
-	return W_CONTROL_GET_CLASS(parent)->get_shell(W_CONTROL(parent), shell);
+	return W_WIDGET_GET_CLASS(parent)->get_shell(W_WIDGET(parent), shell);
 }
 wresult _w_control_get_tab(w_control *control) {
 	return W_FALSE;
@@ -420,7 +487,7 @@ wresult _w_control_move_below(w_control *control, w_control *_control) {
 		 * moving behind the first dialog child.
 		 */
 		w_shell *shell;
-		w_control_get_shell(control, &shell);
+		w_widget_get_shell(W_WIDGET(control), &shell);
 		if (control == W_CONTROL(shell) && parent != 0) {
 			/*
 			 * Bug in Windows.  For some reason, when GetWindow ()
@@ -477,7 +544,7 @@ wresult _w_control_print(w_control *control, w_graphics *gc) {
 }
 wresult _w_control_request_layout(w_control *control) {
 	w_shell *shell;
-	w_control_get_shell(control, &shell);
+	w_widget_get_shell(W_WIDGET(control), &shell);
 	return W_TRUE;
 }
 wresult _w_control_redraw(w_control *control, w_rect *rect, int all) {
@@ -578,7 +645,8 @@ wresult _w_control_set_cursor(w_control *control, w_cursor *cursor) {
 	return W_TRUE;
 }
 wresult _w_control_set_default_font(w_control *control, _w_control_priv *priv) {
-	HFONT hFont = win_toolkit->systemFont.handle;
+	w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
+	HFONT hFont = (HFONT) w_toolkit_get_system_font(toolkit);
 	SendMessageW(_W_WIDGET(control)->handle, WM_SETFONT, (WPARAM) hFont, 0);
 	return W_TRUE;
 }
@@ -597,15 +665,12 @@ wresult _w_control_set_focus(w_control *control) {
 	return _w_control_force_focus(control);
 }
 wresult _w_control_set_font(w_control *control, w_font *font) {
-	if (font == 0 || _W_FONT(font)->handle == 0) {
-		return W_ERROR_INVALID_ARGUMENT;
-	} else {
-		_W_CONTROL(control)->font = font;
-		_W_WIDGET(control)->state |= STATE_SET_FONT;
-		SendMessageW(_W_WIDGET(control)->handle, WM_SETFONT, (WPARAM)
-		_W_FONT(font)->handle, 0);
-		return W_TRUE;
+	if (font == 0) {
+		w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
+		font = w_toolkit_get_system_font(toolkit);
 	}
+	SendMessageW(_W_WIDGET(control)->handle, WM_SETFONT, (WPARAM) font, 0);
+	return W_TRUE;
 }
 wresult _w_control_set_foreground(w_control *control, w_color color) {
 	return W_FALSE;
@@ -705,6 +770,28 @@ wresult _w_control_to_display(w_control *control, w_point *result,
 }
 wresult _w_control_translate_accelerator(w_control *control, MSG *msg,
 		_w_control_priv *priv) {
+	if (_W_CONTROL(control)->hAccel == INVALID_HANDLE_VALUE)
+		_w_control_create_accelerators(control);
+	wresult result = _W_CONTROL(control)->hAccel != 0
+			&& TranslateAcceleratorW(_W_WIDGET(control)->handle,
+			_W_CONTROL(control)->hAccel, msg) != 0;
+	if (result <= 0) {
+		if (w_widget_class_id(W_WIDGET(control)) != _W_CLASS_SHELL) {
+			w_control *parent = (w_control*) _W_CONTROL(control)->parent;
+			if (parent != 0) {
+				_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
+				result = ppriv->translate_accelerator(parent, msg, ppriv);
+			}
+		}
+	}
+	return result;
+}
+wresult _w_control_translate_mnemonic(w_control *control, MSG *msg,
+		_w_control_priv *priv) {
+	return W_FALSE;
+}
+wresult _w_control_translate_traversal(w_control *control, MSG *msg,
+		_w_control_priv *priv) {
 	return W_FALSE;
 }
 wresult _w_control_traverse(w_control *control, int traversal,
@@ -782,6 +869,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	W_WIDGET_CLASS(clazz)->create = _w_control_create;
 	W_WIDGET_CLASS(clazz)->post_event = _w_control_post_event;
 	W_WIDGET_CLASS(clazz)->dispose = _w_control_dispose;
+	W_WIDGET_CLASS(clazz)->get_shell = _w_control_get_shell;
 	clazz->create_dragsource = _w_control_create_dragsource;
 	clazz->create_droptarget = _w_control_create_droptarget;
 	clazz->drag_detect = _w_control_drag_detect;
@@ -802,7 +890,6 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	clazz->get_orientation = _w_control_get_orientation;
 	clazz->get_parent = _w_control_get_parent;
 	clazz->get_region = _w_control_get_region;
-	clazz->get_shell = _w_control_get_shell;
 	clazz->get_tab = _w_control_get_tab;
 	clazz->get_text_direction = _w_control_get_text_direction;
 	clazz->get_tooltip_text = _w_control_get_tooltip_text;
@@ -877,6 +964,8 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->set_cursor_0 = _w_control_set_cursor_0;
 	priv->find_cursor = _w_control_find_cursor;
 	priv->translate_accelerator = _w_control_translate_accelerator;
+	priv->translate_mnemonic = _w_control_translate_mnemonic;
+	priv->translate_traversal = _w_control_translate_traversal;
 	/*
 	 * messages
 	 */
@@ -905,8 +994,8 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	msg[_WM_KEYUP] = _WIDGET_WM_KEYUP;
 	msg[_WM_KILLFOCUS] = _WIDGET_WM_KILLFOCUS;
 	msg[_WM_MEASUREITEM] = _CONTROL_WM_MEASUREITEM;
-	msg[_WM_MENUCHAR] = _CONTROL_WM_MENUCHAR;
-	msg[_WM_MENUSELECT] = _CONTROL_WM_MENUSELECT;
+	msg[_WM_MENUCHAR] = _MENU_WM_MENUCHAR;
+	msg[_WM_MENUSELECT] = _MENU_WM_MENUSELECT;
 	msg[_WM_MOVE] = _CONTROL_WM_MOVE;
 	msg[_WM_NCHITTEST] = _CONTROL_WM_NCHITTEST;
 	msg[_WM_NOTIFY] = _CONTROL_WM_NOTIFY;

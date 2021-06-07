@@ -509,6 +509,7 @@ typedef enum w_class_id {
 	_W_CLASS_TOOLTIP,
 	_W_CLASS_TRACKER,
 	_W_CLASS_TRAY,
+	_W_CLASS_TRAYITEM,
 	_W_CLASS_DRAGSOURCE,
 	_W_CLASS_DROPTARGET,
 	//control

@@ -81,38 +81,33 @@ wresult w_fontdata_set_style(w_fontdata *fontdata, int style) {
 /*
  * font
  */
-void w_font_init(w_font *font) {
-	_W_FONT(font)->handle = 0;
-}
 void w_font_dispose(w_font *font) {
-	if (_W_FONT(font)->handle != 0) {
-		DeleteObject(_W_FONT(font)->handle);
-		_W_FONT(font)->handle = 0;
+	if (font != 0) {
+		DeleteObject((HFONT) font);
 	}
 }
 wresult w_font_is_ok(w_font *font) {
-	if (font != 0 && _W_FONT(font)->handle != 0) {
+	if (font != 0) {
 		return W_TRUE;
 	} else
 		return W_FALSE;
 }
-wresult w_font_create(w_font *font, const char *name, int length, int enc,
+wresult w_font_create(w_font **font, const char *name, int length, int enc,
 		int style, int size) {
 	LOGFONTW logfont;
 	memset(&logfont, 0, sizeof(LOGFONTW));
 	w_fontdata_set((w_fontdata*) &logfont, name, length, enc, style, size);
 	return w_font_create_from_fontdata(font, (w_fontdata*) &logfont);
 }
-wresult w_font_create_from_fontdata(w_font *font, w_fontdata *fontdata) {
-	w_font_dispose(font);
-	_W_FONT(font)->handle = CreateFontIndirectW((LOGFONTW*) fontdata);
-	if (_W_FONT(font)->handle == 0) {
+wresult w_font_create_from_fontdata(w_font **font, w_fontdata *fontdata) {
+	*font = (w_font*) CreateFontIndirectW((LOGFONTW*) fontdata);
+	if (*font == 0) {
 		return W_ERROR_NO_HANDLES;
 	} else
 		return W_TRUE;
 }
 wresult w_font_get_fontdata(w_font *font, w_fontdata *fontdata) {
-	GetObjectW(_W_FONT(font)->handle, sizeof(LOGFONTW), fontdata);
+	GetObjectW((HFONT) font, sizeof(LOGFONTW), fontdata);
 	return W_TRUE;
 }
 /*

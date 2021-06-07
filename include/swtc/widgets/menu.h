@@ -100,7 +100,6 @@ SWT_PUBLIC wresult w_menu_get_bounds(w_menu *menu, w_rect *bounds);
 SWT_PUBLIC wresult w_menu_get_root(w_menu *menu, w_menuitem *rootitem);
 SWT_PUBLIC wresult w_menu_get_orientation(w_menu *menu);
 SWT_PUBLIC wresult w_menu_get_parent(w_menu *menu, w_control **parent);
-SWT_PUBLIC wresult w_menu_get_shell(w_menu *menu, w_shell **shell);
 SWT_PUBLIC wresult w_menu_get_visible(w_menu *menu);
 SWT_PUBLIC wresult w_menu_is_visible(w_menu *menu);
 SWT_PUBLIC wresult w_menu_set_location(w_menu *menu, w_point *location);

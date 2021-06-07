@@ -15,25 +15,35 @@
 #define STATE_RESIZE_OCCURRED (1 << (STATE_WIDGET_END + 1))
 #define STATE_LAYOUT_DATA_LOCALE (1 << (STATE_WIDGET_END + 2))
 #define STATE_IGNORE_WM_CHANGEUISTATE (1 << (STATE_WIDGET_END + 3))
-#define STATE_SET_FONT (1 << (STATE_WIDGET_END + 4))
-#define STATE_THEME_BACKGROUND (1 << (STATE_WIDGET_END + 5))
-#define STATE_PARENT_BACKGROUND (1 << (STATE_WIDGET_END + 6))
-#define STATE_DISABLED (1 << (STATE_WIDGET_END + 7))
-#define STATE_HIDDEN (1 << (STATE_WIDGET_END + 8))
-#define STATE_DRAW_BACKGROUND (1 << (STATE_WIDGET_END + 9))
+#define STATE_THEME_BACKGROUND (1 << (STATE_WIDGET_END + 4))
+#define STATE_PARENT_BACKGROUND (1 << (STATE_WIDGET_END + 5))
+#define STATE_DISABLED (1 << (STATE_WIDGET_END + 6))
+#define STATE_HIDDEN (1 << (STATE_WIDGET_END + 7))
+#define STATE_DRAW_BACKGROUND (1 << (STATE_WIDGET_END + 8))
 #define STATE_CONTROL_END (STATE_WIDGET_END + 10)
 /*
  * control
  */
+typedef struct _w_accel_id {
+	HMENU menu;
+	wushort flags;
+	wushort sub_id;
+	int accelerator;
+} _w_accel_id;
+typedef struct _w_accel_ids {
+	int alloc;
+	int count;
+	_w_accel_id id[0];
+} _w_accel_ids;
 typedef struct _w_control {
 	_w_widget widget;
 	w_composite *parent;
 	w_menu *menu;
 	w_cursor *cursor;
-	union {
-		w_font *font;
-		_w_font _font;
-	};
+	_w_accel_ids *ids;
+	HACCEL hAccel;
+	//w_font *font;
+	HMENU activeMenu;
 	wushort drawCount;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)
@@ -78,6 +88,10 @@ struct _w_control_priv {
 	w_cursor* (*find_cursor)(w_control *control, _w_control_priv *priv);
 	wresult (*translate_accelerator)(w_control *control, MSG *msg,
 			_w_control_priv *priv);
+	wresult (*translate_mnemonic)(w_control *control, MSG *msg,
+			_w_control_priv *priv);
+	wresult (*translate_traversal)(w_control *control, MSG *msg,
+			_w_control_priv *priv);
 };
 #define _W_CONTROL_PRIV(x) ((_w_control_priv*)x)
 #define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)_w_widget_get_priv(W_WIDGET(x)))
@@ -89,6 +103,10 @@ wresult _w_control_post_event_platform(w_widget *widget, _w_event_platform *ee,
 wresult _w_control_post_event(w_widget *widget, w_event *e);
 LRESULT CALLBACK _w_control_window_proc(HWND hWnd, UINT message, WPARAM wParam,
 		LPARAM lParam);
+int _w_control_new_id(w_control *control, _w_accel_id **id);
+int _w_control_remove_id(w_control *control, int index);
+int _w_control_create_accelerators(w_control *control);
+void _w_control_destroy_accelerators(w_control *control);
 wresult _w_control_call_window_proc(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 wresult _w_control_check_background(w_control *control, _w_control_priv *priv);
@@ -140,7 +158,7 @@ wresult _w_control_get_menu(w_control *control, w_menu **menu);
 wresult _w_control_get_orientation(w_control *control);
 wresult _w_control_get_parent(w_control *control, w_composite **parent);
 wresult _w_control_get_region(w_control *control, w_region *region);
-wresult _w_control_get_shell(w_control *control, w_shell **shell);
+wresult _w_control_get_shell(w_widget *control, w_shell **shell);
 wresult _w_control_get_tab(w_control *control);
 wresult _w_control_get_text_direction(w_control *control);
 wresult _w_control_get_tooltip_text(w_control *control, w_alloc alloc,
@@ -193,6 +211,8 @@ wresult _w_control_to_control(w_control *control, w_point *result,
 		w_point *point);
 wresult _w_control_to_display(w_control *control, w_point *result,
 		w_point *point);
+wresult _w_control_translate_accelerator(w_control *control, MSG *msg,
+		_w_control_priv *priv);
 wresult _w_control_traverse(w_control *control, int traversal,
 		w_event_key *event);
 wresult _w_control_unsubclass(w_control *control, _w_control_priv *priv);
@@ -232,10 +252,6 @@ wresult _CONTROL_WM_HSCROLL(w_widget *widget, _w_event_platform *e,
 wresult _CONTROL_WM_INPUTLANGCHANGE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 wresult _CONTROL_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
-wresult _CONTROL_WM_MENUCHAR(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
-wresult _CONTROL_WM_MENUSELECT(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 wresult _CONTROL_WM_MOVE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);

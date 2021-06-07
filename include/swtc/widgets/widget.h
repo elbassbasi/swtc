@@ -49,6 +49,7 @@ struct _w_widget_class {
 			w_widget_post_event_proc post_event);
 	wresult (*dispose)(w_widget *widget);
 	wresult (*is_ok)(w_widget *widget);
+	wresult (*get_shell)(w_widget *widget, w_shell **shell);
 	wresult (*post_event)(w_widget *widget, w_event *e);
 };
 SWT_PUBLIC void w_widget_init(w_widget *widget);
@@ -60,6 +61,7 @@ SWT_PUBLIC void w_widget_free(w_widget *widget);
 SWT_PUBLIC void w_widget_ref_create(w_widget *widget);
 SWT_PUBLIC void w_widget_ref_inc(w_widget *widget);
 SWT_PUBLIC w_widget* w_widget_ref_dec(w_widget *widget);
+SWT_PUBLIC wresult w_widget_get_shell(w_widget *widget, w_shell **shell);
 SWT_PUBLIC w_toolkit* w_widget_get_toolkit(w_widget *widget);
 SWT_PUBLIC w_theme* w_widget_get_theme(w_widget *widget);
 SWT_PUBLIC w_widget_post_event_proc w_widget_get_post_event(w_widget *widget);

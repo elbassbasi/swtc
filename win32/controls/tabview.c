@@ -160,11 +160,43 @@ wuint64 _w_tabview_check_style(w_widget *widget, wuint64 style) {
 }
 wresult _w_tabview_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _w_composite_compute_size(widget, e, priv);
+	HWND handle = _W_WIDGET(widget)->handle;
+	RECT insetRect, itemRect;
+	SendMessageW(handle, TCM_ADJUSTRECT, 0, (LPARAM) &insetRect);
+	int width = insetRect.left - insetRect.right;
+	int count = SendMessageW(handle, TCM_GETITEMCOUNT, 0, 0);
+	if (count != 0) {
+		SendMessageW(handle, TCM_GETITEMRECT, count - 1, (LPARAM) &itemRect);
+		width = WMAX(width, itemRect.right - insetRect.right);
+	}
+	RECT rect;
+	SetRect(&rect, 0, 0, width, e->size->height);
+	SendMessageW(handle, TCM_ADJUSTRECT, 1, (LPARAM) &rect);
+	int border = w_control_get_border_width(W_CONTROL(widget));
+	rect.left -= border;
+	rect.right += border;
+	width = rect.right - rect.left;
+	e->size->width = WMAX(width, e->size->width);
+	return result;
 }
 wresult _w_tabview_compute_trim(w_widget *widget, w_event_compute_trim *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	HWND handle = _W_WIDGET(widget)->handle;
+	RECT rect;
+	SetRect(&rect, e->rect->x, e->rect->y, e->rect->x + e->rect->width,
+			e->rect->y + e->rect->height);
+	SendMessageW(handle, TCM_ADJUSTRECT, 1, (LPARAM) &rect);
+	int border = w_control_get_border_width(W_CONTROL(widget));
+	rect.left -= border;
+	rect.right += border;
+	rect.top -= border;
+	rect.bottom += border;
+	e->result->x = rect.left;
+	e->result->y = rect.top;
+	e->result->width = rect.right - rect.left;
+	e->result->height = rect.bottom - rect.top;
+	return W_TRUE;
 }
 wresult _w_tabview_create_handle(w_control *control, _w_control_priv *priv) {
 	wresult result = _w_composite_create_handle(control, priv);
@@ -187,20 +219,8 @@ wresult _w_tabview_create_handle(w_control *control, _w_control_priv *priv) {
 			_W_WIDGET(control)->state |= STATE_CREATE_AS_RTL;
 		}
 		if (_W_WIDGET(control)->style & W_CLOSE) {
-			w_themedata data;
-			w_rect bounds, result;
-			memset(&bounds, 0, sizeof(bounds));
-			bounds.width = 300;
-			bounds.height = 300;
-			memset(&data, 0, sizeof(data));
-			data.clazz = W_THEME_CLASS_TABVIEW;
-			data.part = W_THEME_TABITEM_CLOSE;
-			data.style = _W_WIDGET(control)->style;
-			w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
-			w_theme *theme = w_toolkit_get_theme(toolkit);
-			w_theme_get_bounds(theme, &data, &bounds, &result);
-			int width = result.width;
-			SendMessageW(handle, TCM_SETPADDING, 0, MAKELPARAM(width, 3));
+			SendMessageW(handle, TCM_SETPADDING, 0,
+					MAKELPARAM(TABITEM_CLOSE_WIDTH + 3, 3));
 		}
 	}
 	return result;
@@ -336,7 +356,7 @@ wresult _w_tabview_set_selection_0(w_tabview *tabview, int index,
 		if (notify) {
 			w_event_tabview _e;
 			_e.event.type = W_EVENT_ITEM_SELECTION;
-			_e.event.widget = tabview;
+			_e.event.widget = W_WIDGET(tabview);
 			_e.event.platform_event = 0;
 			_e.event.data = 0;
 			_e.item = W_TABITEM(&item);
@@ -367,8 +387,8 @@ DWORD _w_tabview_widget_style(w_control *control, _w_control_priv *priv) {
 	if ((style & W_BOTTOM) != 0)
 		bits |= TCS_BOTTOM;
 	if (style & W_CLOSE) {
-		bits |= TCS_OWNERDRAWFIXED;
-		//bits &= ~WS_CLIPCHILDREN;
+		//bits |= TCS_OWNERDRAWFIXED;
+		bits |= TCS_FORCEICONLEFT | TCS_FORCELABELLEFT;
 	}
 	return bits | TCS_TABS | TCS_TOOLTIPS;
 }
@@ -378,6 +398,15 @@ const char* _w_tabview_window_class(w_control *control, _w_control_priv *priv) {
 /*
  * messages
  */
+void _w_tabview_get_close_rect(w_widget *widget, RECT *itemRect,
+		RECT *closeRect) {
+	closeRect->left = itemRect->right - TABITEM_CLOSE_WIDTH - 2;
+	closeRect->top = (itemRect->top + itemRect->bottom - TABITEM_CLOSE_HEIGTH)
+			/ 2;
+	closeRect->right = itemRect->right - 2;
+	closeRect->bottom =
+			(itemRect->top + itemRect->bottom + TABITEM_CLOSE_HEIGTH) / 2;
+}
 wresult _TABVIEW_WM_SIZE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	wresult result = _COMPOSITE_WM_SIZE(widget, e, priv);
@@ -439,6 +468,42 @@ wresult _TABVIEW_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 	}
 	return W_TRUE;
 }
+wresult _TABVIEW_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	wresult result = _WIDGET_WM_LBUTTONUP(widget, e, priv);
+	if (_W_WIDGET(widget)->style & W_CLOSE) {
+		HWND handle = _W_WIDGET(widget)->handle;
+		TCHITTESTINFO pinfo;
+		POINT pt;
+		pt.x = GET_X_LPARAM(e->lparam);
+		pt.y = GET_Y_LPARAM(e->lparam);
+		pinfo.pt.x = pt.x;
+		pinfo.pt.y = pt.y;
+		pinfo.flags = 0;
+		int iTabNow = (int) SendMessageW(handle, TCM_HITTEST, 0,
+				(LPARAM) &pinfo);
+		if (iTabNow != -1) {
+			RECT itemRect, closeRect;
+			SendMessageW(handle, TCM_GETITEMRECT, iTabNow, (LPARAM) &itemRect);
+			_w_tabview_get_close_rect(widget, &itemRect, &closeRect);
+			if (PtInRect(&closeRect, pt)) {
+				w_event_tabview _e;
+				_w_tabitem item;
+				_W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(widget);
+				_W_ITEM(&item)->parent = widget;
+				_W_ITEM(&item)->index = iTabNow;
+				_e.event.type = W_EVENT_ITEM_CLOSE;
+				_e.event.widget = widget;
+				_e.event.platform_event = _EVENT_PLATFORM(e);
+				_e.event.data = 0;
+				_e.item = W_TABITEM(&item);
+				_e.control = 0;
+				_w_widget_send_event(widget, (w_event*) &_e);
+			}
+		}
+	}
+	return result;
+}
 wresult _TABVIEW_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	wresult result = _WIDGET_WM_MOUSEMOVE(widget, e, priv);
@@ -448,11 +513,11 @@ wresult _TABVIEW_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 		memset(&data, 0, sizeof(data));
 		BOOL isFromTabToTab = FALSE;
 		TCHITTESTINFO pinfo;
-		w_point p;
-		p.x = GET_X_LPARAM(e->lparam);
-		p.y = GET_Y_LPARAM(e->lparam);
-		pinfo.pt.x = p.x;
-		pinfo.pt.y = p.y;
+		POINT pt;
+		pt.x = GET_X_LPARAM(e->lparam);
+		pt.y = GET_Y_LPARAM(e->lparam);
+		pinfo.pt.x = pt.x;
+		pinfo.pt.y = pt.y;
 		pinfo.flags = 0;
 		int iTabNow = (int) SendMessageW(handle, TCM_HITTEST, 0,
 				(LPARAM) &pinfo);
@@ -465,30 +530,23 @@ wresult _TABVIEW_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 			_currentHoverTabItem = -1;
 
 			// send mouse leave notif
-			//notify(TCN_MOUSELEAVING, -1);
 		} else if (iTabNow != -1 && _currentHoverTabItem == -1) {
 			// mouse is just entered in a tab zone
 			_currentHoverTabItem = iTabNow;
-
-			//notify(TCN_MOUSEHOVERING, _currentHoverTabItem);
 		} else if (iTabNow != -1 && _currentHoverTabItem != -1
 				&& _currentHoverTabItem != iTabNow) {
 			// mouse is being moved from a tab and entering into another tab
 			isFromTabToTab = TRUE;
-			//_whichCloseClickDown = -1;
 
 			// set current hovered
 			_currentHoverTabItem = iTabNow;
-
-			// send mouse enter notif
-			//notify(TCN_MOUSEHOVERSWITCHING, _currentHoverTabItem);
 		} else if (iTabNow == -1 && _currentHoverTabItem == -1) // mouse is already outside
 				{
 			// do nothing
 		}
 
 		/* draw tab close button */
-		RECT currentHoverTabRectOld, _currentHoverTabRect;
+		RECT currentHoverTabRectOld, _currentHoverTabRect, closeRect;
 		SendMessageW(handle, TCM_GETITEMRECT, _currentHoverTabItem,
 				(LPARAM) &currentHoverTabRectOld);
 		BOOL isCloseHoverOld = (_W_WIDGET(widget)->state & STATE_CLOSE_HOVER)
@@ -499,21 +557,9 @@ wresult _TABVIEW_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 				{
 			SendMessageW(handle, TCM_GETITEMRECT, _currentHoverTabItem,
 					(LPARAM) &_currentHoverTabRect);
-			w_toolkit *toolkit = w_widget_get_toolkit(widget);
-			w_theme *theme = w_toolkit_get_theme(toolkit);
-			w_rect bounds;
-			data.clazz = W_THEME_CLASS_TABVIEW;
-			data.part = W_THEME_TABITEM;
-			data.style = _W_WIDGET(widget)->style;
-			data.state = 0;
-			bounds.x = _currentHoverTabRect.left;
-			bounds.y = _currentHoverTabRect.top;
-			bounds.width = _currentHoverTabRect.right
-					- _currentHoverTabRect.left;
-			bounds.height = _currentHoverTabRect.bottom
-					- _currentHoverTabRect.top;
-			int part_select = w_theme_hit_background(theme, &data, &p, &bounds);
-			if (part_select == W_THEME_TABITEM_CLOSE) {
+			_w_tabview_get_close_rect(widget, &_currentHoverTabRect,
+					&closeRect);
+			if (PtInRect(&closeRect, pt)) {
 				_W_WIDGET(widget)->state |= STATE_CLOSE_HOVER;
 				_isCloseHover = TRUE;
 			} else {
@@ -525,25 +571,23 @@ wresult _TABVIEW_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 			_W_WIDGET(widget)->state &= ~STATE_CLOSE_HOVER;
 			_isCloseHover = FALSE;
 		}
-
 		if (isFromTabToTab || _isCloseHover != isCloseHoverOld) {
-			if (isCloseHoverOld && (isFromTabToTab || !_isCloseHover))
-				InvalidateRect(handle, &currentHoverTabRectOld, FALSE);
-
-			if (_isCloseHover)
-				InvalidateRect(handle, &_currentHoverTabRect, FALSE);
+			if (isCloseHoverOld && (isFromTabToTab || !_isCloseHover)) {
+				_w_tabview_get_close_rect(widget, &currentHoverTabRectOld,
+						&closeRect);
+				InvalidateRect(handle, &closeRect, FALSE);
+			}
+			if (_isCloseHover) {
+				_w_tabview_get_close_rect(widget, &_currentHoverTabRect,
+						&closeRect);
+				InvalidateRect(handle, &closeRect, FALSE);
+			}
 		}
 		TRACKMOUSEEVENT tme;
 		tme.cbSize = sizeof(tme);
 		tme.hwndTrack = handle;
 		tme.dwHoverTime = 0;
 		tme.dwFlags = TME_LEAVE;
-		if (_isCloseHover) {
-			// Mouse moves out from close zone will send WM_MOUSELEAVE message
-			TrackMouseEvent(&tme);
-		}
-		// Mouse moves out from tab zone will send WM_MOUSELEAVE message
-		// but it doesn't track mouse moving from a tab to another
 		TrackMouseEvent(&tme);
 	}
 	return result;
@@ -560,100 +604,120 @@ wresult _TABVIEW_WM_MOUSELEAVE(w_widget *widget, _w_event_platform *e,
 			InvalidateRect(handle, &r, FALSE);
 		}
 		_W_TABVIEW(widget)->_currentHover = -1;
-		//_whichCloseClickDown = -1;
 		_W_WIDGET(widget)->state &= ~ STATE_CLOSE_HOVER;
-
-		//notify(TCN_MOUSELEAVING, _currentHoverTabItem);
 	}
 	return result;
 }
-wresult _TABVIEW_WM_DRAWCHILD(w_widget *widget, _w_event_platform *e,
+wresult _TABVIEW_WM_PAINT(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	if (_W_WIDGET(widget)->style & W_CLOSE) {
-		DRAWITEMSTRUCT *lpDIS = (DRAWITEMSTRUCT*) e->lparam;
-		HWND handle = _W_WIDGET(widget)->handle;
-		int index = lpDIS->itemID;
-		TC_ITEMW tci;
-		_w_graphics gc;
-		w_themedata data;
-		w_rect bounds;
-		RECT rect;
-		tci.mask = TCIF_IMAGE | TCIF_STATE;
-		tci.dwState = 0;
-		SendMessageW(handle, TCM_GETITEMW, index, (LPARAM) &tci);
-		SendMessageW(handle, TCM_GETITEMRECT, index, (LPARAM) &rect);
-		bounds.x = rect.left;
-		bounds.y = rect.top;
-		bounds.width = rect.right - rect.left;
-		bounds.height = rect.bottom - rect.top;
-		if ((lpDIS->itemState & ODS_SELECTED) != 0) {
-			bounds.x -= 1;
-			bounds.y -= 1;
-			bounds.width += 0;
-			bounds.height += 0;
-		} else {
-			bounds.x += 0;
-			bounds.y -= 1;
-			bounds.width += 0;
-			bounds.height += 4;
-		}
-		int nSavedDC = SaveDC(lpDIS->hDC);
-		_w_control_init_graphics(W_CONTROL(widget), W_GRAPHICS(&gc), lpDIS->hDC,
-				0);
-		w_toolkit *toolkit = w_widget_get_toolkit(widget);
-		w_theme *theme = w_toolkit_get_theme(toolkit);
-		memset(&data, 0, sizeof(data));
-		data.clazz = W_THEME_CLASS_TABVIEW;
-		data.part = W_THEME_TABITEM;
-		data.style = _W_WIDGET(widget)->style;
-		data.state = 0;
-		/* draw item background */
-		if ((lpDIS->itemState & ODS_SELECTED) != 0)
-			data.state |= W_THEME_SELECTED;
-		if ((lpDIS->itemState & ODS_HOTLIGHT) != 0)
-			data.state |= W_THEME_HOT;
-		if ((lpDIS->itemState & ODS_FOCUS) != 0)
-			data.state |= W_THEME_FOCUSED;
-		if ((lpDIS->itemState & ODS_SELECTED) != 0)
-			data.state |= W_THEME_SELECTED;
-		if ((lpDIS->itemState & ODS_DISABLED) != 0)
-			data.state |= W_THEME_DISABLED;
-		w_graphics_set_clipping_rect(W_GRAPHICS(&gc), &bounds);
-		w_theme_draw_background(theme, &data, W_GRAPHICS(&gc), &bounds);
-		/* draw item image */
-		w_imagelist *imagelist = _W_TABVIEW(widget)->imagelist;
-		int imageWidth = 0;
-		if (imagelist != 0 && tci.iImage >= 0) {
-			w_size _sz;
-			imageWidth = w_imagelist_get_size(imagelist, &_sz);
-			imageWidth = _sz.width + 3;
-			bounds.x += 3;
-			w_theme_draw_image_index(theme, &data, W_GRAPHICS(&gc), &bounds,
-					imagelist, tci.iImage,
-					W_THEME_DRAW_LEFT | W_THEME_DRAW_VCENTER);
-			bounds.x -= 3;
-		}
-		/* draw item text */
-		size_t size = 0;
-		WCHAR *str = 0;
-		int length = 0;
-		bounds.x += imageWidth + 2;
-		_w_tabitem_get_text_unicode(handle, index, &str, &length, &size);
-		w_theme_draw_text(theme, &data, W_GRAPHICS(&gc), &bounds,
-				(const char*) str, length, W_ENCODING_UNICODE,
-				W_THEME_DRAW_LEFT | W_THEME_DRAW_VCENTER);
-		_w_toolkit_free(str, size);
-		bounds.x -= imageWidth + 2;
-
-		/* Draw item close button */
-		w_rect rcCloseButton;
-		data.part = W_THEME_TABITEM_CLOSE;
-		w_theme_get_bounds(theme, &data, &bounds, &rcCloseButton);
-		w_theme_draw_background(theme, &data, W_GRAPHICS(&gc), &rcCloseButton);
-		RestoreDC(lpDIS->hDC, nSavedDC);
-		return TRUE;
+	HWND handle = _W_WIDGET(widget)->handle;
+	_w_control_priv *cpriv = _W_CONTROL_PRIV(priv);
+	WPARAM lastWparam = e->wparam;
+	PAINTSTRUCT ps;
+	HDC hdc, hDCMem;
+	HBITMAP hMemBmp, hOldBmp;
+	RECT rcWnd;
+	int width;
+	int height;
+	if (e->wparam == 0) {
+		hdc = BeginPaint(handle, &ps);
+	} else {
+		hdc = (HDC) e->wparam;
 	}
-	return FALSE;
+	GetClientRect(handle, &rcWnd);
+	width = rcWnd.right - rcWnd.left;
+	height = rcWnd.bottom - rcWnd.top;
+	// create a new DC based on the target HDC
+	hDCMem = CreateCompatibleDC(hdc);
+	// create a bitmap that is compatible with the target DC
+	hMemBmp = CreateCompatibleBitmap(hdc, width, height);
+	// select the new bitmap in to the DC, saving the old bitmap
+	hOldBmp = (HBITMAP) SelectObject(hDCMem, hMemBmp);
+	e->wparam = (WPARAM) hDCMem;
+	WNDPROC def_window_proc = *cpriv->get_def_window_proc(W_CONTROL(widget),
+			cpriv);
+	e->result = CallWindowProcW(def_window_proc, e->hwnd, e->msg, e->wparam,
+			e->lparam);
+	HTHEME hThemeWindow = OpenThemeData(NULL, L"WINDOW");
+	HTHEME hThemeTool = OpenThemeData(NULL, L"TOOLBAR");
+	HTHEME hThemeTab = OpenThemeData(NULL, L"TAB");
+	if (hThemeWindow != 0) {
+		int count = SendMessageW(handle, TCM_GETITEMCOUNT, 0, 0);
+		int sel = SendMessageW(handle, TCM_GETCURSEL, 0, 0);
+		int focus = SendMessageW(handle, TCM_GETCURFOCUS, 0, 0);
+		RECT itemRect, closeRect;
+		POINT pt;
+		int iStateId;
+		for (int i = 0; i < count; i++) {
+			SendMessageW(handle, TCM_GETITEMRECT, i, (LPARAM) &itemRect);
+			if (RectVisible(hdc, &itemRect)) {
+				GetCursorPos(&pt);
+				ScreenToClient(handle, &pt);
+				/* draw item*/
+				/*iStateId = TIS_NORMAL;
+				 if (sel == i)
+				 iStateId = TIS_SELECTED;
+				 DrawThemeBackground(hThemeTab, hDCMem, TABP_TABITEM, iStateId,
+				 &itemRect, NULL);*/
+				/* draw close button */
+				_w_tabview_get_close_rect(widget, &itemRect, &closeRect);
+				iStateId = CBS_NORMAL;
+				if (PtInRect(&closeRect, pt)) {
+					iStateId = CBS_PUSHED;
+					DrawThemeBackground(hThemeTool, hDCMem, TP_BUTTON, TS_HOT,
+							&closeRect, NULL);
+				}
+				closeRect.left += 1;
+				closeRect.top += 1;
+				closeRect.right -= 1;
+				closeRect.bottom -= 1;
+				DrawThemeBackground(hThemeWindow, hDCMem, WP_SMALLCLOSEBUTTON,
+						iStateId, &closeRect, NULL);
+			}
+		}
+		CloseThemeData(hThemeTab);
+		CloseThemeData(hThemeTool);
+		CloseThemeData(hThemeWindow);
+	}
+	// copy all the bits from our new DC over to the target DC
+	BitBlt(hdc, rcWnd.left, rcWnd.top, width, height, hDCMem, 0, 0,
+	SRCCOPY);
+	// select the original bitmap the DC came with
+	SelectObject(hDCMem, hOldBmp);
+	// delete our bitmap
+	DeleteObject(hMemBmp);
+	// delete the DC
+	DeleteDC(hDCMem);
+	if (lastWparam == 0)
+		EndPaint(handle, &ps);
+	e->wparam = lastWparam;
+	return W_TRUE;
+}
+wresult _w_tabview_call_window_proc(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	HWND handle = _W_WIDGET(widget)->handle;
+	if (handle == 0) {
+		e->result = 0;
+		return W_FALSE;
+	} else {
+		_w_control_priv *cpriv = _W_CONTROL_PRIV(priv);
+		WPARAM lastWparam = e->wparam;
+		PAINTSTRUCT ps;
+		HDC hdc, hDCMem;
+		HBITMAP hMemBmp, hOldBmp;
+		RECT rcWnd;
+		int width;
+		int height;
+		if ((_W_WIDGET(widget)->style & W_CLOSE) != 0 && e->msg == WM_PAINT) {
+			_TABVIEW_WM_PAINT(widget, e, priv);
+		} else {
+			WNDPROC def_window_proc = *cpriv->get_def_window_proc(
+					W_CONTROL(widget), cpriv);
+			e->result = CallWindowProcW(def_window_proc, e->hwnd, e->msg,
+					e->wparam, e->lparam);
+		}
+		return W_TRUE;
+	}
 }
 void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
@@ -696,6 +760,7 @@ void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	priv->get_client_area = _w_tabview_get_client_area;
 	priv->widget_style = _w_tabview_widget_style;
 	priv->window_class = _w_tabview_window_class;
+	priv->widget.call_window_proc = _w_tabview_call_window_proc;
 	/*
 	 * messages
 	 */
@@ -704,5 +769,5 @@ void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	msg[_WM_NOTIFYCHILD] = _TABVIEW_WM_NOTIFYCHILD;
 	msg[_WM_MOUSEMOVE] = _TABVIEW_WM_MOUSEMOVE;
 	msg[_WM_MOUSELEAVE] = _TABVIEW_WM_MOUSELEAVE;
-	msg[_WM_DRAWCHILD] = _TABVIEW_WM_DRAWCHILD;
+	msg[_WM_LBUTTONUP] = _TABVIEW_WM_LBUTTONUP;
 }

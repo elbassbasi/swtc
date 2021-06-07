@@ -263,6 +263,8 @@ void _w_toolkit_init_dll(_w_toolkit *toolkit) {
 				info.dwMinorVersion);
 	}
 	_w_toolkit_init_comctl32(toolkit);
+	HMODULE shell32dll = _w_toolkit_load_library("shell32.dll");
+	toolkit->shell32_version = _w_toolkit_get_dll_version(shell32dll);
 	ULONG_PTR gdiplusToken;
 	GdiplusStartupInput input;
 	GdiplusStartupOutput output;
@@ -502,6 +504,31 @@ void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
 			&toolkit->class_toolitem;
 	toolkit->classes[_W_CLASS_TOOLBAR] = W_WIDGET_CLASS(
 			&toolkit->class_toolbar);
+	/*
+	 * tray
+	 */
+	W_WIDGET_CLASS(&toolkit->class_tray)->init_class =
+			(w_widget_init_class) _w_tray_class_init;
+	W_WIDGET_CLASS(&toolkit->class_tray)->reserved[0] =
+			&toolkit->class_tray_priv;
+	W_WIDGET_CLASS(&toolkit->class_trayitem)->reserved[0] =
+			&toolkit->class_tray_priv;
+	W_TRAY_CLASS(&toolkit->class_tray)->class_trayitem =
+			&toolkit->class_trayitem;
+	W_WIDGET_CLASS(&toolkit->class_trayitem)->init_class =
+			(w_widget_init_class) _w_trayitem_class_init;
+	toolkit->classes[_W_CLASS_TRAY] = W_WIDGET_CLASS(&toolkit->class_tray);
+	toolkit->classes[_W_CLASS_TRAYITEM] = W_WIDGET_CLASS(
+			&toolkit->class_trayitem);
+	/*
+	 * tooltip
+	 */
+	W_WIDGET_CLASS(&toolkit->class_tooltip)->init_class =
+			(w_widget_init_class) _w_tooltip_class_init;
+	W_WIDGET_CLASS(&toolkit->class_tooltip)->reserved[0] =
+			&toolkit->class_tooltip_priv;
+	toolkit->classes[_W_CLASS_TOOLTIP] = W_WIDGET_CLASS(
+			&toolkit->class_tooltip);
 }
 wushort _wm_msg[] = { //
 		[_WM_ACTIVATE] = WM_ACTIVATE, //

@@ -8,8 +8,21 @@
 #include "shell.h"
 #include "menu.h"
 #include "toolkit.h"
-#define MENU_CHECK  (1 << 15)
-w_menu* _w_menu_get_top(HMENU menu) {
+HMENU _w_hmenu_get_parent(HMENU menu) {
+	MENUINFO info;
+	info.cbSize = sizeof(info);
+	info.fMask = MIM_MENUDATA | MIM_HELPID;
+	if (!GetMenuInfo(menu, &info)) {
+		return 0;
+	}
+	if ((info.dwContextHelpID & _MENU_HELPID_BIT_CHECK) == 0)
+		return 0;
+	if ((info.dwContextHelpID & _MENU_HELPID_MASK) == 0) {
+		return 0;
+	}
+	return (HMENU) info.dwMenuData;
+}
+w_menu* _w_hmenu_get_top(HMENU menu) {
 	HMENU m = menu;
 	MENUINFO info;
 	info.cbSize = sizeof(info);
@@ -18,12 +31,50 @@ w_menu* _w_menu_get_top(HMENU menu) {
 		if (!GetMenuInfo(m, &info)) {
 			return 0;
 		}
-		if (info.dwContextHelpID == (DWORD) -1) {
+		if ((info.dwContextHelpID & _MENU_HELPID_BIT_CHECK) == 0)
+			return 0;
+		if ((info.dwContextHelpID & _MENU_HELPID_MASK) == 0) {
 			return (w_menu*) info.dwMenuData;
 		}
 		m = (HMENU) info.dwMenuData;
 	}
 	return 0;
+}
+int _w_menu_find_menu_ids(UINT id, HMENU *hmenu, _w_menu_id **menuid,
+		_w_accel_id **acc, w_menu *menu, w_control *parent) {
+	if (acc != 0)
+		*acc = 0;
+	if (id & _MENU_ID_ID) {
+		int _id = id & _MENU_ID_MASK;
+		w_menu *_menu = menu;
+		if (id & _MENU_ID_ACCEL) {
+			_w_accel_id *_acc = 0;
+			if (menu == 0)
+				menu = (w_menu*) _w_hmenu_get_top(*hmenu);
+			_w_accel_ids *ids = _W_CONTROL(parent)->ids;
+			if (ids != 0 && _id < ids->count) {
+				_acc = &ids->id[_id];
+			}
+			if (_acc == 0)
+				return W_FALSE;
+			if (acc != 0)
+				*acc = _acc;
+			if (_acc->flags & _MENU_FLAGS_ID) {
+				_id = _acc->sub_id;
+				menu = (w_menu*) _w_hmenu_get_top(_acc->menu);
+			} else
+				return W_FALSE;
+		}
+		if (menuid != 0) {
+			if (menu == 0)
+				menu = (w_menu*) _w_hmenu_get_top(*hmenu);
+			_w_menu_ids *_ids = _W_MENU(menu)->ids;
+			if (_ids != 0 && _id < _ids->count) {
+				*menuid = &_ids->id[_id];
+			}
+		}
+	}
+	return W_TRUE;
 }
 /*
  * menuitem
@@ -217,18 +268,20 @@ wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 		info.fType = MFT_SEPARATOR;
 		break;
 	case W_CHECK:
-		info.wID = MENU_CHECK;
+		info.wID = _MENU_ID_STYLE_CHECK;
 		break;
 	case W_RADIO:
 		info.fType = MFT_RADIOCHECK;
 		break;
 	case W_CASCADE:
-		submenu = CreatePopupMenu();
 		_info.cbSize = sizeof(_info);
+		_info.fMask = MIM_HELPID;
+		GetMenuInfo(parentItem, &_info);
+		submenu = CreatePopupMenu();
 		_info.fMask = MIM_MENUDATA | MIM_STYLE | MIM_HELPID;
 		_info.dwMenuData = (ULONG_PTR) parentItem;
 		_info.dwStyle = MNS_NOTIFYBYPOS;
-		_info.dwContextHelpID = 0;
+		_info.dwContextHelpID += _MENU_HELPID_ADD;
 		SetMenuInfo(submenu, &_info);
 		info.fMask = MIIM_ID | MIIM_TYPE | MIIM_SUBMENU;
 		info.hSubMenu = submenu;
@@ -258,24 +311,17 @@ wresult _w_menuitem_get_accelerator(w_menuitem *item) {
 	int index = _W_ITEM(item)->index;
 	if (index < 0)
 		return W_FALSE;
+	w_widget *parent = _W_ITEM(item)->parent;
 	MENUITEMINFOW info;
 	info.cbSize = sizeof(info);
 	info.fMask = MIIM_ID;
 	info.fState = 0;
 	wresult result = 0;
 	if (GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
-		int id = (info.wID & 0x7FFF) - 1;
-		if (id >= 0) {
-			w_shell *shell;
-			_w_menu_get_shell((w_menu*) _W_ITEM(item)->parent, &shell);
-			_w_menu_ids *acc = _W_SHELL(shell)->ids;
-			if (acc != 0) {
-				_w_menu_id *items = acc->id;
-				if (id < acc->count) {
-					result = items[id].accelerator;
-				}
-			}
-		}
+		_w_accel_id *id = 0;
+		_w_menu_find_menu_ids(info.wID, &hMenu, 0, &id, W_MENU(parent), 0);
+		if (id != 0)
+			return id->accelerator;
 	}
 	return result;
 }
@@ -384,6 +430,7 @@ wresult _w_menuitem_get_id(w_menuitem *item) {
 wresult _w_menuitem_get_image(w_menuitem *item, w_image *image) {
 	HMENU hMenu = _W_MENUITEM(item)->menu;
 	int index = _W_ITEM(item)->index;
+	w_widget *parent = _W_ITEM(item)->parent;
 	if (index < 0)
 		return W_FALSE;
 	MENUITEMINFOW info;
@@ -394,17 +441,13 @@ wresult _w_menuitem_get_image(w_menuitem *item, w_image *image) {
 	if (GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
 		HBITMAP hbmpItem = info.hbmpItem;
 		if (info.hbmpItem == HBMMENU_CALLBACK) {
-			int id = (info.wID & 0x7FFF) - 1;
-			if (id >= 0) {
-				w_shell *shell;
-				_w_menu_get_shell((w_menu*) _W_ITEM(item)->parent, &shell);
-				_w_menu_ids *acc = _W_SHELL(shell)->ids;
-				if (acc != 0) {
-					_w_menu_id *items = acc->id;
-					if (id < acc->count) {
-						hbmpItem = items[id].image;
-					}
-				}
+			HMENU menu = hMenu;
+			int index;
+			_w_menu_id *idInfo = 0;
+			_w_menu_find_menu_ids(info.wID, &hMenu, &idInfo, 0, W_MENU(parent),
+					0);
+			if (idInfo != 0) {
+				hbmpItem = idInfo->image;
 			}
 		}
 		if (hbmpItem != 0) {
@@ -417,27 +460,33 @@ wresult _w_menuitem_get_image(w_menuitem *item, w_image *image) {
 	}
 	return result;
 }
-wresult _w_menuitem_get_parent_item(w_menuitem *item, w_menuitem *parent) {
-	HMENU hMenu = _W_MENUITEM(item)->menu;
+wresult _w_menuitem_get_parent_item_0(w_widget *menu, HMENU hMenu,
+		w_menuitem *parent) {
 	MENUINFO _info;
 	int index = -1;
 	_info.cbSize = sizeof(_info);
 	_info.fMask = MIM_MENUDATA | MIM_HELPID;
 	_info.dwMenuData = 0;
 	if (GetMenuInfo(hMenu, &_info)) {
-		if (_info.dwContextHelpID != -1) {
+		if ((_info.dwContextHelpID & _MENU_HELPID_BIT_CHECK) != 0
+				&& (_info.dwContextHelpID & _MENU_HELPID_MASK) != 0) {
 			index = _w_menuitem_find_index(hMenu, (HMENU) _info.dwMenuData);
 			if (index < 0)
 				_info.dwMenuData = 0;
 		}
 		if (_info.dwMenuData != 0) {
-			_W_WIDGETDATA(parent)->clazz = _W_WIDGETDATA(item)->clazz;
-			_W_ITEM(parent)->parent = _W_ITEM(item)->parent;
+			_W_WIDGETDATA(parent)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+			_W_ITEM(parent)->parent = menu;
 			_W_ITEM(parent)->index = index;
 			_W_MENUITEM(parent)->menu = (HMENU) _info.dwMenuData;
 		}
 	}
 	return W_FALSE;
+}
+wresult _w_menuitem_get_parent_item(w_menuitem *item, w_menuitem *parentitem) {
+	HMENU hMenu = _W_MENUITEM(item)->menu;
+	w_widget *parent = _W_ITEM(item)->parent;
+	return _w_menuitem_get_parent_item_0(parent, hMenu, parentitem);
 }
 wresult _w_menuitem_get_selection(w_menuitem *item) {
 	HMENU hMenu = _W_MENUITEM(item)->menu;
@@ -451,6 +500,13 @@ wresult _w_menuitem_get_selection(w_menuitem *item) {
 		return (info.fState & MFS_CHECKED) != 0;
 	} else
 		return W_FALSE;
+}
+BOOL _w_menuitem_is_style_check(HMENU hMenu, UINT id) {
+	if ((id & _MENU_ID_ID) != 0) {
+
+	} else if ((id & _MENU_ID_STYLE_CHECK) != 0)
+		return TRUE;
+	return FALSE;
 }
 wresult _w_menuitem_get_style(w_menuitem *item) {
 	HMENU parentItem = _w_menuitem_get_submenu(item);
@@ -466,7 +522,7 @@ wresult _w_menuitem_get_style(w_menuitem *item) {
 			return W_SEPARATOR;
 		if (info.fType & MFT_RADIOCHECK)
 			return W_RADIO;
-		if ((info.wID & MENU_CHECK) != 0)
+		if (_w_menuitem_is_style_check(hMenu, info.wID))
 			return W_CHECK;
 		return W_PUSH;
 	}
@@ -497,6 +553,7 @@ wresult _w_menuitem_remove(w_menuitem *item) {
 	ei.event.widget = menu;
 	ei.item = item;
 	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
+	_W_WIDGETDATA(item)->clazz = 0;
 	if (DeleteMenu(hMenu, index, MF_BYPOSITION)) {
 		return W_TRUE;
 	}
@@ -508,22 +565,13 @@ wresult _w_menuitem_remove_item(w_menuitem *item, wuint index) {
 		return W_FALSE;
 	w_widget *menu = _W_ITEM(item)->parent;
 	_w_menuitem _item;
-	w_event_menu ei;
-	ei.event.type = W_EVENT_ITEM_DISPOSE;
-	ei.event.platform_event = 0;
-	ei.event.widget = menu;
-	ei.item = (w_menuitem*) &item;
 	_W_WIDGETDATA(&_item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 	_W_ITEM(&_item)->parent = menu;
 	_W_ITEM(&_item)->index = index;
 	_W_MENUITEM(&_item)->menu = hMenu;
-	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
-	if (DeleteMenu(hMenu, index, MF_BYPOSITION)) {
-		return W_TRUE;
-	}
-	return W_FALSE;
+	return _w_menuitem_remove(W_MENUITEM(&_item));
 }
-wresult _w_menuitem_fill_accel(ACCEL *accel, struct _w_menu_id *item) {
+wresult _w_menuitem_fill_accel(ACCEL *accel, struct _w_accel_id *item) {
 	accel->cmd = accel->key = accel->fVirt = 0;
 	//if (accelerator == 0 || !getEnabled ()) return false;
 	if ((item->accelerator & W_COMMAND) != 0)
@@ -623,6 +671,7 @@ wresult _w_menuitem_set_accelerator(w_menuitem *item, wuint accelerator) {
 	int index = _W_ITEM(item)->index;
 	if (index < 0)
 		return W_FALSE;
+	w_widget *parent = _W_ITEM(item)->parent;
 	WCHAR txt[30], *str;
 	size_t size;
 	wresult result = W_FALSE;
@@ -647,17 +696,34 @@ wresult _w_menuitem_set_accelerator(w_menuitem *item, wuint accelerator) {
 			info.fMask = MIIM_STRING | MIIM_ID;
 			info.dwTypeData = str;
 			info.cch = i + count;
-			w_shell *shell;
-			_w_menu_get_shell((w_menu*) _W_ITEM(item)->parent, &shell);
-			_w_menu_id *id = 0;
-			int _id = _w_shell_registre_menuitem_id(shell, item, &id);
-			info.wID = (info.wID & 0xFFFF8000) | ((_id + 1) & 0x7FFF);
-			if (SetMenuItemInfoW(hMenu, index, TRUE, &info)) {
-				if (id != 0)
-					id->accelerator = accelerator;
-				result = W_TRUE;
-			} else {
-
+			_w_accel_id *acc = 0;
+			_w_menu_find_menu_ids(info.wID, &hMenu, 0, &acc, W_MENU(parent), 0);
+			if (acc == 0) {
+				int _id = _w_control_new_id(_W_MENU(parent)->parent, &acc);
+				if (acc != 0) {
+					acc->flags = 0;
+					if (info.wID & _MENU_ID_ID) {
+						int last_id = info.wID & _MENU_ID_MASK;
+						info.wID = (info.wID & 0xFFFF0000) | _MENU_ID_ID
+								| _MENU_ID_ACCEL | (_id & _MENU_ID_MASK);
+						acc->flags |= _MENU_FLAGS_ID;
+						acc->sub_id = last_id;
+					} else {
+						if (info.wID & _MENU_ID_STYLE_CHECK) {
+							acc->flags |= _MENU_FLAGS_CHECK;
+						}
+						info.wID = (info.wID & 0xFFFF0000) | _MENU_ID_ID
+								| _MENU_ID_ACCEL | (_id & _MENU_ID_MASK);
+						acc->sub_id = index;
+					}
+					acc->menu = hMenu;
+				}
+			}
+			if (acc != 0) {
+				acc->accelerator = accelerator;
+				if (SetMenuItemInfoW(hMenu, index, TRUE, &info)) {
+					result = W_TRUE;
+				}
 			}
 		}
 	}
@@ -730,12 +796,12 @@ wresult _w_menuitem_set_image(w_menuitem *item, w_image *image) {
 			info.hbmpItem = image != 0 ? HBMMENU_CALLBACK : 0;
 		}
 		if (info.hbmpItem == HBMMENU_CALLBACK) {
-			w_shell *shell;
-			_w_menu_get_shell((w_menu*) _W_ITEM(item)->parent, &shell);
-			_w_menu_id *id = 0;
-			int _id = _w_shell_registre_menuitem_id(shell, item, &id);
-			info.wID = (info.wID & 0xFFFF8000) | ((_id + 1) & 0x7FFF);
-			id->image = hbmpItem;
+			/*w_shell *shell;
+			 _w_menu_get_shell((w_menu*) _W_ITEM(item)->parent, &shell);
+			 _w_accel_id *id = 0;
+			 int _id = _w_shell_registre_menuitem_id(shell, item, &id);
+			 info.wID = (info.wID & 0xFFFF8000) | ((_id + 1) & 0x7FFF);
+			 id->image = hbmpItem;*/
 		} else {
 			info.fMask = MIIM_BITMAP;
 		}
@@ -771,7 +837,8 @@ wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {
 	info.fMask = MIIM_STATE | MIIM_ID;
 	info.fState = 0;
 	if (GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
-		if ((info.wID & MENU_CHECK) || (info.fState & MFT_RADIOCHECK)) {
+		if (_w_menuitem_is_style_check(hMenu, info.wID)
+				|| (info.fState & MFT_RADIOCHECK)) {
 			info.fMask = MIIM_STATE;
 			info.fState &= ~MFS_CHECKED;
 			if (selected)
@@ -803,9 +870,9 @@ wresult _w_menu_get_parent(w_menu *menu, w_control **parent) {
 	*parent = _W_MENU(menu)->parent;
 	return W_TRUE;
 }
-wresult _w_menu_get_shell(w_menu *menu, w_shell **shell) {
+wresult _w_menu_get_shell(w_widget *menu, w_shell **shell) {
 	w_control *parent = _W_MENU(menu)->parent;
-	return w_control_get_shell(parent, shell);
+	return w_widget_get_shell(W_WIDGET(parent), shell);
 }
 wresult _w_menu_get_visible(w_menu *menu) {
 	return W_FALSE;
@@ -899,7 +966,7 @@ wresult _w_menu_create(w_widget *widget, w_widget *parent, wuint64 style,
 	_info.fMask = MIM_MENUDATA | MIM_STYLE | MIM_HELPID;
 	_info.dwMenuData = (ULONG_PTR) widget;
 	_info.dwStyle = MNS_NOTIFYBYPOS;
-	_info.dwContextHelpID = -1;
+	_info.dwContextHelpID = _MENU_HELPID_BIT_CHECK;
 	SetMenuInfo(_W_MENU(widget)->handle, &_info);
 	_W_MENU(widget)->parent = W_CONTROL(parent);
 	_W_WIDGET(widget)->style = style;
@@ -927,11 +994,14 @@ void _w_menu_radio_select(HMENU hMenu, int i, int pas, MENUITEMINFOW *info) {
 		i += pas;
 	}
 }
+void _w_menu_update(HMENU menu) {
+
+}
 wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	HMENU hMenu = (HMENU) e->lparam;
 	int index = e->wparam;
-	w_menu *menu = _w_menu_get_top(hMenu);
+	w_menu *menu = _w_hmenu_get_top(hMenu);
 	if (menu == 0)
 		return W_FALSE;
 	MENUITEMINFOW info;
@@ -947,7 +1017,7 @@ wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
 		info.fState = last_state | MFS_CHECKED;
 		SetMenuItemInfoW(hMenu, index, TRUE, &info);
 	} else {
-		if (info.wID & MENU_CHECK) {
+		if (_w_menuitem_is_style_check(hMenu, info.wID)) {
 			if ((info.fState & MFS_CHECKED) != 0) {
 				info.fState &= ~MFS_CHECKED;
 			} else {
@@ -971,45 +1041,270 @@ wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
 	e->result = FALSE;
 	return W_TRUE;
 }
+wresult _MENU_WM_COMMAND(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	wresult result = W_FALSE;
+	/*
+	 * When the WM_COMMAND message is sent from a
+	 * menu, the HWND parameter in LPARAM is zero.
+	 */
+	WPARAM lastWparam = e->wparam;
+	_w_accel_id *_acc = 0;
+	HMENU hmenu = 0;
+	_w_menu_find_menu_ids(LOWORD(e->wparam), &hmenu, 0, &_acc, 0,
+			W_CONTROL(widget));
+	if (_acc != 0) {
+		e->lparam = (LPARAM) _acc->menu;
+		e->wparam = _acc->sub_id;
+		result = _MENU_WM_MENUCOMMAND(widget, e, priv);
+	}
+	e->wparam = lastWparam;
+	e->lparam = 0;
+	return result;
+}
 wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+
+	/* Ignore WM_INITMENUPOPUP for an accelerator */
+	if (win_toolkit->accelKeyHit)
+		return W_FALSE;
+
+	_w_menuitem item;
+	w_event_menu ei;
+
+	/*
+	 * If the high order word of LPARAM is non-zero,
+	 * the menu is the system menu and we can ignore
+	 * WPARAM.  Otherwise, use WPARAM to find the menu.
+	 */
+	w_shell *shell;
+	w_widget_get_shell(widget, &shell);
+	HMENU oldMenu = _W_CONTROL(shell)->activeMenu, newMenu = 0;
+	if (HIWORD (e->lparam) == 0) {
+		newMenu = (HMENU) e->wparam;
+		if (newMenu != 0)
+			_w_menu_update(newMenu);
+	}
+	HMENU menu = newMenu;
+	while (menu != 0 && menu != oldMenu) {
+		menu = _w_hmenu_get_parent(menu);
+	}
+	if (menu == 0) {
+		menu = _W_CONTROL(shell)->activeMenu;
+		while (menu != 0) {
+			/*
+			 * It is possible (but unlikely), that application
+			 * code could have disposed the widget in the hide
+			 * event.  If this happens, stop searching up the
+			 * ancestor list because there is no longer a link
+			 * to follow.
+			 */
+			w_menu *_menu = _w_hmenu_get_top(menu);
+			if (_menu != 0) {
+				if (_w_menuitem_get_parent_item_0(W_WIDGET(_menu), menu,
+						W_MENUITEM(&item))) {
+					ei.event.type = W_EVENT_ITEM_HIDE;
+					ei.event.platform_event = _EVENT_PLATFORM(e);
+					ei.event.widget = W_WIDGET(menu);
+					ei.item = (w_menuitem*) &item;
+					_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+				}
+			}
+			menu = _w_hmenu_get_parent(menu);
+			HMENU ancestor = newMenu;
+			while (ancestor != 0 && ancestor != menu) {
+				ancestor = _w_hmenu_get_parent(ancestor);
+			}
+			if (ancestor != 0)
+				break;
+		}
+	}
+
+	/*
+	 * The shell and the new menu may be disposed because of
+	 * sending the hide event to the ancestor menus but setting
+	 * a field to null in a disposed shell is not harmful.
+	 */
+	if (newMenu != 0)
+		newMenu = 0;
+	_W_CONTROL(shell)->activeMenu = newMenu;
+
+	/* Send the show event */
+	if (newMenu != 0 && newMenu != oldMenu) {
+		w_menu *_menu = _w_hmenu_get_top(newMenu);
+		if (_menu != 0) {
+			if (_w_menuitem_get_parent_item_0(W_WIDGET(_menu), newMenu,
+					W_MENUITEM(&item))) {
+				ei.event.type = W_EVENT_ITEM_SHOW;
+				ei.event.platform_event = _EVENT_PLATFORM(e);
+				ei.event.widget = W_WIDGET(_menu);
+				ei.item = (w_menuitem*) &item;
+				_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+			}
+		}
+		// widget could be disposed at this point
+	}
 	return W_FALSE;
 }
 wresult _MENU_WM_UNINITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	HMENU hiddenMenu = (HMENU) e->wparam;
+	if (hiddenMenu != 0) {
+		_w_menuitem item;
+		w_event_menu ei;
+		w_shell *shell;
+		w_widget_get_shell(widget, &shell);
+		w_menu *_menu = _w_hmenu_get_top(hiddenMenu);
+		if (_menu != 0) {
+			if (_w_menuitem_get_parent_item_0(W_WIDGET(_menu), hiddenMenu,
+					W_MENUITEM(&item))) {
+				ei.event.type = W_EVENT_ITEM_HIDE;
+				ei.event.platform_event = _EVENT_PLATFORM(e);
+				ei.event.widget = W_WIDGET(_menu);
+				ei.item = (w_menuitem*) &item;
+				_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+			}
+		}
+		if (hiddenMenu == _W_CONTROL(shell)->activeMenu)
+			_W_CONTROL(shell)->activeMenu = 0;
+	}
+	return W_FALSE;
+}
+wresult _MENU_WM_MENUCHAR(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	/*
+	 * Feature in Windows.  When the user types Alt+<key>
+	 * and <key> does not match a mnemonic in the System
+	 * menu or the menu bar, Windows beeps.  This beep is
+	 * unexpected and unwanted by applications that look
+	 * for Alt+<key>.  The fix is to detect the case and
+	 * stop Windows from beeping by closing the menu.
+	 */
+	int type = HIWORD(e->wparam);
+	if (type == 0 || type == MF_SYSMENU) {
+		win_toolkit->mnemonicKeyHit = FALSE;
+		e->result = MAKELRESULT(0, MNC_CLOSE);
+		return W_TRUE;
+	}
+	return W_FALSE;
+}
+wresult _MENU_WM_MENUSELECT(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv) {
+	int code = HIWORD(e->wparam);
+	w_shell *shell;
+	w_widget_get_shell(widget, &shell);
+	_w_menuitem item;
+	w_event_menu ei;
+	//KillTimer (this.handle, Menu.ID_TOOLTIP_TIMER);
+	/*if (_W_SHELL(shell)->activeMenu != 0)
+	 activeMenu.hideCurrentToolTip ();*/
+	if (code == 0xFFFF && e->lparam == 0) {
+		HMENU menu = _W_CONTROL(shell)->activeMenu;
+		while (menu != 0) {
+			/*
+			 * When the user cancels any menu that is not the
+			 * menu bar, assume a mnemonic key was pressed to open
+			 * the menu from WM_SYSCHAR.  When the menu was invoked
+			 * using the mouse, this assumption is wrong but not
+			 * harmful.  This variable is only used in WM_SYSCHAR
+			 * and WM_SYSCHAR is only sent after the user has pressed
+			 * a mnemonic.
+			 */
+			win_toolkit->mnemonicKeyHit = TRUE;
+			/*
+			 * It is possible (but unlikely), that application
+			 * code could have disposed the widget in the hide
+			 * event.  If this happens, stop searching up the
+			 * parent list because there is no longer a link
+			 * to follow.
+			 */
+			w_menu *_menu = _w_hmenu_get_top(menu);
+			if (_menu != 0) {
+				if (_w_menuitem_get_parent_item_0(W_WIDGET(_menu), menu,
+						W_MENUITEM(&item))) {
+					ei.event.type = W_EVENT_ITEM_HIDE;
+					ei.event.platform_event = _EVENT_PLATFORM(e);
+					ei.event.widget = W_WIDGET(_menu);
+					ei.item = (w_menuitem*) &item;
+					_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+				}
+				if (w_widget_is_ok(W_WIDGET(_menu)) <= 0)
+					break;
+			}
+			menu = _w_hmenu_get_parent(menu);
+		}
+		/*
+		 * The shell may be disposed because of sending the hide
+		 * event to the last active menu menu but setting a field
+		 * to null in a destroyed widget is not harmful.
+		 */
+		_W_CONTROL(shell)->activeMenu = 0;
+		return W_FALSE;
+	}
+	if ((code & MF_SYSMENU) != 0)
+		return W_FALSE;
+	if ((code & MF_HILITE) != 0) {
+		if ((code & MF_POPUP) != 0) {
+			int index = LOWORD(e->wparam);
+			MENUITEMINFOW info;
+			info.cbSize = sizeof(info);
+			info.fMask = MIIM_SUBMENU;
+			if (GetMenuItemInfoW((HMENU) e->lparam, index, TRUE, &info)) {
+				HMENU newMenu = info.hSubMenu;
+				if (newMenu != 0) {
+					//item = newMenu.cascade;
+					_W_CONTROL(widget)->activeMenu = newMenu;
+					//_W_CONTROL(widget)->activeMenu.selectedMenuItem = newMenu.cascade;
+					SetTimer(_W_WIDGET(widget)->handle, ID_TOOLTIP_TIMER,
+					TTM_GETDELAYTIME, 0);
+				}
+			}
+		} else {
+			HMENU newMenu = (HMENU) e->lparam;
+			/*if (newMenu != 0) {
+			 int id = LOWORD (e->wparam);
+			 item = display.getMenuItem (id);
+			 }
+			 _W_CONTROL(widget)->activeMenu = (newMenu == 0) ? menu : newMenu;
+			 if (item != null && _W_CONTROL(widget)->activeMenu != 0) {
+			 activeMenu.selectedMenuItem = item;
+			 SetTimer (_W_WIDGET(widget)->handle, ID_TOOLTIP_TIMER, TTM_GETDELAYTIME, 0);
+			 }*/
+		}
+		//if (item != null) item.sendEvent (SWT.Arm);
+	}
 	return W_FALSE;
 }
 wresult _MENU_WM_DRAWITEM(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	DRAWITEMSTRUCT *st = (DRAWITEMSTRUCT*) e->lparam;
+	wresult result;
 	if (st->CtlType == ODT_MENU) {
-		int id = (st->itemID & 0x7FFF) - 1;
-		w_shell *shell;
-		w_control_get_shell(W_CONTROL(widget), &shell);
-		_w_menu_ids *acc = _W_SHELL(shell)->ids;
-		if (acc != 0 && id >= 0) {
-			_w_menu_id *items = acc->id;
-			if (id < acc->count && items[id].image != 0) {
-				BITMAP bm;
-				GetObjectW(items[id].image, sizeof(bm), &bm);
-				HDC srcHdc = CreateCompatibleDC(NULL);
-				HBITMAP oldHBitmap = SelectObject(srcHdc, items[id].image);
-				if (bm.bmBitsPixel == 32) {
-					BLENDFUNCTION blend;
-					blend.BlendOp = AC_SRC_OVER;
-					blend.BlendFlags = 0;
-					blend.SourceConstantAlpha = 0xFF;
-					blend.AlphaFormat = AC_SRC_ALPHA;
-					AlphaBlend(st->hDC, st->rcItem.left, st->rcItem.top,
-							st->rcItem.right - st->rcItem.left,
-							st->rcItem.bottom - st->rcItem.top, srcHdc, 0, 0,
-							bm.bmWidth, bm.bmHeight, blend);
-				} else {
-					BitBlt(st->hDC, st->rcItem.left, st->rcItem.top,
-							st->rcItem.bottom - st->rcItem.left,
-							st->rcItem.right - st->rcItem.top, srcHdc, 0, 0,
-							SRCCOPY);
-				}
+		HMENU hmenu = (HMENU) st->hwndItem;
+		_w_accel_id *acc = 0;
+		_w_menu_id *idInfo = 0;
+		_w_menu_find_menu_ids(st->itemID, &hmenu, &idInfo, &acc, 0,
+				W_CONTROL(widget));
+		if (idInfo != 0 && idInfo->image != 0) {
+			BITMAP bm;
+			GetObjectW(idInfo->image, sizeof(bm), &bm);
+			HDC srcHdc = CreateCompatibleDC(NULL);
+			HBITMAP oldHBitmap = SelectObject(srcHdc, idInfo->image);
+			if (bm.bmBitsPixel == 32) {
+				BLENDFUNCTION blend;
+				blend.BlendOp = AC_SRC_OVER;
+				blend.BlendFlags = 0;
+				blend.SourceConstantAlpha = 0xFF;
+				blend.AlphaFormat = AC_SRC_ALPHA;
+				AlphaBlend(st->hDC, st->rcItem.left, st->rcItem.top,
+						st->rcItem.right - st->rcItem.left,
+						st->rcItem.bottom - st->rcItem.top, srcHdc, 0, 0,
+						bm.bmWidth, bm.bmHeight, blend);
+			} else {
+				BitBlt(st->hDC, st->rcItem.left, st->rcItem.top,
+						st->rcItem.bottom - st->rcItem.left,
+						st->rcItem.right - st->rcItem.top, srcHdc, 0, 0,
+						SRCCOPY);
 			}
 		}
 	}
@@ -1018,19 +1313,20 @@ wresult _MENU_WM_DRAWITEM(w_widget *widget, _w_event_platform *e,
 wresult _MENU_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	MEASUREITEMSTRUCT *st = (MEASUREITEMSTRUCT*) e->lparam;
+	wresult result;
 	if (st->CtlType == ODT_MENU) {
-		int id = (st->itemID & 0x7FFF) - 1;
-		w_shell *shell;
-		w_control_get_shell(W_CONTROL(widget), &shell);
-		_w_menu_ids *acc = _W_SHELL(shell)->ids;
-		if (acc != 0 && id >= 0) {
-			_w_menu_id *items = acc->id;
-			if (id < acc->count && items[id].image != 0) {
-				BITMAP bm;
-				GetObjectW(items[id].image, sizeof(bm), &bm);
-				st->itemWidth = bm.bmWidth;
-				st->itemHeight = bm.bmHeight;
-			}
+		_w_accel_id *acc = 0;
+		_w_menu_id *idInfo = 0;
+		HMENU hmenu = 0;
+		_w_menu_find_menu_ids(st->itemID, &hmenu, &idInfo, &acc, 0,
+				W_CONTROL(widget));
+		if (result <= 0)
+			return W_FALSE;
+		if (idInfo->image != 0) {
+			BITMAP bm;
+			GetObjectW(idInfo->image, sizeof(bm), &bm);
+			st->itemWidth = bm.bmWidth;
+			st->itemHeight = bm.bmHeight;
 		}
 	}
 	return W_FALSE;
@@ -1046,6 +1342,7 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_menu_create;
 	W_WIDGET_CLASS(clazz)->post_event = _w_menu_post_event;
+	W_WIDGET_CLASS(clazz)->get_shell = _w_menu_get_shell;
 	clazz->get_bounds = _w_menu_get_bounds;
 	clazz->get_root = _w_menu_get_root;
 	clazz->get_orientation = _w_menu_get_orientation;

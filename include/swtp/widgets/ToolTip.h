@@ -27,7 +27,7 @@
  */
 class SWTP_PUBLIC WToolTip: public WWidget {
 public:
-	WToolTip(){
+	WToolTip() {
 
 	}
 	/**
@@ -103,7 +103,8 @@ public:
 	 */
 	WString GetMessage() {
 		w_string_ref *ref = 0;
-		w_tooltip_get_message(W_TOOLTIP(this),w_alloc_string_ref, &ref);
+		w_tooltip_get_message(W_TOOLTIP(this), w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -112,8 +113,8 @@ public:
 	 * @return the receiver's parent
 	 */
 	WFrame* GetParent() {
-		WFrame* parent;
-		w_tooltip_get_parent(W_TOOLTIP(this),(w_shell**)&parent);
+		WFrame *parent;
+		w_tooltip_get_parent(W_TOOLTIP(this), (w_shell**) &parent);
 		return parent;
 	}
 	/**
@@ -124,7 +125,8 @@ public:
 	 */
 	WString GetText() {
 		w_string_ref *ref = 0;
-		w_tooltip_get_text(W_TOOLTIP(this),w_alloc_string_ref, &ref);
+		w_tooltip_get_text(W_TOOLTIP(this), w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
 		return ref;
 	}
 	/**
@@ -204,7 +206,8 @@ public:
 	 * @param string the new message
 	 */
 	bool SetMessage(const char *string) {
-		return w_tooltip_set_message(W_TOOLTIP(this), string) > 0;
+		return w_tooltip_set_message(W_TOOLTIP(this), string, -1,
+				W_ENCODING_UTF8) > 0;
 	}
 	/**
 	 * Sets the receiver's text.
@@ -212,7 +215,8 @@ public:
 	 * @param string the new text
 	 */
 	bool SetText(const char *string) {
-		return w_tooltip_set_text(W_TOOLTIP(this), string) > 0;
+		return w_tooltip_set_text(W_TOOLTIP(this), string, -1, W_ENCODING_UTF8)
+				> 0;
 	}
 	/**
 	 * Marks the receiver as visible if the argument is <code>true</code>,

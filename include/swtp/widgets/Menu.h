@@ -668,11 +668,6 @@ public:
 		_get_parent(&control);
 		return (WControl*) control;
 	}
-	WFrame* GetShell() {
-		WFrame *shell;
-		_get_shell(&shell);
-		return shell;
-	}
 	/**
 	 * Returns <code>true</code> if the receiver is visible, and
 	 * <code>false</code> otherwise.
@@ -863,9 +858,6 @@ public:
 	WResult _get_parent(WControl **parent) {
 		return w_menu_get_parent(W_MENU(this), (w_control**) parent);
 	}
-	WResult _get_shell(WFrame **shell) {
-		return w_menu_get_shell(W_MENU(this), (w_shell**) shell);
-	}
 	WResult _get_visible() {
 		return w_menu_get_visible(W_MENU(this));
 	}
@@ -889,7 +881,7 @@ struct WMenuItems {
 	int accelerator;
 	int image;
 	const char *name;
-	IWNotify::SelectionAction action;
+	__SelectionAction action;
 };
 class SWTP_PUBLIC WMenu: public WMenuBase {
 public:
