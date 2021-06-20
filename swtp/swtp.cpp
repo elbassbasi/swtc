@@ -443,7 +443,7 @@ bool WMenu::OnItemSelection(WMenuEvent &e) {
 	else {
 		if (this->items != 0) {
 			wushort id = e.item->GetId();
-			__SelectionAction   __action = this->items[id].action;
+			__SelectionAction       __action = this->items[id].action;
 			void *notify = GetData(__DATA_NOTIFY);
 			if (__action != 0 && notify != 0) {
 				SelectionAction action = *((SelectionAction*) &__action);
@@ -1220,6 +1220,67 @@ bool WTabView::OnItemClose(WTabEvent &e) {
 w_class_id WListViewBase::_GetClassID() {
 	return _W_CLASS_LISTVIEW;
 }
+bool WListViewBase::PostEvent(WEvent *e) {
+	switch (e->type) {
+	case W_EVENT_ITEM_SELECTION:
+		return OnItemSelection(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_DEFAULTSELECTION:
+		return OnItemDefaultSelection(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_PAINT:
+		return OnItemPaint(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_ERASE:
+		return OnItemErase(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_MEASURE:
+		return OnItemMeasure(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_GET_TEXT:
+		return OnItemGetText(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_SET_TEXT:
+		return OnItemSetText(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_DISPOSE:
+		return OnItemDispose(static_cast<WTreeEvent&>(*e));
+		break;
+	}
+	return WComposite::PostEvent(e);
+}
+
+bool WListViewBase::OnItemSelection(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemDefaultSelection(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemGetText(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemSetText(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemMeasure(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemErase(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemPaint(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemDispose(WListEvent &e) {
+	return false;
+}
 /*
  *
  */
@@ -1326,80 +1387,19 @@ w_class_id WTreeView::_GetClassID() {
 }
 bool WTreeView::PostEvent(WEvent *e) {
 	switch (e->type) {
-	case W_EVENT_ITEM_SELECTION:
-		return OnItemSelection(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_DEFAULTSELECTION:
-		return OnItemDefaultSelection(static_cast<WTreeEvent&>(*e));
-		break;
 	case W_EVENT_ITEM_EXPAND:
 		return OnItemExpand(static_cast<WTreeEvent&>(*e));
 		break;
 	case W_EVENT_ITEM_COLLAPSE:
 		return OnItemCollapse(static_cast<WTreeEvent&>(*e));
 		break;
-	case W_EVENT_ITEM_GET_VALUE:
-		return OnItemGetValue(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_SET_VALUE:
-		return OnItemSetValue(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_PAINT:
-		return OnItemPaint(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_ERASE:
-		return OnItemErase(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_MEASURE:
-		return OnItemMeasure(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_GET_ATTR:
-		return OnItemGetAttr(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_SET_ATTR:
-		return OnItemSetAttr(static_cast<WTreeEvent&>(*e));
-		break;
-	case W_EVENT_ITEM_DISPOSE:
-		return OnItemDispose(static_cast<WTreeEvent&>(*e));
-		break;
 	}
-	return WComposite::PostEvent(e);
-}
-
-bool WTreeView::OnItemGetValue(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemSetValue(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemPaint(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemErase(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemMeasure(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemGetAttr(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemSetAttr(WTreeEvent &e) {
-	return false;
+	return WListViewBase::PostEvent(e);
 }
 bool WTreeView::OnItemExpand(WTreeEvent &e) {
 	return false;
 }
 bool WTreeView::OnItemCollapse(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemSelection(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemDefaultSelection(WTreeEvent &e) {
-	return false;
-}
-bool WTreeView::OnItemDispose(WTreeEvent &e) {
 	return false;
 }
 /*

@@ -7,6 +7,132 @@
  */
 #include "core.h"
 #include "../widgets/toolkit.h"
+wresult w_alloc_set_text(w_alloc alloc, void *user_data, int toenc,
+		const char *text, int length, int enc) {
+	if (enc == W_ENCODING_PLATFORM || enc == W_ENCODING_UNICODE) {
+		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+			if (length < 0)
+				length = lstrlenW((WCHAR*) text);
+			void *buf = 0;
+			int l2 = alloc(user_data, (length + 1) * sizeof(WCHAR), &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			int l = WMIN(length, l2 / 2);
+			memcpy(buf, text, l * sizeof(WCHAR));
+			return W_TRUE;
+		} else {
+			int l = w_utf8_from_utf16((WCHAR*) text, length, 0, 0);
+			void *buf = 0;
+			int l2 = alloc(user_data, l + 1, &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			int ll = WMIN(l, l2);
+			w_utf8_from_utf16((WCHAR*) text, length, (char*) buf, ll);
+			return W_TRUE;
+		}
+	} else {
+		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+			int l = w_utf8_to_utf16(text, length, 0, 0);
+			void *buf = 0;
+			int l2 = alloc(user_data, (l + 1) * sizeof(WCHAR), &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			int ll = WMIN(l, l2 / 2);
+			w_utf8_to_utf16(text, length, (WCHAR*) buf, ll);
+			return W_TRUE;
+		} else {
+			if (length < 0)
+				length = strlen(text);
+			void *buf = 0;
+			int l2 = alloc(user_data, length + 1, &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			int l = WMIN(length, l2);
+			memcpy(buf, text, l);
+			return W_TRUE;
+		}
+	}
+}
+wresult w_alloc_printf(w_alloc alloc, void *user_data, int toenc, int enc,
+		const char *format, va_list args) {
+	va_list args2;
+	va_copy(args2, args);
+	WCHAR *_format;
+	if (enc == W_ENCODING_PLATFORM || enc == W_ENCODING_UNICODE) {
+		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+			size_t sz = vsnwprintf(0, 0, (WCHAR*) format, args2);
+			va_end(args2);
+			void *buf = 0;
+			int l2 = alloc(user_data, (sz + 1) * sizeof(WCHAR), &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			vsnwprintf((WCHAR*) buf, l2 / 2, (WCHAR*) format, args);
+			return W_TRUE;
+		} else {
+			int l = w_utf8_from_utf16((WCHAR*) format, -1, 0, 0);
+			int size = l + 1;
+			char *_format = _w_toolkit_malloc(size);
+			if (_format == 0)
+				return W_ERROR_NO_MEMORY;
+			w_utf8_from_utf16((WCHAR*) format, -1, _format, l + 1);
+			size_t sz = vsnprintf(0, 0, _format, args2);
+			va_end(args2);
+			_w_toolkit_free(_format, size);
+			void *buf = 0;
+			int l2 = alloc(user_data, sz + 1, &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			_format = _w_toolkit_malloc(size);
+			if (_format == 0)
+				return W_ERROR_NO_MEMORY;
+			w_utf8_from_utf16((WCHAR*) format, -1, _format, l + 1);
+			vsnprintf((char*) buf, l2, _format, args);
+			_w_toolkit_free(_format, size);
+			return W_TRUE;
+		}
+	} else {
+		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+			size_t size;
+			char *s = (char*) _w_toolkit_malloc_all(&size);
+			size_t sz = vsnprintf(s, size, format, args2);
+			va_end(args2);
+			if (sz > size) {
+				_w_toolkit_free(s, size);
+				s = malloc(sz);
+			}
+			int utf16_size = w_utf8_to_utf16(s, sz, 0, 0);
+			if (sz <= size) {
+				_w_toolkit_free(s, size);
+			}
+			void *buf = 0;
+			int l2 = alloc(user_data, (utf16_size + 1) * sizeof(WCHAR), &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			if (sz <= size) {
+				s = (char*) _w_toolkit_malloc(sz);
+				vsnprintf(s, sz, format, args);
+			}
+			w_utf8_to_utf16(s, sz, (WCHAR*) buf,
+					(utf16_size + 1) * sizeof(WCHAR));
+			if (sz <= size) {
+				_w_toolkit_free(s, sz);
+			} else {
+				free(s);
+			}
+			return W_TRUE;
+		} else {
+			size_t sz = vsnprintf(0, 0, format, args2);
+			va_end(args2);
+			void *buf = 0;
+			int l2 = alloc(user_data, sz + 1, &buf);
+			if (buf == 0)
+				return W_ERROR_NO_MEMORY;
+			vsnprintf((char*) buf, l2, format, args);
+			return W_TRUE;
+		}
+	}
+}
+
 wresult _win_text_fix_0(const char *text, int text_length, int enc, int adding,
 		WCHAR **str, int *newlength) {
 	*str = 0;

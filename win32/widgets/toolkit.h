@@ -16,6 +16,7 @@ typedef struct _win32_theme {
 	w_theme theme;
 
 } _win32_theme;
+#define BRUSHES_SIZE 32
 #define ID_START 108
 /* Private SWT Window Messages */
 enum {	 //
@@ -27,6 +28,11 @@ enum {	 //
 	SWT_NULL,
 	SWT_RUNASYNC,
 };
+typedef struct _win32_toolkit_alloc {
+	WCHAR *text;
+	size_t size;
+} _win32_toolkit_alloc;
+size_t _win32_toolkit_alloc_fn(void *user_data, size_t size, void **buf);
 LRESULT CALLBACK messageProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 typedef struct _w_toolkit {
 	w_toolkit toolkit;
@@ -57,6 +63,7 @@ typedef struct _w_toolkit {
 	int scrollHRemainder;
 	int scrollRemainder;
 	int nextTrayId;
+	int nextToolTipId;
 	RECT clickRect;
 	HWND lastClickHwnd;
 	HWND hwndMessage;
@@ -69,10 +76,12 @@ typedef struct _w_toolkit {
 	wuchar wm_msg[WM_USER + 0x10];
 	_w_cursor cursors[W_CURSOR_HAND + 1];
 	_w_image images[5];
+	HBRUSH brushes[BRUSHES_SIZE];
 	w_taskbar taskbar;
 	w_tray tray;
 	HFONT systemFont;
 	GpFontCollection *fontCollection;
+	HPALETTE hPalette;
 	/*
 	 * shell
 	 */
@@ -160,7 +169,7 @@ typedef struct _w_toolkit {
 	 */
 	struct _w_combobox_class class_combobox;
 	_w_combobox_priv class_combobox_priv;
-	struct _w_combobox_class class_comboitem;
+	struct _w_comboitem_class class_comboitem;
 	/*
 	 * coolbar
 	 */

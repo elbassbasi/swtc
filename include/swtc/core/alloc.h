@@ -12,8 +12,10 @@
 extern "C" {
 #endif
 typedef size_t (*w_alloc)(void *user_data, size_t size, void **buf);
-SWT_PUBLIC wresult w_alloc_set_text(w_alloc alloc, void *user_data,
-		const char *text, size_t length);
+SWT_PUBLIC wresult w_alloc_set_text(w_alloc alloc, void *user_data, int toenc,
+		const char *text, int length, int enc);
+SWT_PUBLIC wresult w_alloc_printf(w_alloc alloc, void *user_data, int toenc,
+		int enc, const char *format, va_list args);
 
 typedef struct w_alloc_buffer {
 	void *buffer;

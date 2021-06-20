@@ -17,6 +17,7 @@
 		${CURRENT_DIR}/tabview.c
 		${CURRENT_DIR}/textedit.c
 		${CURRENT_DIR}/toolbar.c
-		${CURRENT_DIR}/treeview.c
+		${CURRENT_DIR}/treeview0.c
+		${CURRENT_DIR}/treeview1.c
 		PARENT_SCOPE
 	)

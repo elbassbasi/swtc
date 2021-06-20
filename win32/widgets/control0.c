@@ -231,12 +231,131 @@ wresult _w_control_dispose(w_widget *widget) {
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event) {
 	return W_FALSE;
 }
+int _w_control_default_background(w_control *control, _w_control_priv *priv) {
+	return GetSysColor(COLOR_BTNFACE);
+}
+HFONT _w_control_default_font(w_control *control, _w_control_priv *priv) {
+	w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
+	return (HFONT) _w_toolkit_get_system_font(toolkit);
+}
+int _w_control_default_foreground(w_control *control, _w_control_priv *priv) {
+	return GetSysColor(COLOR_WINDOWTEXT);
+}
+void _w_control_draw_background(w_control *control, HDC hDC, RECT *rect,
+		int pixel, int tx, int ty, _w_control_priv *priv) {
+	w_control *c = priv->find_background_control(control, priv);
+	if (c != 0) {
+		if (_W_CONTROL(c)->backgroundImage != 0) {
+			//fillImageBackground (hDC, c, rect, tx, ty);
+			return;
+		}
+		_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(c);
+		pixel = cpriv->get_background_pixel(c, cpriv);
+	}
+	if (pixel == -1) {
+		if ((_W_WIDGET(control)->state & STATE_THEME_BACKGROUND) != 0) {
+			if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
+				/*c = findThemeControl ();
+				 if (c != 0) {
+				 fillThemeBackground (hDC, c, rect);
+				 return;
+				 }*/
+			}
+		}
+	}
+	if (pixel == -1)
+		pixel = priv->get_background_pixel(control, priv);
+	priv->fill_background(control, hDC, pixel, rect);
+}
+wuchar SYSTEM_COLORS[] = {
+COLOR_BTNFACE,
+COLOR_WINDOW,
+COLOR_BTNTEXT,
+COLOR_WINDOWTEXT,
+COLOR_HIGHLIGHT,
+COLOR_SCROLLBAR, };
+HBRUSH _w_control_find_brush(w_control *control, ULONG_PTR value, int lbStyle) {
+	if (lbStyle == BS_SOLID) {
+		for (int i = 0; i < sizeof(SYSTEM_COLORS) / sizeof(SYSTEM_COLORS[0]);
+				i++) {
+			if (value == GetSysColor(SYSTEM_COLORS[i])) {
+				return GetSysColorBrush(SYSTEM_COLORS[i]);
+			}
+		}
+	}
+	LOGBRUSH logBrush;
+	for (int i = 0; i < BRUSHES_SIZE; i++) {
+		HBRUSH hBrush = win_toolkit->brushes[i];
+		if (hBrush == 0)
+			break;
+		GetObjectW(hBrush, sizeof(LOGBRUSH), &logBrush);
+		switch (logBrush.lbStyle) {
+		case BS_SOLID:
+			if (lbStyle == BS_SOLID) {
+				if (logBrush.lbColor == value)
+					return hBrush;
+			}
+			break;
+		case BS_PATTERN:
+			if (lbStyle == BS_PATTERN) {
+				if (logBrush.lbHatch == value)
+					return hBrush;
+			}
+			break;
+		}
+	}
+	int length = BRUSHES_SIZE;
+	HBRUSH hBrush = win_toolkit->brushes[BRUSHES_SIZE - 1];
+	if (hBrush != 0)
+		DeleteObject(hBrush);
+	memcpy(&win_toolkit->brushes[1], win_toolkit->brushes,
+			(BRUSHES_SIZE - 1) * sizeof(HBRUSH));
+	switch (lbStyle) {
+	case BS_SOLID:
+		hBrush = CreateSolidBrush(value);
+		break;
+	case BS_PATTERN:
+		hBrush = CreatePatternBrush((HBITMAP) value);
+		break;
+	}
+	return win_toolkit->brushes[0] = hBrush;
+}
+void _w_control_fill_background(w_control *control, HDC hDC, int pixel,
+		RECT *rect) {
+	if (rect->left > rect->right || rect->top > rect->bottom)
+		return;
+	HPALETTE hPalette = win_toolkit->hPalette;
+	if (hPalette != 0) {
+		SelectPalette(hDC, hPalette, FALSE);
+		RealizePalette(hDC);
+	}
+	FillRect(hDC, rect,
+			_w_control_find_brush(control, pixel & 0x00FFFFFF, BS_SOLID));
+}
 w_cursor* _w_control_find_cursor(w_control *control, _w_control_priv *priv) {
 	if (_W_CONTROL(control)->cursor != 0)
 		return _W_CONTROL(control)->cursor;
 	w_composite *parent = _W_CONTROL(control)->parent;
 	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 	return ppriv->find_cursor(W_CONTROL(parent), ppriv);
+}
+w_control* _w_control_find_background_control(w_control *control,
+		_w_control_priv *priv) {
+	if ((_W_CONTROL(control)->background != 0
+			|| _W_CONTROL(control)->backgroundImage != 0)
+			&& _W_CONTROL(control)->backgroundAlpha > 0)
+		return control;
+	if ((_W_WIDGET(control)->state & STATE_PARENT_BACKGROUND) != 0) {
+		w_composite *parent = _W_CONTROL(control)->parent;
+		_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
+		return ppriv->find_background_control(W_CONTROL(parent), ppriv);
+	} else
+		return 0;
+}
+w_control* _w_control_find_image_control(w_control *control,
+		_w_control_priv *priv) {
+	w_control *c = priv->find_background_control(control, priv);
+	return c != 0 && _W_CONTROL(c)->backgroundImage != 0 ? c : 0;
 }
 wresult _w_control_force_focus(w_control *control) {
 	SetFocus(_W_WIDGET(control)->handle);
@@ -248,6 +367,11 @@ wresult _w_control_get_accessible(w_control *control,
 }
 wresult _w_control_get_background(w_control *control, w_color *background) {
 	return W_FALSE;
+}
+int _w_control_get_background_pixel(w_control *control, _w_control_priv *priv) {
+	return _W_CONTROL(control)->background != 0 ?
+			_W_CONTROL(control)->background :
+			priv->default_background(control, priv);
 }
 wresult _w_control_get_background_image(w_control *control, w_image *image) {
 	return W_FALSE;
@@ -316,6 +440,11 @@ wresult _w_control_get_font(w_control *control, w_font **font) {
 		*font = (w_font*) hFont;
 	}
 	return W_TRUE;
+}
+int _w_control_get_foreground_pixel(w_control *control, _w_control_priv *priv) {
+	return _W_CONTROL(control)->foreground != 0 ?
+			_W_CONTROL(control)->foreground :
+			priv->default_foreground(control, priv);
 }
 wresult _w_control_get_foreground(w_control *control, w_color *foreground) {
 	return W_FALSE;
@@ -962,7 +1091,16 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	priv->subclass = _w_control_subclass;
 	priv->unsubclass = _w_control_unsubclass;
 	priv->set_cursor_0 = _w_control_set_cursor_0;
+	priv->draw_background = _w_control_draw_background;
+	priv->fill_background = _w_control_fill_background;
+	priv->get_background_pixel = _w_control_get_background_pixel;
+	priv->get_foreground_pixel = _w_control_get_foreground_pixel;
+	priv->default_background = _w_control_default_background;
+	priv->default_foreground = _w_control_default_foreground;
+	priv->default_font = _w_control_default_font;
 	priv->find_cursor = _w_control_find_cursor;
+	priv->find_background_control = _w_control_find_background_control;
+	priv->find_image_control = _w_control_find_image_control;
 	priv->translate_accelerator = _w_control_translate_accelerator;
 	priv->translate_mnemonic = _w_control_translate_mnemonic;
 	priv->translate_traversal = _w_control_translate_traversal;

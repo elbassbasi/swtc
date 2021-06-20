@@ -30,6 +30,13 @@ void _w_toolkit_free(void *ptr, size_t size) {
 	} else
 		free(ptr);
 }
+size_t _win32_toolkit_alloc_fn(void *user_data, size_t size, void **buf) {
+	_win32_toolkit_alloc *alloc = (_win32_toolkit_alloc*) user_data;
+	alloc->text = (WCHAR*) _w_toolkit_malloc(size);
+	alloc->size = size;
+	*buf = alloc->text;
+	return size;
+}
 void _w_toolkit_add_shell(_w_shell *shell) {
 	shell->next = 0;
 	if (win_toolkit->shells == 0) {

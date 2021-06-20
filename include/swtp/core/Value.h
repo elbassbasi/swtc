@@ -102,6 +102,21 @@ public:
 	bool CopyString(const char *string, size_t length) {
 		return SetString(string, length, W_VALUE_STRING_COPY);
 	}
+	int Print(w_alloc alloc, void *user_data, const char *format,
+			va_list args) {
+		return w_value_vprint(this, alloc, user_data, format, args);
+	}
+};
+
+class SWTP_PUBLIC WValueAlloc: public WValue {
+public:
+	//using Print;
+	w_alloc alloc;
+	void *user_data;
+	WValueAlloc() {
+		this->alloc = 0;
+		this->user_data = 0;
+	}
 	int Print(const char *format, ...) {
 		va_list args;
 		va_start(args, format);
@@ -117,12 +132,9 @@ public:
 		return ret;
 	}
 	int Print(const char *format, va_list args) {
-		return Print(0, 0, format, args);
+		return WValue::Print(alloc, user_data, format, args);
 	}
-	int Print(w_alloc alloc, void *user_data, const char *format,
-			va_list args) {
-		return w_value_vprint(this, alloc, user_data, format, args);
-	}
+
 };
 
 #endif /* SWTP_CORE_VALUE_H_ */

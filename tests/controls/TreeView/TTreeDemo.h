@@ -8,18 +8,13 @@
 #ifndef TESTS_CONTROLS_TREEVIEW_TTREEDEMO_H_
 #define TESTS_CONTROLS_TREEVIEW_TTREEDEMO_H_
 #include "TTreeViews.h"
-class PersonDemo {
-public:
-	PersonDemo(int i, int j);
-public:
-	char name[30];
-	int i;
-	int j;
-	int progress;
-};
 class TTreeDemo: public WTreeView, public ITreeItem {
 public:
-	static const int font_length = 3;
+	static const int font_length = 4;
+	static const int columns_count = 5;
+	static w_color columns_forgrounds[columns_count];
+	static w_color columns_backgrounds[columns_count];
+	static wuchar columns_fonts[columns_count];
 	static void Registre(WTreeItem &parent);
 	TTreeDemo();
 	~TTreeDemo();
@@ -29,10 +24,7 @@ public:
 	void CreateItems();
 	void CreateFonts();
 protected:
-	bool OnItemGetValue(WTreeEvent &e);
-	bool OnItemGetAttr(WTreeEvent &e);
-	bool OnItemDispose(WTreeEvent &e);
-	WFont* fonts[font_length];
+	WFont *fonts[font_length];
 };
 
 #endif /* TESTS_CONTROLS_TREEVIEW_TTREEDEMO_H_ */

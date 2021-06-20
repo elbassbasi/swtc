@@ -313,6 +313,63 @@ public:
 private:
 	void *handle[(sizeof(w_columnitem) - sizeof(w_item)) / sizeof(void*)];
 };
+class WListTextAttr {
+public:
+	union {
+		int mask;
+		struct {
+			unsigned mask_text :1;
+			unsigned mask_font :1;
+			unsigned mask_background :1;
+			unsigned mask_foreground :1;
+		};
+	};
+	int enc;
+	union {
+		w_alloc alloc;
+		int length;
+	};
+	union {
+		char *text;
+		void *user_data;
+	};
+	WFont *font;
+	WColor background;
+	WColor foreground;
+	bool SetText(const char *text, int length) {
+		return _WReturnBool(_set_text(text, length, W_ENCODING_UTF8));
+	}
+	bool SetText(const char *text) {
+		return SetText(text, -1);
+	}
+	bool SetTextV(const char *format, va_list args) {
+		return _WReturnBool(_printf(W_ENCODING_UTF8, format, args));
+	}
+	bool SetTextV(const char *format, ...) {
+		va_list args;
+		va_start(args, format);
+		bool ret = SetTextV(format, args);
+		va_end(args);
+		return ret;
+	}
+public:
+	WResult _set_text(const char *text, int length, int enc) {
+		if (this->mask & W_LISTITEM_ATTR_MASK_TEXT) {
+			return w_alloc_set_text(alloc, user_data, this->enc, text, length,
+					enc);
+		} else {
+			return false;
+		}
+	}
+	WResult _printf(int enc, const char *format, va_list args) {
+		if (this->mask & W_LISTITEM_ATTR_MASK_TEXT) {
+			return w_alloc_printf(alloc, user_data, this->enc, enc, format,
+					args);
+		} else {
+			return false;
+		}
+	}
+};
 /**
  * Instances of this class represent a selectable user interface object
  * that represents an item in a WListView.
@@ -385,6 +442,33 @@ public:
 		this->SetText(string);
 		return _WReturnBool(result);
 	}
+	WListTextAttr& GetAttr(int index, WListTextAttr &attr) {
+		_get_attr(index, W_LISTITEM_ATTR_MASK_ALL_NO_TEXT, &attr);
+		return attr;
+	}
+	WListTextAttr GetAttr(int index) {
+		WListTextAttr attr;
+		_get_attr(index, W_LISTITEM_ATTR_MASK_ALL_NO_TEXT, &attr);
+		return attr;
+	}
+	/**
+	 * Returns the receiver's background color.
+	 *
+	 * @return the background color
+	 *
+	 */
+	w_color GetBackground() {
+		return GetBackground(0);
+	}
+	/**
+	 * Returns the background color at the given column index in the receiver.
+	 *
+	 * @param index the column index
+	 * @return the background color
+	 */
+	w_color GetBackground(int index) {
+		return GetAttr(index).background;
+	}
 	/**
 	 * Returns a rectangle describing the size and location of the receiver's
 	 * text relative to its parent.
@@ -438,12 +522,153 @@ public:
 		return _WReturnBool(_get_checked());
 	}
 	/**
+	 * Returns the font that the receiver will use to paint textual information for this item.
+	 *
+	 * @return the receiver's font
+	 */
+	WFont* GetFont() {
+		return GetAttr(0).font;
+	}
+	/**
+	 * Returns the font that the receiver will use to paint textual information
+	 * for the specified cell in this item.
+	 *
+	 * @param index the column index
+	 * @return the receiver's font
+	 */
+	WFont* GetFont(int index) {
+		return GetAttr(index).font;
+	}
+	/**
+	 * Returns the foreground color that the receiver will use to draw.
+	 *
+	 * @return the receiver's foreground color
+	 *
+	 */
+	w_color GetForeground() {
+		return GetAttr(0).foreground;
+	}
+
+	/**
+	 *
+	 * Returns the foreground color at the given column index in the receiver.
+	 *
+	 * @param index the column index
+	 * @return the foreground color
+	 */
+	w_color getForeground(int index) {
+		return GetAttr(index).foreground;
+	}
+	/**
 	 * Returns the receiver's parent, which must be a <code>WListView</code>.
 	 *
 	 * @return the receiver's parent
 	 */
 	WListView* GetParent() {
 		return (WListView*) WItem::GetParentWidget();
+	}
+	WString GetText() {
+		return WItem::GetText();
+	}
+	std::string GetTextStd() {
+		return WItem::GetTextStd();
+	}
+	/**
+	 * Returns the text stored at the given column index in the receiver,
+	 * or empty string if the text has not been set.
+	 *
+	 * @param index the column index
+	 * @return the text stored at the given column index in the receiver
+	 */
+	WString GetText(int index) {
+		WString str;
+		_get_text(index, w_alloc_string_ref, &str.ref, W_ENCODING_UTF8);
+		return str;
+	}
+	std::string GetTextStd(int index) {
+		std::string str;
+		_get_text(index, w_alloc_std_string, &str, W_ENCODING_UTF8);
+		return str;
+	}
+	bool SetAttr(int index, int mask, WListTextAttr &attr) {
+		return _WReturnBool(_set_attr(index, mask, &attr));
+	}
+	bool SetAttr(int index, WListTextAttr &attr) {
+		return SetAttr(index, W_LISTITEM_ATTR_MASK_ALL, attr);
+	}
+	/**
+	 * Sets the receiver's background color to the color specified
+	 * by the argument, or to the default system color for the item
+	 * if the argument is null.
+	 *
+	 * @param color the new color (or null)
+	 *
+	 */
+	bool SetBackground(w_color color) {
+		return SetBackground(0, color);
+	}
+	/**
+	 * Sets the background color at the given column index in the receiver
+	 * to the color specified by the argument, or to the default system color for the item
+	 * if the argument is null.
+	 *
+	 * @param index the column index
+	 * @param color the new color (or null)
+	 *
+	 */
+	bool SetBackground(int index, w_color color) {
+		WListTextAttr attr;
+		attr.background = color;
+		return SetAttr(index, W_LISTITEM_ATTR_MASK_BACKGROUND, attr);
+	}
+	/**
+	 * Sets the font that the receiver will use to paint textual information
+	 * for this item to the font specified by the argument, or to the default font
+	 * for that kind of control if the argument is null.
+	 *
+	 * @param font the new font (or null)
+	 */
+	bool SetFont(WFont *font) {
+		return SetFont(0, font);
+	}
+	/**
+	 * Sets the font that the receiver will use to paint textual information
+	 * for the specified cell in this item to the font specified by the
+	 * argument, or to the default font for that kind of control if the
+	 * argument is null.
+	 *
+	 * @param index the column index
+	 * @param font the new font (or null)
+	 */
+	bool SetFont(int index, WFont *font) {
+		WListTextAttr attr;
+		attr.font = font;
+		return SetAttr(index, W_LISTITEM_ATTR_MASK_FONT, attr);
+	}
+	/**
+	 * Sets the receiver's foreground color to the color specified
+	 * by the argument, or to the default system color for the item
+	 * if the argument is null.
+	 *
+	 * @param color the new color (or null)
+	 *
+	 */
+	bool SetForeground(w_color color) {
+		return SetForeground(0, color);
+	}
+	/**
+	 * Sets the foreground color at the given column index in the receiver
+	 * to the color specified by the argument, or to the default system color for the item
+	 * if the argument is null.
+	 *
+	 * @param index the column index
+	 * @param color the new color (or null)
+	 *
+	 */
+	bool SetForeground(int index, w_color color) {
+		WListTextAttr attr;
+		attr.foreground = color;
+		return SetAttr(index, W_LISTITEM_ATTR_MASK_FORGROUND, attr);
 	}
 	bool SetImage(int image) {
 		return _WReturnBool(_set_image(image));
@@ -486,7 +711,57 @@ public:
 	bool SetData(void *data) {
 		return WWidget::SetItemData(this, data);
 	}
+	/**
+	 * Sets the receiver's text.
+	 * <p>
+	 * Note: If control characters like '\n', '\t' etc. are used
+	 * in the string, then the behavior is platform dependent.
+	 * </p>
+	 * @param string the new text
+	 */
+	bool SetText(const char *text, int length) {
+		return WItem::SetText(text, length);
+	}
+	/**
+	 * Sets the receiver's text.
+	 * <p>
+	 * Note: If control characters like '\n', '\t' etc. are used
+	 * in the string, then the behavior is platform dependent.
+	 * </p>
+	 * @param string the new text
+	 */
+	bool SetText(const char *text) {
+		return WItem::SetText(text);
+	}
+	/**
+	 * Sets the receiver's text at a column
+	 * <p>
+	 * Note: If control characters like '\n', '\t' etc. are used
+	 * in the string, then the behavior is platform dependent.
+	 * </p>
+	 * @param index the column index
+	 * @param string the new text
+	 */
+	bool SetText(int index, const char *text, int length) {
+		return _WReturnBool(_set_text(index, text, length, W_ENCODING_UTF8));
+	}
+	/**
+	 * Sets the receiver's text at a column
+	 * <p>
+	 * Note: If control characters like '\n', '\t' etc. are used
+	 * in the string, then the behavior is platform dependent.
+	 * </p>
+	 * @param index the column index
+	 * @param string the new text
+	 */
+	bool SetText(int index, const char *text) {
+		return SetText(index, text, -1);
+	}
 public:
+	WResult _get_attr(int index, int mask, WListTextAttr *attr) {
+		return w_listitem_get_attr(W_LISTITEM(this), index, mask,
+				(w_list_textattr*) attr);
+	}
 	WResult _get_bounds(WRect *bounds) {
 		return w_listitem_get_bounds(W_LISTITEM(this), (w_rect*) bounds);
 	}
@@ -500,20 +775,25 @@ public:
 	WResult _get_image() {
 		return w_listitem_get_image(W_LISTITEM(this));
 	}
+	WResult _get_text(int index, w_alloc alloc, void *user_data, int enc) {
+		return w_listitem_get_text(W_LISTITEM(this), index, alloc, user_data,
+				enc);
+	}
+	WResult _set_attr(int index, int mask, WListTextAttr *attr) {
+		return w_listitem_set_attr(W_LISTITEM(this), index, mask,
+				(w_list_textattr*) attr);
+	}
 	WResult _set_checked(int checked) {
 		return w_listitem_set_checked(W_LISTITEM(this), checked);
 	}
 	WResult _set_image(int image) {
 		return w_listitem_set_image(W_LISTITEM(this), image);
 	}
+	WResult _set_text(int index, const char *text, int length, int enc) {
+		return w_listitem_set_text(W_LISTITEM(this), index, text, length, enc);
+	}
 private:
 	void *handle[(sizeof(w_listitem) - sizeof(w_item)) / sizeof(void*)];
-};
-class WListAttr {
-public:
-	WFont *font;
-	WColor background;
-	WColor foreground;
 };
 class WTreeItem;
 class WListEvent: public WEvent {
@@ -533,16 +813,52 @@ public:
 	WColumnItem *column;
 	WListItem *item;
 	WGraphics *gc;
-	WValue *value;
-	WListAttr *attr;
+	WListTextAttr *textattr;
 	WTreeItem* GetTreeItem() {
 		return (WTreeItem*) item;
 	}
 	WListItem* GetListItem() {
 		return item;
 	}
-	WListItem* GetItem() {
-		return item;
+	int GetColumnIndex() {
+		return column->GetIndex();
+	}
+	template<typename T>
+	T* GetItemData() {
+		return (T*) item->GetData();
+	}
+	template<typename T>
+	T* GetColumnData() {
+		return (T*) column->GetData();
+	}
+public:
+	bool SetAttrText(const char *text, int length) {
+		return textattr->SetText(text, length);
+	}
+	bool SetAttrText(const char *text) {
+		return SetAttrText(text, -1);
+	}
+	bool SetAttrTextV(const char *format, va_list args) {
+		return textattr->SetTextV(format, args);
+	}
+	bool SetAttrTextV(const char *format, ...) {
+		va_list args;
+		va_start(args, format);
+		bool ret = SetAttrTextV(format, args);
+		va_end(args);
+		return ret;
+	}
+	void SetAttrFont(WFont *font) {
+		if (textattr->mask & W_LISTITEM_ATTR_MASK_FONT)
+			textattr->font = font;
+	}
+	void SetAttrBackground(w_color background) {
+		if (textattr->mask & W_LISTITEM_ATTR_MASK_BACKGROUND)
+			textattr->background = background;
+	}
+	void SetAttrForeground(w_color foreground) {
+		if (textattr->mask & W_LISTITEM_ATTR_MASK_FORGROUND)
+			textattr->foreground = foreground;
 	}
 };
 class SWTP_PUBLIC WListViewBase: public WComposite {
@@ -760,19 +1076,37 @@ public:
 	int GetSortDirection() {
 		return _WReturnInt(_get_sort_direction());
 	}
-	bool _InsertColumn(WColumnItem &column, const char *text, int index) {
-		WResult result = _insert_column(&column, index);
-		column.SetText(text);
-		return _WReturnBool(result);
+	WColumnItem& InsertColumn(WColumnItem &column, int index) {
+		_insert_column(&column, index);
+		return column;
+	}
+	WColumnItem InsertColumn(int index) {
+		WColumnItem column;
+		return InsertColumn(column, index);
 	}
 	WColumnItem& InsertColumn(WColumnItem &column, const char *text,
 			int index) {
-		_InsertColumn(column, text, index);
+		InsertColumn(column, index);
+		column.SetText(text);
 		return column;
 	}
+	WColumnItem InsertColumn(const char *text, int index) {
+		WColumnItem column;
+		return InsertColumn(column, text, index);
+	}
 	WColumnItem& AppendColumn(WColumnItem &column, const char *text) {
-		_InsertColumn(column, text, -1);
-		return column;
+		return InsertColumn(column, text, -1);
+	}
+	WColumnItem AppendColumn(const char *text) {
+		WColumnItem column;
+		return AppendColumn(column, text);
+	}
+	WColumnItem& AppendColumn(WColumnItem &column) {
+		return InsertColumn(column, -1);
+	}
+	WColumnItem AppendColumn() {
+		WColumnItem column;
+		return AppendColumn(column);
 	}
 	/**
 	 * Removes all of the items from the receiver.
@@ -865,6 +1199,15 @@ public:
 	}
 protected:
 	w_class_id _GetClassID();
+	bool PostEvent(WEvent *e);
+	virtual bool OnItemSelection(WListEvent &e);
+	virtual bool OnItemDefaultSelection(WListEvent &e);
+	virtual bool OnItemGetText(WListEvent &e);
+	virtual bool OnItemSetText(WListEvent &e);
+	virtual bool OnItemMeasure(WListEvent &e);
+	virtual bool OnItemErase(WListEvent &e);
+	virtual bool OnItemPaint(WListEvent &e);
+	virtual bool OnItemDispose(WListEvent &e);
 public:
 	WResult _clear_all() {
 		return w_listviewbase_clear_all(W_LISTVIEWBASE(this));

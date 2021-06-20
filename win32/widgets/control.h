@@ -45,6 +45,10 @@ typedef struct _w_control {
 	//w_font *font;
 	HMENU activeMenu;
 	wushort drawCount;
+	wuchar backgroundAlpha;
+	w_color background;
+	w_color foreground;
+	HBITMAP backgroundImage;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)
 /*
@@ -73,6 +77,17 @@ struct _w_control_priv {
 	wresult (*check_mirrored)(w_control *control, _w_control_priv *priv);
 	wresult (*check_border)(w_control *control, _w_control_priv *priv);
 	wresult (*check_gesture)(w_control *control, _w_control_priv *priv);
+	void (*draw_background)(w_control *control, HDC hDC, RECT *rect, int pixel,
+			int tx, int ty, _w_control_priv *priv);
+	void (*fill_background)(w_control *control, HDC hDC, int pixel, RECT *rect);
+	int (*get_background_pixel)(w_control *control, _w_control_priv *priv);
+	int (*get_foreground_pixel)(w_control *control, _w_control_priv *priv);
+	int (*default_background)(w_control *control, _w_control_priv *priv);
+	int (*default_foreground)(w_control *control, _w_control_priv *priv);
+	HFONT (*default_font)(w_control *control, _w_control_priv *priv);
+	w_control* (*find_background_control)(w_control *control,
+			_w_control_priv *priv);
+	w_control* (*find_image_control)(w_control *control, _w_control_priv *priv);
 	wresult (*set_background)(w_control *control, _w_control_priv *priv);
 	HWND (*widget_parent)(w_control *control, _w_control_priv *priv);
 	DWORD (*widget_style)(w_control *control, _w_control_priv *priv);

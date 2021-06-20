@@ -566,6 +566,42 @@ public:
 		return widget->GetClassId() == _W_CLASS_TREEVIEW;
 	}
 public:
+	/*
+	 *
+	 */
+	WTreeItem& InsertItem(WTreeItem &item, int index) {
+		WTreeItem rootitem;
+		GetRootItem(rootitem).InsertItem(item, index);
+		return item;
+	}
+	WTreeItem& InsertItem(WTreeItem &item, const char *text, int index) {
+		InsertItem(item, index);
+		item.SetText(text);
+		return item;
+	}
+	WTreeItem InsertItem(int index) {
+		WTreeItem item;
+		return InsertItem(item, index);
+	}
+	WTreeItem InsertItem(const char *text, int index) {
+		WTreeItem item;
+		return InsertItem(item, text, index);
+	}
+	WTreeItem& AppendItem(WTreeItem &item) {
+		return InsertItem(item, -1);
+	}
+	WTreeItem& AppendItem(WTreeItem &item, const char *text) {
+		return InsertItem(item, text, -1);
+	}
+	WTreeItem AppendItem(const char *text) {
+		WTreeItem item;
+		return InsertItem(item, text, -1);
+	}
+	WTreeItem AppendItem() {
+		WTreeItem item;
+		return InsertItem(item, -1);
+	}
+public:
 	WResult _clear(WTreeItem *item) {
 		return w_treeview_clear(W_TREEVIEW(this), W_TREEITEM(item));
 	}
@@ -607,18 +643,8 @@ public:
 protected:
 	w_class_id _GetClassID();
 	bool PostEvent(WEvent *e);
-	virtual bool OnItemExpand(WTreeEvent &e);
-	virtual bool OnItemCollapse(WTreeEvent &e);
-	virtual bool OnItemSelection(WTreeEvent &e);
-	virtual bool OnItemDefaultSelection(WTreeEvent &e);
-	virtual bool OnItemGetValue(WTreeEvent &e);
-	virtual bool OnItemSetValue(WTreeEvent &e);
-	virtual bool OnItemGetAttr(WTreeEvent &e);
-	virtual bool OnItemSetAttr(WTreeEvent &e);
-	virtual bool OnItemMeasure(WTreeEvent &e);
-	virtual bool OnItemErase(WTreeEvent &e);
-	virtual bool OnItemPaint(WTreeEvent &e);
-	virtual bool OnItemDispose(WTreeEvent &e);
+	virtual bool OnItemExpand(WListEvent &e);
+	virtual bool OnItemCollapse(WListEvent &e);
 private:
 	//void *handles[(sizeof(w_treeview) - sizeof(w_listviewbase)) / sizeof(void*)];
 };

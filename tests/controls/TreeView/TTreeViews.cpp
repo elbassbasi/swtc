@@ -7,13 +7,13 @@
 
 #include "TTreeViews.h"
 #include "TTreeDemo.h"
-#include "TTreeCustom.h"
+#include "TTreeVirtual.h"
 void TTreeViews::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "TreeView", new TTreeViews());
 }
 
 bool TTreeViews::Expand(WTreeItem &item) {
 	TTreeDemo::Registre(item);
-	TTreeCustom::Registre(item);
+	TTreeVirtual::Registre(item);
 	return true;
 }

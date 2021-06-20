@@ -12,6 +12,41 @@
  * state
  */
 #define STATE_TABLE_END (STATE_COMPOSITE_END + 1)
+#define _W_TREECOLUMN_NOT_MOVEABLE 0x1
+#define _W_TREECOLUMN_NOT_RESIZABLE 0x2
+typedef struct _w_column_list {
+	int flags;
+	int id;
+	char *tooltip;
+} _w_column_list;
+typedef struct _w_columns_list {
+	int alloc;
+	_w_column_list columns[0];
+} _w_columns_list;
+_w_column_list* _w_columns_list_get(w_widget *widget, int index, int create);
+
+typedef struct _w_item_list {
+	w_color background;
+	w_color foreground;
+	int image;
+	w_font *font;
+	char *text;
+} _w_item_list;
+typedef struct _w_items_list {
+	int alloc;
+	void *user_data;
+	_w_item_list columns[0];
+} _w_items_list;
+_w_item_list* _w_items_list_get(_w_items_list **list, int index, int create);
+
+typedef struct LISTITEM {
+	w_class_id class_id;
+	union {
+		TVITEMW tvItem;
+		LVITEMW lvItem;
+	};
+} LISTITEM;
+
 /*
  * listitem
  */
@@ -26,7 +61,12 @@ typedef struct _w_listviewbase {
 	_w_composite composite;
 	unsigned explorerTheme :1;
 	unsigned createdAsRTL :1;
+	unsigned sortDirection :2;
+	int sortColumn;
 	w_imagelist *imagelist;
+	w_imagelist *headerimagelist;
+	_w_columns_list *columns;
+	HWND headerToolTipHandle;
 } _w_listviewbase;
 #define _W_LISTVIEWBASE(x) ((_w_listviewbase*)x)
 #define _W_LISTVIEWBASE_GET_ITEM_CLASS(list) (W_WIDGETDATA_CLASS(W_LISTVIEWBASE_GET_CLASS(list)->class_item))
@@ -40,7 +80,8 @@ typedef struct _w_listview {
  */
 typedef struct _w_listviewbase_priv {
 	_w_composite_priv composite;
-}_w_listviewbase_priv;
+	HWND (*get_header)(w_listviewbase *list, int create, _w_control_priv *priv);
+} _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
 #define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_w_widget_get_priv(W_WIDGET(x)))
 void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz);
@@ -48,5 +89,29 @@ typedef struct _w_listview_priv {
 	_w_listviewbase_priv base;
 } _w_listview_priv;
 #define _W_LISTVIEW_PRIV(x) ((_w_listview_priv*)x)
+
+wresult _w_listitem_copy(w_widgetdata *from, w_widgetdata *to);
+wresult _w_listitem_equals(w_widgetdata *obj1, w_widgetdata *obj2);
+wresult _w_listitem_get_data(w_item *item, void **data);
+wresult _w_listitem_get_text(w_item *item, w_alloc alloc, void *user_data,
+		int enc);
+wresult _w_listitem_get_text_0(w_listitem *item, int index, w_alloc alloc,
+		void *user_data, int enc);
+wresult _w_listitem_set_data(w_item *item, void *data);
+wresult _w_listitem_set_text(w_item *item, const char *text, int length,
+		int enc);
+wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
+		int length, int enc);
+wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
+		w_list_textattr *attr);
+wresult _w_listitem_get_bounds(w_listitem *item, w_rect *bounds);
+wresult _w_listitem_get_bounds_index(w_listitem *item, int index,
+		w_rect *bounds);
+wresult _w_listitem_get_checked(w_listitem *item);
+wresult _w_listitem_get_image(w_listitem *item);
+wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
+		w_list_textattr *attr);
+wresult _w_listitem_set_checked(w_listitem *item, int checked);
+wresult _w_listitem_set_image(w_listitem *item, int image);
 void _w_listview_class_init(struct _w_listview_class *clazz);
 #endif /* WIN32_CONTROLS_TABLE_H_ */

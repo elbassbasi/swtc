@@ -70,10 +70,8 @@ enum {
 	W_EVENT_OPENDOCUMENT,
 	W_EVENT_TOUCH,
 	W_EVENT_GESTURE,
-	W_EVENT_ITEM_GET_VALUE,
-	W_EVENT_ITEM_SET_VALUE,
-	W_EVENT_ITEM_GET_ATTR,
-	W_EVENT_ITEM_SET_ATTR,
+	W_EVENT_ITEM_GET_TEXT,
+	W_EVENT_ITEM_SET_TEXT,
 	W_EVENT_ITEM_SELECTION,
 	W_EVENT_ITEM_DEFAULTSELECTION,
 	W_EVENT_ITEM_HELP,
@@ -263,8 +261,10 @@ typedef struct w_event_tooltip_text {
 		};
 		int detail;
 	};
+	int enc;
+	w_alloc alloc;
+	void *user_data;
 	w_point location;
-	w_value text;
 } w_event_tooltip_text;
 #ifdef __cplusplus
 }

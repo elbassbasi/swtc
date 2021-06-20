@@ -9,17 +9,6 @@
 void TTreeDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Demo", new TTreeDemo());
 }
-PersonDemo::PersonDemo(int i, int j) {
-	this->i = i;
-	this->j = j;
-	if (j < 0) {
-		sprintf(this->name, "person %d", i);
-		this->progress = i % 5;
-	} else {
-		sprintf(this->name, "_person %d,%d", i, j);
-		this->progress = j;
-	}
-}
 TTreeDemo::TTreeDemo() {
 	memset(fonts, 0, sizeof(fonts));
 }
@@ -29,7 +18,9 @@ TTreeDemo::~TTreeDemo() {
 	}
 }
 void TTreeDemo::CreateControl(WComposite *parent) {
-	this->Create(parent, W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
+	this->Create(parent,
+			W_DOUBLE_BUFFERED | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION
+					| W_CHECK);
 	CreateColumns();
 	CreateItems();
 	CreateFonts();
@@ -40,20 +31,29 @@ WControl* TTreeDemo::GetControl(WComposite *parent) {
 	}
 	return this;
 }
-
+w_color TTreeDemo::columns_forgrounds[columns_count] = { W_COLOR_CYAN,
+		W_COLOR_GREEN, W_COLOR_CYAN };
+w_color TTreeDemo::columns_backgrounds[columns_count] = { W_COLOR_RED,
+		W_COLOR_DARK_RED, W_COLOR_BLUE };
+wuchar TTreeDemo::columns_fonts[columns_count] = { 0, 1, 2, 1 };
 void TTreeDemo::CreateColumns() {
 	WColumnItem column;
 	MFrame *frame = (MFrame*) GetFrame();
+	char txt[50];
 	this->SetHeaderImageList(frame->GetImageList32());
-	this->GetColumn(0, column).SetText("id");
-	column.SetImage(1);
-	this->AppendColumn(column, "progress").SetImage(2);
-	this->AppendColumn(column, "int").SetImage(3);
-	column.SetAlignment(W_CENTER);
+	for (int i = 0; i < columns_count; i++) {
+		if (i == 0)
+			this->GetColumn(0, column);
+		else
+			this->AppendColumn(column);
+		sprintf(txt, "column %d", i);
+		column.SetText(txt);
+		column.SetImage(i % 3);
+		//column.SetAlignment(W_CENTER);
+	}
 	this->SetHeaderVisible(true);
 	this->SetLinesVisible(true);
 }
-
 void TTreeDemo::CreateItems() {
 	WTreeItem item1, root, item2;
 	char txt[50];
@@ -61,17 +61,26 @@ void TTreeDemo::CreateItems() {
 	this->SetImageList(frame->GetImageList32());
 	int imagelistcount = WMAX(1, this->GetImageList()->GetCount());
 	this->GetRootItem(root);
+	int columns = this->GetColumnCount();
 	for (int i = 0; i < 50; i++) {
-		sprintf(txt, " test %d", i);
-		if (root.AppendItem(item1, txt).IsOk()) {
+		if (root.AppendItem(item1).IsOk()) {
 			item1.SetImage(i % imagelistcount);
-			item1.SetData(new PersonDemo(i, -1));
+			for (int k = 0; k < columns; k++) {
+				sprintf(txt, "item (%d) %d", i, k);
+				item1.SetText(k, txt);
+				item1.SetBackground(k, columns_backgrounds[k]);
+				item1.SetForeground(k, columns_forgrounds[k]);
+				item1.SetFont(k, this->fonts[columns_fonts[k]]);
+			}
 			for (int j = 0; j < 5; j++) {
-				sprintf(txt, "test %d,%d", i, j);
 				item1.AppendItem(item2);
-				if (item2.IsOk()) {
-					item2.SetImage(j);
-					item2.SetData(new PersonDemo(i, j));
+				item2.SetImage(j);
+				for (int k = 0; k < columns; k++) {
+					sprintf(txt, "item (%d,%d) %d", i, j, k);
+					item2.SetText(k, txt);
+					item2.SetBackground(k, columns_backgrounds[k]);
+					item2.SetForeground(k, columns_forgrounds[k]);
+					item2.SetFont(k, this->fonts[columns_fonts[k]]);
 				}
 			}
 		}
@@ -82,53 +91,10 @@ void TTreeDemo::CreateFonts() {
 	WFontData fontdata;
 	this->GetFont()->GetFontData(fontdata);
 	fontdata.SetStyle(W_NORMAL);
-	this->fonts[0] = WFont::Create(fontdata);
-	fontdata.SetStyle(W_BOLD);
 	this->fonts[1] = WFont::Create(fontdata);
-	fontdata.SetStyle(W_ITALIC);
+	fontdata.SetStyle(W_BOLD);
+	fontdata.SetHeight(15);
 	this->fonts[2] = WFont::Create(fontdata);
-}
-bool TTreeDemo::OnItemGetValue(WTreeEvent &e) {
-	PersonDemo *p = (PersonDemo*) e.item->GetData();
-	switch (e.column->GetIndex()) {
-	case 0:
-		e.value->SetString(p->name);
-		break;
-	case 2:
-		e.value->Sprint("i %s %d", p->name, p->progress);
-		break;
-	default:
-		return WTreeView::OnItemGetValue(e);
-		break;
-	}
-	return true;
-}
-
-bool TTreeDemo::OnItemGetAttr(WTreeEvent &e) {
-	PersonDemo *p;
-	if (e.column->GetIndex() == 2) {
-		p = (PersonDemo*) e.item->GetData();
-		if (p != 0) {
-			if (e.item->GetChecked()) {
-				e.attr->foreground = W_COLOR_RED;
-				e.attr->background = W_COLOR_DARK_GREEN;
-				e.attr->font = this->fonts[2];
-			} else {
-				e.attr->foreground = W_COLOR_MAGENTA;
-				e.attr->background = W_COLOR_DARK_GREEN;
-				e.attr->font = this->fonts[1];
-			}
-		}
-		return true;
-	}
-	return false;
-}
-
-bool TTreeDemo::OnItemDispose(WTreeEvent &e) {
-	PersonDemo *p = (PersonDemo*) e.item->GetData();
-	if (p != 0) {
-		e.item->SetData(0);
-		delete p;
-	}
-	return false;
+	fontdata.SetStyle(W_ITALIC);
+	this->fonts[3] = WFont::Create(fontdata);
 }

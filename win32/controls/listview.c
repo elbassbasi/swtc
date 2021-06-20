@@ -16,35 +16,241 @@ wresult _w_listitem_equals(w_widgetdata *obj1, w_widgetdata *obj2) {
 	return W_FALSE;
 }
 wresult _w_listitem_get_data(w_item *item, void **data) {
-	return W_FALSE;
+	w_widget *parent = _W_ITEM(item)->parent;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
+	w_class_id class_id = clazz->class_id;
+	wresult result = W_FALSE;
+	HWND handle = _W_WIDGET(parent)->handle;
+	if (class_id == _W_CLASS_TREEVIEW) {
+		TVITEMW tvItem;
+		tvItem.mask = TVIF_PARAM;
+		tvItem.lParam = 0;
+		tvItem.hItem = _W_TREEITEM(item)->htreeitem;
+		*data = 0;
+		if (SendMessageW(handle, TVM_GETITEMW, 0, (LPARAM) &tvItem)) {
+			if ((_W_WIDGET(parent)->style & W_VIRTUAL) != 0) {
+				*data = (void*) tvItem.lParam;
+			} else {
+				_w_items_list *arr = (_w_items_list*) tvItem.lParam;
+				if (arr != 0) {
+					*data = arr->user_data;
+				}
+			}
+			return W_TRUE;
+		} else {
+			return W_FALSE;
+		}
+	} else {
+
+	}
+	return result;
+}
+wresult _w_listitem_get_text_0(w_listitem *item, int index, w_alloc alloc,
+		void *user_data, int enc) {
+	w_list_textattr attr;
+	attr.mask = W_LISTITEM_ATTR_MASK_TEXT;
+	attr.alloc = alloc;
+	attr.user_data = user_data;
+	attr.enc = enc;
+	return _w_listitem_get_attr(item, index, W_LISTITEM_ATTR_MASK_TEXT, &attr);
 }
 wresult _w_listitem_get_text(w_item *item, w_alloc alloc, void *user_data,
 		int enc) {
-	return W_FALSE;
+	return _w_listitem_get_text_0(W_LISTITEM(item), 0, alloc, user_data, enc);
 }
 wresult _w_listitem_set_data(w_item *item, void *data) {
-	return W_FALSE;
+	w_widget *parent = _W_ITEM(item)->parent;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
+	w_class_id class_id = clazz->class_id;
+	HWND handle = _W_WIDGET(parent)->handle;
+	wresult result = W_FALSE;
+	if (class_id == _W_CLASS_TREEVIEW) {
+		TVITEMW tvItem;
+		tvItem.hItem = _W_TREEITEM(item)->htreeitem;
+		if (_W_WIDGET(parent)->style & W_VIRTUAL) {
+			tvItem.mask = TVIF_PARAM;
+			tvItem.lParam = (LPARAM) data;
+			if (SendMessageW(handle, TVM_SETITEMW, 0, (LPARAM) &tvItem)) {
+				result = W_TRUE;
+			}
+		} else {
+			tvItem.mask = TVIF_PARAM;
+			tvItem.lParam = 0;
+			if (SendMessageW(handle, TVM_GETITEMW, 0, (LPARAM) &tvItem)) {
+				_w_items_list *arr = (_w_items_list*) tvItem.lParam;
+				_w_items_list *lastarr = arr;
+				_w_items_list_get(&arr, 0, TRUE);
+				if (arr != 0) {
+					arr->user_data = data;
+					if (lastarr != arr) {
+						tvItem.mask = TVIF_PARAM;
+						tvItem.lParam = (LPARAM) arr;
+						if (SendMessageW(handle, TVM_SETITEMW, 0,
+								(LPARAM) &tvItem)) {
+							result = W_TRUE;
+						}
+					} else
+						result = W_TRUE;
+				}
+			}
+		}
+	} else {
+		LVITEMW lvItem;
+
+	}
+	return result;
+}
+wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
+		int length, int enc) {
+	w_widget *parent = _W_ITEM(item)->parent;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
+	HWND handle = _W_WIDGET(parent)->handle;
+	wresult result = W_FALSE;
+	LRESULT lresult;
+	WCHAR *s;
+	int newlength = 0;
+	LISTITEM lItem;
+	lItem.class_id = clazz->class_id;
+	if (lItem.class_id == _W_CLASS_TREEVIEW) {
+		lItem.tvItem.mask = TVIF_TEXT;
+		lItem.tvItem.hItem = _W_TREEITEM(item)->htreeitem;
+	} else {
+		lItem.lvItem.mask = LVIF_TEXT;
+		lItem.lvItem.iSubItem = index;
+	}
+	if ((_W_WIDGET(parent)->style & W_VIRTUAL) == 0) {
+		_w_items_list *arr;
+		if (lItem.class_id == _W_CLASS_TREEVIEW) {
+			lItem.tvItem.mask = TVIF_PARAM;
+			lresult = SendMessageW(handle, TVM_GETITEMW, 0,
+					(LPARAM) &lItem.tvItem);
+			arr = (_w_items_list*) lItem.tvItem.lParam;
+		} else {
+			lItem.lvItem.mask = LVIF_PARAM;
+			lresult = SendMessageW(handle, LVM_GETITEMW, 0,
+					(LPARAM) &lItem.lvItem);
+			arr = (_w_items_list*) lItem.lvItem.lParam;
+		}
+		if (lresult) {
+			_w_item_list *_i = _w_items_list_get(&arr, index, TRUE);
+			if (_i != 0) {
+				_win_text_copy(&_i->text, text, length, enc);
+			}
+			if (lItem.class_id == _W_CLASS_TREEVIEW) {
+				lItem.tvItem.lParam = (LPARAM) arr;
+				lItem.tvItem.mask = TVIF_TEXT | TVIF_PARAM;
+			} else {
+				lItem.lvItem.lParam = (LPARAM) arr;
+				lItem.lvItem.mask = LVIF_TEXT | LVIF_PARAM;
+			}
+		}
+		s = LPSTR_TEXTCALLBACKW;
+	} else {
+		if (index == 0) {
+			if (text == 0)
+				s = LPSTR_TEXTCALLBACKW;
+			else
+				result = _win_text_fix(text, length, enc, &s, &newlength);
+		} else {
+
+		}
+	}
+	if (s != 0) {
+		if (lItem.class_id == _W_CLASS_TREEVIEW) {
+			lItem.tvItem.cchTextMax = newlength;
+			lItem.tvItem.pszText = s;
+			if (SendMessageW(handle, TVM_SETITEMW, 0, (LPARAM) &lItem.tvItem)) {
+				result = W_TRUE;
+			}
+		} else {
+			lItem.lvItem.cchTextMax = newlength;
+			lItem.lvItem.pszText = s;
+			if (SendMessageW(handle, LVM_SETITEMW, 0, (LPARAM) &lItem.lvItem)) {
+				result = W_TRUE;
+			}
+		}
+	}
+	if (s != LPSTR_TEXTCALLBACKW)
+		_win_text_free(text, s, newlength);
+	return result;
 }
 wresult _w_listitem_set_text(w_item *item, const char *text, int length,
 		int enc) {
-	int newlength;
+	return _w_listitem_set_text_0(W_LISTITEM(item), 0, text, length, enc);
+}
+wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
+		w_list_textattr *attr) {
+	w_widget *parent = _W_ITEM(item)->parent;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
+	w_class_id class_id = clazz->class_id;
+	HWND handle = _W_WIDGET(parent)->handle;
 	wresult result = W_FALSE;
-	WCHAR *s;
-	_win_text_fix(text, length, enc, &s, &newlength);
-	if (s != 0) {
-		LVITEMW lvItem;
-		w_widget *list = _W_ITEM(item)->parent;
+	LRESULT lresult;
+	TVITEMW tvItem;
+	LVITEMW lvItem;
+	if (class_id == _W_CLASS_TREEVIEW) {
+		tvItem.mask = TVIF_TEXT;
+		tvItem.hItem = _W_TREEITEM(item)->htreeitem;
+	} else {
 		lvItem.mask = LVIF_TEXT;
-		lvItem.cchTextMax = newlength;
-		lvItem.pszText = s;
-		lvItem.iItem = _W_ITEM(item)->index;
-		lvItem.iSubItem = 0;
-		if (SendMessageW(_W_WIDGET(list)->handle, LVM_SETITEMW, 0,
-				(LPARAM) &lvItem)) {
-			result = W_TRUE;
-		}
+		lvItem.iSubItem = index;
 	}
-	_win_text_free(text, s, newlength);
+	if (attr->mask & W_LISTITEM_ATTR_MASK_FONT) {
+		attr->font = 0;
+	}
+	if (attr->mask & W_LISTITEM_ATTR_MASK_BACKGROUND) {
+		attr->background = 0;
+	}
+	if (attr->mask & W_LISTITEM_ATTR_MASK_FORGROUND) {
+		attr->foreground = 0;
+	}
+	if ((_W_WIDGET(parent)->style & W_VIRTUAL) == 0) {
+		_w_items_list *arr;
+		if (class_id == _W_CLASS_TREEVIEW) {
+			tvItem.mask = TVIF_PARAM;
+			lresult = SendMessageW(handle, TVM_GETITEMW, 0, (LPARAM) &tvItem);
+			arr = (_w_items_list*) tvItem.lParam;
+		} else {
+			lvItem.mask = LVIF_TEXT;
+			lresult = SendMessageW(handle, LVM_GETITEMW, 0, (LPARAM) &lvItem);
+			arr = (_w_items_list*) lvItem.lParam;
+		}
+		if (lresult) {
+			_w_item_list *_i = _w_items_list_get(&arr, index, FALSE);
+			if (_i != 0) {
+				if (attr->mask & W_LISTITEM_ATTR_MASK_TEXT) {
+					_win_text_set_0(_i->text, -1, attr->alloc, attr->user_data,
+							attr->enc);
+				}
+				if (attr->mask & W_LISTITEM_ATTR_MASK_FONT) {
+					attr->font = _i->font;
+				}
+				if (attr->mask & W_LISTITEM_ATTR_MASK_BACKGROUND) {
+					attr->background = _i->background;
+				}
+				if (attr->mask & W_LISTITEM_ATTR_MASK_FORGROUND) {
+					attr->foreground = _i->foreground;
+				}
+				result = W_TRUE;
+			}
+		}
+	} else {
+		if (index == 0) {
+		}
+		w_event_list event;
+		_w_item column;
+		W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(parent);
+		_W_ITEM(&column)->parent = parent;
+		_W_ITEM(&column)->index = index;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_GET_TEXT;
+		event.event.widget = parent;
+		event.event.platform_event = 0;
+		event.item = item;
+		event.column = W_COLUMNITEM(&column);
+		event.textattr = attr;
+		result = _w_widget_send_event(parent, W_EVENT(&event));
+	}
 	return result;
 }
 wresult _w_listitem_get_bounds(w_listitem *item, w_rect *bounds) {
@@ -59,6 +265,85 @@ wresult _w_listitem_get_checked(w_listitem *item) {
 }
 wresult _w_listitem_get_image(w_listitem *item) {
 	return W_FALSE;
+}
+wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
+		w_list_textattr *attr) {
+	w_widget *parent = _W_ITEM(item)->parent;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
+	w_class_id class_id = clazz->class_id;
+	HWND handle = _W_WIDGET(parent)->handle;
+	wresult result = W_FALSE;
+	LRESULT lresult;
+	TVITEMW tvItem;
+	LVITEMW lvItem;
+	if (class_id == _W_CLASS_TREEVIEW) {
+		tvItem.mask = TVIF_TEXT;
+		tvItem.hItem = _W_TREEITEM(item)->htreeitem;
+	} else {
+		lvItem.mask = LVIF_TEXT;
+		lvItem.iSubItem = index;
+	}
+	if ((_W_WIDGET(parent)->style & W_VIRTUAL) == 0) {
+		_w_items_list *arr, *lastarr;
+		if (class_id == _W_CLASS_TREEVIEW) {
+			tvItem.mask = TVIF_PARAM;
+			lresult = SendMessageW(handle, TVM_GETITEMW, 0, (LPARAM) &tvItem);
+			arr = (_w_items_list*) tvItem.lParam;
+		} else {
+			lvItem.mask = LVIF_PARAM;
+			lresult = SendMessageW(handle, LVM_GETITEMW, 0, (LPARAM) &lvItem);
+			arr = (_w_items_list*) lvItem.lParam;
+		}
+		if (lresult) {
+			lastarr = arr;
+			_w_item_list *_i = _w_items_list_get(&arr, index, TRUE);
+			if (_i != 0) {
+				if (mask & W_LISTITEM_ATTR_MASK_TEXT) {
+					_win_text_copy(&_i->text, attr->text, attr->length,
+							attr->enc);
+				}
+				if (mask & W_LISTITEM_ATTR_MASK_FONT) {
+					_i->font = attr->font;
+				}
+				if (mask & W_LISTITEM_ATTR_MASK_BACKGROUND) {
+					_i->background = attr->background;
+				}
+				if (mask & W_LISTITEM_ATTR_MASK_FORGROUND) {
+					_i->foreground = attr->foreground;
+				}
+				if (lastarr != arr) {
+					if (class_id == _W_CLASS_TREEVIEW) {
+						tvItem.lParam = (LPARAM) arr;
+						lresult = SendMessageW(handle, TVM_SETITEMW, 0,
+								(LPARAM) &tvItem);
+					} else {
+						lvItem.lParam = (LPARAM) arr;
+						lresult = SendMessageW(handle, LVM_SETITEMW, 0,
+								(LPARAM) &lvItem);
+					}
+				}
+				result = W_TRUE;
+			}
+		}
+	} else {
+		if (index == 0) {
+
+		}
+		w_event_list event;
+		_w_item column;
+		W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(parent);
+		_W_ITEM(&column)->parent = parent;
+		_W_ITEM(&column)->index = index;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_SET_TEXT;
+		event.event.widget = parent;
+		event.event.platform_event = 0;
+		event.item = item;
+		event.column = W_COLUMNITEM(&column);
+		event.textattr = attr;
+		result = _w_widget_send_event(parent, W_EVENT(&event));
+	}
+	return result;
 }
 wresult _w_listitem_set_checked(w_listitem *item, int checked) {
 	return W_FALSE;
@@ -370,8 +655,6 @@ void _w_listview_class_init(struct _w_listview_class *clazz) {
 	/*
 	 * function
 	 */
-	W_LISTVIEWBASE_CLASS(clazz)->set_header_visible =
-			_w_listview_set_header_visible;
 	clazz->clear_index = _w_listview_clear_index;
 	clazz->clear_indices = _w_listview_clear_indices;
 	clazz->clear_item = _w_listview_clear_item;
@@ -405,22 +688,6 @@ void _w_listview_class_init(struct _w_listview_class *clazz) {
 	clazz->set_top_index = _w_listview_set_top_index;
 	clazz->set_top_item = _w_listview_set_top_item;
 	clazz->show_item = _w_listview_show_item;
-	/*
-	 * list item
-	 */
-	struct _w_listitem_class *listitem = W_LISTITEM_CLASS(
-			clazz->base.class_item);
-	_w_item_class_init(W_ITEM_CLASS(listitem));
-	W_ITEM_CLASS(listitem)->get_data = _w_listitem_get_data;
-	W_ITEM_CLASS(listitem)->get_text = _w_listitem_get_text;
-	W_ITEM_CLASS(listitem)->set_data = _w_listitem_set_data;
-	W_ITEM_CLASS(listitem)->set_text = _w_listitem_set_text;
-	listitem->get_bounds = _w_listitem_get_bounds;
-	listitem->get_bounds_index = _w_listitem_get_bounds_index;
-	listitem->get_checked = _w_listitem_get_checked;
-	listitem->get_image = _w_listitem_get_image;
-	listitem->set_checked = _w_listitem_set_checked;
-	listitem->set_image = _w_listitem_set_image;
 	/*
 	 * private
 	 */

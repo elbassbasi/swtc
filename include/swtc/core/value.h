@@ -20,6 +20,7 @@ typedef enum {
 	W_VALUE_DOUBLE,
 	//string
 	W_VALUE_STRING_UTF8,
+	W_VALUE_STRING_UNICODE,
 	W_VALUE_STRING_REF,
 } w_value_type;
 typedef struct w_value w_value;
@@ -74,7 +75,7 @@ SWT_PUBLIC void w_value_init_int64(w_value *value, wint64 _i);
 SWT_PUBLIC void w_value_init_float(w_value *value, float _float);
 SWT_PUBLIC void w_value_init_double(w_value *value, double _double);
 SWT_PUBLIC wresult w_value_init_string(w_value *value, const char *string,
-		size_t length, int flags);
+		int length, int flags);
 SWT_PUBLIC void w_value_init_pointer(w_value *value, void *pointer,
 		size_t length, int flags);
 //set
@@ -95,7 +96,7 @@ SWT_PUBLIC double w_value_get_double(w_value *value);
 SWT_PUBLIC const char* w_value_get_string_0(w_value *value, w_alloc alloc,
 		void *user_data, int flags);
 SWT_PUBLIC const char* w_value_get_string(w_value *value, char *text,
-		size_t length, int flags);
+		int length, int flags);
 SWT_PUBLIC char* w_value_string_create(w_value *value, size_t length);
 SWT_PUBLIC void w_value_string_copy(w_value *value, char *text, size_t length);
 SWT_PUBLIC int w_value_print(w_value *value, w_alloc alloc, void *user_data,

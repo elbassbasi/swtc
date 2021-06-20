@@ -882,11 +882,11 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	w_event_list event;
 	w_rect rect;
 	_w_graphics gc;
-	w_list_attr attr;
+	w_list_textattr attr;
 	char *text;
 	int wasSelected = FALSE;
 	memset(&event, 0, sizeof(event));
-	event.event.type = W_EVENT_ITEM_GET_ATTR;
+	event.event.type = W_EVENT_ITEM_GET_TEXT;
 	event.event.widget = widget;
 	event.column = W_COLUMNITEM(column);
 	event.item = W_ITEM(item);

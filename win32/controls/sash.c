@@ -37,8 +37,8 @@ const char* _w_sash_window_class(w_control *control, _w_control_priv *priv) {
 wresult _SASH_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	wresult ret = _WIDGET_WM_LBUTTONDOWN(widget, e, priv);
-	/*if (e->result == 0)
-	 return ret;*/
+	if (ret != W_FALSE)
+		return ret;
 
 	/* Compute the banding rectangle */
 	HWND hwndTrack = GetParent(_W_WIDGET(widget)->handle);
@@ -102,8 +102,8 @@ wresult _SASH_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 wresult _SASH_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	wresult ret = _WIDGET_WM_LBUTTONUP(widget, e, priv);
-	/*if (e->result == 0)
-	 return ret;*/
+	if (ret)
+		return ret;
 
 	/* Compute the banding rectangle */
 	if (!(_W_WIDGET(widget)->state & STATE_SASH_DRAGGING))
@@ -143,9 +143,9 @@ wresult _SASH_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 }
 wresult _SASH_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	wresult ret = _CONTROL_WM_MOVE(widget, e, priv);
-	//if (ret)
-	//	return ret;
+	wresult ret = _WIDGET_WM_MOUSEMOVE(widget, e, priv);
+	if (ret)
+		return ret;
 	if (!(_W_WIDGET(widget)->state & STATE_SASH_DRAGGING)
 			|| (e->wparam & MK_LBUTTON) == 0)
 		return ret;

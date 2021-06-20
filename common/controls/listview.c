@@ -106,6 +106,14 @@ wresult w_columnitem_set_width(w_columnitem *column, int width) {
 /*
  * w_listitem
  */
+wresult w_listitem_get_attr(w_listitem *item, int index, int mask,
+		w_list_textattr *attr) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_LISTITEM_GET_CLASS(item)->get_attr(item, index, mask, attr);
+	} else
+		return result;
+}
 wresult w_listitem_get_bounds(w_listitem *item, w_rect *bounds) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
@@ -142,6 +150,23 @@ wresult w_listitem_get_image(w_listitem *item) {
 	} else
 		return result;
 }
+wresult w_listitem_get_text(w_listitem *item, int index, w_alloc alloc,
+		void *user_data, int enc) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_LISTITEM_GET_CLASS(item)->get_text(item, index, alloc,
+				user_data, enc);
+	} else
+		return result;
+}
+wresult w_listitem_set_attr(w_listitem *item, int index, int mask,
+		w_list_textattr *attr) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_LISTITEM_GET_CLASS(item)->set_attr(item, index, mask, attr);
+	} else
+		return result;
+}
 wresult w_listitem_set_checked(w_listitem *item, int checked) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
@@ -160,6 +185,15 @@ wresult w_listitem_set_image(w_listitem *item, int image) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
 		return W_LISTITEM_GET_CLASS(item)->set_image(item, image);
+	} else
+		return result;
+}
+wresult w_listitem_set_text(w_listitem *item, int index, const char *text,
+		int length, int enc) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_LISTITEM_GET_CLASS(item)->set_text(item, index, text, length,
+				enc);
 	} else
 		return result;
 }

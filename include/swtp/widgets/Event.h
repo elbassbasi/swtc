@@ -400,21 +400,21 @@ public:
 		};
 		int detail;
 	};
+	int enc;
+	w_alloc alloc;
+	void *user_data;
 	WPoint location;
-	WValue text;
+	void SetText(const char *text, size_t length) {
+		w_alloc_set_text(alloc, user_data, enc, text, length, W_ENCODING_UTF8);
+	}
 	void SetText(const char *text) {
-		this->text.SetString(text);
-	}
-	bool CopyText(const char *text, size_t length) {
-		return this->text.CopyString(text, length);
-	}
-	bool CopyText(const char *text) {
-		return this->text.CopyString(text);
+		SetText(text, -1);
 	}
 	int Sprint(const char *format, ...) {
 		va_list args;
 		va_start(args, format);
-		int ret = this->text.Print(format, args);
+		int ret = w_alloc_printf(alloc, user_data, enc, W_ENCODING_UTF8, format,
+				args);
 		va_end(args);
 		return ret;
 	}

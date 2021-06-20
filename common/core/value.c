@@ -224,6 +224,45 @@ w_value_class w_value_utf8_class = { //
 				w_value_utf8_free, //
 				w_value_utf8_convert, //
 		};
+/*
+ * unicode
+ */
+wresult w_value_unicode_free(w_value *value) {
+	return W_TRUE;
+}
+wresult w_value_unicode_convert(w_value *value, w_value *v2, w_alloc alloc,
+		void *user_data) {
+	switch (v2->clazz->type) {
+	case W_VALUE_POINTER:
+		value->INT64 = ((wint64*) v2->pointer)[0];
+		break;
+	case W_VALUE_BOOL:
+	case W_VALUE_INT:
+		value->INT64 = v2->INT64;
+		break;
+	case W_VALUE_FLOAT:
+		value->INT64 = v2->FLOAT;
+		break;
+	case W_VALUE_DOUBLE:
+		value->INT64 = v2->DOUBLE;
+		break;
+	case W_VALUE_STRING_UTF8: {
+		//need modified
+		value->string = v2->string;
+	}
+		break;
+	default:
+		return W_FALSE;
+	}
+	return W_TRUE;
+}
+w_value_class w_value_unicode_class = { //
+		W_VALUE_STRING_UTF8, //
+				0, //
+				"utf8", //
+				w_value_unicode_free, //
+				w_value_unicode_convert, //
+		};
 wushort id = 0x100;
 void w_value_registre_class(w_value_class *clazz) {
 	clazz->type = id;
@@ -278,7 +317,7 @@ void w_value_init_float(w_value *value, float _float) {
 	value->flags = 0;
 	value->size = 0;
 }
-wresult w_value_init_string(w_value *value, const char *string, size_t length,
+wresult w_value_init_string(w_value *value, const char *string, int length,
 		int flags) {
 	value->clazz = &w_value_utf8_class;
 	value->flags = flags;
@@ -349,7 +388,7 @@ const char* w_value_get_string_0(w_value *value, w_alloc alloc, void *user_data,
 	w_value_free(&v2);
 	return v2.string;
 }
-const char* w_value_get_string(w_value *value, char *text, size_t length,
+const char* w_value_get_string(w_value *value, char *text, int length,
 		int flags) {
 	if (value->clazz->type == W_VALUE_STRING_UTF8) {
 		return value->string;

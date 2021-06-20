@@ -5,33 +5,33 @@
  *      Author: Azeddine El Bassbasi
  */
 
-#include "TTreeCustom.h"
+#include "TTreeVirtual.h"
 
-void TTreeCustom::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent, "CustomDraw", new TTreeCustom());
+void TTreeVirtual::Registre(WTreeItem &parent) {
+	ITreeItem::Regitre(parent, "virtual", new TTreeVirtual());
 }
 
-WControl* TTreeCustom::GetControl(WComposite *parent) {
+WControl* TTreeVirtual::GetControl(WComposite *parent) {
 	if (!this->IsOk()) {
 		this->CreateControl(parent);
 	}
 	return this;
 }
 
-TTreeCustom::TTreeCustom() {
+TTreeVirtual::TTreeVirtual() {
 	this->fontBold = 0;
 }
 
-TTreeCustom::~TTreeCustom() {
+TTreeVirtual::~TTreeVirtual() {
 	this->fontBold->Dispose();
 }
 
-void TTreeCustom::CreateControl(WComposite *parent) {
+void TTreeVirtual::CreateControl(WComposite *parent) {
 	WTreeItem item, tmp, root;
 	WColumnItem column;
-	char txt[50];
 	this->Create(parent,
-			W_VIRTUAL | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
+			W_VIRTUAL | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK
+					| W_DOUBLE_BUFFERED);
 	/* create text edit */
 	text.Create(this, W_NONE);
 	text.SetVisible(false);
@@ -50,12 +50,10 @@ void TTreeCustom::CreateControl(WComposite *parent) {
 	if (imagelistcount == 0)
 		imagelistcount = 1;
 	for (int i = 0; i < 50; i++) {
-		sprintf(txt, " test %d", i);
-		if (root.AppendItem(item, txt).IsOk()) {
+		if (root.AppendItem(item).IsOk()) {
 			item.SetImage(i % imagelistcount);
 			item.SetData(new Person(i, -1));
 			for (int j = 0; j < 5; j++) {
-				sprintf(txt, "test %d,%d", i, j);
 				item.AppendItem(tmp, 0);
 				if (tmp.IsOk()) {
 					tmp.SetImage(j);
@@ -67,7 +65,7 @@ void TTreeCustom::CreateControl(WComposite *parent) {
 	WFontData fontdata;
 	this->GetFont()->GetFontData(fontdata);
 	fontdata.SetStyle(W_BOLD);
-	this->fontBold= WFont::Create(fontdata);
+	this->fontBold = WFont::Create(fontdata);
 }
 
 Person::Person(int i, int j) {
@@ -82,12 +80,12 @@ Person::Person(int i, int j) {
 	}
 }
 #define NUM_PIXEL 1
-bool TTreeCustom::OnItemMeasure(WTreeEvent &e) {
+bool TTreeVirtual::OnItemMeasure(WTreeEvent &e) {
 	e.rect->height = 40;
 	return true;
 }
 
-bool TTreeCustom::OnItemErase(WTreeEvent &e) {
+bool TTreeVirtual::OnItemErase(WTreeEvent &e) {
 	e.detail &= ~W_HOT;
 	if (!e.selected)
 		return false; /* item not selected */
@@ -106,8 +104,8 @@ bool TTreeCustom::OnItemErase(WTreeEvent &e) {
 	return true;
 }
 
-bool TTreeCustom::OnItemPaint(WTreeEvent &e) {
-	Person *p = (Person*) e.item->GetData();
+bool TTreeVirtual::OnItemPaint(WTreeEvent &e) {
+	Person *p = e.GetItemData<Person>();
 	char txt[20];
 	if (e.column->GetIndex() == 1) {
 		WRect clip;
@@ -153,41 +151,32 @@ bool TTreeCustom::OnItemPaint(WTreeEvent &e) {
 	return WTreeView::OnItemPaint(e);
 }
 
-bool TTreeCustom::OnItemGetValue(WTreeEvent &e) {
-	Person *p = (Person*) e.item->GetData();
-	switch (e.column->GetIndex()) {
-	case 0:
-		e.value->SetString(p->name);
-		break;
-	case 2:
-		e.value->Sprint("i %s %d", p->name, p->progress);
-		break;
-	default:
-		return WTreeView::OnItemGetValue(e);
-		break;
+bool TTreeVirtual::OnItemGetText(WTreeEvent &e) {
+	Person *p = e.GetItemData<Person>();
+	if (p != 0) {
+		switch (e.GetColumnIndex()) {
+		case 0:
+			e.SetAttrText(p->name);
+			break;
+		case 2:
+			e.SetAttrTextV("i %s %d", p->name, p->progress);
+			if (e.item->GetChecked()) {
+				e.SetAttrBackground(W_COLOR_MAGENTA);
+				e.SetAttrForeground(W_COLOR_RED);
+				e.SetAttrFont(fontBold);
+			} else {
+				e.SetAttrForeground(W_COLOR_BLUE);
+			}
+			break;
+		default:
+			return WTreeView::OnItemGetText(e);
+			break;
+		}
 	}
 	return true;
 }
 
-bool TTreeCustom::OnItemGetAttr(WTreeEvent &e) {
-	Person *p;
-	if (e.column->GetIndex() == 2) {
-		p = (Person*) e.item->GetData();
-		if (p != 0) {
-			if (e.item->GetChecked()) {
-				e.attr->foreground = W_COLOR_RED;
-				e.attr->background = W_COLOR_MAGENTA;
-				e.attr->font = this->fontBold;
-			} else {
-				e.attr->foreground = W_COLOR_BLUE;
-			}
-		}
-		return true;
-	}
-	return false;
-}
-
-bool TTreeCustom::OnItemDefaultSelection(WTreeEvent &e) {
+bool TTreeVirtual::OnItemDefaultSelection(WTreeEvent &e) {
 	if (e.item->IsOk()) {
 		WRect bounds;
 		e.item->GetBounds(bounds);
@@ -200,8 +189,8 @@ bool TTreeCustom::OnItemDefaultSelection(WTreeEvent &e) {
 	return false;
 }
 
-bool TTreeCustom::OnItemDispose(WTreeEvent &e) {
-	Person *p = (Person*) e.item->GetData();
+bool TTreeVirtual::OnItemDispose(WTreeEvent &e) {
+	Person *p = e.GetItemData<Person>();
 	if (p != 0) {
 		e.item->SetData(0);
 		delete p;
@@ -209,24 +198,24 @@ bool TTreeCustom::OnItemDispose(WTreeEvent &e) {
 	return false;
 }
 
-bool TTreeCustomEdit::OnFocusOut(WEvent &e) {
+bool TTreeVirtualEdit::OnFocusOut(WEvent &e) {
 	bool ret = WTextEdit::OnFocusOut(e);
 	SetTextAndHide();
 	return ret;
 }
 
-bool TTreeCustomEdit::OnTraverse(WKeyEvent &e) {
+bool TTreeVirtualEdit::OnTraverse(WKeyEvent &e) {
 	bool ret = WTextEdit::OnTraverse(e);
 	return ret;
 }
 
-bool TTreeCustomEdit::OnDefaultSelection(WTextEditEvent &e) {
+bool TTreeVirtualEdit::OnDefaultSelection(WTextEditEvent &e) {
 	bool ret = WTextEdit::OnDefaultSelection(e);
 	SetTextAndHide();
 	return ret;
 }
 
-void TTreeCustomEdit::SetTextAndHide() {
+void TTreeVirtualEdit::SetTextAndHide() {
 	WString text = this->GetText();
 	item.SetText(text);
 	SetVisible(false);
