@@ -8,7 +8,7 @@
 #include "composite.h"
 #include "toolkit.h"
 wresult _w_composite_create_handle(w_control *control, _w_control_priv *priv) {
-	wresult result = _w_control_create_handle(control, priv);
+	wresult result = _w_scrollable_create_handle(control, priv);
 	if (result > 0) {
 		_W_WIDGET(control)->state |= STATE_CANVAS;
 		wuint64 style = _W_WIDGET(control)->style;
@@ -566,6 +566,7 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	priv->create_handle = _w_composite_create_handle;
+	priv->compute_size = _w_composite_compute_size;
 	/*
 	 * messages
 	 */

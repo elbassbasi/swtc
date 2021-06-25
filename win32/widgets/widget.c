@@ -753,7 +753,7 @@ wresult _WIDGET_WM_KEYDOWN(w_widget *widget, _w_event_platform *e,
 	event.event.widget = widget;
 	event.event.platform_event = (struct w_event_platform*) e;
 	event.event.time = win_toolkit->msg.time;
-	if (!_w_send_key_event(&event)) {
+	if (_w_send_key_event(&event)) {
 		e->result = 1;
 		return W_TRUE;
 	}

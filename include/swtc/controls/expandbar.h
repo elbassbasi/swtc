@@ -22,6 +22,12 @@ typedef struct w_expanditem {
 	void *handle[6];
 } w_expanditem;
 #define W_EXPANDITEM(x) ((w_expanditem*)x)
+
+typedef struct w_event_expand {
+	w_event event;
+	w_expanditem *item;
+} w_event_expand;
+
 struct _w_expanditem_class {
 	struct _w_item_class item;
 	wresult (*get_control)(w_expanditem *expanditem, w_control **control);

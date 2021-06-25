@@ -76,7 +76,7 @@ bool TScrolledComposite::OnLayout(WEvent &e) {
 		gc.GetFontMetrics(metrics);
 	}
 	if (hBar.IsOk()) {
-		hBar.SetMaximum(contentRect.width - hostRect.width);
+		hBar.SetMaximum(contentRect.width);
 		hBar.SetThumb(WMIN(contentRect.width, hostRect.width));
 		hBar.SetIncrement(metrics.getAverageCharWidth());
 		hBar.SetPageIncrement(hostRect.width);
@@ -92,7 +92,7 @@ bool TScrolledComposite::OnLayout(WEvent &e) {
 	}
 
 	if (vBar.IsOk()) {
-		vBar.SetMaximum(contentRect.height - hostRect.height);
+		vBar.SetMaximum(contentRect.height);
 		vBar.SetThumb(WMIN(contentRect.height, hostRect.height));
 		vBar.SetIncrement(metrics.getHeight());
 		vBar.SetPageIncrement(hostRect.height);

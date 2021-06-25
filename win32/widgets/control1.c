@@ -63,6 +63,13 @@ LRESULT CALLBACK _w_control_window_proc(HWND hWnd, UINT message, WPARAM wParam,
 	GWLP_USERDATA);
 	_w_event_platform e;
 	if (widget != 0) {
+		const int wm_msg_size = sizeof(win_toolkit->wm_msg)
+				/ sizeof(win_toolkit->wm_msg[0]);
+		if (message < wm_msg_size) {
+			e.msg_id = win_toolkit->wm_msg[message];
+		} else {
+			e.msg_id = 0;
+		}
 		e.event.type = W_EVENT_PLATFORM;
 		e.event.widget = widget;
 		e.event.platform_event = 0;
@@ -143,7 +150,9 @@ wresult _CONTROL_WM_HELP(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_HSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	w_widget *control = _w_widget_find_control((HWND) e->lparam);
+	w_widget *control = 0;
+	if (e->lparam != 0)
+		control = _w_widget_find_control((HWND) e->lparam);
 	if (control != 0) {
 		_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
 		return cpriv->messages[_WM_SCROLLCHILD](control, e, cpriv);
@@ -253,7 +262,9 @@ wresult _CONTROL_WM_TIMER(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_VSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	w_widget *control = _w_widget_find_control((HWND) e->lparam);
+	w_widget *control = 0;
+	if (e->lparam != 0)
+		control = _w_widget_find_control((HWND) e->lparam);
 	if (control != 0) {
 		_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(control);
 		return cpriv->messages[_WM_SCROLLCHILD](control, e, cpriv);

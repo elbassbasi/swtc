@@ -31,7 +31,7 @@ void TTreeVirtual::CreateControl(WComposite *parent) {
 	WColumnItem column;
 	this->Create(parent,
 			W_VIRTUAL | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK
-					| W_DOUBLE_BUFFERED);
+					| W_CUSTOMDRAW);
 	/* create text edit */
 	text.Create(this, W_NONE);
 	text.SetVisible(false);

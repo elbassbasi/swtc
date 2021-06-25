@@ -104,14 +104,14 @@ wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 		int length, int enc) {
 	w_widget *parent = _W_ITEM(item)->parent;
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
+	w_class_id class_id = clazz->class_id;
 	HWND handle = _W_WIDGET(parent)->handle;
 	wresult result = W_FALSE;
 	LRESULT lresult;
 	WCHAR *s;
 	int newlength = 0;
 	LISTITEM lItem;
-	lItem.class_id = clazz->class_id;
-	if (lItem.class_id == _W_CLASS_TREEVIEW) {
+	if (class_id == _W_CLASS_TREEVIEW) {
 		lItem.tvItem.mask = TVIF_TEXT;
 		lItem.tvItem.hItem = _W_TREEITEM(item)->htreeitem;
 	} else {
@@ -120,7 +120,7 @@ wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 	}
 	if ((_W_WIDGET(parent)->style & W_VIRTUAL) == 0) {
 		_w_items_list *arr;
-		if (lItem.class_id == _W_CLASS_TREEVIEW) {
+		if (class_id == _W_CLASS_TREEVIEW) {
 			lItem.tvItem.mask = TVIF_PARAM;
 			lresult = SendMessageW(handle, TVM_GETITEMW, 0,
 					(LPARAM) &lItem.tvItem);
@@ -136,7 +136,7 @@ wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 			if (_i != 0) {
 				_win_text_copy(&_i->text, text, length, enc);
 			}
-			if (lItem.class_id == _W_CLASS_TREEVIEW) {
+			if (class_id == _W_CLASS_TREEVIEW) {
 				lItem.tvItem.lParam = (LPARAM) arr;
 				lItem.tvItem.mask = TVIF_TEXT | TVIF_PARAM;
 			} else {
@@ -156,7 +156,7 @@ wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 		}
 	}
 	if (s != 0) {
-		if (lItem.class_id == _W_CLASS_TREEVIEW) {
+		if (class_id == _W_CLASS_TREEVIEW) {
 			lItem.tvItem.cchTextMax = newlength;
 			lItem.tvItem.pszText = s;
 			if (SendMessageW(handle, TVM_SETITEMW, 0, (LPARAM) &lItem.tvItem)) {

@@ -42,7 +42,8 @@
 #ifndef WM_TOUCH
 #define WM_TOUCH 0x240
 #endif
-enum {
+typedef enum w_message_id {
+	_WM_UNKNOWN = 0,
 	/* Keyboard messages */
 	_WM_KEYDOWN = 1,
 	_WM_KEYUP,
@@ -147,11 +148,12 @@ enum {
 	_WM_DRAWCHILD,
 	_WM_MEASURECHILD,
 	_WM_LAST
-};
+} w_message_id;
 
 typedef struct _w_event_platform {
 	w_event event;
 	UINT msg;
+	w_message_id msg_id;
 	LRESULT result;
 	HWND hwnd;
 	WPARAM wparam;
@@ -200,6 +202,7 @@ wresult _w_widget_send_event(w_widget *widget, w_event *event);
 int _w_translate_key(int key);
 int _w_untranslate_key(int key);
 int _w_send_key_event(w_event_key *event);
+void _w_set_input_state(w_event *event);
 void _w_widget_class_init(struct _w_widget_class *clazz);
 /*
  * messages

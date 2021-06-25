@@ -97,7 +97,6 @@ struct _w_treeview_class {
 	wresult (*deselect)(w_treeview *tree, w_treeitem *item);
 	wresult (*get_item_from_point)(w_treeview *tree, w_point *point,
 			w_treeitem *item);
-	wresult (*get_parent_item)(w_treeview *tree, w_treeitem *item);
 	wresult (*get_root_item)(w_treeview *tree, w_treeitem *root);
 	wresult (*get_top_item)(w_treeview *tree, w_treeitem *topitem);
 	wresult (*remove)(w_treeview *tree, w_treeitem *item);
@@ -113,8 +112,6 @@ SWT_PUBLIC wresult w_treeview_clear(w_treeview *tree, w_treeitem *item);
 SWT_PUBLIC wresult w_treeview_deselect(w_treeview *tree, w_treeitem *item);
 SWT_PUBLIC wresult w_treeview_get_item_from_point(w_treeview *tree,
 		w_point *point, w_treeitem *item);
-SWT_PUBLIC wresult w_treeview_get_parent_item(w_treeview *tree,
-		w_treeitem *item);
 SWT_PUBLIC wresult w_treeview_get_root_item(w_treeview *tree, w_treeitem *root);
 SWT_PUBLIC wresult w_treeview_get_top_item(w_treeview *tree,
 		w_treeitem *topitem);

@@ -23,7 +23,7 @@ void TListViewDemo::CreateControl(WComposite *parent) {
 	this->Create(parent, W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK);
 	this->SetImageList(frame->GetImageList32());
 	this->GetColumn(0, column).SetText("id");
-	this->AppendColumn(column, "progress"); //.SetResizable(false);
+	this->AppendColumn(column, "progress");
 	this->AppendColumn(column, "int");
 	column.SetAlignment(W_CENTER);
 	this->SetHeaderVisible(true);

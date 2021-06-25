@@ -67,6 +67,7 @@ enum {
 	W_MULTI = 1 << 18, //Text,List,Table,Tree,FileDialog
 	W_CHECK = 1 << 19, //Button,MenuItem,ToolItem,Table,Tree
 	W_VIRTUAL = 1 << 20, //Table,Tree
+	W_CUSTOMDRAW = 1 << 28, //Table,Tree
 	W_SINGLE = 1 << 21, //Text,List,Table,Tree
 	W_UP = 1 << 22, //Button,Tracker,Table,Tree
 	W_DOWN = 1 << 23, //Button,Tracker,Table,Tree
@@ -124,7 +125,6 @@ enum {
 	W_LEAD = W_LEFT,
 	W_TRAIL = W_RIGHT,
 
-	W_CUSTOM_DRAW = 1 << 6,
 	W_AUTO_TEXT_DIRECTION = W_LEFT_TO_RIGHT | W_RIGHT_TO_LEFT,
 	W_UNDERLINE_SINGLE = 0, //TextStyle
 	W_UNDERLINE_DOUBLE = 1, //TextStyle

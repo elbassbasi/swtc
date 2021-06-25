@@ -158,14 +158,6 @@ wresult w_treeview_get_item_from_point(w_treeview *tree, w_point *point,
 	} else
 		return result;
 }
-wresult w_treeview_get_parent_item(w_treeview *tree, w_treeitem *item) {
-	w_widgetdata_close(W_WIDGETDATA(item));
-	wresult result = W_WIDGET_CHECK0(tree);
-	if (result > 0) {
-		return W_TREEVIEW_GET_CLASS(tree)->get_parent_item(tree, item);
-	} else
-		return result;
-}
 wresult w_treeview_get_root_item(w_treeview *tree, w_treeitem *root) {
 	w_widgetdata_close(W_WIDGETDATA(root));
 	wresult result = W_WIDGET_CHECK0(tree);

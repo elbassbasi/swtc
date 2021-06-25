@@ -416,28 +416,6 @@ public:
 		return GetItem(item, point);
 	}
 	/**
-	 * Returns the receiver's parent item, which must be a
-	 * <code>TreeItem</code> or null when the receiver is a
-	 * root.
-	 *
-	 * @return the receiver's parent item
-	 */
-	WTreeItem& GetParentItem(WTreeItem &item) {
-		_get_parent_item(&item);
-		return item;
-	}
-	/**
-	 * Returns the receiver's parent item, which must be a
-	 * <code>TreeItem</code> or null when the receiver is a
-	 * root.
-	 *
-	 * @return the receiver's parent item
-	 */
-	WTreeItem GetParentItem() {
-		WTreeItem item;
-		return GetParentItem(item);
-	}
-	/**
 	 * Returns the root item, which must be a
 	 * <code>TreeItem</code>
 	 *
@@ -611,9 +589,6 @@ public:
 	WResult _get_item_from_point(const WPoint *point, WTreeItem *item) {
 		return w_treeview_get_item_from_point(W_TREEVIEW(this),
 				(w_point*) point, W_TREEITEM(item));
-	}
-	WResult _get_parent_item(WTreeItem *item) {
-		return w_treeview_get_parent_item(W_TREEVIEW(this), W_TREEITEM(item));
 	}
 	WResult _get_root_item(WTreeItem *root) {
 		return w_treeview_get_root_item(W_TREEVIEW(this), W_TREEITEM(root));

@@ -36,6 +36,7 @@ typedef struct _w_treeview {
 	_w_listviewbase base;
 	HWND hwndParent;
 	HWND hwndHeader;
+	HWND itemToolTipHandle;
 	unsigned explorerTheme :1;
 	unsigned customDraw :1;
 	unsigned printClient :1;
@@ -59,8 +60,9 @@ typedef struct _w_treeview {
 	unsigned ignoreColumnMove :1;
 	unsigned ignoreResize :1;
 	unsigned ignoreGetDisp :1;
-	unsigned hooksEraseItem :1;
 	unsigned painted :1;
+	unsigned dragStarted:1;
+	unsigned gestureCompleted:1;
 	int scrollWidth;
 	w_color selectionForeground;
 	HTREEITEM hSelect;
@@ -98,8 +100,8 @@ void _w_treeitem_get_bounds_0(w_treeitem *item, RECT *rect, HDC hDC, int index,
 wresult _w_treeview_call_window_proc(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 wresult _w_treeview_create_parent(w_treeview *tree, _w_control_priv *priv);
-wresult _w_treeview_insert_column(w_listviewbase *tree, w_columnitem *column,
-		int index);
+int _w_treeview_find_cell(w_treeview *tree, int x, int y, w_listitem *item,
+		int *index, RECT *cellRect, RECT *itemRect);
 HTREEITEM _w_treeview_get_bottom_item(HWND handle);
 int _w_treeview_get_header_width(w_treeview *tree);
 wresult _w_treeview_post_event(w_widget *widget, w_event *ee);

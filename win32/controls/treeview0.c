@@ -481,7 +481,7 @@ wresult _w_treeview_create_parent(w_treeview *tree, _w_control_priv *priv) {
 //			SetWindowLong (handle, GWL_EXSTYLE, oldExStyle);
 //		}
 //	}
-	_w_treeview_insert_column(W_LISTVIEWBASE(tree), 0, 0);
+	_w_listviewbase_insert_column(W_LISTVIEWBASE(tree), 0, 0);
 	HFONT hFont = (HFONT) SendMessageW(handle, WM_GETFONT, 0, 0);
 	if (hFont != 0)
 		SendMessageW(hwndHeader, WM_SETFONT, (WPARAM) hFont, 0);
@@ -512,16 +512,20 @@ wresult _w_treeview_create_parent(w_treeview *tree, _w_control_priv *priv) {
 int _w_treeview_default_background(w_control *control, _w_control_priv *priv) {
 	return GetSysColor(COLOR_WINDOW);
 }
+int _w_treeview_find_cell(w_treeview *tree, int x, int y, w_listitem *item,
+		int *index, RECT *cellRect, RECT *itemRect) {
+	return W_FALSE;
+}
 HTREEITEM _w_treeview_get_bottom_item(HWND handle) {
 	HTREEITEM hItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
-			TVGN_FIRSTVISIBLE, 0);
+	TVGN_FIRSTVISIBLE, 0);
 	if (hItem == 0)
 		return 0;
 	int index = 0;
 	int count = SendMessageW(handle, TVM_GETVISIBLECOUNT, 0, 0);
 	while (index <= count) {
-		HTREEITEM hNextItem =(HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
-				TVGN_NEXTVISIBLE, (LPARAM) hItem);
+		HTREEITEM hNextItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+		TVGN_NEXTVISIBLE, (LPARAM) hItem);
 		if (hNextItem == 0)
 			return hItem;
 		hItem = hNextItem;
@@ -531,13 +535,6 @@ HTREEITEM _w_treeview_get_bottom_item(HWND handle) {
 }
 wresult _w_treeview_deselect(w_treeview *tree, w_treeitem *item) {
 	return W_FALSE;
-}
-HWND _w_treeview_get_header(w_listviewbase *list, int create,
-		_w_control_priv *priv) {
-	if (create && _W_TREEVIEW(list)->hwndHeader == 0) {
-		_w_treeview_create_parent(W_TREEVIEW(list), _W_CONTROL_GET_PRIV(list));
-	}
-	return _W_TREEVIEW(list)->hwndHeader;
 }
 int _w_treeview_get_header_width(w_treeview *tree) {
 	HWND hwndHeader = _W_TREEVIEW(tree)->hwndHeader;
@@ -555,9 +552,32 @@ int _w_treeview_get_header_width(w_treeview *tree) {
 }
 wresult _w_treeview_get_item_from_point(w_treeview *tree, w_point *point,
 		w_treeitem *item) {
-	return W_FALSE;
-}
-wresult _w_treeview_get_parent_item(w_treeview *tree, w_treeitem *item) {
+	HWND handle = _W_WIDGET(tree)->handle;
+	TVHITTESTINFO lpht;
+	lpht.hItem = 0;
+	lpht.pt.x = point->x;
+	lpht.pt.y = point->y;
+	SendMessageW(handle, TVM_HITTEST, 0, (LPARAM) &lpht);
+	if (lpht.hItem != 0) {
+		int flags = TVHT_ONITEM;
+		if ((_W_WIDGET(tree)->style & W_FULL_SELECTION) != 0) {
+			flags |= TVHT_ONITEMRIGHT | TVHT_ONITEMINDENT;
+		} else {
+			if (_W_WIDGET(tree)->style & W_CUSTOMDRAW) {
+				lpht.flags &= ~(TVHT_ONITEMICON | TVHT_ONITEMLABEL);
+				/*if (hitTestSelection (lpht.hItem, lpht.pt.x, lpht.pt.y)) {
+				 lpht.flags |= TVHT_ONITEMICON | TVHT_ONITEMLABEL;
+				 }*/
+			}
+		}
+		if ((lpht.flags & flags) != 0 && lpht.hItem != 0) {
+			_W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
+			_W_ITEM(item)->parent = W_WIDGET(tree);
+			_W_ITEM(item)->index = -1;
+			_W_TREEITEM(item)->htreeitem = lpht.hItem;
+			return W_TRUE;
+		}
+	}
 	return W_FALSE;
 }
 wresult _w_treeview_get_root_item(w_treeview *tree, w_treeitem *root) {
@@ -568,90 +588,17 @@ wresult _w_treeview_get_root_item(w_treeview *tree, w_treeitem *root) {
 	return W_TRUE;
 }
 wresult _w_treeview_get_top_item(w_treeview *tree, w_treeitem *topitem) {
-	return W_FALSE;
-}
-wresult _w_treeview_insert_column(w_listviewbase *tree, w_columnitem *column,
-		int index) {
-	_w_control_priv *priv = _W_CONTROL_GET_PRIV(tree);
-	if (_W_TREEVIEW(tree)->hwndHeader == 0) {
-		wresult result = _w_treeview_create_parent(W_TREEVIEW(tree), priv);
-		if (result <= 0)
-			return result;
-	}
-	HWND hwndHeader = _W_TREEVIEW(tree)->hwndHeader;
 	HWND handle = _W_WIDGET(tree)->handle;
-	int columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0, 0);
-	if (index < 0)
-		index = columnCount;
-	else if (index > columnCount)
-		return W_ERROR_INVALID_RANGE;
-	HDITEMW hdItem;
-	hdItem.mask = HDI_TEXT | HDI_WIDTH;
-	hdItem.pszText = L"";
-	hdItem.cchTextMax = 0;
-	hdItem.cxy = 50;
-	index = SendMessageW(hwndHeader, HDM_INSERTITEMW, index, (LPARAM) &hdItem);
-	if (index < 0)
-		return W_ERROR_ITEM_NOT_ADDED;
-	if (column != 0) {
-		_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(tree);
-		_W_ITEM(column)->parent = W_WIDGET(tree);
-		_W_ITEM(column)->index = index;
-
+	HTREEITEM hItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+	TVGN_FIRSTVISIBLE, 0);
+	if (hItem != 0) {
+		_W_WIDGETDATA(topitem)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
+		_W_ITEM(topitem)->parent = W_WIDGET(tree);
+		_W_ITEM(topitem)->index = -1;
+		_W_TREEITEM(topitem)->htreeitem = hItem;
+		return W_TRUE;
 	}
-	/* When the first column is created, hide the horizontal scroll bar */
-	if (columnCount == 0) {
-//scrollWidth = 0;
-		if ((_W_WIDGET(tree)->style & W_HSCROLL) != 0) {
-			int bits = GetWindowLongW(handle, GWL_STYLE);
-			bits |= TVS_NOHSCROLL;
-			SetWindowLongW(handle, GWL_STYLE, bits);
-		}
-		/*
-		 * Bug in Windows.  When TVS_NOHSCROLL is set after items
-		 * have been inserted into the tree, Windows shows the
-		 * scroll bar.  The fix is to check for this case and
-		 * explicitly hide the scroll bar explicitly.
-		 */
-		int count = SendMessageW(handle, TVM_GETCOUNT, 0, 0);
-		if (count != 0) {
-			ShowScrollBar(handle, SB_HORZ, FALSE);
-		}
-		/*createItemToolTips();
-		 if (itemToolTipHandle != 0) {
-		 OS.SendMessage (itemToolTipHandle, OS.TTM_SETDELAYTIME, OS.TTDT_AUTOMATIC, -1);
-		 }*/
-	}
-	_w_treeview_set_scroll_width(W_TREEVIEW(tree));
-	//updateImageList();
-	_w_treeview_update_scrollbar(W_TREEVIEW(tree));
-
-	/* Redraw to hide the items when the first column is created */
-	if (columnCount == 0 && SendMessageW(handle, TVM_GETCOUNT, 0, 0) != 0) {
-		InvalidateRect(handle, NULL, TRUE);
-	}
-
-	/* Add the tool tip item for the header */
-	HWND headerToolTipHandle = _W_LISTVIEWBASE(tree)->headerToolTipHandle;
-	if (headerToolTipHandle != 0) {
-		RECT rect;
-		if (SendMessageW(hwndHeader, HDM_GETITEMRECT, index, (LPARAM) &rect)
-				!= 0) {
-			TOOLINFOW lpti;
-			lpti.cbSize = sizeof(lpti);
-			lpti.uFlags = TTF_SUBCLASS;
-			lpti.hwnd = hwndHeader;
-			lpti.uId = win_toolkit->nextToolTipId++;
-			//column.id = lpti.uId;
-			lpti.rect.left = rect.left;
-			lpti.rect.top = rect.top;
-			lpti.rect.right = rect.right;
-			lpti.rect.bottom = rect.bottom;
-			lpti.lpszText = LPSTR_TEXTCALLBACKW;
-			SendMessageW(headerToolTipHandle, TTM_ADDTOOL, 0, (LPARAM) &lpti);
-		}
-	}
-	return W_TRUE;
+	return W_FALSE;
 }
 wresult _w_treeview_remove(w_treeview *tree, w_treeitem *item) {
 	return W_FALSE;
@@ -662,6 +609,10 @@ wresult _w_treeview_set_bounds(w_control *control, w_point *location,
 	_w_treeview_set_scroll_width(W_TREEVIEW(control));
 	return result;
 }
+wuchar checkbox_imagelist_states_0[] = { CBS_UNCHECKEDNORMAL, CBS_CHECKEDNORMAL,
+		CBS_UNCHECKEDNORMAL, CBS_MIXEDNORMAL };
+wushort checkbox_imagelist_states_1[] = { DFCS_FLAT, DFCS_CHECKED | DFCS_FLAT,
+		DFCS_INACTIVE | DFCS_FLAT, DFCS_CHECKED | DFCS_INACTIVE | DFCS_FLAT };
 void _w_treeview_set_checkbox_imagelist(w_treeview *tree,
 		_w_control_priv *priv) {
 	if ((_W_WIDGET(tree)->style & W_CHECK) == 0)
@@ -759,36 +710,20 @@ void _w_treeview_set_checkbox_imagelist(w_treeview *tree,
 			top + itemHeight);
 	if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
 		HTHEME hTheme = OpenThemeData(NULL, L"BUTTON");
-		DrawThemeBackground(hTheme, memDC, BP_CHECKBOX, CBS_UNCHECKEDNORMAL,
-				&rect, NULL);
-		rect.left += width;
-		rect.right += width;
-		DrawThemeBackground(hTheme, memDC, BP_CHECKBOX, CBS_CHECKEDNORMAL,
-				&rect, NULL);
-		rect.left += width;
-		rect.right += width;
-		DrawThemeBackground(hTheme, memDC, BP_CHECKBOX, CBS_UNCHECKEDNORMAL,
-				&rect, NULL);
-		rect.left += width;
-		rect.right += width;
-		DrawThemeBackground(hTheme, memDC, BP_CHECKBOX, CBS_MIXEDNORMAL, &rect,
-		NULL);
+		for (int i = 0; i < 4; i++) {
+			DrawThemeBackground(hTheme, memDC, BP_CHECKBOX,
+					checkbox_imagelist_states_0[i], &rect, NULL);
+			rect.left += width;
+			rect.right += width;
+		}
 		CloseThemeData(hTheme);
 	} else {
-		DrawFrameControl(memDC, &rect, DFC_BUTTON,
-		DFCS_BUTTONCHECK | DFCS_FLAT);
-		rect.left += width;
-		rect.right += width;
-		DrawFrameControl(memDC, &rect, DFC_BUTTON,
-		DFCS_BUTTONCHECK | DFCS_CHECKED | DFCS_FLAT);
-		rect.left += width;
-		rect.right += width;
-		DrawFrameControl(memDC, &rect, DFC_BUTTON,
-		DFCS_BUTTONCHECK | DFCS_INACTIVE | DFCS_FLAT);
-		rect.left += width;
-		rect.right += width;
-		DrawFrameControl(memDC, &rect, DFC_BUTTON,
-		DFCS_BUTTONCHECK | DFCS_CHECKED | DFCS_INACTIVE | DFCS_FLAT);
+		for (int i = 0; i < 4; i++) {
+			DrawFrameControl(memDC, &rect, DFC_BUTTON,
+			DFCS_BUTTONCHECK | checkbox_imagelist_states_1[i]);
+			rect.left += width;
+			rect.right += width;
+		}
 	}
 	SelectObject(memDC, hOldBitmap);
 	DeleteDC(memDC);
@@ -871,11 +806,11 @@ void _w_treeview_set_scroll_width_0(w_treeview *tree, int width) {
 	}
 	SetWindowPos(hwndHeader, HWND_TOP, pos.x - left, pos.y,/*pos.cx*/w + left,
 			cy, SWP_NOACTIVATE);
-	//int oldIgnore = ignoreResize;
-	//ignoreResize = true;
+	int oldIgnore = _W_TREEVIEW(tree)->ignoreResize;
+	_W_TREEVIEW(tree)->ignoreResize = TRUE;
 	SetWindowPos(handle, 0, pos.x - left - b, pos.y + cy - b, w + left + b * 2,
 			h + b * 2, SWP_NOACTIVATE | SWP_NOZORDER);
-	//ignoreResize = oldIgnore;
+	_W_TREEVIEW(tree)->ignoreResize = oldIgnore;
 }
 void _w_treeview_set_scroll_width(w_treeview *tree) {
 	if (_W_TREEVIEW(tree)->hwndHeader == 0
@@ -946,11 +881,9 @@ void _w_treeview_class_init(struct _w_treeview_class *clazz) {
 	 */
 	W_WIDGET_CLASS(clazz)->post_event = _w_treeview_post_event;
 	W_CONTROL_CLASS(clazz)->set_bounds = _w_treeview_set_bounds;
-	W_LISTVIEWBASE_CLASS(clazz)->insert_column = _w_treeview_insert_column;
 	clazz->clear = _w_treeview_clear;
 	clazz->deselect = _w_treeview_deselect;
 	clazz->get_item_from_point = _w_treeview_get_item_from_point;
-	clazz->get_parent_item = _w_treeview_get_parent_item;
 	clazz->get_root_item = _w_treeview_get_root_item;
 	clazz->get_top_item = _w_treeview_get_top_item;
 	clazz->remove = _w_treeview_remove;
@@ -990,7 +923,6 @@ void _w_treeview_class_init(struct _w_treeview_class *clazz) {
 	priv->window_class = _w_treeview_window_class;
 	priv->widget.call_window_proc = _w_treeview_call_window_proc;
 	priv->handle_top = _w_treeview_top_handle;
-	_W_LISTVIEWBASE_PRIV(priv)->get_header = _w_treeview_get_header;
 	_W_CONTROL_PRIV(priv)->default_background = _w_treeview_default_background;
 	//win_toolkit->EXPLORER_THEME = TRUE;
 	/*

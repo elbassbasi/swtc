@@ -44,6 +44,8 @@ typedef struct _w_scrollable_priv _w_scrollable_priv;
 struct _w_scrollable_priv {
 	_w_control_priv control;
 	HWND (*handle_scrolled)(w_control *control);
+	wresult (*WM_SCROLL)(w_widget *widget, _w_event_platform *e, wresult update,
+			_w_control_priv *priv);
 };
 #define _W_SCROLLABLE_PRIV(x) ((_w_scrollable_priv*)x)
 #define _W_SCROLLABLE_GET_PRIV(x) ((_w_scrollable_priv*)_w_widget_get_priv(W_WIDGET(x)))
@@ -58,6 +60,7 @@ const char* _w_scrollable_window_class(w_control *control,
 DWORD _w_scrollable_widget_style(w_control *control, _w_control_priv *priv);
 wresult _w_scrollable_compute_trim(w_widget *widget, w_event_compute_trim *e,
 		_w_control_priv *priv);
+wresult _w_scrollable_create_handle(w_control *control, _w_control_priv *priv);
 void _w_scrollable_class_init(struct _w_scrollable_class *clazz);
 /*
  * messages
@@ -70,4 +73,6 @@ wresult _SCROLLABLE_WM_VSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 wresult _SCROLLABLE_WM_HSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
+wresult _SCROLLABLE_WM_SCROLL(w_widget *widget, _w_event_platform *e,
+		wresult update, _w_control_priv *priv);
 #endif /* WIN32_WIDGETS_SCROLLABLE_H_ */

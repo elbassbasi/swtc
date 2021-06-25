@@ -136,7 +136,7 @@ wresult _w_columnitem_set_text(w_item *item, const char *text, int length,
 		lvColumn.mask |= LVCF_TEXT;
 		lvColumn.pszText = str;
 		lvColumn.cchTextMax = newlength;
-		LRESULT _result = SendMessageW(handle, LVM_SETCOLUMN, index,
+		LRESULT _result = SendMessageW(handle, LVM_SETCOLUMNW, index,
 				(LPARAM) &lvColumn);
 		if (_result == 0)
 			result = W_ERROR_CANNOT_SET_TEXT;
@@ -179,18 +179,20 @@ wresult _w_columnitem_get_image(w_columnitem *column) {
 	w_widget *parent = _W_ITEM(column)->parent;
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
 	int index = _W_ITEM(column)->index;
+	HWND hwndHeader;
+	HWND handle = _W_WIDGET(parent)->handle;
 	if (clazz->class_id
 			== _W_CLASS_TREEVIEW|| _COMCTL32_VERSION < VERSION(6,0)) {
-		_w_control_priv *priv = _W_CONTROL_GET_PRIV(parent);
-		HWND hwndHeader = _W_LISTVIEWBASE_PRIV(priv)->get_header(
-				W_LISTVIEWBASE(parent), TRUE, priv);
+		if (clazz->class_id == _W_CLASS_TREEVIEW)
+			hwndHeader = _W_TREEVIEW(parent)->hwndHeader;
+		else
+			hwndHeader = (HWND) SendMessageW(handle, LVM_GETHEADER, 0, 0);
 		HDITEMW hdItem;
 		hdItem.mask = HDI_IMAGE;
 		hdItem.iImage = -1;
 		SendMessageW(hwndHeader, HDM_GETITEM, index, (LPARAM) &hdItem);
 		return hdItem.iImage;
 	} else {
-		HWND handle = _W_WIDGET(parent)->handle;
 		LVCOLUMNW lvColumn;
 		lvColumn.mask = LVCF_IMAGE;
 		SendMessageW(handle, LVM_GETCOLUMNW, index, (LPARAM) &lvColumn);
@@ -381,9 +383,9 @@ wresult _w_columnitem_set_alignment(w_columnitem *column, int alignment) {
 	HWND handle = _W_WIDGET(parent)->handle;
 	int index = _W_ITEM(column)->index;
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(parent);
-	HWND hwndHeader = _W_LISTVIEWBASE_PRIV(priv)->get_header(
-			W_LISTVIEWBASE(parent), TRUE, priv);
+	HWND hwndHeader;
 	if (clazz->class_id == _W_CLASS_TREEVIEW) {
+		hwndHeader = _W_TREEVIEW(parent)->hwndHeader;
 		HDITEMW hdItem;
 		RECT rect, headerRect;
 		hdItem.mask = HDI_FORMAT;
@@ -423,6 +425,7 @@ wresult _w_columnitem_set_alignment(w_columnitem *column, int alignment) {
 		 * visible rectangle for the column and redraw it.
 		 */
 		if (index != 0) {
+			hwndHeader = (HWND) SendMessageW(handle, LVM_GETHEADER, 0, 0);
 			//parent.forceResize ();
 			RECT rect, headerRect;
 			GetClientRect(handle, &rect);
@@ -440,17 +443,19 @@ wresult _w_columnitem_set_image(w_columnitem *column, int image) {
 	w_widget *parent = _W_ITEM(column)->parent;
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
 	int index = _W_ITEM(column)->index;
+	HWND handle = _W_WIDGET(parent)->handle;
 	if (clazz->class_id
 			== _W_CLASS_TREEVIEW|| _COMCTL32_VERSION < VERSION(6,0)) {
-		_w_control_priv *priv = _W_CONTROL_GET_PRIV(parent);
-		HWND hwndHeader = _W_LISTVIEWBASE_PRIV(priv)->get_header(
-				W_LISTVIEWBASE(parent), TRUE, priv);
+		HWND hwndHeader;
+		if (clazz->class_id == _W_CLASS_TREEVIEW)
+			hwndHeader = _W_TREEVIEW(parent)->hwndHeader;
+		else
+			hwndHeader = (HWND) SendMessageW(handle, LVM_GETHEADER, 0, 0);
 		HDITEMW hdItem;
 		hdItem.mask = HDI_IMAGE;
 		hdItem.iImage = image;
 		SendMessageW(hwndHeader, HDM_SETITEMW, index, (LPARAM) &hdItem);
 	} else {
-		HWND handle = _W_WIDGET(parent)->handle;
 		LVCOLUMNW lvColumn;
 		lvColumn.mask = LVCF_FMT | LVCF_IMAGE;
 		SendMessageW(handle, LVM_GETCOLUMNW, index, (LPARAM) &lvColumn);
@@ -597,10 +602,6 @@ wresult _w_listviewbase_get_column_count(w_listviewbase *list) {
 wresult _w_listviewbase_get_columns(w_listviewbase *list, w_iterator *columns) {
 	return W_FALSE;
 }
-HWND _w_listviewbase_get_header(w_listviewbase *list, int create,
-		_w_control_priv *priv) {
-	return (HWND) SendMessageW(_W_WIDGET(list)->handle, LVM_GETHEADER, 0, 0);
-}
 wresult _w_listviewbase_get_gridline_width(w_listviewbase *list) {
 	return W_FALSE;
 }
@@ -642,7 +643,160 @@ wresult _w_listviewbase_get_sort_direction(w_listviewbase *list) {
 }
 wresult _w_listviewbase_insert_column(w_listviewbase *list,
 		w_columnitem *column, int index) {
-	return W_FALSE;
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(list);
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(list);
+	HWND handle = _W_WIDGET(list)->handle;
+	HWND hwndHeader;
+	int columnCount;
+	if (clazz->class_id == _W_CLASS_TREEVIEW) {
+		if (_W_TREEVIEW(list)->hwndHeader == 0) {
+			wresult result = _w_treeview_create_parent(W_TREEVIEW(list), priv);
+			if (result <= 0)
+				return result;
+		}
+		hwndHeader = _W_TREEVIEW(list)->hwndHeader;
+		columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0, 0);
+		if (index < 0 || index > columnCount)
+			index = columnCount;
+		HDITEMW hdItem;
+		hdItem.mask = HDI_TEXT | HDI_WIDTH;
+		hdItem.pszText = L"";
+		hdItem.cchTextMax = 0;
+		hdItem.cxy = 50;
+		index = SendMessageW(hwndHeader, HDM_INSERTITEMW, index,
+				(LPARAM) &hdItem);
+		if (index < 0)
+			return W_ERROR_ITEM_NOT_ADDED;
+
+		/* When the first column is created, hide the horizontal scroll bar */
+		if (columnCount == 0) {
+//scrollWidth = 0;
+			if ((_W_WIDGET(list)->style & W_HSCROLL) != 0) {
+				int bits = GetWindowLongW(handle, GWL_STYLE);
+				bits |= TVS_NOHSCROLL;
+				SetWindowLongW(handle, GWL_STYLE, bits);
+			}
+			/*
+			 * Bug in Windows.  When TVS_NOHSCROLL is set after items
+			 * have been inserted into the tree, Windows shows the
+			 * scroll bar.  The fix is to check for this case and
+			 * explicitly hide the scroll bar explicitly.
+			 */
+			int count = SendMessageW(handle, TVM_GETCOUNT, 0, 0);
+			if (count != 0) {
+				ShowScrollBar(handle, SB_HORZ, FALSE);
+			}
+			/*createItemToolTips();
+			 if (itemToolTipHandle != 0) {
+			 SendMessage (itemToolTipHandle, TTM_SETDELAYTIME, TTDT_AUTOMATIC, -1);
+			 }*/
+		}
+		_w_treeview_set_scroll_width(W_TREEVIEW(list));
+		//updateImageList();
+		_w_treeview_update_scrollbar(W_TREEVIEW(list));
+
+		/* Redraw to hide the items when the first column is created */
+		if (columnCount == 0 && SendMessageW(handle, TVM_GETCOUNT, 0, 0) != 0) {
+			InvalidateRect(handle, NULL, TRUE);
+		}
+	} else {
+		hwndHeader = (HWND) SendMessageW(handle, LVM_GETHEADER, 0, 0);
+		int oldColumn = SendMessageW(handle, LVM_GETSELECTEDCOLUMN, 0, 0);
+		if (oldColumn >= index) {
+			SendMessageW(handle, LVM_SETSELECTEDCOLUMN, oldColumn + 1, 0);
+		}
+		columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0, 0);
+		if (index < 0 || index > columnCount)
+			index = columnCount;
+
+		/*
+		 * Ensure that resize listeners for the table and for columns
+		 * within the table are not called.  This can happen when the
+		 * first column is inserted into a table or when a new column
+		 * is inserted in the first position.
+		 */
+		//ignoreColumnResize = true;
+		if (index == 0) {
+			if (columnCount > 1) {
+				LVCOLUMNW lvColumn;
+				lvColumn.mask = LVCF_WIDTH;
+				lvColumn.cx = 0;
+				SendMessageW(handle, LVM_INSERTCOLUMNW, 1, (LPARAM) &lvColumn);
+				SendMessageW(handle, LVM_GETCOLUMNW, 1, (LPARAM) &lvColumn);
+				int width = lvColumn.cx;
+				lvColumn.mask = LVCF_IMAGE | LVCF_WIDTH | LVCF_FMT;
+				SendMessageW(handle, LVM_GETCOLUMNW, 0, (LPARAM) &lvColumn);
+				SendMessageW(handle, LVM_SETCOLUMNW, 1, (LPARAM) &lvColumn);
+				lvColumn.fmt = LVCFMT_IMAGE;
+				lvColumn.cx = width;
+				lvColumn.iImage = I_IMAGENONE;
+				//lvColumn.pszText = lvColumn.cchTextMax = 0;
+				SendMessageW(handle, LVM_SETCOLUMNW, 0, (LPARAM) &lvColumn);
+				lvColumn.mask = LVCF_FMT;
+				lvColumn.fmt = LVCFMT_LEFT;
+				SendMessageW(handle, LVM_SETCOLUMNW, 0, (LPARAM) &lvColumn);
+			} else {
+				SendMessageW(handle, LVM_SETCOLUMNWIDTH, 0, 0);
+			}
+			/*
+			 * Bug in Windows.  Despite the fact that every item in the
+			 * table always has LPSTR_TEXTCALLBACK, Windows caches the
+			 * bounds for the selected items.  This means that
+			 * when you change the string to be something else, Windows
+			 * correctly asks you for the new string but when the item
+			 * is selected, the selection draws using the bounds of the
+			 * previous item.  The fix is to reset LPSTR_TEXTCALLBACK
+			 * even though it has not changed, causing Windows to flush
+			 * cached bounds.
+			 */
+			/*if ((style & SWT.VIRTUAL) == 0) {
+			 LVITEM lvItem = new LVITEM ();
+			 lvItem.mask = LVIF_TEXT | LVIF_IMAGE;
+			 lvItem.pszText = LPSTR_TEXTCALLBACK;
+			 lvItem.iImage = I_IMAGECALLBACK;
+			 for (int i=0; i<itemCount; i++) {
+			 lvItem.iItem = i;
+			 SendMessage (handle, LVM_SETITEM, 0, lvItem);
+			 }
+			 }*/
+		} else {
+			LVCOLUMNW lvColumn;
+			lvColumn.mask = LVCF_FMT;
+			//lvColumn.cx = 10;
+			lvColumn.fmt = LVCFMT_LEFT;
+			SendMessageW(handle, LVM_INSERTCOLUMNW, index, (LPARAM) &lvColumn);
+		}
+		//ignoreColumnResize = false;
+
+	}
+
+	/* Add the tool tip item for the header */
+	HWND headerToolTipHandle = _W_LISTVIEWBASE(list)->headerToolTipHandle;
+	if (headerToolTipHandle != 0) {
+		RECT rect;
+		if (SendMessageW(hwndHeader, HDM_GETITEMRECT, index, (LPARAM) &rect)
+				!= 0) {
+			TOOLINFOW lpti;
+			lpti.cbSize = sizeof(lpti);
+			lpti.uFlags = TTF_SUBCLASS;
+			lpti.hwnd = hwndHeader;
+			lpti.uId = win_toolkit->nextToolTipId++;
+			//column.id = lpti.uId;
+			lpti.rect.left = rect.left;
+			lpti.rect.top = rect.top;
+			lpti.rect.right = rect.right;
+			lpti.rect.bottom = rect.bottom;
+			lpti.lpszText = LPSTR_TEXTCALLBACKW;
+			SendMessageW(headerToolTipHandle, TTM_ADDTOOL, 0, (LPARAM) &lpti);
+		}
+	}
+	if (column != 0) {
+		_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+		_W_ITEM(column)->parent = W_WIDGET(list);
+		_W_ITEM(column)->index = index;
+
+	}
+	return W_TRUE;
 }
 wresult _w_listviewbase_remove_all(w_listviewbase *list) {
 	return W_FALSE;
@@ -664,8 +818,13 @@ wresult _w_listviewbase_set_header_imagelist(w_listviewbase *list,
 		}
 	}
 	_W_LISTVIEWBASE(list)->headerimagelist = imagelist;
-	_w_control_priv *priv = _W_CONTROL_GET_PRIV(list);
-	HWND hwndHeader = _W_LISTVIEWBASE_PRIV(priv)->get_header(list, TRUE, priv);
+	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(list);
+	HWND hwndHeader;
+	if (clazz->class_id == _W_CLASS_TREEVIEW)
+		hwndHeader = _W_TREEVIEW(list)->hwndHeader;
+	else
+		hwndHeader = (HWND) SendMessageW(_W_WIDGET(list)->handle, LVM_GETHEADER,
+				0, 0);
 	SendMessageW(hwndHeader, HDM_SETIMAGELIST, 0, (LPARAM) hImageList);
 	return ret;
 }
@@ -867,5 +1026,4 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	 */
 	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
 	priv->check_style = _w_listviewbase_check_style;
-	_W_LISTVIEWBASE_PRIV(priv)->get_header = _w_listviewbase_get_header;
 }

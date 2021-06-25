@@ -39,13 +39,15 @@ typedef struct _w_items_list {
 } _w_items_list;
 _w_item_list* _w_items_list_get(_w_items_list **list, int index, int create);
 
-typedef struct LISTITEM {
-	w_class_id class_id;
-	union {
-		TVITEMW tvItem;
-		LVITEMW lvItem;
-	};
+typedef union LISTITEM {
+	TVITEMW tvItem;
+	LVITEMW lvItem;
 } LISTITEM;
+#define LISTITEM_GET_PARAM(item,clazz_id) \
+	(class_id == _W_CLASS_TREEVIEW ? item.tvItem.lParam : item.lvItem.lParam)
+#define LISTITEM_SET_PARAM(item,clazz_id,lParam) do {\
+	if(class_id == _W_CLASS_TREEVIEW) item.tvItem.lParam=lParam;\
+	else item.lvItem.lParam=lParam;} while (0)
 
 /*
  * listitem
@@ -80,7 +82,6 @@ typedef struct _w_listview {
  */
 typedef struct _w_listviewbase_priv {
 	_w_composite_priv composite;
-	HWND (*get_header)(w_listviewbase *list, int create, _w_control_priv *priv);
 } _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
 #define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_w_widget_get_priv(W_WIDGET(x)))
@@ -113,5 +114,7 @@ wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
 		w_list_textattr *attr);
 wresult _w_listitem_set_checked(w_listitem *item, int checked);
 wresult _w_listitem_set_image(w_listitem *item, int image);
+wresult _w_listviewbase_insert_column(w_listviewbase *list,
+		w_columnitem *column, int index);
 void _w_listview_class_init(struct _w_listview_class *clazz);
 #endif /* WIN32_CONTROLS_TABLE_H_ */

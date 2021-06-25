@@ -97,8 +97,8 @@ wresult _w_treeview_post_event(w_widget *widget, w_event *ee) {
 				break;
 			case WM_NOTIFY: {
 				NMHDR *hdr = (NMHDR*) e->lparam;
-				hwndHeader = _W_TREEVIEW(widget)->hwndHeader;
 				if (hdr != 0) {
+					hwndHeader = _W_TREEVIEW(widget)->hwndHeader;
 					if (hdr->hwndFrom == hwndHeader) {
 						_TREEVIEW_WM_NOTIFY_HEADER(widget, e,
 								_W_CONTROL_GET_PRIV(widget));
@@ -339,13 +339,12 @@ wresult _TREEVIEW_WM_CHAR(w_widget *widget, _w_event_platform *e,
 				}
 				tvItem.state = state << 12;
 				SendMessageW(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
-				HTREEITEM id = hItem;
+				LONG_PTR id = (LONG_PTR) hItem;
 				if (_COMCTL32_VERSION >= VERSION(6, 0)) {
 					id = SendMessageW(handle, TVM_MAPHTREEITEMTOACCID,
 							(WPARAM) hItem, 0);
 				}
-				NotifyWinEvent(EVENT_OBJECT_FOCUS, handle, OBJID_CLIENT,
-						(LONG) id);
+				NotifyWinEvent(EVENT_OBJECT_FOCUS, handle, OBJID_CLIENT, id);
 			}
 			tvItem.stateMask = TVIS_SELECTED;
 			SendMessageW(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
@@ -417,7 +416,16 @@ wresult _TREEVIEW_WM_CHAR(w_widget *widget, _w_event_platform *e,
 }
 wresult _TREEVIEW_WM_ERASEBKGND(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _COMPOSITE_WM_ERASEBKGND(widget, e, priv);
+	if ((_W_WIDGET(widget)->style & W_DOUBLE_BUFFERED) != 0) {
+		e->result = 1;
+		return W_TRUE;
+	}
+	if (priv->find_image_control(W_CONTROL(widget), priv) != 0) {
+		e->result = 1;
+		return W_TRUE;
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_GETOBJECT(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -425,39 +433,1144 @@ wresult _TREEVIEW_WM_GETOBJECT(w_widget *widget, _w_event_platform *e,
 }
 wresult _TREEVIEW_WM_HSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	int fixScroll = FALSE;
+	if ((_W_WIDGET(widget)->style & W_DOUBLE_BUFFERED) != 0) {
+		fixScroll = (_W_WIDGET(widget)->style & (W_VIRTUAL | W_CUSTOMDRAW))
+				!= 0;
+	}
+	HWND handle = _W_WIDGET(widget)->handle;
+	if (fixScroll) {
+		_W_WIDGET(widget)->style &= ~W_DOUBLE_BUFFERED;
+		if (_W_TREEVIEW(widget)->explorerTheme) {
+			SendMessageW(handle, TVM_SETEXTENDEDSTYLE, TVS_EX_DOUBLEBUFFER, 0);
+		}
+	}
+	wresult result = _SCROLLABLE_WM_HSCROLL(widget, e, priv);
+	if (fixScroll) {
+		_W_WIDGET(widget)->style |= W_DOUBLE_BUFFERED;
+		if (_W_TREEVIEW(widget)->explorerTheme) {
+			SendMessageW(handle, TVM_SETEXTENDEDSTYLE, TVS_EX_DOUBLEBUFFER,
+			TVS_EX_DOUBLEBUFFER);
+		}
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_KEYDOWN(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _WIDGET_WM_KEYDOWN(widget, e, priv);
+	if (result)
+		return result;
+	HWND handle = _W_WIDGET(widget)->handle;
+	HWND lastHwnd;
+	switch (e->wparam) {
+	case VK_LEFT:
+	case VK_RIGHT: {
+		/*
+		 * Bug in Windows. The behavior for the left and right keys is not
+		 * changed if the orientation changes after the control was created.
+		 * The fix is to replace VK_LEFT by VK_RIGHT and VK_RIGHT by VK_LEFT
+		 * when the current orientation differs from the orientation used to
+		 * create the control.
+		 */
+		int isRTL = (_W_WIDGET(widget)->style & W_RIGHT_TO_LEFT) != 0;
+		if (isRTL != _W_LISTVIEWBASE(widget)->createdAsRTL) {
+			WPARAM last = e->wparam;
+			e->wparam = last == VK_RIGHT ? VK_LEFT : VK_RIGHT;
+			lastHwnd = e->hwnd;
+			e->hwnd = handle;
+			priv->widget.call_window_proc(widget, e, priv);
+			e->hwnd = lastHwnd;
+			e->wparam = last;
+			return W_TRUE;
+		}
+	}
+		break;
+	case VK_SPACE:
+		/*
+		 * Ensure that the window proc does not process VK_SPACE
+		 * so that it can be handled in WM_CHAR.  This allows the
+		 * application to cancel an operation that is normally
+		 * performed in WM_KEYDOWN from WM_CHAR.
+		 */
+		e->result = 0;
+		return W_TRUE;
+		break;
+	case VK_ADD:
+		if (GetKeyState(VK_CONTROL) < 0) {
+			HWND hwndHeader = _W_TREEVIEW(widget)->hwndHeader;
+			if (hwndHeader != 0) {
+				_w_item column;
+				_W_WIDGETDATA(&column)->clazz =
+						_W_LISTVIEWBASE_GET_COLUMN_CLASS(widget);
+				_W_ITEM(&column)->parent = widget;
+				int columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0,
+						0);
+				for (int i = 0; i < columnCount; i++) {
+					_W_ITEM(&column)->index = i;
+					if (w_columnitem_get_resizable(W_COLUMNITEM(&column)) > 0) {
+						w_columnitem_pack(W_COLUMNITEM(&column));
+					}
+				}
+			}
+		}
+		break;
+	case VK_UP:
+	case VK_DOWN:
+	case VK_PRIOR:
+	case VK_NEXT:
+	case VK_HOME:
+	case VK_END: {
+		SendMessageW(handle, WM_CHANGEUISTATE, UIS_INITIALIZE, 0);
+		/*if (itemToolTipHandle != 0)
+		 ShowWindow(itemToolTipHandle, SW_HIDE);*/
+		if ((_W_WIDGET(widget)->style & W_SINGLE) != 0)
+			break;
+		if (GetKeyState(VK_SHIFT) < 0) {
+			HTREEITEM hItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+			TVGN_CARET, 0);
+			if (hItem != 0) {
+				if (_W_TREEVIEW(widget)->hAnchor == 0)
+					_W_TREEVIEW(widget)->hAnchor = hItem;
+				_W_TREEVIEW(widget)->ignoreSelect =
+				_W_TREEVIEW(widget)->ignoreDeselect = TRUE;
+				lastHwnd = e->hwnd;
+				e->hwnd = handle;
+				priv->widget.call_window_proc(widget, e, priv);
+				e->hwnd = lastHwnd;
+				_W_TREEVIEW(widget)->ignoreSelect =
+				_W_TREEVIEW(widget)->ignoreDeselect = FALSE;
+				HTREEITEM hNewItem = (HTREEITEM) SendMessageW(handle,
+				TVM_GETNEXTITEM, TVGN_CARET, 0);
+				TVITEMW tvItem;
+				tvItem.mask = TVIF_HANDLE | TVIF_STATE;
+				tvItem.stateMask = TVIS_SELECTED;
+				HTREEITEM hDeselectItem = hItem;
+				RECT rect1;
+				if (!TreeView_GetItemRect(handle, _W_TREEVIEW(widget)->hAnchor,
+						&rect1, FALSE)) {
+					_W_TREEVIEW(widget)->hAnchor = hItem;
+					TreeView_GetItemRect(handle, _W_TREEVIEW(widget)->hAnchor,
+							&rect1, FALSE);
+				}
+				RECT rect2;
+				TreeView_GetItemRect(handle, hDeselectItem, &rect2, FALSE);
+				int flags = rect1.top < rect2.top ?
+				TVGN_PREVIOUSVISIBLE :
+													TVGN_NEXTVISIBLE;
+				while (hDeselectItem != _W_TREEVIEW(widget)->hAnchor) {
+					tvItem.hItem = hDeselectItem;
+					SendMessage(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+					hDeselectItem = (HTREEITEM) SendMessageW(handle,
+					TVM_GETNEXTITEM, flags, (LPARAM) hDeselectItem);
+				}
+				HTREEITEM hSelectItem = _W_TREEVIEW(widget)->hAnchor;
+				TreeView_GetItemRect(handle, hNewItem, &rect1, FALSE);
+				TreeView_GetItemRect(handle, hSelectItem, &rect2, FALSE);
+				tvItem.state = TVIS_SELECTED;
+				flags = rect1.top < rect2.top ? TVGN_PREVIOUSVISIBLE :
+				TVGN_NEXTVISIBLE;
+				while (hSelectItem != hNewItem) {
+					tvItem.hItem = hSelectItem;
+					SendMessageW(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+					hSelectItem = (HTREEITEM) SendMessageW(handle,
+					TVM_GETNEXTITEM, flags, (LPARAM) hSelectItem);
+				}
+				tvItem.hItem = hNewItem;
+				SendMessageW(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+				tvItem.mask = TVIF_HANDLE | TVIF_PARAM;
+				tvItem.hItem = hNewItem;
+				SendMessageW(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+				w_event_list event;
+				_w_treeitem item;
+				memset(&event, 0, sizeof(event));
+				event.event.type = W_EVENT_ITEM_SELECTION;
+				event.event.widget = widget;
+				event.event.platform_event = (w_event_platform*) e;
+				event.item = W_LISTITEM(&item);
+				_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(
+						widget);
+				_W_ITEM(&item)->parent = widget;
+				_W_ITEM(&item)->index = -1;
+				_W_TREEITEM(&item)->htreeitem = hNewItem;
+				_w_widget_send_event(widget, W_EVENT(&event));
+				return W_TRUE;
+			}
+		}
+		if (GetKeyState(VK_CONTROL) < 0) {
+			HTREEITEM hItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+			TVGN_CARET, 0);
+			if (hItem != 0) {
+				TVITEM tvItem;
+				tvItem.mask = TVIF_HANDLE | TVIF_STATE;
+				tvItem.stateMask = TVIS_SELECTED;
+				tvItem.hItem = hItem;
+				SendMessageW(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+				boolean oldSelected = (tvItem.state & TVIS_SELECTED) != 0;
+				HTREEITEM hNewItem = 0;
+				switch (e->wparam) {
+				case VK_UP:
+					hNewItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+					TVGN_PREVIOUSVISIBLE, (LPARAM) &hItem);
+					break;
+				case VK_DOWN:
+					hNewItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+					TVGN_NEXTVISIBLE, (LPARAM) &hItem);
+					break;
+				case VK_HOME:
+					hNewItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+					TVGN_ROOT, 0);
+					break;
+				case VK_PRIOR:
+					hNewItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+					TVGN_FIRSTVISIBLE, 0);
+					if (hNewItem == hItem) {
+						SendMessageW(handle, WM_VSCROLL, SB_PAGEUP, 0);
+						hNewItem = (HTREEITEM) SendMessageW(handle,
+						TVM_GETNEXTITEM, TVGN_FIRSTVISIBLE, 0);
+					}
+					break;
+				case VK_NEXT: {
+					RECT rect, clientRect;
+					GetClientRect(handle, &clientRect);
+					hNewItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+					TVGN_FIRSTVISIBLE, 0);
+					do {
+						HTREEITEM hVisible = (HTREEITEM) SendMessageW(handle,
+						TVM_GETNEXTITEM, TVGN_NEXTVISIBLE, (LPARAM) hNewItem);
+						if (hVisible == 0)
+							break;
+						if (!TreeView_GetItemRect(handle, hVisible, &rect,
+								FALSE))
+							break;
+						if (rect.bottom > clientRect.bottom)
+							break;
+						if ((hNewItem = hVisible) == hItem) {
+							SendMessage(handle, WM_VSCROLL, SB_PAGEDOWN, 0);
+						}
+					} while (hNewItem != 0);
+				}
+					break;
+				case VK_END:
+					hNewItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+					TVGN_LASTVISIBLE, 0);
+					break;
+				}
+				if (hNewItem != 0) {
+					SendMessageW(handle, TVM_ENSUREVISIBLE, 0,
+							(LPARAM) hNewItem);
+					tvItem.hItem = hNewItem;
+					SendMessageW(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+					int newSelected = (tvItem.state & TVIS_SELECTED) != 0;
+					int redraw = !newSelected /*&& getDrawing()*/
+					&& IsWindowVisible(handle);
+					if (redraw) {
+						UpdateWindow(handle);
+						DefWindowProcW(handle, WM_SETREDRAW, 0, 0);
+					}
+					_W_TREEVIEW(widget)->hSelect = hNewItem;
+					_W_TREEVIEW(widget)->ignoreSelect = TRUE;
+					SendMessageW(handle, TVM_SELECTITEM, TVGN_CARET,
+							(LPARAM) &hNewItem);
+					_W_TREEVIEW(widget)->ignoreSelect = FALSE;
+					_W_TREEVIEW(widget)->hSelect = 0;
+					if (oldSelected) {
+						tvItem.state = TVIS_SELECTED;
+						tvItem.hItem = hItem;
+						SendMessageW(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+					}
+					if (!newSelected) {
+						tvItem.state = 0;
+						tvItem.hItem = hNewItem;
+						SendMessageW(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+					}
+					if (redraw) {
+						RECT rect1, rect2;
+						int fItemRect = (_W_WIDGET(widget)->style
+								& W_FULL_SELECTION) == 0;
+						if (_W_WIDGET(widget)->style & W_CUSTOMDRAW)
+							fItemRect = FALSE;
+						if (WIN32_VERSION >= VERSION(6, 0))
+							fItemRect = FALSE;
+						TreeView_GetItemRect(handle, hItem, &rect1, fItemRect);
+						TreeView_GetItemRect(handle, hNewItem, &rect2,
+								fItemRect);
+						DefWindowProcW(handle, WM_SETREDRAW, 1, 0);
+						InvalidateRect(handle, &rect1, TRUE);
+						InvalidateRect(handle, &rect2, TRUE);
+						UpdateWindow(handle);
+					}
+					e->result = 0;
+					return W_TRUE;
+				}
+			}
+		}
+		lastHwnd = e->hwnd;
+		e->hwnd = handle;
+		priv->widget.call_window_proc(widget, e, priv);
+		e->hwnd = lastHwnd;
+		_W_TREEVIEW(widget)->hAnchor = (HTREEITEM) SendMessageW(handle,
+		TVM_GETNEXTITEM, TVGN_CARET, 0);
+		return W_TRUE;
+	}
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_KILLFOCUS(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	/*
+	 * Bug in Windows.  When a tree item that has an image
+	 * with alpha is expanded or collapsed, the area where
+	 * the image is drawn is not erased before it is drawn.
+	 * This means that the image gets darker each time.
+	 * The fix is to redraw the selection.
+	 *
+	 * Feature in Windows.  When multiple item have
+	 * the TVIS_SELECTED state, Windows redraws only
+	 * the focused item in the color used to show the
+	 * selection when the tree loses or gains focus.
+	 * The fix is to force Windows to redraw the
+	 * selection when focus is gained or lost.
+	 */
+	int redraw = (_W_WIDGET(widget)->style & W_MULTI) != 0;
+	if (!redraw) {
+		if (_COMCTL32_VERSION >= VERSION(6, 0)) {
+			if (_W_LISTVIEWBASE(widget)->imagelist != 0) {
+				int bits = GetWindowLongW(_W_WIDGET(widget)->handle, GWL_STYLE);
+				if ((bits & TVS_FULLROWSELECT) == 0) {
+					redraw = TRUE;
+				}
+			}
+		}
+	}
+	//if (redraw) redrawSelection ();
+	return _WIDGET_WM_KILLFOCUS(widget, e, priv);
 }
 wresult _TREEVIEW_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result;
+	HWND handle = _W_WIDGET(widget)->handle;
+	w_event_mouse mouseevent;
+	w_event_list event;
+	_w_treeitem item;
+	TVHITTESTINFO lpht;
+	lpht.pt.x = GET_X_LPARAM(e->lparam);
+	lpht.pt.y = GET_Y_LPARAM(e->lparam);
+	SendMessageW(handle, TVM_HITTEST, 0, (LPARAM) &lpht);
+	if (lpht.hItem != 0) {
+		if ((_W_WIDGET(widget)->style & W_CHECK) != 0) {
+			if ((lpht.flags & TVHT_ONITEMSTATEICON) != 0) {
+				win_toolkit->captureChanged = FALSE;
+				mouseevent.event.type = W_EVENT_MOUSEDOWN;
+				mouseevent.event.time = 0;
+				mouseevent.event.platform_event = (w_event_platform*) e;
+				mouseevent.event.widget = widget;
+				mouseevent.event.data = 0;
+				mouseevent.button = 1;
+				mouseevent.clickcount = 0;
+				mouseevent.detail = 0;
+				mouseevent.x = GET_X_LPARAM(e->lparam);
+				mouseevent.y = GET_Y_LPARAM(e->lparam);
+				_w_set_input_state((w_event*) &mouseevent);
+				_w_widget_send_event(widget, (w_event*) &mouseevent);
+				mouseevent.event.type = W_EVENT_MOUSEDOUBLECLICK;
+				mouseevent.event.time = 0;
+				mouseevent.event.platform_event = (w_event_platform*) e;
+				mouseevent.event.widget = widget;
+				mouseevent.event.data = 0;
+				mouseevent.button = 1;
+				mouseevent.clickcount = 0;
+				mouseevent.detail = 0;
+				mouseevent.x = GET_X_LPARAM(e->lparam);
+				mouseevent.y = GET_Y_LPARAM(e->lparam);
+				_w_set_input_state((w_event*) &mouseevent);
+				result = _w_widget_send_event(widget, (w_event*) &mouseevent);
+				if (!result) {
+					if (!win_toolkit->captureChanged
+							&& w_widget_is_ok(widget) > 0) {
+						if (GetCapture() != handle)
+							SetCapture(handle);
+					}
+					e->result = 0;
+					return W_TRUE;
+				}
+				if (!win_toolkit->captureChanged
+						&& w_widget_is_ok(widget) > 0) {
+					if (GetCapture() != handle)
+						SetCapture(handle);
+				}
+				SetFocus(handle);
+				TVITEM tvItem;
+				tvItem.hItem = lpht.hItem;
+				tvItem.mask = TVIF_HANDLE | TVIF_PARAM | TVIF_STATE;
+				tvItem.stateMask = TVIS_STATEIMAGEMASK;
+				SendMessageW(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+				int state = tvItem.state >> 12;
+				if ((state & 0x1) != 0) {
+					state++;
+				} else {
+					--state;
+				}
+				tvItem.state = state << 12;
+				SendMessageW(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+				LONG_PTR id =(LONG_PTR) tvItem.hItem;
+				if (_COMCTL32_VERSION >= VERSION(6, 0)) {
+					id = SendMessageW(handle, TVM_MAPHTREEITEMTOACCID,
+							(WPARAM) tvItem.hItem, 0);
+				}
+				NotifyWinEvent(EVENT_OBJECT_FOCUS, handle, OBJID_CLIENT, id);
+				memset(&event, 0, sizeof(event));
+				event.event.type = W_EVENT_ITEM_SELECTION;
+				event.event.widget = widget;
+				event.event.platform_event = (w_event_platform*) e;
+				event.detail = W_CHECK;
+				event.item = W_LISTITEM(&item);
+				_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(
+						widget);
+				_W_ITEM(&item)->parent = widget;
+				_W_ITEM(&item)->index = -1;
+				_W_TREEITEM(&item)->htreeitem = tvItem.hItem;
+				_w_widget_send_event(widget, W_EVENT(&event));
+				e->result = 0;
+				return W_TRUE;
+			}
+		}
+	}
+	result = _WIDGET_WM_LBUTTONDBLCLK(widget, e, priv);
+	if (result == W_TRUE && e->result == 0)
+		return result;
+	if (lpht.hItem != 0) {
+		int flags = TVHT_ONITEM;
+		if ((_W_WIDGET(widget)->style & W_FULL_SELECTION) != 0) {
+			flags |= TVHT_ONITEMRIGHT | TVHT_ONITEMINDENT;
+		} else {
+			if ((_W_WIDGET(widget)->style & W_CUSTOMDRAW) != 0) {
+				lpht.flags &= ~(TVHT_ONITEMICON | TVHT_ONITEMLABEL);
+				/*if (hitTestSelection (lpht.hItem, lpht.pt.x, lpht.pt.y)) {
+				 lpht.flags |= TVHT_ONITEMICON | TVHT_ONITEMLABEL;
+				 }*/
+			}
+		}
+		if ((lpht.flags & flags) != 0) {
+			memset(&event, 0, sizeof(event));
+			event.event.type = W_EVENT_ITEM_DEFAULTSELECTION;
+			event.event.widget = widget;
+			event.event.platform_event = (w_event_platform*) e;
+			event.detail = 0;
+			event.item = W_LISTITEM(&item);
+			_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(
+					widget);
+			_W_ITEM(&item)->parent = widget;
+			_W_ITEM(&item)->index = -1;
+			_W_TREEITEM(&item)->htreeitem = lpht.hItem;
+			_w_widget_send_event(widget, W_EVENT(&event));
+		}
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result;
+	HWND handle = _W_WIDGET(widget)->handle;
+	wuint64 style = _W_WIDGET(widget)->style;
+	w_event_mouse mouseevent;
+	w_event_list event;
+	_w_treeitem item;
+	/*
+	 * In a multi-select tree, if the user is collapsing a subtree that
+	 * contains selected items, clear the selection from these items and
+	 * issue a selection event.  Only items that are selected and visible
+	 * are cleared.  This code also runs in the case when the white space
+	 * below the last item is selected.
+	 */
+	TVHITTESTINFO lpht;
+	lpht.pt.x = GET_X_LPARAM(e->lparam);
+	lpht.pt.y = GET_Y_LPARAM(e->lparam);
+	SendMessageW(handle, TVM_HITTEST, 0, (LPARAM) &lpht);
+	if (lpht.hItem == 0 || (lpht.flags & TVHT_ONITEMBUTTON) != 0) {
+		win_toolkit->captureChanged = FALSE;
+		mouseevent.event.type = W_EVENT_MOUSEDOWN;
+		mouseevent.event.time = 0;
+		mouseevent.event.platform_event = (w_event_platform*) e;
+		mouseevent.event.widget = widget;
+		mouseevent.event.data = 0;
+		mouseevent.button = 1;
+		mouseevent.clickcount = 0;
+		mouseevent.detail = 0;
+		mouseevent.x = GET_X_LPARAM(e->lparam);
+		mouseevent.y = GET_Y_LPARAM(e->lparam);
+		_w_set_input_state((w_event*) &mouseevent);
+		result = _w_widget_send_event(widget, (w_event*) &mouseevent);
+		if (result) {
+			if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
+				if (GetCapture() != handle)
+					SetCapture(handle);
+			}
+			e->result = 0;
+			return W_TRUE;
+		}
+		int fixSelection = FALSE, deselected = FALSE;
+		HTREEITEM hOldSelection =(HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+				TVGN_CARET, 0);
+		if (lpht.hItem != 0 && (style & W_MULTI) != 0) {
+			if (hOldSelection != 0) {
+				TVITEM tvItem;
+				tvItem.mask = TVIF_HANDLE | TVIF_STATE;
+				tvItem.hItem = lpht.hItem;
+				SendMessageW(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+				if ((tvItem.state & TVIS_EXPANDED) != 0) {
+					fixSelection = TRUE;
+					tvItem.stateMask = TVIS_SELECTED;
+					HTREEITEM hNext =(HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+							TVGN_NEXTVISIBLE, (LPARAM) lpht.hItem);
+					while (hNext != 0) {
+						if (hNext == _W_TREEVIEW(widget)->hAnchor)
+							_W_TREEVIEW(widget)->hAnchor = 0;
+						tvItem.hItem = hNext;
+						SendMessage(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+						if ((tvItem.state & TVIS_SELECTED) != 0)
+							deselected = TRUE;
+						tvItem.state = 0;
+						SendMessage(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+						HTREEITEM hItem = hNext = (HTREEITEM)SendMessage(handle,
+								TVM_GETNEXTITEM, TVGN_NEXTVISIBLE,
+								(LPARAM) hNext);
+						while (hItem != 0 && hItem != lpht.hItem) {
+							hItem =(HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+									TVGN_PARENT,(LPARAM) hItem);
+						}
+						if (hItem == 0)
+							break;
+					}
+				}
+			}
+		}
+		_W_TREEVIEW(widget)->dragStarted =
+				_W_TREEVIEW(widget)->gestureCompleted = FALSE;
+		if (fixSelection) {
+			_W_TREEVIEW(widget)->hSelect = lpht.hItem;
+			_W_TREEVIEW(widget)->ignoreDeselect =
+					_W_TREEVIEW(widget)->ignoreSelect =
+							_W_TREEVIEW(widget)->lockSelection = TRUE;
+		}
+		HWND lastHWND = e->hwnd;
+		e->hwnd = handle;
+		result = priv->widget.call_window_proc(widget, e, priv);
+		e->hwnd = lastHWND;
+		if (WIN32_VERSION >= VERSION(6, 0)) {
+			if (GetFocus() != handle)
+				SetFocus(handle);
+		}
+		if (fixSelection) {
+			_W_TREEVIEW(widget)->hSelect = 0;
+			_W_TREEVIEW(widget)->ignoreDeselect =
+					_W_TREEVIEW(widget)->ignoreSelect =
+							_W_TREEVIEW(widget)->lockSelection = FALSE;
+		}
+		HTREEITEM hNewSelection =(HTREEITEM) SendMessage(handle, TVM_GETNEXTITEM,
+				TVGN_CARET, 0);
+		if (hOldSelection != hNewSelection)
+			_W_TREEVIEW(widget)->hAnchor = hNewSelection;
+		if (_W_TREEVIEW(widget)->dragStarted) {
+			if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
+				if (GetCapture() != handle)
+					SetCapture(handle);
+			}
+		}
+		/*
+		 * Bug in Windows.  When a tree has no images and an item is
+		 * expanded or collapsed, for some reason, Windows changes
+		 * the size of the selection.  When the user expands a tree
+		 * item, the selection rectangle is made a few pixels larger.
+		 * When the user collapses an item, the selection rectangle
+		 * is restored to the original size but the selection is not
+		 * redrawn, causing pixel corruption.  The fix is to detect
+		 * this case and redraw the item.
+		 */
+		if ((lpht.flags & TVHT_ONITEMBUTTON) != 0) {
+			int bits = GetWindowLong(handle, GWL_STYLE);
+			if ((bits & TVS_FULLROWSELECT) == 0) {
+				if (SendMessage(handle, TVM_GETIMAGELIST, TVSIL_NORMAL, 0)
+						== 0) {
+					HTREEITEM hItem =(HTREEITEM) SendMessage(handle, TVM_GETNEXTITEM,
+							TVGN_CARET, 0);
+					if (hItem != 0) {
+						RECT rect;
+						if (TreeView_GetItemRect(handle, hItem, &rect, FALSE)) {
+							InvalidateRect(handle, &rect, TRUE);
+						}
+					}
+				}
+			}
+		}
+		if (deselected) {
+			memset(&event, 0, sizeof(event));
+			event.event.type = W_EVENT_ITEM_SELECTION;
+			event.event.widget = widget;
+			event.event.platform_event = (w_event_platform*) e;
+			event.detail = 0;
+			event.item = W_LISTITEM(&item);
+			_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(
+					widget);
+			_W_ITEM(&item)->parent = widget;
+			_W_ITEM(&item)->index = -1;
+			_W_TREEITEM(&item)->htreeitem = lpht.hItem;
+			_w_widget_send_event(widget, W_EVENT(&event));
+		}
+		return result;
+	}
+
+	/* Look for check/uncheck */
+	if ((style & W_CHECK) != 0) {
+		if ((lpht.flags & TVHT_ONITEMSTATEICON) != 0) {
+			win_toolkit->captureChanged = FALSE;
+			mouseevent.event.type = W_EVENT_MOUSEDOWN;
+			mouseevent.event.time = 0;
+			mouseevent.event.platform_event = (w_event_platform*) e;
+			mouseevent.event.widget = widget;
+			mouseevent.event.data = 0;
+			mouseevent.button = 1;
+			mouseevent.clickcount = 0;
+			mouseevent.detail = 0;
+			mouseevent.x = GET_X_LPARAM(e->lparam);
+			mouseevent.y = GET_Y_LPARAM(e->lparam);
+			_w_set_input_state((w_event*) &mouseevent);
+			result = _w_widget_send_event(widget, (w_event*) &mouseevent);
+			if (result) {
+				if (!win_toolkit->captureChanged
+						&& w_widget_is_ok(widget) > 0) {
+					if (GetCapture() != handle)
+						SetCapture(handle);
+				}
+				e->result = 0;
+				return W_TRUE;
+			}
+			if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
+				if (GetCapture() != handle)
+					SetCapture(handle);
+			}
+			SetFocus(handle);
+			TVITEM tvItem;
+			tvItem.hItem = lpht.hItem;
+			tvItem.mask = TVIF_HANDLE | TVIF_PARAM | TVIF_STATE;
+			tvItem.stateMask = TVIS_STATEIMAGEMASK;
+			SendMessage(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+			int state = tvItem.state >> 12;
+			if ((state & 0x1) != 0) {
+				state++;
+			} else {
+				--state;
+			}
+			tvItem.state = state << 12;
+			SendMessage(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+			LONG_PTR id =(LONG_PTR) tvItem.hItem;
+			if (_COMCTL32_VERSION >= VERSION(6, 0)) {
+				id = SendMessageW(handle, TVM_MAPHTREEITEMTOACCID,
+						(WPARAM) tvItem.hItem, 0);
+			}
+			NotifyWinEvent(EVENT_OBJECT_FOCUS, handle, OBJID_CLIENT, id);
+			memset(&event, 0, sizeof(event));
+			event.event.type = W_EVENT_ITEM_SELECTION;
+			event.event.widget = widget;
+			event.event.platform_event = (w_event_platform*) e;
+			event.detail = W_CHECK;
+			event.item = W_LISTITEM(&item);
+			_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(
+					widget);
+			_W_ITEM(&item)->parent = widget;
+			_W_ITEM(&item)->index = -1;
+			_W_TREEITEM(&item)->htreeitem = tvItem.hItem;
+			_w_widget_send_event(widget, W_EVENT(&event));
+			e->result = 0;
+			return W_TRUE;
+		}
+	}
+
+	/*
+	 * Feature in Windows.  When the tree has the style
+	 * TVS_FULLROWSELECT, the background color for the
+	 * entire row is filled when an item is painted,
+	 * drawing on top of any custom drawing.  The fix
+	 * is to emulate TVS_FULLROWSELECT.
+	 */
+	boolean selected = FALSE;
+	boolean fakeSelection = FALSE;
+	if (lpht.hItem != 0) {
+		if ((style & W_FULL_SELECTION) != 0) {
+			int bits = GetWindowLong(handle, GWL_STYLE);
+			if ((bits & TVS_FULLROWSELECT) == 0)
+				fakeSelection = TRUE;
+		} else {
+			if (style & W_CUSTOMDRAW) {
+				/*selected = hitTestSelection (lpht.hItem, lpht.x, lpht.y);
+				 if (selected) {
+				 if ((lpht.flags & TVHT_ONITEM) == 0) fakeSelection = true;
+				 }*/
+			}
+		}
+	}
+
+	/* Process the mouse when an item is not selected */
+	if (!selected && (style & W_FULL_SELECTION) == 0) {
+		if ((lpht.flags & TVHT_ONITEM) == 0) {
+			win_toolkit->captureChanged = FALSE;
+			mouseevent.event.type = W_EVENT_MOUSEDOWN;
+			mouseevent.event.time = 0;
+			mouseevent.event.platform_event = (w_event_platform*) e;
+			mouseevent.event.widget = widget;
+			mouseevent.event.data = 0;
+			mouseevent.button = 1;
+			mouseevent.clickcount = 0;
+			mouseevent.detail = 0;
+			mouseevent.x = GET_X_LPARAM(e->lparam);
+			mouseevent.y = GET_Y_LPARAM(e->lparam);
+			_w_set_input_state((w_event*) &mouseevent);
+			result = _w_widget_send_event(widget, (w_event*) &mouseevent);
+			if (result) {
+				if (!win_toolkit->captureChanged
+						&& w_widget_is_ok(widget) > 0) {
+					if (GetCapture() != handle)
+						SetCapture(handle);
+				}
+				e->result = 0;
+				return W_TRUE;
+			}
+			HWND lastHWND = e->hwnd;
+			e->hwnd = handle;
+			result = priv->widget.call_window_proc(widget, e, priv);
+			e->hwnd = lastHWND;
+			if (WIN32_VERSION >= VERSION(6, 0)) {
+				if (GetFocus() != handle)
+					SetFocus(handle);
+			}
+			if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
+				if (GetCapture() != handle)
+					SetCapture(handle);
+			}
+			return result;
+		}
+	}
+
+	/* Get the selected state of the item under the mouse */
+	TVITEM tvItem;
+	tvItem.mask = TVIF_HANDLE | TVIF_STATE;
+	tvItem.stateMask = TVIS_SELECTED;
+	boolean hittestSelected = FALSE;
+	if ((style & W_MULTI) != 0) {
+		tvItem.hItem = lpht.hItem;
+		SendMessage(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+		hittestSelected = (tvItem.state & TVIS_SELECTED) != 0;
+	}
+
+	/* Get the selected state of the last selected item */
+	HTREEITEM hOldItem =(HTREEITEM) SendMessage(handle, TVM_GETNEXTITEM, TVGN_CARET, 0);
+	if ((style & W_MULTI) != 0) {
+		tvItem.hItem = hOldItem;
+		SendMessage(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+
+		/* Check for CONTROL or drag selection */
+		if (hittestSelected || (e->wparam & MK_CONTROL) != 0) {
+			/*
+			 * Feature in Windows.  When the tree is not drawing focus
+			 * and the user selects a tree item while the CONTROL key
+			 * is down, the tree window proc sends WM_UPDATEUISTATE
+			 * to the top level window, causing controls within the shell
+			 * to redraw.  When drag detect is enabled, the tree window
+			 * proc runs a modal loop that allows WM_PAINT messages to be
+			 * delivered during WM_LBUTTONDOWN.  When WM_SETREDRAW is used
+			 * to disable drawing for the tree and a WM_PAINT happens for
+			 * a parent of the tree (or a sibling that overlaps), the parent
+			 * will draw on top of the tree.  If WM_SETREDRAW is turned back
+			 * on without redrawing the entire tree, pixel corruption occurs.
+			 * This case only seems to happen when the tree has been given
+			 * focus from WM_MOUSEACTIVATE of the shell.  The fix is to
+			 * force the WM_UPDATEUISTATE to be sent before disabling
+			 * the drawing.
+			 *
+			 * NOTE:  Any redraw of a parent (or sibling) will be dispatched
+			 * during the modal drag detect loop.  This code only fixes the
+			 * case where the tree causes a redraw from WM_UPDATEUISTATE.
+			 * In SWT, the InvalidateRect() that caused the pixel corruption
+			 * is found in Composite.WM_UPDATEUISTATE().
+			 */
+			int uiState = (int) /*64*/SendMessage(handle, WM_QUERYUISTATE, 0,
+					0);
+			if ((uiState & UISF_HIDEFOCUS) != 0) {
+				SendMessage(handle, WM_CHANGEUISTATE, UIS_INITIALIZE, 0);
+			}
+			UpdateWindow(handle);
+			DefWindowProc(handle, WM_SETREDRAW, 0, 0);
+		} else {
+			//deselectAll ();
+		}
+	}
+
+	/* Do the selection */
+	win_toolkit->captureChanged = FALSE;
+	mouseevent.event.type = W_EVENT_MOUSEDOWN;
+	mouseevent.event.time = 0;
+	mouseevent.event.platform_event = (w_event_platform*) e;
+	mouseevent.event.widget = widget;
+	mouseevent.event.data = 0;
+	mouseevent.button = 1;
+	mouseevent.clickcount = 0;
+	mouseevent.detail = 0;
+	mouseevent.x = GET_X_LPARAM(e->lparam);
+	mouseevent.y = GET_Y_LPARAM(e->lparam);
+	_w_set_input_state((w_event*) &mouseevent);
+	result = _w_widget_send_event(widget, (w_event*) &mouseevent);
+	if (result) {
+		if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
+			if (GetCapture() != handle)
+				SetCapture(handle);
+		}
+		e->result = 0;
+		return W_TRUE;
+	}
+	_W_TREEVIEW(widget)->hSelect = lpht.hItem;
+	_W_TREEVIEW(widget)->dragStarted = _W_TREEVIEW(widget)->gestureCompleted =
+			FALSE;
+	_W_TREEVIEW(widget)->ignoreDeselect = _W_TREEVIEW(widget)->ignoreSelect =
+			TRUE;
+	HWND lastHWND = e->hwnd;
+	e->hwnd = handle;
+	result = priv->widget.call_window_proc(widget, e, priv);
+	e->hwnd = lastHWND;
+	if (WIN32_VERSION >= VERSION(6, 0)) {
+		if (GetFocus() != handle)
+			SetFocus(handle);
+	}
+	HTREEITEM hNewItem =(HTREEITEM) SendMessage(handle, TVM_GETNEXTITEM, TVGN_CARET, 0);
+	if (fakeSelection) {
+		if (hOldItem == 0 || (hNewItem == hOldItem && lpht.hItem != hOldItem)) {
+			SendMessage(handle, TVM_SELECTITEM, TVGN_CARET,
+					(LPARAM) lpht.hItem);
+			hNewItem =(HTREEITEM) SendMessage(handle, TVM_GETNEXTITEM, TVGN_CARET, 0);
+		}
+		if (!_W_TREEVIEW(widget)->dragStarted
+				&& (_W_WIDGET(widget)->state & STATE_DRAG_DETECT) != 0) {
+			//_W_TREEVIEW(widget)->dragStarted = dragDetect (handle, lpht.x, lpht.y, false, null, null);
+		}
+	}
+	_W_TREEVIEW(widget)->ignoreDeselect = _W_TREEVIEW(widget)->ignoreSelect =
+			FALSE;
+	_W_TREEVIEW(widget)->hSelect = 0;
+	if (_W_TREEVIEW(widget)->dragStarted) {
+		if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
+			if (GetCapture() != handle)
+				SetCapture(handle);
+		}
+	}
+
+	/*
+	 * Feature in Windows.  When the old and new focused item
+	 * are the same, Windows does not check to make sure that
+	 * the item is actually selected, not just focused.  The
+	 * fix is to force the item to draw selected by setting
+	 * the state mask.  This is only necessary when the tree
+	 * is single select.
+	 */
+	if ((style & W_SINGLE) != 0) {
+		if (hOldItem == hNewItem) {
+			tvItem.mask = TVIF_HANDLE | TVIF_STATE;
+			tvItem.state = TVIS_SELECTED;
+			tvItem.stateMask = TVIS_SELECTED;
+			tvItem.hItem = hNewItem;
+			SendMessage(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+		}
+	}
+
+	/* Reselect the last item that was unselected */
+	if ((style & W_MULTI) != 0) {
+
+		/* Check for CONTROL and reselect the last item */
+		if (hittestSelected || (e->wparam & MK_CONTROL) != 0) {
+			if (hOldItem == hNewItem && hOldItem == lpht.hItem) {
+				if ((e->wparam & MK_CONTROL) != 0) {
+					tvItem.state ^= TVIS_SELECTED;
+					if (_W_TREEVIEW(widget)->dragStarted)
+						tvItem.state = TVIS_SELECTED;
+					SendMessage(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+				}
+			} else {
+				if ((tvItem.state & TVIS_SELECTED) != 0) {
+					tvItem.state = TVIS_SELECTED;
+					SendMessage(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+				}
+				if ((e->wparam & MK_CONTROL) != 0
+						&& !_W_TREEVIEW(widget)->dragStarted) {
+					if (hittestSelected) {
+						tvItem.state = 0;
+						tvItem.hItem = lpht.hItem;
+						SendMessage(handle, TVM_SETITEM, 0, (LPARAM) &tvItem);
+					}
+				}
+			}
+			RECT rect1, rect2;
+			boolean fItemRect = (style & W_FULL_SELECTION) == 0;
+			if (style & W_CUSTOMDRAW)
+				fItemRect = FALSE;
+			if (WIN32_VERSION >= VERSION(6, 0))
+				fItemRect = FALSE;
+			TreeView_GetItemRect(handle, hOldItem, &rect1, fItemRect);
+			TreeView_GetItemRect(handle, hNewItem, &rect2, fItemRect);
+			DefWindowProc(handle, WM_SETREDRAW, 1, 0);
+			InvalidateRect(handle, &rect1, TRUE);
+			InvalidateRect(handle, &rect2, TRUE);
+			UpdateWindow(handle);
+		}
+
+		/* Check for SHIFT or normal select and deselect/reselect items */
+		if ((e->wparam & MK_CONTROL) == 0) {
+			if (!hittestSelected || !_W_TREEVIEW(widget)->dragStarted) {
+				/*tvItem.state = 0;
+				 WNDPROC oldProc = GetWindowLongPtr (handle, GWLP_WNDPROC);
+				 SetWindowLongPtr (handle, GWLP_WNDPROC, TreeProc);
+				 if ((style & W_VIRTUAL) != 0) {
+				 HTREEITEM hItem = SendMessage (handle, TVM_GETNEXTITEM, TVGN_ROOT, 0);
+				 deselect (hItem, tvItem, hNewItem);
+				 } else {
+				 for (int i=0; i<items.length; i++) {
+				 TreeItem item = items [i];
+				 if (item != null && item.handle != hNewItem) {
+				 tvItem.hItem = item.handle;
+				 SendMessage (handle, TVM_SETITEM, 0,(LPARAM) &tvItem);
+				 }
+				 }
+				 }
+				 tvItem.hItem = hNewItem;
+				 tvItem.state = TVIS_SELECTED;
+				 SendMessageW (handle, TVM_SETITEM, 0,(LPARAM) &tvItem);
+				 SetWindowLongPtr (handle, GWLP_WNDPROC,(LONG_PTR) oldProc);*/
+				if ((e->wparam & MK_SHIFT) != 0) {
+					RECT rect1;
+					if (_W_TREEVIEW(widget)->hAnchor == 0)
+						_W_TREEVIEW(widget)->hAnchor = hNewItem;
+					if (TreeView_GetItemRect(handle,
+							_W_TREEVIEW(widget)->hAnchor, &rect1, FALSE)) {
+						RECT rect2;
+						if (TreeView_GetItemRect(handle, hNewItem, &rect2,
+								FALSE)) {
+							int flags =
+									rect1.top < rect2.top ?
+											TVGN_NEXTVISIBLE :
+											TVGN_PREVIOUSVISIBLE;
+							tvItem.state = TVIS_SELECTED;
+							HTREEITEM hItem = tvItem.hItem =
+									_W_TREEVIEW(widget)->hAnchor;
+							SendMessageW(handle, TVM_SETITEM, 0,
+									(LPARAM) &tvItem);
+							while (hItem != hNewItem) {
+								tvItem.hItem = hItem;
+								SendMessageW(handle, TVM_SETITEM, 0,
+										(LPARAM) &tvItem);
+								hItem =(HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
+										flags, (LPARAM) hItem);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if ((e->wparam & MK_SHIFT) == 0)
+		_W_TREEVIEW(widget)->hAnchor = hNewItem;
+
+	/* Issue notification */
+	if (!_W_TREEVIEW(widget)->gestureCompleted) {
+		tvItem.hItem = hNewItem;
+		tvItem.mask = TVIF_HANDLE | TVIF_PARAM;
+		SendMessage(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_SELECTION;
+		event.event.widget = widget;
+		event.event.platform_event = (w_event_platform*) e;
+		event.detail = 0;
+		event.item = W_LISTITEM(&item);
+		_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(widget);
+		_W_ITEM(&item)->parent = widget;
+		_W_ITEM(&item)->index = -1;
+		_W_TREEITEM(&item)->htreeitem = tvItem.hItem;
+		_w_widget_send_event(widget, W_EVENT(&event));
+	}
+	_W_TREEVIEW(widget)->gestureCompleted = FALSE;
+
+	/*
+	 * Feature in Windows.  Inside WM_LBUTTONDOWN and WM_RBUTTONDOWN,
+	 * the widget starts a modal loop to determine if the user wants
+	 * to begin a drag/drop operation or marquee select.  Unfortunately,
+	 * this modal loop eats the corresponding mouse up.  The fix is to
+	 * detect the cases when the modal loop has eaten the mouse up and
+	 * issue a fake mouse up.
+	 */
+	if (_W_TREEVIEW(widget)->dragStarted) {
+		//sendDragEvent (1, GET_X_LPARAM (e->lparam), GET_Y_LPARAM (e->lparam));
+	} else {
+		int bits = GetWindowLong(handle, GWL_STYLE);
+		if ((bits & TVS_DISABLEDRAGDROP) == 0) {
+			//sendMouseEvent (SWT.MouseUp, 1, handle, WM_LBUTTONUP, wParam, lParam);
+		}
+	}
+	_W_TREEVIEW(widget)->dragStarted = FALSE;
+	return result;
 }
 wresult _TREEVIEW_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _WIDGET_WM_MOUSEMOVE(widget, e, priv);
+	if (result)
+		return result;
+	HWND itemToolTipHandle = _W_TREEVIEW(widget)->itemToolTipHandle;
+	if (itemToolTipHandle != 0) {
+		/*
+		 * Bug in Windows.  On some machines that do not have XBUTTONs,
+		 * the MK_XBUTTON1 and MK_XBUTTON2 bits are sometimes set,
+		 * causing mouse capture to become stuck.  The fix is to test
+		 * for the extra buttons only when they exist.
+		 */
+		int mask = MK_LBUTTON | MK_MBUTTON | MK_RBUTTON;
+		if (win_toolkit->xMouse)
+			mask |= MK_XBUTTON1 | MK_XBUTTON2;
+		if ((e->wparam & mask) == 0) {
+			int x = GET_X_LPARAM(e->lparam);
+			int y = GET_Y_LPARAM(e->lparam);
+			int index = -1;
+			w_listitem item;
+			RECT cellRect, itemRect;
+			if (_w_treeview_find_cell(W_TREEVIEW(widget), x, y, &item, &index,
+					&cellRect, &itemRect)) {
+				/*
+				 * Feature in Windows.  When the new tool rectangle is
+				 * set using TTM_NEWTOOLRECT and the tooltip is visible,
+				 * Windows draws the tooltip right away and the sends
+				 * WM_NOTIFY with TTN_SHOW.  This means that the tooltip
+				 * shows first at the wrong location and then moves to
+				 * the right one.  The fix is to hide the tooltip window.
+				 */
+				if (SendMessage(itemToolTipHandle, TTM_GETCURRENTTOOL, 0, 0)
+						== 0) {
+					if (IsWindowVisible(itemToolTipHandle)) {
+						ShowWindow(itemToolTipHandle, SW_HIDE);
+					}
+				}
+				HWND handle = _W_WIDGET(widget)->handle;
+				TOOLINFOW lpti;
+				lpti.cbSize = sizeof(lpti);
+				lpti.hwnd = handle;
+				lpti.uId = handle;
+				lpti.uFlags = TTF_SUBCLASS | TTF_TRANSPARENT;
+				lpti.rect.left = cellRect.left;
+				lpti.rect.top = cellRect.top;
+				lpti.rect.right = cellRect.right;
+				lpti.rect.bottom = cellRect.bottom;
+				SendMessage(_W_TREEVIEW(widget)->itemToolTipHandle,
+						TTM_NEWTOOLRECT, 0, (LPARAM) &lpti);
+			}
+		}
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_MOUSEWHEEL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _SCROLLABLE_WM_MOUSEWHEEL(widget, e, priv);
+	if (_W_TREEVIEW(widget)->itemToolTipHandle != 0)
+		ShowWindow(_W_TREEVIEW(widget)->itemToolTipHandle, SW_HIDE);
+	return result;
 }
 wresult _TREEVIEW_WM_MOVE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	if (_W_TREEVIEW(widget)->itemToolTipHandle != 0)
+		ShowWindow(_W_TREEVIEW(widget)->itemToolTipHandle, SW_HIDE);
+	if (_W_TREEVIEW(widget)->ignoreResize)
+		return W_FALSE;
+	return _CONTROL_WM_MOVE(widget, e, priv);
 }
 wresult _TREEVIEW_WM_RBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result;
+	HWND handle = _W_WIDGET(widget)->handle;
+	wuint64 style = _W_WIDGET(widget)->style;
+	w_event_mouse mouseevent;
+	/*
+	 * Feature in Windows.  The receiver uses WM_RBUTTONDOWN
+	 * to initiate a drag/drop operation depending on how the
+	 * user moves the mouse.  If the user clicks the right button,
+	 * without moving the mouse, the tree consumes the corresponding
+	 * WM_RBUTTONUP.  The fix is to avoid calling the window proc for
+	 * the tree.
+	 */
+	win_toolkit->captureChanged = FALSE;
+	mouseevent.event.type = W_EVENT_MOUSEDOWN;
+	mouseevent.event.time = 0;
+	mouseevent.event.platform_event = (w_event_platform*) e;
+	mouseevent.event.widget = widget;
+	mouseevent.event.data = 0;
+	mouseevent.button = 3;
+	mouseevent.clickcount = 0;
+	mouseevent.detail = 0;
+	mouseevent.x = GET_X_LPARAM(e->lparam);
+	mouseevent.y = GET_Y_LPARAM(e->lparam);
+	_w_set_input_state((w_event*) &mouseevent);
+	result = _w_widget_send_event(widget, (w_event*) &mouseevent);
+	if (!result) {
+		if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
+			if (GetCapture() != handle)
+				SetCapture(handle);
+		}
+		e->result = 0;
+		return W_TRUE;
+	}
+	/*
+	 * This code is intentionally commented.
+	 */
+//	if (GetCapture () != handle) SetCapture (handle);
+	if (GetFocus() != handle)
+		SetFocus(handle);
+
+	/*
+	 * Feature in Windows.  When the user selects a tree item
+	 * with the right mouse button, the item remains selected
+	 * only as long as the user does not release or move the
+	 * mouse.  As soon as this happens, the selection snaps
+	 * back to the previous selection.  This behavior can be
+	 * observed in the Explorer but is not instantly apparent
+	 * because the Explorer explicitly sets the selection when
+	 * the user chooses a menu item.  If the user cancels the
+	 * menu, the selection snaps back.  The fix is to avoid
+	 * calling the window proc and do the selection ourselves.
+	 * This behavior is consistent with the table.
+	 */
+	TVHITTESTINFO lpht;
+	lpht.pt.x = GET_X_LPARAM(e->lparam);
+	lpht.pt.y = GET_Y_LPARAM(e->lparam);
+	SendMessage(handle, TVM_HITTEST, 0, (LPARAM) &lpht);
+	if (lpht.hItem != 0) {
+		boolean fakeSelection = (style & W_FULL_SELECTION) != 0;
+		if (!fakeSelection) {
+			if (style & W_CUSTOMDRAW) {
+				//fakeSelection = hitTestSelection (lpht.hItem, lpht.x, lpht.y);
+			} else {
+				int flags = TVHT_ONITEMICON | TVHT_ONITEMLABEL;
+				fakeSelection = (lpht.flags & flags) != 0;
+			}
+		}
+		if (fakeSelection) {
+			if ((e->wparam & (MK_CONTROL | MK_SHIFT)) == 0) {
+				TVITEM tvItem;
+				tvItem.mask = TVIF_HANDLE | TVIF_STATE;
+				tvItem.stateMask = TVIS_SELECTED;
+				tvItem.hItem = lpht.hItem;
+				SendMessage(handle, TVM_GETITEM, 0, (LPARAM) &tvItem);
+				if ((tvItem.state & TVIS_SELECTED) == 0) {
+					_W_TREEVIEW(widget)->ignoreSelect = TRUE;
+					SendMessage(handle, TVM_SELECTITEM, TVGN_CARET, 0);
+					_W_TREEVIEW(widget)->ignoreSelect = FALSE;
+					SendMessage(handle, TVM_SELECTITEM, TVGN_CARET,
+							(LPARAM) lpht.hItem);
+				}
+			}
+		}
+	}
+	e->result = 0;
+	return W_TRUE;
 }
 wresult _TREEVIEW_WM_PAINT(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -538,42 +1651,248 @@ wresult _TREEVIEW_WM_PAINT(w_widget *widget, _w_event_platform *e,
 }
 wresult _TREEVIEW_WM_SETCURSOR(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	wresult result = _CONTROL_WM_SETCURSOR(widget, e, priv);
+	if (result) return result;
+
+	/*
+	* Feature in Windows. On Windows 7, the tree control show the
+	* hand cursor when the mouse is over an item.  This is the
+	* correct Windows 7 behavior but not correct for SWT. The fix
+	* is to always ensure a cursor is set.
+	*/
+	if (WIN32_VERSION >= VERSION (6, 1)) {
+		if (e->wparam ==(WPARAM) _W_WIDGET(widget)->handle) {
+			int hitTest = LOWORD (e->lparam);
+			if (hitTest == HTCLIENT) {
+				SetCursor (LoadCursor (0, IDC_ARROW));
+				e->result = 1;
+				return W_TRUE;
+			}
+		}
+	}
 	return W_FALSE;
 }
 wresult _TREEVIEW_WM_SETFOCUS(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	/*
+	* Bug in Windows.  When a tree item that has an image
+	* with alpha is expanded or collapsed, the area where
+	* the image is drawn is not erased before it is drawn.
+	* This means that the image gets darker each time.
+	* The fix is to redraw the selection.
+	*
+	* Feature in Windows.  When multiple item have
+	* the TVIS_SELECTED state, Windows redraws only
+	* the focused item in the color used to show the
+	* selection when the tree loses or gains focus.
+	* The fix is to force Windows to redraw the
+	* selection when focus is gained or lost.
+	*/
+	int redraw = (_W_WIDGET(widget)->style & W_MULTI) != 0;
+	if (!redraw) {
+		if (_COMCTL32_VERSION >= VERSION(6,0)) {
+			if (_W_LISTVIEWBASE(widget)->imagelist != 0) {
+				int bits = GetWindowLong (_W_WIDGET(widget)->handle, GWL_STYLE);
+				if ((bits & TVS_FULLROWSELECT) == 0) {
+					redraw = TRUE;
+				}
+			}
+		}
+	}
+	//if (redraw) redrawSelection ();
+	return _WIDGET_WM_SETFOCUS(widget, e, priv);
 }
 wresult _TREEVIEW_WM_SETFONT(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _COMPOSITE_WM_SETFONT (widget,e,priv);
+	if (result) return result;
+	HWND hwndHeader = _W_TREEVIEW(widget)->hwndHeader;
+	if (_W_TREEVIEW(widget)->hwndHeader != 0) {
+		/*
+		* Bug in Windows.  When a header has a sort indicator
+		* triangle, Windows resizes the indicator based on the
+		* size of the n-1th font.  The fix is to always make
+		* the n-1th font be the default.  This makes the sort
+		* indicator always be the default size.
+		*/
+		SendMessage (hwndHeader, WM_SETFONT, 0, e->lparam);
+		SendMessage (hwndHeader, WM_SETFONT, e->wparam, e->lparam);
+	}
+	HWND itemToolTipHandle = _W_TREEVIEW(widget)->itemToolTipHandle;
+	if (itemToolTipHandle != 0) {
+		ShowWindow (itemToolTipHandle, SW_HIDE);
+		SendMessage (itemToolTipHandle, WM_SETFONT, e->wparam, e->lparam);
+	}
+	HWND headerToolTipHandle = _W_LISTVIEWBASE(widget)->headerToolTipHandle;
+	if (headerToolTipHandle != 0) {
+		SendMessage (headerToolTipHandle, WM_SETFONT, e->wparam, e->lparam);
+		//updateHeaderToolTips ();
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_SETREDRAW(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	HWND itemToolTipHandle = _W_TREEVIEW(widget)->itemToolTipHandle;
+	if (itemToolTipHandle != 0) ShowWindow (itemToolTipHandle, SW_HIDE);
+	/*
+	* Bug in Windows.  Under certain circumstances, when
+	* WM_SETREDRAW is used to turn off drawing and then
+	* TVM_GETITEMRECT is sent to get the bounds of an item
+	* that is not inside the client area, Windows segment
+	* faults.  The fix is to call the default window proc
+	* rather than the default tree proc.
+	*
+	* NOTE:  This problem is intermittent and happens on
+	* Windows Vista running under the theme manager.
+	*/
+	if (WIN32_VERSION >= VERSION (6, 0)) {
+		e->result = DefWindowProcW (_W_WIDGET(widget)->handle, WM_SETREDRAW, e->wparam, e->lparam);
+		return W_TRUE;
+	}
 	return W_FALSE;
 }
 wresult _TREEVIEW_WM_SIZE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	HWND itemToolTipHandle = _W_TREEVIEW(widget)->itemToolTipHandle;
+	if (itemToolTipHandle != 0) ShowWindow (itemToolTipHandle, SW_HIDE);
+	HWND handle = _W_WIDGET(widget)->handle;
+	/*
+	* Bug in Windows.  When TVS_NOHSCROLL is set when the
+	* size of the tree is zero, the scroll bar is shown the
+	* next time the tree resizes.  The fix is to hide the
+	* scroll bar every time the tree is resized.
+	*/
+	int bits = GetWindowLong (handle, GWL_STYLE);
+	if ((bits & TVS_NOHSCROLL) != 0) {
+		ShowScrollBar (handle, SB_HORZ, FALSE);
+	}
+	/*
+	* Bug in Windows.  On Vista, when the Explorer theme
+	* is used with a full selection tree, when the tree
+	* is resized to be smaller, the rounded right edge
+	* of the selected items is not drawn.  The fix is the
+	* redraw the entire tree.
+	*/
+	if (_W_TREEVIEW(widget)->explorerTheme && (_W_WIDGET(widget)->style & W_FULL_SELECTION) != 0) {
+		InvalidateRect (handle, 0, FALSE);
+	}
+	if (_W_TREEVIEW(widget)->ignoreResize) return W_FALSE;
+	return _COMPOSITE_WM_SIZE(widget, e, priv);
 }
 wresult _TREEVIEW_WM_SYSCOLORCHANGE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _COMPOSITE_WM_SYSCOLORCHANGE(widget, e, priv);
+	if (result) return result;
+	/*
+	* Bug in Windows.  When the tree is using the explorer
+	* theme, it does not use COLOR_WINDOW_TEXT for the
+	* default foreground color.  The fix is to explicitly
+	* set the foreground.
+	*/
+	if (_W_TREEVIEW(widget)->explorerTheme) {
+		//if (_W_CONTROL(widget)->foreground == 0) setForegroundPixel (-1);
+	}
+	//if ((_W_WIDGET(widget)->style & W_CHECK) != 0) setCheckboxImageList ();
+	return result;
 }
 wresult _TREEVIEW_WM_VSCROLL(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	int fixScroll = FALSE;
+	if ((_W_WIDGET(widget)->style & W_DOUBLE_BUFFERED) != 0) {
+		int code = LOWORD (e->wparam);
+		switch (code) {
+			case SB_TOP:
+			case SB_BOTTOM:
+			case SB_LINEDOWN:
+			case SB_LINEUP:
+			case SB_PAGEDOWN:
+			case SB_PAGEUP:
+				fixScroll = (_W_WIDGET(widget)->style & (W_VIRTUAL | W_CUSTOMDRAW)) != 0;
+				break;
+		}
+	}
+	HWND handle = _W_WIDGET(widget)->handle;
+	if (fixScroll) {
+		_W_WIDGET(widget)->style &= ~W_DOUBLE_BUFFERED;
+		if (_W_TREEVIEW(widget)->explorerTheme) {
+			SendMessage (handle, TVM_SETEXTENDEDSTYLE, TVS_EX_DOUBLEBUFFER, 0);
+		}
+	}
+	wresult result = _SCROLLABLE_WM_VSCROLL(widget, e, priv);
+	if (fixScroll) {
+		_W_WIDGET(widget)->style |= W_DOUBLE_BUFFERED;
+		if (_W_TREEVIEW(widget)->explorerTheme) {
+			SendMessage (handle, TVM_SETEXTENDEDSTYLE, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
+		}
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_TIMER(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	wresult result = _CONTROL_WM_TIMER(widget, e, priv);
+	if (result) return result;
+
+	/* Bug in Windows. When the expandos are visible (or in process of fading away)
+	 * and the tree control is hidden the animation timer does not stop calling the
+	 * window proc till the tree is visible again. This can cause performance problems
+	 * specially in cases there the application has several tree controls in this state.
+	 * The fix is to detect a timer that repeats itself several times when the control
+	 * is not visible and stop it. The timer is stopped by sending a fake mouse move event.
+	 *
+	 * Note: Just killing the timer could cause some internal clean up task related to the
+	 * animation not to run.
+	 */
+	HWND handle = _W_WIDGET(widget)->handle;
+	DWORD bits = SendMessageW (handle, TVM_GETEXTENDEDSTYLE, 0, 0);
+	if ((bits & TVS_EX_FADEINOUTEXPANDOS) != 0) {
+		if (!IsWindowVisible (handle)) {
+			/*if (lastTimerID == wParam) {
+				lastTimerCount++;
+			} else {
+				lastTimerCount = 0;
+			}
+			lastTimerID = wParam;
+			if (lastTimerCount >= TIMER_MAX_COUNT) {
+				CallWindowProc (TreeProc, handle, WM_MOUSEMOVE, 0, 0);
+				lastTimerID = -1;
+				lastTimerCount = 0;
+			}*/
+		} else {
+			/*lastTimerID = -1;
+			lastTimerCount = 0;*/
+		}
+	}
+	return result;
 }
 wresult _TREEVIEW_WM_CTLCOLORCHILD(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (priv->find_image_control(W_CONTROL(widget),priv) != 0) {
+		if (_COMCTL32_VERSION < VERSION(6,0)) {
+			//return super.wmColorChild (wParam, lParam);
+			return W_FALSE;
+		}
+		e->result =(LRESULT) GetStockObject (NULL_BRUSH);
+	}
+	/*
+	* Feature in Windows.  Tree controls send WM_CTLCOLOREDIT
+	* to allow application code to change the default colors.
+	* This is undocumented and conflicts with TVM_SETTEXTCOLOR
+	* and TVM_SETBKCOLOR, the documented way to do this.  The
+	* fix is to ignore WM_CTLCOLOREDIT messages from trees.
+	*/
 	return W_FALSE;
 }
 wresult _TREEVIEW_WM_NOTIFY(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	NMHDR* hdr =(NMHDR*) e->lparam;
+	if (hdr->hwndFrom == _W_TREEVIEW(widget)->itemToolTipHandle) {
+		wresult result = /*wmNotifyToolTip (hdr, wParam, lParam)*/0;
+		if (result) return result;
+	}
+	if (hdr->hwndFrom == _W_TREEVIEW(widget)->hwndHeader) {
+		wresult result = /*wmNotifyHeader (hdr, wParam, lParam)*/ 0;
+		if (result) return result;
+	}
 	return _COMPOSITE_WM_NOTIFY(widget, e, priv);
 }
 /*
@@ -736,7 +2055,6 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPREPAINT(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv) {
 	_w_treeview *_tree = _W_TREEVIEW(widget);
 	NMTVCUSTOMDRAW *nmcd = (NMTVCUSTOMDRAW*) e->lparam;
-	_tree->hooksEraseItem = FALSE;
 	wuint64 style = _W_WIDGET(widget)->style;
 	/*
 	 * Feature in Windows.  When a new tree item is inserted
@@ -859,119 +2177,197 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPREPAINT(w_widget *widget,
 		if (_tree->linesVisible) {
 			DrawEdge(hDC, &nmcd->nmcd.rc, BDR_SUNKENINNER, BF_BOTTOM);
 		}
-		event.gc = W_GRAPHICS(&gc);
-		event.textattr = &attr;
-		result = _w_treeview_send_measure_item_event(widget, &event, &bounds,
-				selected ? W_SELECTED : 0);
-		event.gc = 0;
-		wresult measureEvent = result;
+		wresult measureEvent = W_FALSE;
+		if (style & W_CUSTOMDRAW) {
+			event.gc = W_GRAPHICS(&gc);
+			event.textattr = &attr;
+			result = _w_treeview_send_measure_item_event(widget, &event,
+					&bounds, selected ? W_SELECTED : 0);
+			event.gc = 0;
+			measureEvent = result;
+		}
 		_tree->selectionForeground = 0;
 		_tree->ignoreDrawForeground = _tree->ignoreDrawBackground =
 				_tree->ignoreDrawSelection = _tree->ignoreDrawFocus =
 						_tree->ignoreDrawHot = _tree->ignoreFullSelection =
 								W_FALSE;
-//if (hooks (SWT.EraseItem)) {
-		RECT cellRect;
-		_w_treeitem_get_bounds_0(W_TREEITEM(&item), &cellRect, hDC, index,
-				TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_FULLTEXT
-						| TREEVIEW_BOUNDS_GET_IMAGE | TREEVIEW_BOUNDS_FULLIMAGE
-						| TREEVIEW_BOUNDS_CLIP);
-		if (clrSortBk != 0) {
-			priv->draw_background(W_CONTROL(widget), hDC, &cellRect, clrSortBk,
-					0, 0, priv);
-		} else {
-			if (IsWindowEnabled(handle)
-					|| priv->find_image_control(W_CONTROL(widget), priv) != 0) {
-				priv->draw_background(W_CONTROL(widget), hDC, &nmcd->nmcd.rc,
-						-1, 0, 0, priv);
+		if (style & W_CUSTOMDRAW) { // EraseItem
+			RECT cellRect;
+			_w_treeitem_get_bounds_0(W_TREEITEM(&item), &cellRect, hDC, index,
+					TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_FULLTEXT
+							| TREEVIEW_BOUNDS_GET_IMAGE
+							| TREEVIEW_BOUNDS_FULLIMAGE | TREEVIEW_BOUNDS_CLIP);
+			if (clrSortBk != 0) {
+				priv->draw_background(W_CONTROL(widget), hDC, &cellRect,
+						clrSortBk, 0, 0, priv);
 			} else {
-				priv->fill_background(W_CONTROL(widget), hDC, GetBkColor(hDC),
-						&nmcd->nmcd.rc);
+				if (IsWindowEnabled(handle)
+						|| priv->find_image_control(W_CONTROL(widget), priv)
+								!= 0) {
+					priv->draw_background(W_CONTROL(widget), hDC,
+							&nmcd->nmcd.rc, -1, 0, 0, priv);
+				} else {
+					priv->fill_background(W_CONTROL(widget), hDC,
+							GetBkColor(hDC), &nmcd->nmcd.rc);
+				}
 			}
-		}
-		int nSavedDC = SaveDC(hDC);
-		_w_graphics_init(W_GRAPHICS(&gc), hDC);
-		if (selected && explorerTheme) {
-			w_graphics_set_foreground(W_GRAPHICS(&gc),
-					GetSysColor(COLOR_WINDOWTEXT));
-		} else {
-			w_graphics_set_foreground(W_GRAPHICS(&gc), GetTextColor(hDC));
-		}
-		w_graphics_set_background(W_GRAPHICS(&gc), GetBkColor(hDC));
-		if (!selected) {
-			if (clrText != 0)
-				w_graphics_set_foreground(W_GRAPHICS(&gc), clrText);
+			int nSavedDC = SaveDC(hDC);
+			_w_graphics_init(W_GRAPHICS(&gc), hDC);
+			if (selected && explorerTheme) {
+				w_graphics_set_foreground(W_GRAPHICS(&gc),
+						GetSysColor(COLOR_WINDOWTEXT));
+			} else {
+				w_graphics_set_foreground(W_GRAPHICS(&gc), GetTextColor(hDC));
+			}
+			w_graphics_set_background(W_GRAPHICS(&gc), GetBkColor(hDC));
+			if (!selected) {
+				if (clrText != 0)
+					w_graphics_set_foreground(W_GRAPHICS(&gc), clrText);
+				if (clrTextBk != 0)
+					w_graphics_set_background(W_GRAPHICS(&gc), clrTextBk);
+			}
+			int uiState = SendMessageW(handle, WM_QUERYUISTATE, 0, 0);
+			if (uiState & UISF_HIDEFOCUS) {
+				//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEFOCUS;
+			}
+			if (uiState & UISF_HIDEACCEL) {
+				//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEACCEL;
+			}
+			w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
+			event.gc = W_GRAPHICS(&gc);
+			event.detail = W_FOREGROUND;
 			if (clrTextBk != 0)
-				w_graphics_set_background(W_GRAPHICS(&gc), clrTextBk);
-		}
-		int uiState = SendMessageW(handle, WM_QUERYUISTATE, 0, 0);
-		if (uiState & UISF_HIDEFOCUS) {
-			//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEFOCUS;
-		}
-		if (uiState & UISF_HIDEACCEL) {
-			//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEACCEL;
-		}
-		w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
-		event.gc = W_GRAPHICS(&gc);
-		event.detail = W_FOREGROUND;
-		if (clrTextBk != 0)
-			event.detail |= W_BACKGROUND;
-		if (hot)
-			event.detail |= W_HOT;
-		if (selected)
-			event.detail |= W_SELECTED;
+				event.detail |= W_BACKGROUND;
+			if (hot)
+				event.detail |= W_HOT;
+			if (selected)
+				event.detail |= W_SELECTED;
 //if ((nmcd.uItemState & CDIS_FOCUS) != 0) {
-		if (SendMessageW(handle, TVM_GETNEXTITEM, TVGN_CARET, 0)
-				== nmcd->nmcd.dwItemSpec) {
-			if (handle == GetFocus()) {
-				int uiState = (int) SendMessageW(handle, WM_QUERYUISTATE, 0, 0);
-				if ((uiState & UISF_HIDEFOCUS) == 0) {
-					if (!explorerTheme || !selected) {
-						focused = TRUE;
-						event.detail |= W_FOCUSED;
+			if (SendMessageW(handle, TVM_GETNEXTITEM, TVGN_CARET, 0)
+					== nmcd->nmcd.dwItemSpec) {
+				if (handle == GetFocus()) {
+					int uiState = (int) SendMessageW(handle, WM_QUERYUISTATE, 0,
+							0);
+					if ((uiState & UISF_HIDEFOCUS) == 0) {
+						if (!explorerTheme || !selected) {
+							focused = TRUE;
+							event.detail |= W_FOCUSED;
+						}
 					}
 				}
 			}
-		}
-		r.x = rect.left;
-		r.y = rect.top;
-		r.width = rect.right - rect.left;
-		r.height = rect.bottom - rect.top;
-		event.rect = &r;
+			r.x = rect.left;
+			r.y = rect.top;
+			r.width = rect.right - rect.left;
+			r.height = rect.bottom - rect.top;
+			event.rect = &r;
 //w_graphics_set_clipping_rect(&gc, &r);
-		event.event.type = W_EVENT_ITEM_ERASE;
-		event.doit = 1;
-		result = w_widget_send_event(widget, W_EVENT(&event));
-		int newTextClr = w_graphics_get_foreground(W_GRAPHICS(&gc));
-		w_graphics_dispose(W_GRAPHICS(&gc));
-		RestoreDC(hDC, nSavedDC);
-		if (result) {
-			_tree->hooksEraseItem = TRUE;
-			//if (isDisposed () || item.isDisposed ()) return null;
-			if (event.doit) {
-				_tree->ignoreDrawForeground = (event.detail & W_FOREGROUND)
-						== 0;
-				_tree->ignoreDrawBackground = (event.detail & W_BACKGROUND)
-						== 0;
-				_tree->ignoreDrawSelection = (event.detail & W_SELECTED) == 0;
-				_tree->ignoreDrawFocus = (event.detail & W_FOCUSED) == 0;
-				_tree->ignoreDrawHot = (event.detail & W_HOT) == 0;
-			} else {
-				_tree->ignoreDrawForeground = _tree->ignoreDrawBackground =
-						_tree->ignoreDrawSelection = _tree->ignoreDrawFocus =
-								_tree->ignoreDrawHot = W_TRUE;
-			}
-			if (selected && _tree->ignoreDrawSelection)
-				_tree->ignoreDrawHot = TRUE;
-			if (!_tree->ignoreDrawBackground && clrTextBk != 0) {
-				boolean draw = !selected && !hot;
-				if (!explorerTheme && selected)
-					draw = !_tree->ignoreDrawSelection;
-				if (draw) {
-					RECT *__r, textRect;
-					if (hwndHeader == 0) {
+			event.event.type = W_EVENT_ITEM_ERASE;
+			event.doit = 1;
+			result = w_widget_send_event(widget, W_EVENT(&event));
+			int newTextClr = w_graphics_get_foreground(W_GRAPHICS(&gc));
+			w_graphics_dispose(W_GRAPHICS(&gc));
+			RestoreDC(hDC, nSavedDC);
+			if (result) {
+				//if (isDisposed () || item.isDisposed ()) return null;
+				if (event.doit) {
+					_tree->ignoreDrawForeground = (event.detail & W_FOREGROUND)
+							== 0;
+					_tree->ignoreDrawBackground = (event.detail & W_BACKGROUND)
+							== 0;
+					_tree->ignoreDrawSelection = (event.detail & W_SELECTED)
+							== 0;
+					_tree->ignoreDrawFocus = (event.detail & W_FOCUSED) == 0;
+					_tree->ignoreDrawHot = (event.detail & W_HOT) == 0;
+				} else {
+					_tree->ignoreDrawForeground = _tree->ignoreDrawBackground =
+							_tree->ignoreDrawSelection =
+									_tree->ignoreDrawFocus =
+											_tree->ignoreDrawHot = W_TRUE;
+				}
+				if (selected && _tree->ignoreDrawSelection)
+					_tree->ignoreDrawHot = TRUE;
+				if (!_tree->ignoreDrawBackground && clrTextBk != 0) {
+					boolean draw = !selected && !hot;
+					if (!explorerTheme && selected)
+						draw = !_tree->ignoreDrawSelection;
+					if (draw) {
+						RECT *__r, textRect;
+						if (hwndHeader == 0) {
+							if ((style & W_FULL_SELECTION) != 0) {
+								__r = &rect;
+							} else {
+								_w_treeitem_get_bounds_0(W_TREEITEM(&item),
+										&textRect, hDC, index,
+										TREEVIEW_BOUNDS_GET_TEXT
+												| TREEVIEW_BOUNDS_CLIP);
+								if (measureEvent != 0) {
+									textRect.right = WMIN(cellRect.right,
+											bounds.x + bounds.width);
+								}
+								__r = &textRect;
+							}
+						} else {
+							__r = &cellRect;
+						}
+						priv->fill_background(W_CONTROL(widget), hDC, clrTextBk,
+								__r);
+					}
+				}
+				if (_tree->ignoreDrawSelection)
+					_tree->ignoreFullSelection = TRUE;
+				if (!_tree->ignoreDrawSelection || !_tree->ignoreDrawHot) {
+					if (!selected && !hot) {
+						_tree->selectionForeground = clrText = GetSysColor(
+						COLOR_HIGHLIGHTTEXT);
+					}
+					if (explorerTheme) {
+						if ((style & W_FULL_SELECTION) == 0) {
+							RECT pRect, pClipRect;
+							_w_treeitem_get_bounds_0(W_TREEITEM(&item), &pRect,
+									hDC, index,
+									TREEVIEW_BOUNDS_GET_TEXT
+											| TREEVIEW_BOUNDS_GET_IMAGE);
+							_w_treeitem_get_bounds_0(W_TREEITEM(&item),
+									&pClipRect, hDC, index,
+									TREEVIEW_BOUNDS_GET_TEXT
+											| TREEVIEW_BOUNDS_GET_IMAGE
+											| TREEVIEW_BOUNDS_FULLTEXT
+											| TREEVIEW_BOUNDS_CLIP);
+							if (measureEvent != 0) {
+								pRect.right = WMIN(pClipRect.right,
+										bounds.x + bounds.width);
+							} else {
+								pRect.right += TREEVIEW_EXPLORER_EXTRA;
+								pClipRect.right += TREEVIEW_EXPLORER_EXTRA;
+							}
+							pRect.left -= TREEVIEW_EXPLORER_EXTRA;
+							pClipRect.left -= TREEVIEW_EXPLORER_EXTRA;
+							HTHEME hTheme = OpenThemeData(handle, L"TREEVIEW");
+							int iStateId =
+									selected ? TREIS_SELECTED : TREIS_HOT;
+							if (GetFocus() != handle && selected && !hot)
+								iStateId = TREIS_SELECTEDNOTFOCUS;
+							DrawThemeBackground(hTheme, hDC, TVP_TREEITEM,
+									iStateId, &pRect, &pClipRect);
+							CloseThemeData(hTheme);
+						}
+					} else {
+						/*
+						 * Feature in Windows.  When the tree has the style
+						 * TVS_FULLROWSELECT, the background color for the
+						 * entire row is filled when an item is painted,
+						 * drawing on top of any custom drawing.  The fix
+						 * is to emulate TVS_FULLROWSELECT.
+						 */
+						RECT *__r, textRect;
 						if ((style & W_FULL_SELECTION) != 0) {
-							__r = &rect;
+							if ((style & W_FULL_SELECTION) != 0
+									&& hwndHeader == 0) {
+								__r = &rect;
+							} else {
+								__r = &cellRect;
+							}
 						} else {
 							_w_treeitem_get_bounds_0(W_TREEITEM(&item),
 									&textRect, hDC, index,
@@ -983,147 +2379,80 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPREPAINT(w_widget *widget,
 							}
 							__r = &textRect;
 						}
-					} else {
-						__r = &cellRect;
-					}
-					priv->fill_background(W_CONTROL(widget), hDC, clrTextBk,
-							__r);
-				}
-			}
-			if (_tree->ignoreDrawSelection)
-				_tree->ignoreFullSelection = TRUE;
-			if (!_tree->ignoreDrawSelection || !_tree->ignoreDrawHot) {
-				if (!selected && !hot) {
-					_tree->selectionForeground = clrText = GetSysColor(
-					COLOR_HIGHLIGHTTEXT);
-				}
-				if (explorerTheme) {
-					if ((style & W_FULL_SELECTION) == 0) {
-						RECT pRect, pClipRect;
-						_w_treeitem_get_bounds_0(W_TREEITEM(&item), &pRect, hDC,
-								index,
-								TREEVIEW_BOUNDS_GET_TEXT
-										| TREEVIEW_BOUNDS_GET_IMAGE);
-						_w_treeitem_get_bounds_0(W_TREEITEM(&item), &pClipRect,
-								hDC, index,
-								TREEVIEW_BOUNDS_GET_TEXT
-										| TREEVIEW_BOUNDS_GET_IMAGE
-										| TREEVIEW_BOUNDS_FULLTEXT
-										| TREEVIEW_BOUNDS_CLIP);
-						if (measureEvent != 0) {
-							pRect.right = WMIN(pClipRect.right,
-									bounds.x + bounds.width);
-						} else {
-							pRect.right += TREEVIEW_EXPLORER_EXTRA;
-							pClipRect.right += TREEVIEW_EXPLORER_EXTRA;
-						}
-						pRect.left -= TREEVIEW_EXPLORER_EXTRA;
-						pClipRect.left -= TREEVIEW_EXPLORER_EXTRA;
-						HTHEME hTheme = OpenThemeData(handle, L"TREEVIEW");
-						int iStateId = selected ? TREIS_SELECTED : TREIS_HOT;
-						if (GetFocus() != handle && selected && !hot)
-							iStateId = TREIS_SELECTEDNOTFOCUS;
-						DrawThemeBackground(hTheme, hDC, TVP_TREEITEM, iStateId,
-								&pRect, &pClipRect);
-						CloseThemeData(hTheme);
+						priv->fill_background(W_CONTROL(widget), hDC,
+								GetBkColor(hDC), __r);
 					}
 				} else {
-					/*
-					 * Feature in Windows.  When the tree has the style
-					 * TVS_FULLROWSELECT, the background color for the
-					 * entire row is filled when an item is painted,
-					 * drawing on top of any custom drawing.  The fix
-					 * is to emulate TVS_FULLROWSELECT.
-					 */
-					RECT *__r, textRect;
-					if ((style & W_FULL_SELECTION) != 0) {
-						if ((style & W_FULL_SELECTION) != 0
-								&& hwndHeader == 0) {
-							__r = &rect;
-						} else {
-							__r = &cellRect;
-						}
-					} else {
-						_w_treeitem_get_bounds_0(W_TREEITEM(&item), &textRect,
-								hDC, index,
-								TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_CLIP);
-						if (measureEvent != 0) {
-							textRect.right = WMIN(cellRect.right,
-									bounds.x + bounds.width);
-						}
-						__r = &textRect;
+					if (selected || hot) {
+						_tree->selectionForeground = clrText = newTextClr;
+						_tree->ignoreDrawSelection = _tree->ignoreDrawHot =
+						TRUE;
 					}
-					priv->fill_background(W_CONTROL(widget), hDC,
-							GetBkColor(hDC), __r);
+					if (explorerTheme) {
+						nmcd->nmcd.uItemState |= CDIS_DISABLED;
+						/*
+						 * Feature in Windows.  On Vista only, when the text
+						 * color is unchanged and an item is asked to draw
+						 * disabled, it uses the disabled color.  The fix is
+						 * to modify the color so that is it no longer equal.
+						 */
+						int newColor;
+						if (clrText == 0) {
+							newColor = priv->get_foreground_pixel(
+									W_CONTROL(widget), priv);
+						} else {
+							newColor = (clrText & 0x00FFFFFF);
+						}
+						if (nmcd->clrText == newColor) {
+							nmcd->clrText |= 0x20000000;
+							if (nmcd->clrText == newColor)
+								nmcd->clrText &= ~0x20000000;
+						} else {
+							nmcd->clrText = newColor;
+						}
+					}
 				}
-			} else {
-				if (selected || hot) {
-					_tree->selectionForeground = clrText = newTextClr;
-					_tree->ignoreDrawSelection = _tree->ignoreDrawHot = TRUE;
+				if (focused && !_tree->ignoreDrawFocus
+						&& (style & W_FULL_SELECTION) == 0) {
+					int flags = TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_CLIP;
+					if (explorerTheme)
+						flags |= TREEVIEW_BOUNDS_GET_IMAGE;
+					_w_treeitem_get_bounds_0(W_TREEITEM(&item), &_focusRect,
+							hDC, index, flags);
+					if (measureEvent != 0) {
+						_focusRect.right = WMIN(cellRect.right,
+								bounds.x + bounds.width);
+					}
+					nmcd->nmcd.uItemState &= ~CDIS_FOCUS;
+					focusRect = &_focusRect;
 				}
 				if (explorerTheme) {
-					nmcd->nmcd.uItemState |= CDIS_DISABLED;
-					/*
-					 * Feature in Windows.  On Vista only, when the text
-					 * color is unchanged and an item is asked to draw
-					 * disabled, it uses the disabled color.  The fix is
-					 * to modify the color so that is it no longer equal.
-					 */
-					int newColor;
-					if (clrText == 0) {
-						newColor = priv->get_foreground_pixel(W_CONTROL(widget),
-								priv);
-					} else {
-						newColor = (clrText & 0x00FFFFFF);
-					}
-					if (nmcd->clrText == newColor) {
-						nmcd->clrText |= 0x20000000;
-						if (nmcd->clrText == newColor)
-							nmcd->clrText &= ~0x20000000;
-					} else {
-						nmcd->clrText = newColor;
-					}
+					if (selected || (hot && _tree->ignoreDrawHot))
+						nmcd->nmcd.uItemState &= ~CDIS_HOT;
 				}
-			}
-			if (focused && !_tree->ignoreDrawFocus
-					&& (style & W_FULL_SELECTION) == 0) {
-				int flags = TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_CLIP;
-				if (explorerTheme)
-					flags |= TREEVIEW_BOUNDS_GET_IMAGE;
-				_w_treeitem_get_bounds_0(W_TREEITEM(&item), &_focusRect, hDC,
-						index, flags);
-				if (measureEvent != 0) {
-					_focusRect.right = WMIN(cellRect.right,
-							bounds.x + bounds.width);
+				RECT itemRect;
+				_w_treeitem_get_bounds_0(W_TREEITEM(&item), &itemRect, hDC,
+						index,
+						TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_GET_IMAGE);
+				SaveDC(hDC);
+				SelectClipRgn(hDC, 0);
+				if (explorerTheme) {
+					itemRect.left -= TREEVIEW_EXPLORER_EXTRA;
+					itemRect.right += TREEVIEW_EXPLORER_EXTRA;
 				}
-				nmcd->nmcd.uItemState &= ~CDIS_FOCUS;
-				focusRect = &_focusRect;
+				//bug in Windows selection or SWT itemRect
+				/*if (selected)*/itemRect.right++;
+				if (_tree->linesVisible)
+					itemRect.bottom++;
+				if (clipRect != 0) {
+					IntersectClipRect(hDC, clipRect->left, clipRect->top,
+							clipRect->right, clipRect->bottom);
+				}
+				ExcludeClipRect(hDC, itemRect.left, itemRect.top,
+						itemRect.right, itemRect.bottom);
+				e->result = CDRF_DODEFAULT | CDRF_NOTIFYPOSTPAINT;
+				return W_TRUE;
 			}
-			if (explorerTheme) {
-				if (selected || (hot && _tree->ignoreDrawHot))
-					nmcd->nmcd.uItemState &= ~CDIS_HOT;
-			}
-			RECT itemRect;
-			_w_treeitem_get_bounds_0(W_TREEITEM(&item), &itemRect, hDC, index,
-			TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_GET_IMAGE);
-			SaveDC(hDC);
-			SelectClipRgn(hDC, 0);
-			if (explorerTheme) {
-				itemRect.left -= TREEVIEW_EXPLORER_EXTRA;
-				itemRect.right += TREEVIEW_EXPLORER_EXTRA;
-			}
-			//bug in Windows selection or SWT itemRect
-			/*if (selected)*/itemRect.right++;
-			if (_tree->linesVisible)
-				itemRect.bottom++;
-			if (clipRect != 0) {
-				IntersectClipRect(hDC, clipRect->left, clipRect->top,
-						clipRect->right, clipRect->bottom);
-			}
-			ExcludeClipRect(hDC, itemRect.left, itemRect.top, itemRect.right,
-					itemRect.bottom);
-			e->result = CDRF_DODEFAULT | CDRF_NOTIFYPOSTPAINT;
-			return W_TRUE;
 		} //if (hooks (SWT.EraseItem))
 		/*
 		 * Feature in Windows.  When the tree has the style
@@ -1395,27 +2724,25 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 		columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0, 0);
 	}
 
-	wuchar draw = W_FALSE;
-	wuchar clear = W_FALSE;
-	wuchar drawItem = W_FALSE;
-	wuchar drawText = W_FALSE;
-	wuchar drawImage = W_FALSE;
-	wuchar drawBackground = W_FALSE;
-	wuchar drawForeground = W_FALSE;
-	wuchar selected = W_FALSE;
-	wuchar hot = W_FALSE;
-	wuchar measureEvent = W_FALSE;
+	wuchar draw;
+	wuchar clear;
+	wuchar drawItem;
+	wuchar drawText;
+	wuchar drawImage;
+	wuchar drawBackground;
+	wuchar drawForeground;
+	wuchar selected;
+	wuchar hot;
+	wuchar measureEvent;
 
-	int clrText = 0;
-	int clrTextBk = 0;
-	int sortIndex = -1;
-	int clrSortBk = 0;
+	int clrText;
+	int clrTextBk;
+	int sortIndex;
+	int clrSortBk;
 	int explorerTheme = _tree->explorerTheme;
 
 	int x = 0;
-	//w_point *size = 0;
 	for (int i = 0; i < columnCount; i++) {
-//int index = order == null ? i : order [i], width = nmcd.right - nmcd.left;
 		int index = i;
 		_W_ITEM(&column)->index = index;
 		int width = nmcd->nmcd.rc.right - nmcd->nmcd.rc.left;
@@ -1425,7 +2752,23 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 			x = rect.left;
 		}
 		if (x > clientRect.right)
-			break;
+			continue;
+		draw = W_FALSE;
+		clear = W_FALSE;
+		drawItem = W_FALSE;
+		drawText = W_FALSE;
+		drawImage = W_FALSE;
+		drawBackground = W_FALSE;
+		drawForeground = W_FALSE;
+		selected = W_FALSE;
+		hot = W_FALSE;
+		measureEvent = W_FALSE;
+
+		clrText = 0;
+		clrTextBk = 0;
+		sortIndex = -1;
+		clrSortBk = 0;
+		memset(&attr, 0, sizeof(attr));
 		attr.mask = W_LISTITEM_ATTR_MASK_ALL_NO_TEXT;
 		_w_listitem_get_attr(W_LISTITEM(&item), index,
 		W_LISTITEM_ATTR_MASK_ALL_NO_TEXT, &attr);
@@ -1441,7 +2784,7 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 					SetRect(&pClipRect, width, nmcd->nmcd.rc.top,
 							nmcd->nmcd.rc.right, nmcd->nmcd.rc.bottom);
 					if (explorerTheme) {
-						if (_W_TREEVIEW(widget)->hooksEraseItem) {
+						if (style & W_CUSTOMDRAW) {
 							RECT itemRect;
 							_w_treeitem_get_bounds_0(W_TREEITEM(&item),
 									&itemRect, hDC, index,
@@ -1509,7 +2852,7 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 				if (priv->find_image_control(W_CONTROL(widget), priv) != 0) {
 					if (explorerTheme) {
 						if (IsWindowEnabled(handle)
-								&& !_W_TREEVIEW(widget)->hooksEraseItem) {
+								&& (style & W_CUSTOMDRAW) == 0) {
 							int image = -1;
 							if (index == 0) {
 								//image = item.image;
@@ -1559,8 +2902,8 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 					drawBackground = FALSE;
 				}
 				backgroundRect = &rect;
-				//if (hooks (SWT.EraseItem)) {
-				if (_tree->hooksEraseItem) {
+				if (style & W_CUSTOMDRAW) {
+					//if (_tree->hooksEraseItem) {
 					drawItem = drawText = drawImage = TRUE;
 					_w_treeitem_get_bounds_0(W_TREEITEM(&item), &rect, hDC,
 							index,
@@ -1586,15 +2929,18 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 				backgroundRect = &rect;
 			}
 			clrText = 0, clrTextBk = 0;
-			//long hFont = item.fontHandle (index);
 			if (_tree->selectionForeground != 0)
 				clrText = _tree->selectionForeground;
 			if (IsWindowEnabled(handle)) {
 				drawForeground = FALSE;
 				if (selected) {
 					if (i != 0 && (style & W_FULL_SELECTION) == 0) {
-						//SetTextColor (hDC, getForegroundPixel ());
-						//SetBkColor (hDC, getBackgroundPixel ());
+						SetTextColor(hDC,
+								priv->get_foreground_pixel(W_CONTROL(widget),
+										priv));
+						SetBkColor(hDC,
+								priv->get_background_pixel(W_CONTROL(widget),
+										priv));
 						drawForeground = drawBackground = TRUE;
 					}
 				} else {
@@ -1605,7 +2951,7 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 				}
 				if (drawBackground) {
 					clrTextBk = attr.background;
-					if (clrTextBk == -1 && index == sortIndex)
+					if (clrTextBk == 0 && index == sortIndex)
 						clrTextBk = clrSortBk;
 				}
 			} else {
@@ -1621,7 +2967,8 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 					} else {
 						if (i == 0) {
 							drawBackground = FALSE;
-							//if (!hooks (SWT.EraseItem)) drawText = FALSE;
+							if ((style & W_CUSTOMDRAW) == 0)
+								drawText = FALSE;
 						}
 					}
 				}
@@ -1629,207 +2976,225 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 			if (drawItem) {
 				HDC hDC = nmcd->nmcd.hdc;
 				if (index != 0) {
-					event.textattr = &attr;
-					measureEvent = _w_treeview_send_measure_item_event(widget,
-							&event, &bounds, selected ? W_SELECTED : 0);
-
-					RECT cellRect;
-					_w_treeitem_get_bounds_0(W_TREEITEM(&item), &cellRect, hDC,
-							index,
-							TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_FULLTEXT
-									| TREEVIEW_BOUNDS_GET_IMAGE
-									| TREEVIEW_BOUNDS_FULLIMAGE
-									| TREEVIEW_BOUNDS_CLIP);
-					int nSavedDC = SaveDC(hDC);
-					_w_graphics_init(W_GRAPHICS(&gc), hDC);
-					w_graphics_set_foreground(W_GRAPHICS(&gc),
-							GetTextColor(hDC));
-					w_graphics_set_background(W_GRAPHICS(&gc), GetBkColor(hDC));
-					if (!selected || (style & W_FULL_SELECTION) == 0) {
-						if (clrText != 0)
-							w_graphics_set_foreground(W_GRAPHICS(&gc), clrText);
+					if (style & W_CUSTOMDRAW) {
+						event.textattr = &attr;
+						measureEvent = _w_treeview_send_measure_item_event(
+								widget, &event, &bounds,
+								selected ? W_SELECTED : 0);
+					}
+					if (style & W_CUSTOMDRAW) {
+						RECT cellRect;
+						_w_treeitem_get_bounds_0(W_TREEITEM(&item), &cellRect,
+								hDC, index,
+								TREEVIEW_BOUNDS_GET_TEXT
+										| TREEVIEW_BOUNDS_FULLTEXT
+										| TREEVIEW_BOUNDS_GET_IMAGE
+										| TREEVIEW_BOUNDS_FULLIMAGE
+										| TREEVIEW_BOUNDS_CLIP);
+						int nSavedDC = SaveDC(hDC);
+						_w_graphics_init(W_GRAPHICS(&gc), hDC);
+						w_graphics_set_foreground(W_GRAPHICS(&gc),
+								GetTextColor(hDC));
+						w_graphics_set_background(W_GRAPHICS(&gc),
+								GetBkColor(hDC));
+						if (!selected || (style & W_FULL_SELECTION) == 0) {
+							if (clrText != 0)
+								w_graphics_set_foreground(W_GRAPHICS(&gc),
+										clrText);
+							if (clrTextBk != 0)
+								w_graphics_set_background(W_GRAPHICS(&gc),
+										clrTextBk);
+						}
+						if (attr.font != 0) {
+							w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
+						}
+						int uiState = (int) SendMessageW(handle,
+						WM_QUERYUISTATE, 0, 0);
+						if (uiState & UISF_HIDEFOCUS) {
+							//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEFOCUS;
+						}
+						if (uiState & UISF_HIDEACCEL) {
+							//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEACCEL;
+						}
+						event.gc = W_GRAPHICS(&gc);
+						event.forground = 1;
+						event.textattr = 0;
+						event.doit = 1;
 						if (clrTextBk != 0)
-							w_graphics_set_background(W_GRAPHICS(&gc),
-									clrTextBk);
-					}
-					if (attr.font != 0) {
-						w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
-					}
-					int uiState = (int) SendMessageW(handle, WM_QUERYUISTATE, 0,
-							0);
-					if (uiState & UISF_HIDEFOCUS) {
-						//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEFOCUS;
-					}
-					if (uiState & UISF_HIDEACCEL) {
-						//_W_GRAPHICS(&gc)->state |= W_GRAPHICS_UISF_HIDEACCEL;
-					}
-					event.gc = W_GRAPHICS(&gc);
-					event.forground = 1;
-					event.textattr = 0;
-					event.doit = 1;
-					if (clrTextBk != 0)
-						event.background = 1;
-					if ((style & W_FULL_SELECTION) != 0) {
-						if (hot)
-							event.hot = 1;
-						if (selected)
-							event.selected = 1;
-						if (!explorerTheme) {
-							//if ((nmcd.uItemState & CDIS_FOCUS) != 0) {
-							if (SendMessageW(handle, TVM_GETNEXTITEM,
-							TVGN_CARET, 0) == nmcd->nmcd.dwItemSpec) {
-								if (handle == GetFocus()) {
-									int uiState = SendMessageW(handle,
-									WM_QUERYUISTATE, 0, 0);
-									if ((uiState & UISF_HIDEFOCUS) == 0)
-										event.focused = 1;
+							event.background = 1;
+						if ((style & W_FULL_SELECTION) != 0) {
+							if (hot)
+								event.hot = 1;
+							if (selected)
+								event.selected = 1;
+							if (!explorerTheme) {
+								//if ((nmcd.uItemState & CDIS_FOCUS) != 0) {
+								if (SendMessageW(handle, TVM_GETNEXTITEM,
+								TVGN_CARET, 0) == nmcd->nmcd.dwItemSpec) {
+									if (handle == GetFocus()) {
+										int uiState = SendMessageW(handle,
+										WM_QUERYUISTATE, 0, 0);
+										if ((uiState & UISF_HIDEFOCUS) == 0)
+											event.focused = 1;
+									}
 								}
 							}
 						}
-					}
-					event.rect = &r;
-					r.x = cellRect.left;
-					r.y = cellRect.top;
-					r.width = cellRect.right - cellRect.left;
-					r.height = cellRect.bottom - cellRect.top;
-					//w_graphics_set_clipping_rect(&gc, &r);
-					event.event.type = W_EVENT_ITEM_ERASE;
-					int ret = w_widget_send_event(widget, (w_event*) &event);
-					int newTextClr = w_graphics_get_foreground(W_GRAPHICS(&gc));
-					w_graphics_dispose(W_GRAPHICS(&gc));
-					RestoreDC(hDC, nSavedDC);
-					if (ret) {
-						//if (event.doit) {
-						if (event.doit) {
-							_tree->ignoreDrawForeground = (event.detail
-									& W_FOREGROUND) == 0;
-							_tree->ignoreDrawBackground = (event.detail
-									& W_BACKGROUND) == 0;
-							if ((style & W_FULL_SELECTION) != 0) {
-								_tree->ignoreDrawSelection = (event.detail
-										& W_SELECTED) == 0;
-								_tree->ignoreDrawFocus = (event.detail
-										& W_FOCUSED) == 0;
-								_tree->ignoreDrawHot = (event.detail & W_HOT)
-										== 0;
+						event.rect = &r;
+						r.x = cellRect.left;
+						r.y = cellRect.top;
+						r.width = cellRect.right - cellRect.left;
+						r.height = cellRect.bottom - cellRect.top;
+						//w_graphics_set_clipping_rect(&gc, &r);
+						event.event.type = W_EVENT_ITEM_ERASE;
+						int ret = w_widget_send_event(widget,
+								(w_event*) &event);
+						int newTextClr = w_graphics_get_foreground(
+								W_GRAPHICS(&gc));
+						w_graphics_dispose(W_GRAPHICS(&gc));
+						RestoreDC(hDC, nSavedDC);
+						if (ret) {
+							//if (event.doit) {
+							if (event.doit) {
+								_tree->ignoreDrawForeground = (event.detail
+										& W_FOREGROUND) == 0;
+								_tree->ignoreDrawBackground = (event.detail
+										& W_BACKGROUND) == 0;
+								if ((style & W_FULL_SELECTION) != 0) {
+									_tree->ignoreDrawSelection = (event.detail
+											& W_SELECTED) == 0;
+									_tree->ignoreDrawFocus = (event.detail
+											& W_FOCUSED) == 0;
+									_tree->ignoreDrawHot =
+											(event.detail & W_HOT) == 0;
+								}
+							} else {
+								_tree->ignoreDrawForeground = TRUE;
+								_tree->ignoreDrawBackground = TRUE;
+								_tree->ignoreDrawSelection = TRUE;
+								_tree->ignoreDrawFocus = TRUE;
+								_tree->ignoreDrawHot = TRUE;
 							}
-						} else {
-							_tree->ignoreDrawForeground = TRUE;
-							_tree->ignoreDrawBackground = TRUE;
-							_tree->ignoreDrawSelection = TRUE;
-							_tree->ignoreDrawFocus = TRUE;
-							_tree->ignoreDrawHot = TRUE;
-						}
-						if (selected && _tree->ignoreDrawSelection)
-							_tree->ignoreDrawHot = TRUE;
-						if ((style & W_FULL_SELECTION) != 0) {
-							if (_tree->ignoreDrawSelection)
-								_tree->ignoreFullSelection = TRUE;
-							if (!_tree->ignoreDrawSelection
-									|| !_tree->ignoreDrawHot) {
-								if (!selected && !hot) {
-									_tree->selectionForeground = GetSysColor(
-									COLOR_HIGHLIGHTTEXT);
-								} else {
-									if (!explorerTheme) {
-										drawBackground = TRUE;
-										_tree->ignoreDrawBackground =
-										FALSE;
-										if ((handle == GetFocus() /*|| display.getHighContrast ()*/)
-												&& IsWindowEnabled(handle)) {
-											clrTextBk = GetSysColor(
-											COLOR_HIGHLIGHT);
-										} else {
-											clrTextBk = GetSysColor(
-											COLOR_3DFACE);
-										}
-										if (!_tree->ignoreFullSelection
-												&& index == columnCount - 1) {
-											//RECT selectionRect;
-											SetRect(&rect_tmp,
-													backgroundRect->left,
-													backgroundRect->top,
-													nmcd->nmcd.rc.right,
-													backgroundRect->bottom);
-											backgroundRect = &rect_tmp;
-										}
+							if (selected && _tree->ignoreDrawSelection)
+								_tree->ignoreDrawHot = TRUE;
+							if ((style & W_FULL_SELECTION) != 0) {
+								if (_tree->ignoreDrawSelection)
+									_tree->ignoreFullSelection = TRUE;
+								if (!_tree->ignoreDrawSelection
+										|| !_tree->ignoreDrawHot) {
+									if (!selected && !hot) {
+										_tree->selectionForeground =
+												GetSysColor(
+												COLOR_HIGHLIGHTTEXT);
 									} else {
-										RECT pRect;
-										SetRect(&pRect, nmcd->nmcd.rc.left,
-												nmcd->nmcd.rc.top,
-												nmcd->nmcd.rc.right,
-												nmcd->nmcd.rc.bottom);
-										if (hwndHeader != 0) {
-											int totalWidth = 0;
-											HDITEM hdItem;
-											hdItem.mask = HDI_WIDTH;
-											for (int j = 0; j < columnCount;
-													j++) {
-												SendMessageW(hwndHeader,
-												HDM_GETITEMW, j,
-														(LPARAM) &hdItem);
-												totalWidth += hdItem.cxy;
-											}
-											if (totalWidth
-													> clientRect.right
-															- clientRect.left) {
-												pRect.left = 0;
-												pRect.right = totalWidth;
+										if (!explorerTheme) {
+											drawBackground = TRUE;
+											_tree->ignoreDrawBackground =
+											FALSE;
+											if ((handle == GetFocus() /*|| display.getHighContrast ()*/)
+													&& IsWindowEnabled(
+															handle)) {
+												clrTextBk = GetSysColor(
+												COLOR_HIGHLIGHT);
 											} else {
-												pRect.left = clientRect.left;
-												pRect.right = clientRect.right;
+												clrTextBk = GetSysColor(
+												COLOR_3DFACE);
 											}
-											if (index == columnCount - 1) {
+											if (!_tree->ignoreFullSelection
+													&& index
+															== columnCount
+																	- 1) {
+												//RECT selectionRect;
 												SetRect(&rect_tmp,
 														backgroundRect->left,
 														backgroundRect->top,
-														pRect.right,
+														nmcd->nmcd.rc.right,
 														backgroundRect->bottom);
 												backgroundRect = &rect_tmp;
 											}
-										}
-										HTHEME hTheme = OpenThemeData(handle,
-												L"TREEVIEW");
-										int iStateId =
-												selected ?
-														TREIS_SELECTED :
-														TREIS_HOT;
-										if (GetFocus() != handle && selected
-												&& !hot)
-											iStateId = TREIS_SELECTEDNOTFOCUS;
-										DrawThemeBackground(hTheme, hDC,
-												TVP_TREEITEM, iStateId, &pRect,
-												backgroundRect);
-										CloseThemeData(hTheme);
-									}
-								}
-							} else {
-								if (selected) {
-									_tree->selectionForeground = newTextClr;
-									if (!explorerTheme) {
-										if (clrTextBk == 0
-												&& IsWindowEnabled(handle)) {
-											w_control *control =
-													priv->find_background_control(
-															W_CONTROL(widget),
-															priv);
-											_w_control_priv *cpriv;
-											if (control == 0) {
-												control = W_CONTROL(widget);
-												cpriv = priv;
-											} else {
-												cpriv = _W_CONTROL_GET_PRIV(
-														control);
+										} else {
+											RECT pRect;
+											SetRect(&pRect, nmcd->nmcd.rc.left,
+													nmcd->nmcd.rc.top,
+													nmcd->nmcd.rc.right,
+													nmcd->nmcd.rc.bottom);
+											if (hwndHeader != 0) {
+												int totalWidth = 0;
+												HDITEM hdItem;
+												hdItem.mask = HDI_WIDTH;
+												for (int j = 0; j < columnCount;
+														j++) {
+													SendMessageW(hwndHeader,
+													HDM_GETITEMW, j,
+															(LPARAM) &hdItem);
+													totalWidth += hdItem.cxy;
+												}
+												if (totalWidth
+														> clientRect.right
+																- clientRect.left) {
+													pRect.left = 0;
+													pRect.right = totalWidth;
+												} else {
+													pRect.left =
+															clientRect.left;
+													pRect.right =
+															clientRect.right;
+												}
+												if (index == columnCount - 1) {
+													SetRect(&rect_tmp,
+															backgroundRect->left,
+															backgroundRect->top,
+															pRect.right,
+															backgroundRect->bottom);
+													backgroundRect = &rect_tmp;
+												}
 											}
-											clrTextBk =
-													cpriv->get_background_pixel(
-															control, cpriv);
+											HTHEME hTheme = OpenThemeData(
+													handle, L"TREEVIEW");
+											int iStateId =
+													selected ?
+															TREIS_SELECTED :
+															TREIS_HOT;
+											if (GetFocus() != handle && selected
+													&& !hot)
+												iStateId =
+														TREIS_SELECTEDNOTFOCUS;
+											DrawThemeBackground(hTheme, hDC,
+													TVP_TREEITEM, iStateId,
+													&pRect, backgroundRect);
+											CloseThemeData(hTheme);
+										}
+									}
+								} else {
+									if (selected) {
+										_tree->selectionForeground = newTextClr;
+										if (!explorerTheme) {
+											if (clrTextBk == 0
+													&& IsWindowEnabled(
+															handle)) {
+												w_control *control =
+														priv->find_background_control(
+																W_CONTROL(
+																		widget),
+																priv);
+												_w_control_priv *cpriv;
+												if (control == 0) {
+													control = W_CONTROL(widget);
+													cpriv = priv;
+												} else {
+													cpriv = _W_CONTROL_GET_PRIV(
+															control);
+												}
+												clrTextBk =
+														cpriv->get_background_pixel(
+																control, cpriv);
+											}
 										}
 									}
 								}
 							}
 						}
-					}						//if (hooks (SWT.EraseItem))
+					}/*if (hooks (SWT.EraseItem))*/
 					if (_tree->selectionForeground != 0)
 						clrText = _tree->selectionForeground;
 				}
@@ -1925,15 +3290,21 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 						W_LISTITEM_ATTR_MASK_TEXT, &attr);
 						if (alloc.text != 0) {
 							HFONT lastfont;
+							COLORREF oldClrText;
+							COLORREF oldClrTextBk;
+							int oldBkMode;
 							HDC hDC = nmcd->nmcd.hdc;
 							if (attr.font != 0)
 								lastfont = SelectObject(hDC, (HFONT) attr.font);
 							if (clrText != 0)
-								clrText = SetTextColor(hDC,
+								oldClrText = SetTextColor(hDC,
 										clrText & 0x00FFFFFF);
-							if (clrTextBk != 0)
-								clrTextBk = SetBkColor(hDC,
+							if (clrTextBk != 0) {
+								oldClrTextBk = SetBkColor(hDC,
 										clrTextBk & 0x00FFFFFF);
+							} else {
+								oldBkMode = SetBkMode(hDC, TRANSPARENT);
+							}
 							int flags = DT_NOPREFIX | DT_SINGLELINE | DT_VCENTER;
 							if (index != 0)
 								flags |= DT_END_ELLIPSIS;
@@ -1955,9 +3326,12 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 							if (attr.font != 0)
 								SelectObject(hDC, lastfont);
 							if (clrText != 0)
-								SetTextColor(hDC, clrText);
+								SetTextColor(hDC, oldClrText);
 							if (clrTextBk != 0)
-								SetBkColor(hDC, clrTextBk);
+								SetBkColor(hDC, oldClrTextBk);
+							else {
+								SetBkMode(hDC, oldBkMode);
+							}
 						}
 						_w_toolkit_free(alloc.text, alloc.size);
 					}
@@ -1966,92 +3340,92 @@ wresult _TREEVIEW_WM_NOTIFY_CDDS_ITEMPOSTPAINT(w_widget *widget,
 			if (_tree->selectionForeground != 0)
 				clrText = _tree->selectionForeground;
 			HDC hDC = nmcd->nmcd.hdc;
-			//if (hooks (SWT.PaintItem)) {
-			RECT itemRect;
-			_w_treeitem_get_bounds_0(W_TREEITEM(&item), &itemRect, hDC, index,
-			TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_GET_IMAGE);
-			int nSavedDC = SaveDC(hDC);
-			_w_graphics_init(W_GRAPHICS(&gc), hDC);
-			if (attr.font != 0) {
-				w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
-			}
-			w_graphics_set_foreground(W_GRAPHICS(&gc), GetTextColor(hDC));
-			w_graphics_set_background(W_GRAPHICS(&gc), GetBkColor(hDC));
-			if (selected && (style & W_FULL_SELECTION) != 0) {
-				if (_tree->selectionForeground != 0)
-					w_graphics_set_foreground(W_GRAPHICS(&gc),
-							_tree->selectionForeground);
-			} else {
-				if (clrText != 0)
-					w_graphics_set_foreground(W_GRAPHICS(&gc), clrText);
+			if (style & W_CUSTOMDRAW) { /* if (hooks (SWT.PaintItem))*/
+				RECT itemRect;
+				_w_treeitem_get_bounds_0(W_TREEITEM(&item), &itemRect, hDC,
+						index,
+						TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_GET_IMAGE);
+				int nSavedDC = SaveDC(hDC);
+				_w_graphics_init(W_GRAPHICS(&gc), hDC);
+				if (attr.font != 0) {
+					w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
+				}
+				w_graphics_set_foreground(W_GRAPHICS(&gc), GetTextColor(hDC));
+				w_graphics_set_background(W_GRAPHICS(&gc), GetBkColor(hDC));
+				if (selected && (style & W_FULL_SELECTION) != 0) {
+					if (_tree->selectionForeground != 0)
+						w_graphics_set_foreground(W_GRAPHICS(&gc),
+								_tree->selectionForeground);
+				} else {
+					if (clrText != 0)
+						w_graphics_set_foreground(W_GRAPHICS(&gc), clrText);
+					if (clrTextBk != 0)
+						w_graphics_set_background(W_GRAPHICS(&gc), clrTextBk);
+				}
+				int uiState = (int) SendMessageW(handle,
+				WM_QUERYUISTATE, 0, 0);
+				if (uiState & UISF_HIDEFOCUS) {
+					//_W_GRAPHICS(W_GRAPHICS(&gc))->state |= W_GRAPHICS_UISF_HIDEFOCUS;
+				}
+				if (uiState & UISF_HIDEACCEL) {
+					//_W_GRAPHICS(W_GRAPHICS(&gc))->state |= W_GRAPHICS_UISF_HIDEACCEL;
+				}
+				event.gc = W_GRAPHICS(&gc);
+				event.detail |= W_FOREGROUND;
 				if (clrTextBk != 0)
-					w_graphics_set_background(W_GRAPHICS(&gc), clrTextBk);
-			}
-			int uiState = (int) SendMessageW(handle,
-			WM_QUERYUISTATE, 0, 0);
-			if (uiState & UISF_HIDEFOCUS) {
-				//_W_GRAPHICS(W_GRAPHICS(&gc))->state |= W_GRAPHICS_UISF_HIDEFOCUS;
-			}
-			if (uiState & UISF_HIDEACCEL) {
-				//_W_GRAPHICS(W_GRAPHICS(&gc))->state |= W_GRAPHICS_UISF_HIDEACCEL;
-			}
-			event.gc = W_GRAPHICS(&gc);
-			event.detail |= W_FOREGROUND;
-			if (clrTextBk != 0)
-				event.detail |= W_BACKGROUND;
-			if (hot)
-				event.detail |= W_HOT;
-			if (selected && (index == 0 /*nmcd.iSubItem == 0*/
-			|| (style & W_FULL_SELECTION) != 0)) {
-				event.detail |= W_SELECTED;
-			}
-			if (!explorerTheme) {
-				//if ((nmcd.uItemState & CDIS_FOCUS) != 0) {
-				if (SendMessageW(handle, TVM_GETNEXTITEM,
-				TVGN_CARET, 0) == nmcd->nmcd.dwItemSpec) {
-					if (index == 0 /*nmcd.iSubItem == 0*/
-					|| (style & W_FULL_SELECTION) != 0) {
-						if (handle == GetFocus()) {
-							int uiState = (int) SendMessageW(handle,
-							WM_QUERYUISTATE, 0, 0);
-							if ((uiState & UISF_HIDEFOCUS) == 0)
-								//event.detail |= W_FOCUSED;
-								event.focused = 1;
+					event.detail |= W_BACKGROUND;
+				if (hot)
+					event.detail |= W_HOT;
+				if (selected && (index == 0 /*nmcd.iSubItem == 0*/
+				|| (style & W_FULL_SELECTION) != 0)) {
+					event.detail |= W_SELECTED;
+				}
+				if (!explorerTheme) {
+					//if ((nmcd.uItemState & CDIS_FOCUS) != 0) {
+					if (SendMessageW(handle, TVM_GETNEXTITEM,
+					TVGN_CARET, 0) == nmcd->nmcd.dwItemSpec) {
+						if (index == 0 /*nmcd.iSubItem == 0*/
+						|| (style & W_FULL_SELECTION) != 0) {
+							if (handle == GetFocus()) {
+								int uiState = (int) SendMessageW(handle,
+								WM_QUERYUISTATE, 0, 0);
+								if ((uiState & UISF_HIDEFOCUS) == 0)
+									//event.detail |= W_FOCUSED;
+									event.focused = 1;
+							}
 						}
 					}
 				}
-			}
-			event.rect = &r;
-			RECT cellRect;
-			_w_treeitem_get_bounds_0(W_TREEITEM(&item), &cellRect, hDC, index,
-					TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_GET_IMAGE
-							| TREEVIEW_BOUNDS_FULLTEXT
-							| TREEVIEW_BOUNDS_FULLIMAGE | TREEVIEW_BOUNDS_CLIP);
-			//int cellWidth = cellRect.right - cellRect.left;
-			//int cellHeight = cellRect.bottom - cellRect.top;
-			r.x = cellRect.left;
-			r.y = cellRect.top;
-			r.width = cellRect.right - cellRect.left;
-			r.height = cellRect.bottom - cellRect.top;
-			//w_graphics_set_clipping_rect(W_GRAPHICS(&gc), &r);
-			/*item->r.x = itemRect.left;
-			 item->r.y = itemRect.top;
-			 item->r.width = itemRect.right - itemRect.left;
-			 item->r.height = itemRect.bottom - itemRect.top;*/
-			event.event.type = W_EVENT_ITEM_PAINT;
-			event.gc = W_GRAPHICS(&gc);
+				event.rect = &r;
+				RECT cellRect;
+				_w_treeitem_get_bounds_0(W_TREEITEM(&item), &cellRect, hDC,
+						index,
+						TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_GET_IMAGE
+								| TREEVIEW_BOUNDS_FULLTEXT
+								| TREEVIEW_BOUNDS_FULLIMAGE
+								| TREEVIEW_BOUNDS_CLIP);
+				//int cellWidth = cellRect.right - cellRect.left;
+				//int cellHeight = cellRect.bottom - cellRect.top;
+				r.x = cellRect.left;
+				r.y = cellRect.top;
+				r.width = cellRect.right - cellRect.left;
+				r.height = cellRect.bottom - cellRect.top;
+				//w_graphics_set_clipping_rect(W_GRAPHICS(&gc), &r);
+				/*item->r.x = itemRect.left;
+				 item->r.y = itemRect.top;
+				 item->r.width = itemRect.right - itemRect.left;
+				 item->r.height = itemRect.bottom - itemRect.top;*/
+				event.event.type = W_EVENT_ITEM_PAINT;
+				event.gc = W_GRAPHICS(&gc);
 
-			int ret = w_widget_send_event(widget, (w_event*) &event);
-			//if (data.focusDrawn) focusRect = null;
-			w_graphics_dispose(W_GRAPHICS(&gc));
-			RestoreDC(hDC, nSavedDC);
-			//if (isDisposed () || item.isDisposed ()) break;
-			//}if (hooks (SWT.PaintItem))
+				int ret = w_widget_send_event(widget, (w_event*) &event);
+				//if (data.focusDrawn) focusRect = null;
+				w_graphics_dispose(W_GRAPHICS(&gc));
+				RestoreDC(hDC, nSavedDC);
+				//if (isDisposed () || item.isDisposed ()) break;
+			}/*if (hooks (SWT.PaintItem))*/
 		}
-		/*x += width;
-		 if (x > clientRect.right)
-		 break;*/
-	}			// end for
+	}/*end loop */
 	if (_tree->linesVisible) {
 		if ((style & W_FULL_SELECTION) != 0) {
 			if (hwndHeader != 0) {
@@ -2408,6 +3782,7 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 	NMHEADERW *phdn = (NMHEADERW*) e->lparam;
 	HWND hwndHeader = _W_TREEVIEW(widget)->hwndHeader;
 	HWND handle = _W_WIDGET(widget)->handle;
+	w_event_list event;
 	w_columnitem column;
 	_W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(widget);
 	_W_ITEM(&column)->parent = widget;
@@ -2435,11 +3810,12 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 	}
 	case NM_RELEASEDCAPTURE: {
 		if (!_W_TREEVIEW(widget)->ignoreColumnMove) {
-			/*for (int i = 0; i < columnCount; i++) {
-				TreeColumn column = columns[i];
-				column.updateToolTip(i);
+			int columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0, 0);
+			for (int i = 0; i < columnCount; i++) {
+				_W_ITEM(&column)->index = i;
+				//column.updateToolTip(i);
 			}
-			updateImageList();*/
+			//updateImageList();
 		}
 		_W_TREEVIEW(widget)->ignoreColumnMove = FALSE;
 		break;
@@ -2461,39 +3837,48 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 		break;
 	}
 	case HDN_ENDDRAG: {
-		/*NMHEADER phdn = new NMHEADER ();
-		 MoveMemory (phdn, lParam, NMHEADER.sizeof);
-		 if (phdn.iItem != -1 && phdn.pitem != 0) {
-		 HDITEM pitem = new HDITEM ();
-		 MoveMemory (pitem, phdn.pitem, HDITEM.sizeof);
-		 if ((pitem.mask & HDI_ORDER) != 0 && pitem.iOrder != -1) {
-		 int [] order = new int [columnCount];
-		 SendMessage (hwndHeader, HDM_GETORDERARRAY, columnCount, order);
-		 int index = 0;
-		 while (index < order.length) {
-		 if (order [index] == phdn.iItem) break;
-		 index++;
-		 }
-		 if (index == order.length) index = 0;
-		 if (index == pitem.iOrder) break;
-		 int start = Math.min (index, pitem.iOrder);
-		 int end = Math.max (index, pitem.iOrder);
-		 RECT rect = new RECT (), headerRect = new RECT ();
-		 GetClientRect (handle, rect);
-		 SendMessage (hwndHeader, HDM_GETITEMRECT, order [start], headerRect);
-		 rect.left = Math.max (rect.left, headerRect.left);
-		 SendMessage (hwndHeader, HDM_GETITEMRECT, order [end], headerRect);
-		 rect.right = Math.min (rect.right, headerRect.right);
-		 InvalidateRect (handle, rect, W_TRUE);
-		 ignoreColumnMove = false;
-		 for (int i=start; i<=end; i++) {
-		 TreeColumn column = columns [order [i]];
-		 if (!column.isDisposed ()) {
-		 column.postEvent (W_Move);
-		 }
-		 }
-		 }
-		 }*/
+		if (phdn->iItem != -1 && phdn->pitem != 0) {
+			if ((phdn->pitem->mask & HDI_ORDER) != 0
+					&& phdn->pitem->iOrder != -1) {
+				int columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0,
+						0);
+				int *order = _w_toolkit_malloc(columnCount * sizeof(int));
+				SendMessageW(hwndHeader, HDM_GETORDERARRAY, columnCount,
+						(LPARAM) order);
+				int index = 0;
+				while (index < columnCount) {
+					if (order[index] == phdn->iItem)
+						break;
+					index++;
+				}
+				if (index == columnCount)
+					index = 0;
+				if (index != phdn->pitem->iOrder) {
+					int start = WMIN(index, phdn->pitem->iOrder);
+					int end = WMAX(index, phdn->pitem->iOrder);
+					RECT rect, headerRect;
+					GetClientRect(handle, &rect);
+					SendMessageW(hwndHeader, HDM_GETITEMRECT, order[start],
+							(LPARAM) &headerRect);
+					rect.left = WMAX(rect.left, headerRect.left);
+					SendMessageW(hwndHeader, HDM_GETITEMRECT, order[end],
+							(LPARAM) &headerRect);
+					rect.right = WMIN(rect.right, headerRect.right);
+					InvalidateRect(handle, &rect, W_TRUE);
+					_W_TREEVIEW(widget)->ignoreColumnMove = FALSE;
+					for (int i = start; i <= end; i++) {
+						_W_ITEM(&column)->index = order[i];
+						memset(&event, 0, sizeof(event));
+						event.event.type = W_EVENT_ITEM_MOVE;
+						event.event.widget = widget;
+						event.event.platform_event = _EVENT_PLATFORM(e);
+						event.column = W_COLUMNITEM(&column);
+						_w_widget_send_event(widget, W_EVENT(&event));
+					}
+				}
+				_w_toolkit_free(order, columnCount * sizeof(int));
+			}
+		}
 		break;
 	}
 	case HDN_ITEMCHANGINGW:
@@ -2510,19 +3895,26 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 				RECT headerRect;
 				SendMessageW(hwndHeader, HDM_GETITEMRECT, phdn->iItem,
 						(LPARAM) &headerRect);
-				int gridWidth = /*linesVisible ? GRID_WIDTH :*/0;
+				int gridWidth =
+				_W_TREEVIEW(widget)->linesVisible ?
+				TREEVIEW_GRID_WIDTH :
+													0;
 				rect.left = headerRect.right - gridWidth;
 				int newX = rect.left + deltaX;
 				rect.right = WMAX(rect.right, rect.left + abs(deltaX));
-				/*if (explorerTheme || (findImageControl () != null || hooks (W_MeasureItem) || hooks (W_EraseItem) || hooks (W_PaintItem))) {
-				 rect.left -= GetSystemMetrics (SM_CXFOCUSBORDER);
-				 InvalidateRect (handle, rect, W_TRUE);
-				 OffsetRect (rect, deltaX, 0);
-				 InvalidateRect (handle, rect, W_TRUE);
-				 } else {*/
-				int flags = SW_INVALIDATE | SW_ERASE;
-				ScrollWindowEx(handle, deltaX, 0, &rect, NULL, 0, NULL, flags);
-				//}
+				if (_W_TREEVIEW(widget)->explorerTheme
+						|| (_W_WIDGET(widget)->style & W_CUSTOMDRAW) != 0
+						|| (priv->find_image_control(W_CONTROL(widget), priv)
+								!= 0)) {
+					rect.left -= GetSystemMetrics(SM_CXFOCUSBORDER);
+					InvalidateRect(handle, &rect, W_TRUE);
+					OffsetRect(&rect, deltaX, 0);
+					InvalidateRect(handle, &rect, W_TRUE);
+				} else {
+					int flags = SW_INVALIDATE | SW_ERASE;
+					ScrollWindowEx(handle, deltaX, 0, &rect, NULL, 0, NULL,
+							flags);
+				}
 				if (SendMessageW(hwndHeader, HDM_ORDERTOINDEX, phdn->iItem, 0)
 						!= 0) {
 					rect.left = headerRect.left;
@@ -2536,69 +3928,87 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 	}
 	case HDN_ITEMCHANGEDW:
 	case HDN_ITEMCHANGEDA: {
-		/*if (hdr->pitem != 0) {
-		 HDITEM pitem = new
-		 HDITEM();
-		 MoveMemory (pitem, phdn.pitem, HDITEM.sizeof);
-		 if ((pitem.mask & HDI_WIDTH) != 0) {
-		 if (ignoreColumnMove) {
-		 if (!IsWinCE && WIN32_VERSION >= VERSION(6, 0)) {
-		 int flags = RDW_UPDATENOW | RDW_ALLCHILDREN;
-		 RedrawWindow(handle, null, 0, flags);
-		 } else {
-		 if ((style & W_DOUBLE_BUFFERED) == 0) {
-		 int oldStyle = style;
-		 style |= W_DOUBLE_BUFFERED;
-		 UpdateWindow(handle);
-		 style = oldStyle;
-		 }
-		 }
-		 }
-		 TreeColumn column = columns[phdn.iItem];
-		 if (column != null) {
-		 column.updateToolTip(phdn.iItem);
-		 column.sendEvent(W_Resize);
-		 if (isDisposed())
-		 return LRESULT.ZERO;
-		 TreeColumn [] newColumns = new TreeColumn [columnCount];
-		 System.arraycopy(columns, 0, newColumns, 0, columnCount);
-		 int [] order = new int [columnCount];
-		 SendMessage(hwndHeader, HDM_GETORDERARRAY, columnCount,
-		 order);
-		 boolean moved = false;
-		 for (int i = 0; i < columnCount; i++) {
-		 TreeColumn nextColumn = newColumns[order[i]];
-		 if (moved && !nextColumn.isDisposed()) {
-		 nextColumn.updateToolTip(order[i]);
-		 nextColumn.sendEvent(W_Move);
-		 }
-		 if (nextColumn == column)
-		 moved = W_TRUE;
-		 }
-		 }
-		 }
-		 setScrollWidth();
-		 }*/
+		if (phdn->pitem != 0) {
+			if ((phdn->pitem->mask & HDI_WIDTH) != 0) {
+				if (_W_TREEVIEW(widget)->ignoreColumnMove) {
+					if (WIN32_VERSION >= VERSION(6, 0)) {
+						int flags = RDW_UPDATENOW | RDW_ALLCHILDREN;
+						RedrawWindow(handle, NULL, 0, flags);
+					} else {
+						if ((_W_WIDGET(widget)->style & W_DOUBLE_BUFFERED)
+								== 0) {
+							wuint64 oldStyle = _W_WIDGET(widget)->style;
+							_W_WIDGET(widget)->style |= W_DOUBLE_BUFFERED;
+							UpdateWindow(handle);
+							_W_WIDGET(widget)->style = oldStyle;
+						}
+					}
+				}
+				if (phdn->iItem >= 0) {
+					_W_ITEM(&column)->index = phdn->iItem;
+					//column.updateToolTip(phdn.iItem);
+					memset(&event, 0, sizeof(event));
+					event.event.type = W_EVENT_ITEM_RESIZE;
+					event.event.widget = widget;
+					event.event.platform_event = _EVENT_PLATFORM(e);
+					event.column = W_COLUMNITEM(&column);
+					_w_widget_send_event(widget, W_EVENT(&event));
+					if (w_widget_is_ok(widget) < 0) {
+						e->result = 0;
+						return W_TRUE;
+					}
+					int columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT,
+							0, 0);
+					int *order = _w_toolkit_malloc(columnCount * sizeof(int));
+					SendMessageW(hwndHeader, HDM_GETORDERARRAY, columnCount,
+							(LPARAM) order);
+					int moved = FALSE;
+					for (int i = 0; i < columnCount; i++) {
+						int nextColumn = order[i];
+						if (moved) {
+							_W_ITEM(&column)->index = order[i];
+							//nextColumn.updateToolTip(order[i]);
+							memset(&event, 0, sizeof(event));
+							event.event.type = W_EVENT_ITEM_MOVE;
+							event.event.widget = widget;
+							event.event.platform_event = _EVENT_PLATFORM(e);
+							event.column = W_COLUMNITEM(&column);
+							_w_widget_send_event(widget, W_EVENT(&event));
+						}
+						if (nextColumn == phdn->iItem)
+							moved = W_TRUE;
+					}
+					_w_toolkit_free(order, columnCount * sizeof(int));
+				}
+			}
+			_w_treeview_set_scroll_width(W_TREEVIEW(widget));
+		}
 		break;
 	}
 	case HDN_ITEMCLICKW:
 	case HDN_ITEMCLICKA: {
-		/*NMHEADER phdn = new NMHEADER ();
-		 MoveMemory (phdn, lParam, NMHEADER.sizeof);
-		 TreeColumn column = columns [phdn.iItem];
-		 if (column != null) {
-		 column.sendSelectionEvent (W_Selection);
-		 }*/
+		if (phdn->iItem >= 0) {
+			_W_ITEM(&column)->index = phdn->iItem;
+			memset(&event, 0, sizeof(event));
+			event.event.type = W_EVENT_ITEM_SELECTION;
+			event.event.widget = widget;
+			event.event.platform_event = _EVENT_PLATFORM(e);
+			event.column = W_COLUMNITEM(&column);
+			_w_widget_send_event(widget, W_EVENT(&event));
+		}
 		break;
 	}
 	case HDN_ITEMDBLCLICKW:
 	case HDN_ITEMDBLCLICKA: {
-		/*NMHEADER phdn = new NMHEADER ();
-		 MoveMemory (phdn, lParam, NMHEADER.sizeof);
-		 TreeColumn column = columns [phdn.iItem];
-		 if (column != null) {
-		 column.sendSelectionEvent (W_DefaultSelection);
-		 }*/
+		if (phdn->iItem >= 0) {
+			_W_ITEM(&column)->index = phdn->iItem;
+			memset(&event, 0, sizeof(event));
+			event.event.type = W_EVENT_ITEM_DEFAULTSELECTION;
+			event.event.widget = widget;
+			event.event.platform_event = _EVENT_PLATFORM(e);
+			event.column = W_COLUMNITEM(&column);
+			_w_widget_send_event(widget, W_EVENT(&event));
+		}
 		break;
 	}
 	}
