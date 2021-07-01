@@ -19,12 +19,6 @@ typedef struct _w_column_list {
 	int id;
 	char *tooltip;
 } _w_column_list;
-typedef struct _w_columns_list {
-	int alloc;
-	_w_column_list columns[0];
-} _w_columns_list;
-_w_column_list* _w_columns_list_get(w_widget *widget, int index, int create);
-
 typedef struct _w_item_list {
 	w_color background;
 	w_color foreground;
@@ -32,12 +26,6 @@ typedef struct _w_item_list {
 	w_font *font;
 	char *text;
 } _w_item_list;
-typedef struct _w_items_list {
-	int alloc;
-	void *user_data;
-	_w_item_list columns[0];
-} _w_items_list;
-_w_item_list* _w_items_list_get(_w_items_list **list, int index, int create);
 
 typedef union LISTITEM {
 	TVITEMW tvItem;
@@ -67,7 +55,7 @@ typedef struct _w_listviewbase {
 	int sortColumn;
 	w_imagelist *imagelist;
 	w_imagelist *headerimagelist;
-	_w_columns_list *columns;
+	w_array *columns;
 	HWND headerToolTipHandle;
 } _w_listviewbase;
 #define _W_LISTVIEWBASE(x) ((_w_listviewbase*)x)
@@ -85,7 +73,7 @@ typedef struct _w_listviewbase_priv {
 } _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
 #define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_w_widget_get_priv(W_WIDGET(x)))
-void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz);
+void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,struct _w_listviewbase_class *clazz);
 typedef struct _w_listview_priv {
 	_w_listviewbase_priv base;
 } _w_listview_priv;
@@ -104,17 +92,17 @@ wresult _w_listitem_set_text(w_item *item, const char *text, int length,
 wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 		int length, int enc);
 wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr);
+		w_item_attr *attr);
 wresult _w_listitem_get_bounds(w_listitem *item, w_rect *bounds);
 wresult _w_listitem_get_bounds_index(w_listitem *item, int index,
 		w_rect *bounds);
 wresult _w_listitem_get_checked(w_listitem *item);
 wresult _w_listitem_get_image(w_listitem *item);
 wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr);
+		w_item_attr *attr);
 wresult _w_listitem_set_checked(w_listitem *item, int checked);
 wresult _w_listitem_set_image(w_listitem *item, int image);
 wresult _w_listviewbase_insert_column(w_listviewbase *list,
 		w_columnitem *column, int index);
-void _w_listview_class_init(struct _w_listview_class *clazz);
+void _w_listview_class_init(w_toolkit *toolkit, wushort classId,struct _w_listview_class *clazz);
 #endif /* WIN32_CONTROLS_TABLE_H_ */

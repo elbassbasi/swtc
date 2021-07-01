@@ -7,7 +7,7 @@
  */
 #ifndef SWT_WIDGETS_WIDGET_H_
 #define SWT_WIDGETS_WIDGET_H_
-#include "event.h"
+#include "theme.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,6 +26,7 @@ struct w_widget {
 	wuint state;
 	wuint state0;
 	void *handle;
+	w_theme *theme;
 	w_widget_post_event_proc post_event;
 	void *data[5];
 };
@@ -35,27 +36,33 @@ struct w_widget {
 #define W_WIDGET_CHECK(x) (w_widget_check((w_widget *)x)>0)
 #define W_WIDGET_CHECK0(x) (w_widget_check((w_widget *)x))
 #define W_WIDGET_CHECK1(x) (x!=0 && ((w_widget*)x)->clazz !=0)
-typedef void (*w_widget_init_class)(struct _w_widget_class *clazz);
+typedef void (*w_widget_init_class)(w_toolkit *toolkit, wushort classId,
+		struct _w_widget_class *clazz);
 struct _w_widget_class {
 	w_class_id class_id;
 	wushort class_size;
 	wushort object_used_size;
 	wushort object_total_size;
 	w_toolkit *toolkit;
-	struct _w_widget_class *next_class;
-	void *reserved[2];
-	w_widget_init_class init_class;
+	struct _w_widget_class *parentClass;
+	void *platformPrivate;
+	void *reserved[3];
 	wresult (*create)(w_widget *widget, w_widget *parent, wuint64 style,
 			w_widget_post_event_proc post_event);
 	wresult (*dispose)(w_widget *widget);
 	wresult (*is_ok)(w_widget *widget);
+	wresult (*init_themedata)(w_widget *widget, w_themedata *data);
 	wresult (*get_shell)(w_widget *widget, w_shell **shell);
+	wresult (*get_theme)(w_widget *widget, w_theme **theme);
+	wresult (*pre_event)(w_widget *widget, w_event *e);
 	wresult (*post_event)(w_widget *widget, w_event *e);
+	wresult (*set_theme)(w_widget *widget, w_theme *theme);
 };
 SWT_PUBLIC void w_widget_init(w_widget *widget);
 SWT_PUBLIC int w_widget_class_id(w_widget *widget);
 SWT_PUBLIC struct _w_widget_class* w_widget_get_class(w_widget *widget);
 SWT_PUBLIC wresult w_widget_is_ok(w_widget *widget);
+SWT_PUBLIC wresult w_widget_init_themedata(w_widget *widget, w_themedata *data);
 SWT_PUBLIC wresult w_widget_dispose(w_widget *widget);
 SWT_PUBLIC void w_widget_free(w_widget *widget);
 SWT_PUBLIC void w_widget_ref_create(w_widget *widget);
@@ -63,13 +70,14 @@ SWT_PUBLIC void w_widget_ref_inc(w_widget *widget);
 SWT_PUBLIC w_widget* w_widget_ref_dec(w_widget *widget);
 SWT_PUBLIC wresult w_widget_get_shell(w_widget *widget, w_shell **shell);
 SWT_PUBLIC w_toolkit* w_widget_get_toolkit(w_widget *widget);
-SWT_PUBLIC w_theme* w_widget_get_theme(w_widget *widget);
+SWT_PUBLIC wresult w_widget_get_theme(w_widget *widget, w_theme **theme);
 SWT_PUBLIC w_widget_post_event_proc w_widget_get_post_event(w_widget *widget);
 SWT_PUBLIC w_widget_post_event_proc w_widget_set_post_event(w_widget *widget,
 		w_widget_post_event_proc post_event);
 SWT_PUBLIC wresult w_widget_send_event(w_widget *widget, w_event *event);
 SWT_PUBLIC wresult w_widget_set_id(w_widget *widget, wuint id);
 SWT_PUBLIC wuint w_widget_get_id(w_widget *widget);
+SWT_PUBLIC wresult w_widget_set_theme(w_widget *widget, w_theme *theme);
 SWT_PUBLIC wuint64 w_widget_get_style(w_widget *widget);
 SWT_PUBLIC void* w_widget_get_data(w_widget *widget, wuint index);
 SWT_PUBLIC void* w_widget_set_data(w_widget *widget, wuint index, void *data);
@@ -105,6 +113,14 @@ SWT_PUBLIC wresult w_widgetdata_copy(w_widgetdata *from, w_widgetdata *to);
 SWT_PUBLIC wresult w_widgetdata_equals(w_widgetdata *obj1, w_widgetdata *obj2);
 SWT_PUBLIC wresult w_widgetdata_init_copy(w_widgetdata *from, w_widgetdata *to);
 /*
+ * private
+ */
+SWT_PUBLIC wresult _w_widgetdata_is_ok(w_widgetdata *obj);
+SWT_PUBLIC wresult _w_widgetdata_close(w_widgetdata *obj);
+SWT_PUBLIC wresult _w_widgetdata_copy(w_widgetdata *from, w_widgetdata *to);
+SWT_PUBLIC wresult _w_widgetdata_equals(w_widgetdata *obj1, w_widgetdata *obj2);
+SWT_PUBLIC void _w_widgetdata_class_init(struct _w_widgetdata_class *clazz);
+/*
  * w_item
  */
 typedef struct w_item {
@@ -130,7 +146,25 @@ SWT_PUBLIC wresult w_item_get_text(w_item *item, w_alloc alloc, void *user_data,
 SWT_PUBLIC wresult w_item_set_data(w_item *item, void *data);
 SWT_PUBLIC wresult w_item_set_text(w_item *item, const char *text, int length,
 		int enc);
-
+/*
+ * private
+ */
+typedef struct _w_item {
+	w_widgetdata widgetdata;
+	w_widget *parent;
+	wuint index;
+} _w_item;
+#define _W_ITEM(x) ((_w_item*)x)
+SWT_PUBLIC wresult _w_item_copy(w_widgetdata *from, w_widgetdata *to);
+SWT_PUBLIC wresult _w_item_get_parent_widget(w_item *item, w_widget **parent);
+SWT_PUBLIC wresult _w_item_get_data(w_item *item, void **data);
+SWT_PUBLIC wresult _w_item_get_index(w_item *item);
+SWT_PUBLIC wresult _w_item_get_text(w_item *item, w_alloc alloc,
+		void *user_data, int enc);
+SWT_PUBLIC wresult _w_item_set_data(w_item *item, void *data);
+SWT_PUBLIC wresult _w_item_set_text(w_item *item, const char *text, int length,
+		int enc);
+void _w_item_class_init(struct _w_item_class *clazz);
 #ifdef __cplusplus
 }
 #endif

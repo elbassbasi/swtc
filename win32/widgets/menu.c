@@ -48,13 +48,11 @@ int _w_menu_find_menu_ids(UINT id, HMENU *hmenu, _w_menu_id **menuid,
 		int _id = id & _MENU_ID_MASK;
 		w_menu *_menu = menu;
 		if (id & _MENU_ID_ACCEL) {
-			_w_accel_id *_acc = 0;
+			_w_accel_id *_acc;
 			if (menu == 0)
 				menu = (w_menu*) _w_hmenu_get_top(*hmenu);
-			_w_accel_ids *ids = _W_CONTROL(parent)->ids;
-			if (ids != 0 && _id < ids->count) {
-				_acc = &ids->id[_id];
-			}
+			_acc = w_array_get(_W_CONTROL(parent)->ids, _id,
+					sizeof(_w_accel_id));
 			if (_acc == 0)
 				return W_FALSE;
 			if (acc != 0)
@@ -294,7 +292,7 @@ wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 	BOOL succes = InsertMenuItemW(parentItem, index, TRUE, &info);
 	if (succes) {
 		if (item != 0) {
-			_W_WIDGETDATA(item)->clazz = _W_WIDGETDATA(parent)->clazz;
+			W_WIDGETDATA(item)->clazz = W_WIDGETDATA(parent)->clazz;
 			_W_ITEM(item)->parent = _W_ITEM(parent)->parent;
 			_W_ITEM(item)->index = index;
 			_W_MENUITEM(item)->menu = parentItem;
@@ -345,7 +343,7 @@ wresult _w_menuitem_get_item(w_menuitem *item, wuint index,
 		return W_ERROR_INVALID_ARGUMENT;
 	int count = GetMenuItemCount(hMenu);
 	if (index < count) {
-		_W_WIDGETDATA(sub_item)->clazz = _W_WIDGETDATA(item)->clazz;
+		W_WIDGETDATA(sub_item)->clazz = W_WIDGETDATA(item)->clazz;
 		_W_ITEM(sub_item)->parent = _W_ITEM(item)->parent;
 		_W_ITEM(sub_item)->index = index;
 		_W_MENUITEM(sub_item)->menu = hMenu;
@@ -378,7 +376,7 @@ wresult _w_menuitem_iterator_next(w_iterator *it, void *obj) {
 	_w_menuitem_iterator *_it = (_w_menuitem_iterator*) it;
 	if (_it->i < _it->count) {
 		w_menuitem *item = (w_menuitem*) obj;
-		_W_WIDGETDATA(item)->clazz = _W_MENU_GET_ITEM_CLASS(_it->menu);
+		W_WIDGETDATA(item)->clazz = _W_MENU_GET_ITEM_CLASS(_it->menu);
 		_W_ITEM(item)->parent = _it->menu;
 		_W_ITEM(item)->index = _it->i;
 		_W_MENUITEM(item)->menu = _it->hMenu;
@@ -475,7 +473,7 @@ wresult _w_menuitem_get_parent_item_0(w_widget *menu, HMENU hMenu,
 				_info.dwMenuData = 0;
 		}
 		if (_info.dwMenuData != 0) {
-			_W_WIDGETDATA(parent)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+			W_WIDGETDATA(parent)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 			_W_ITEM(parent)->parent = menu;
 			_W_ITEM(parent)->index = index;
 			_W_MENUITEM(parent)->menu = (HMENU) _info.dwMenuData;
@@ -553,7 +551,7 @@ wresult _w_menuitem_remove(w_menuitem *item) {
 	ei.event.widget = menu;
 	ei.item = item;
 	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
-	_W_WIDGETDATA(item)->clazz = 0;
+	W_WIDGETDATA(item)->clazz = 0;
 	if (DeleteMenu(hMenu, index, MF_BYPOSITION)) {
 		return W_TRUE;
 	}
@@ -565,7 +563,7 @@ wresult _w_menuitem_remove_item(w_menuitem *item, wuint index) {
 		return W_FALSE;
 	w_widget *menu = _W_ITEM(item)->parent;
 	_w_menuitem _item;
-	_W_WIDGETDATA(&_item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+	W_WIDGETDATA(&_item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 	_W_ITEM(&_item)->parent = menu;
 	_W_ITEM(&_item)->index = index;
 	_W_MENUITEM(&_item)->menu = hMenu;
@@ -857,7 +855,7 @@ wresult _w_menu_get_bounds(w_menu *menu, w_rect *bounds) {
 	return W_FALSE;
 }
 wresult _w_menu_get_root(w_menu *menu, w_menuitem *rootitem) {
-	_W_WIDGETDATA(rootitem)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+	W_WIDGETDATA(rootitem)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 	_W_ITEM(rootitem)->parent = W_WIDGET(menu);
 	_W_ITEM(rootitem)->index = -1;
 	_W_MENUITEM(rootitem)->menu = _W_MENU(menu)->handle;
@@ -1033,7 +1031,7 @@ wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
 	ei.event.platform_event = _EVENT_PLATFORM(e);
 	ei.event.widget = W_WIDGET(menu);
 	ei.item = (w_menuitem*) &item;
-	_W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+	W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 	_W_ITEM(&item)->parent = W_WIDGET(menu);
 	_W_ITEM(&item)->index = index;
 	_W_MENUITEM(&item)->menu = hMenu;
@@ -1331,8 +1329,12 @@ wresult _MENU_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
 	}
 	return W_FALSE;
 }
-void _w_menu_class_init(struct _w_menu_class *clazz) {
-	_w_widget_class_init(W_WIDGET_CLASS(clazz));
+void _w_menu_class_init(w_toolkit *toolkit, wushort classId,struct _w_menu_class *clazz) {
+	if (classId == _W_CLASS_MENU) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_menu_priv;
+	}
+	_w_widget_class_init(toolkit,classId,W_WIDGET_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_MENU;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_menu_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_menu);
@@ -1356,6 +1358,7 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	 * function of menu item
 	 */
 	struct _w_menuitem_class *item = clazz->class_menuitem;
+	W_WIDGETDATA_CLASS(item)->toolkit = W_WIDGET_CLASS(clazz)->toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	W_WIDGETDATA_CLASS(item)->copy = _w_menuitem_copy;
 	W_ITEM_CLASS(item)->get_data = _w_menuitem_get_data;

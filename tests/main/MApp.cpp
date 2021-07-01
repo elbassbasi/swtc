@@ -44,11 +44,11 @@ WImage* MApp::GetImage16(int index) {
 	if (index > IMAGE_LAST)
 		return 0;
 	if (!this->image16[index].IsOk()) {
-		const char *_path = this->GetExecutablePath();
+		WString _path = this->GetExecutablePath();
 		int l = strlen(_path);
-		char *path = (char*) malloc(l + 30);
+		char *path = (char*) malloc(_path.GetLength() + 30);
 		if (path != 0) {
-			sprintf(path, "%s/images/%s.png", _path, images[index]);
+			sprintf(path, "%s/images/%s.png", _path.GetCharsNotNull(), images[index]);
 			this->image16[index].Create(path);
 		}
 		free(path);
@@ -60,11 +60,11 @@ WImage* MApp::GetImage32(int index) {
 	if (index > IMAGE_LAST)
 		return 0;
 	if (!this->image32[index].IsOk()) {
-		const char *_path = this->GetExecutablePath();
+		WString _path = this->GetExecutablePath();
 		int l = strlen(_path);
-		char *path = (char*) malloc(l + 30);
+		char *path = (char*) malloc(_path.GetLength() + 30);
 		if (path != 0) {
-			sprintf(path, "%s/images/%s@2x.png", _path, images[index]);
+			sprintf(path, "%s/images/%s@2x.png", _path.GetCharsNotNull(), images[index]);
 			this->image32[index].Create(path);
 		}
 	}
@@ -73,8 +73,8 @@ WImage* MApp::GetImage32(int index) {
 typedef w_toolkit* (*_w_toolkit_get_custom)();
 void MApp::LoadCustomToolkit() {
 	char path[0x500], *last, sp = '/';
-	const char *exe_path = GetExecutablePath();
-	sprintf(path, "%s%clibcswt%s", exe_path, sp, w_module_default_extension());
+	WString exe_path = GetExecutablePath();
+	sprintf(path, "%s%clibcswt%s", exe_path.GetCharsNotNull(), sp, w_module_default_extension());
 	w_module *module = w_module_load(path);
 	if (module != 0) {
 		_w_toolkit_get_custom __w_toolkit_get_custom =

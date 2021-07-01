@@ -13,15 +13,10 @@
 typedef struct _w_toolbar_id {
 	char *tooltips;
 } _w_toolbar_id;
-typedef struct _w_toolbar_ids {
-	int alloc;
-	int count;
-	_w_toolbar_id id[0];
-} _w_toolbar_ids;
 typedef struct _w_toolbar {
 	_w_composite composite;
 	w_imagelist *imagelist;
-	_w_toolbar_ids *ids;
+	w_array *ids;
 } _w_toolbar;
 
 typedef struct _w_toolbar_priv {
@@ -42,7 +37,6 @@ void _w_toolitem_resize_control(w_toolitem *item, w_control *control);
 void _w_toolbar_layout_items(w_toolbar *toolbar);
 void _w_toolbar_set_drop_down_items(w_toolbar *toolbar, wresult set);
 void _w_toolbar_set_row_count(w_toolbar *toolbar, int count);
-DWORD _w_toolbar_widget_item_style(wuint64 style);
-void _w_toolbar_class_init(struct _w_toolbar_class *clazz);
+void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,struct _w_toolbar_class *clazz);
 
 #endif /* WIN32_CONTROLS_TOOLBAR_H_ */

@@ -226,8 +226,8 @@ wresult _w_tray_get_item_count(w_tray *tray) {
 wresult _w_tray_get_items(w_tray *tray, w_iterator *items) {
 	return W_FALSE;
 }
-void _w_tray_class_init(struct _w_tray_class *clazz) {
-	_w_widget_class_init(W_WIDGET_CLASS(clazz));
+void _w_tray_class_init(w_toolkit *toolkit, wushort classId,struct _w_tray_class *clazz) {
+	_w_widget_class_init(toolkit,classId,W_WIDGET_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TRAY;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_tray_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_tray);
@@ -241,8 +241,8 @@ void _w_tray_class_init(struct _w_tray_class *clazz) {
 	clazz->get_item_count = _w_tray_get_item_count;
 	clazz->get_items = _w_tray_get_items;
 }
-void _w_trayitem_class_init(struct _w_trayitem_class *item) {
-	_w_widget_class_init(W_WIDGET_CLASS(item));
+void _w_trayitem_class_init(w_toolkit *toolkit, wushort classId,struct _w_trayitem_class *item) {
+	_w_widget_class_init(toolkit,classId,W_WIDGET_CLASS(item));
 	W_WIDGET_CLASS(item)->class_id = _W_CLASS_TRAYITEM;
 	W_WIDGET_CLASS(item)->class_size = sizeof(struct _w_trayitem_class);
 	W_WIDGET_CLASS(item)->object_total_size = sizeof(w_trayitem);

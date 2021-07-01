@@ -24,6 +24,7 @@ typedef struct _w_widget {
 	wuint state0;
 	wuint state;
 	NSView *handle;
+	w_theme *theme;
 	w_widget_post_event_proc post_event;
 	void *data[5];
 } _w_widget;

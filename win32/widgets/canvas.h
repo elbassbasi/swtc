@@ -28,7 +28,7 @@ struct _w_canvas_priv {
  * functions
  */
 const char* _w_canvas_window_class(w_control *control, _w_control_priv *priv);
-void _w_canvas_class_init(struct _w_canvas_class *clazz);
+void _w_canvas_class_init(w_toolkit *toolkit, wushort classId,struct _w_canvas_class *clazz);
 /*
  * messages
  */

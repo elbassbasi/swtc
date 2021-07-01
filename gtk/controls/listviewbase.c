@@ -882,7 +882,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	w_event_list event;
 	w_rect rect;
 	_w_graphics gc;
-	w_list_textattr attr;
+	w_item_attr attr;
 	char *text;
 	int wasSelected = FALSE;
 	memset(&event, 0, sizeof(event));

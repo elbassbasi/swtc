@@ -6,68 +6,6 @@
  */
 #include "treeview.h"
 #include "../widgets/toolkit.h"
-_w_column_list* _w_columns_list_get(w_widget *widget, int index, int create) {
-	_w_columns_list *columns = _W_LISTVIEWBASE(widget)->columns;
-	if (columns == 0) {
-		if (create == TRUE) {
-			int count = WMAX(4, index);
-			columns = calloc(1,
-					sizeof(_w_columns_list) + count * sizeof(_w_column_list));
-			if (columns == 0)
-				return 0;
-			columns->alloc = count;
-			_W_LISTVIEWBASE(widget)->columns = columns;
-		}
-	} else {
-		if (columns->alloc <= index && create == TRUE) {
-			int count = WMAX(columns->alloc + 4, index);
-			columns = realloc(columns,
-					sizeof(_w_columns_list) + count * sizeof(_w_column_list));
-			if (columns == 0)
-				return 0;
-			int last = columns->alloc;
-			memset(&columns->columns[last], 0,
-					(count - last) * sizeof(_w_column_list));
-			columns->alloc = count;
-			_W_LISTVIEWBASE(widget)->columns = columns;
-		}
-	}
-	if (columns != 0 && columns->alloc > index) {
-		return &columns->columns[index];
-	} else
-		return 0;
-}
-_w_item_list* _w_items_list_get(_w_items_list **list, int index, int create) {
-	_w_items_list *_list = *list;
-	if (_list == 0) {
-		if (create == TRUE) {
-			int count = WMAX(4, index);
-			_list = calloc(1,
-					sizeof(_w_items_list) + count * sizeof(_w_item_list));
-			if (_list == 0)
-				return 0;
-			_list->alloc = count;
-			*list = _list;
-		}
-	} else {
-		if (_list->alloc <= index && create == TRUE) {
-			int count = WMAX(_list->alloc + 4, index);
-			_list = realloc(_list,
-					sizeof(_w_items_list) + count * sizeof(_w_item_list));
-			if (_list == 0)
-				return 0;
-			int last = _list->alloc;
-			memset(&_list->columns[last], 0,
-					(count - last) * sizeof(_w_item_list));
-			_list->alloc = count;
-			*list = _list;
-		}
-	}
-	if (_list != 0 && _list->alloc > index) {
-		return &_list->columns[index];
-	} else
-		return 0;
-}
 /*
  * columnitem
  */
@@ -202,9 +140,10 @@ wresult _w_columnitem_get_image(w_columnitem *column) {
 wresult _w_columnitem_get_moveable_0(w_widget *tree, int index) {
 	if (index == 0)
 		return W_FALSE;
-	_w_columns_list *columns = _W_LISTVIEWBASE(tree)->columns;
-	if (columns != 0 && columns->alloc > index) {
-		return (columns->columns[index].flags & _W_TREECOLUMN_NOT_MOVEABLE) == 0;
+	_w_column_list *column = (_w_column_list*) w_array_get(
+	_W_LISTVIEWBASE(tree)->columns, index, sizeof(_w_column_list));
+	if (column != 0) {
+		return (column->flags & _W_TREECOLUMN_NOT_MOVEABLE) == 0;
 	} else {
 		return W_TRUE;
 	}
@@ -215,10 +154,10 @@ wresult _w_columnitem_get_moveable(w_columnitem *column) {
 	return _w_columnitem_get_moveable_0(parent, index);
 }
 wresult _w_columnitem_get_resizable_0(w_widget *tree, int index) {
-	_w_columns_list *columns = _W_LISTVIEWBASE(tree)->columns;
-	if (columns != 0 && columns->alloc > index) {
-		return (columns->columns[index].flags & _W_TREECOLUMN_NOT_RESIZABLE)
-				== 0;
+	_w_column_list *column = (_w_column_list*) w_array_get(
+	_W_LISTVIEWBASE(tree)->columns, index, sizeof(_w_column_list));
+	if (column != 0) {
+		return (column->flags & _W_TREECOLUMN_NOT_RESIZABLE) == 0;
 	} else {
 		return W_TRUE;
 	}
@@ -273,7 +212,7 @@ wresult _w_columnitem_pack(w_columnitem *column) {
 		w_rect _r;
 		memset(&event, 0, sizeof(event));
 		_w_graphics_init(W_GRAPHICS(&_gc), hDC);
-		_W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(parent);
+		W_WIDGETDATA(&item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(parent);
 		_W_ITEM(&item)->parent = 0;
 		tvItem.mask = TVIF_HANDLE | TVIF_PARAM | TVIF_STATE;
 		tvItem.hItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
@@ -477,7 +416,14 @@ wresult _w_columnitem_set_moveable(w_columnitem *column, int moveable) {
 	int index = _W_ITEM(column)->index;
 	if (index == 0)
 		return W_FALSE;
-	_w_column_list *col = _w_columns_list_get(parent, index, moveable != 0);
+	_w_column_list *col;
+	if (moveable == 0) {
+		col = (_w_column_list*) w_array_set(&_W_LISTVIEWBASE(parent)->columns,
+				index, sizeof(_w_column_list));
+	} else {
+		col = (_w_column_list*) w_array_get(_W_LISTVIEWBASE(parent)->columns,
+				index, sizeof(_w_column_list));
+	}
 	if (col != 0) {
 		if (moveable) {
 			col->flags &= ~_W_TREECOLUMN_NOT_MOVEABLE;
@@ -492,7 +438,14 @@ wresult _w_columnitem_set_resizable(w_columnitem *column, int resizable) {
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
 	HWND hwndHeader = _W_TREEVIEW(parent)->hwndHeader;
 	int index = _W_ITEM(column)->index;
-	_w_column_list *col = _w_columns_list_get(parent, index, resizable != 0);
+	_w_column_list *col;
+	if (resizable == 0) {
+		col = (_w_column_list*) w_array_set(&_W_LISTVIEWBASE(parent)->columns,
+				index, sizeof(_w_column_list));
+	} else {
+		col = (_w_column_list*) w_array_get(_W_LISTVIEWBASE(parent)->columns,
+				index, sizeof(_w_column_list));
+	}
 	if (col != 0) {
 		if (resizable) {
 			col->flags &= ~_W_TREECOLUMN_NOT_RESIZABLE;
@@ -583,7 +536,7 @@ wresult _w_listviewbase_get_column(w_listviewbase *list, int index,
 	}
 	if (index >= columnCount)
 		return W_ERROR_INVALID_RANGE;
-	_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+	W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
 	_W_ITEM(column)->parent = W_WIDGET(list);
 	_W_ITEM(column)->index = index;
 	return W_TRUE;
@@ -791,7 +744,7 @@ wresult _w_listviewbase_insert_column(w_listviewbase *list,
 		}
 	}
 	if (column != 0) {
-		_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+		W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
 		_W_ITEM(column)->parent = W_WIDGET(list);
 		_W_ITEM(column)->index = index;
 
@@ -945,8 +898,9 @@ wresult _w_listviewbase_show_selection(w_listviewbase *list) {
 wresult _w_listviewbase_sort(w_listviewbase *list) {
 	return W_FALSE;
 }
-void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listviewbase_class *clazz) {
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	clazz->clear_all = _w_listviewbase_clear_all;
 	clazz->deselect_all = _w_listviewbase_deselect_all;
 	clazz->get_column = _w_listviewbase_get_column;
@@ -980,6 +934,7 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	 * list item
 	 */
 	struct _w_listitem_class *listitem = W_LISTITEM_CLASS(clazz->class_item);
+	W_WIDGETDATA_CLASS(listitem)->toolkit = W_WIDGET_CLASS(clazz)->toolkit;
 	_w_item_class_init(W_ITEM_CLASS(listitem));
 	W_ITEM_CLASS(listitem)->get_data = _w_listitem_get_data;
 	W_ITEM_CLASS(listitem)->get_text = _w_listitem_get_text;
@@ -1000,6 +955,7 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	 */
 	struct _w_columnitem_class *columnitem = W_COLUMNITEM_CLASS(
 			clazz->class_column);
+	W_WIDGETDATA_CLASS(columnitem)->toolkit = W_WIDGET_CLASS(clazz)->toolkit;
 	_w_item_class_init(W_ITEM_CLASS(columnitem));
 	columnitem->get_alignment = _w_columnitem_get_alignment;
 	//columnitem->get_id = _w_columnitem_get_order;
@@ -1024,6 +980,9 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_listviewbase_check_style;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		priv->check_style = _w_listviewbase_check_style;
+	}
 }

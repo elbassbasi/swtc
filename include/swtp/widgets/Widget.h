@@ -7,7 +7,7 @@
 
 #ifndef SWTP_WIDGETS_WIDGET_H_
 #define SWTP_WIDGETS_WIDGET_H_
-#include "Event.h"
+#include "Theme.h"
 #include <string>
 #include <atomic>
 class WFrame;
@@ -187,13 +187,18 @@ public:
 		return frame;
 	}
 	WShell* GetShell() {
-		return (WShell*) GetFrame();
+		return GetFrame();
 	}
 	WToolkit* GetToolkit() {
 		return (WToolkit*) w_widget_get_toolkit(W_WIDGET(this));
 	}
 	WTheme* GetTheme() {
-		return (WTheme*) w_widget_get_theme(W_WIDGET(this));
+		WTheme *theme;
+		w_widget_get_theme(W_WIDGET(this), (w_theme**) &theme);
+		return theme;
+	}
+	bool SetTheme(WTheme *theme) {
+		return w_widget_set_theme(W_WIDGET(this), (w_theme*) theme) > 0;
 	}
 	void AsyncExec(w_thread_start function, void *args) {
 		w_toolkit_async_exec(w_widget_get_toolkit(W_WIDGET(this)), function,
@@ -296,6 +301,7 @@ private:
 	wuint state;
 	wuint state0;
 	void *handle;
+	WTheme *theme;
 	w_widget_post_event_proc post_event;
 	void *data[5];
 };

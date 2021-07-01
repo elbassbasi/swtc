@@ -65,28 +65,28 @@ void _gtk_themedata_part_id(w_theme *theme, w_themedata *data, int *ids,
 		int part) {
 	int state = data->state;
 	int state_type = GTK_STATE_NORMAL;
-	if (state & W_THEME_SELECTED) {
+	if (state & W_THEME_STATE_SELECTED) {
 		state_type |= GTK_STATE_FLAG_SELECTED;
 	}
-	if (state & W_THEME_FOCUSED) {
+	if (state & W_THEME_STATE_FOCUSED) {
 		state_type |= GTK_STATE_FLAG_FOCUSED;
 	}
-	if (state & W_THEME_HOT) {
+	if (state & W_THEME_STATE_HOT) {
 		state_type |= GTK_STATE_FLAG_PRELIGHT;
 	}
-	if (state & W_THEME_PRESSED) {
+	if (state & W_THEME_STATE_PRESSED) {
 		state_type |= GTK_STATE_FLAG_SELECTED;
 	}
-	if (state & W_THEME_ACTIVE) {
+	if (state & W_THEME_STATE_ACTIVE) {
 		state_type |= GTK_STATE_FLAG_ACTIVE;
 	}
-	if (state & W_THEME_DISABLED) {
+	if (state & W_THEME_STATE_DISABLED) {
 		state_type |= GTK_STATE_FLAG_INSENSITIVE;
 	}
-	if (state & W_THEME_DEFAULTED) {
+	if (state & W_THEME_STATE_DEFAULTED) {
 		state_type = GTK_STATE_FLAG_PRELIGHT;
 	}
-	if (state & W_THEME_GRAYED) {
+	if (state & W_THEME_STATE_GRAYED) {
 		state_type = GTK_STATE_FLAG_VISITED;
 	}
 	ids[0] = state_type;
@@ -95,7 +95,7 @@ void _gtk_themedata_button_part_id(w_theme *theme, w_themedata *data, int *ids,
 		int part) {
 	_gtk_themedata_part_id(theme, data, ids, part);
 	if (data->style & (W_RADIO | W_CHECK)) {
-		if (data->state & W_THEME_SELECTED) {
+		if (data->state & W_THEME_STATE_SELECTED) {
 			ids[0] |= GTK_STATE_FLAG_CHECKED;
 		}
 	}
@@ -293,9 +293,9 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		}
 
 		int shadow_type;
-		if ((data->state & W_THEME_GRAYED) != 0) {
+		if ((data->state & W_THEME_STATE_GRAYED) != 0) {
 			shadow_type = GTK_SHADOW_ETCHED_IN;
-		} else if ((data->state & W_THEME_SELECTED) != 0) {
+		} else if ((data->state & W_THEME_STATE_SELECTED) != 0) {
 			shadow_type = GTK_SHADOW_IN;
 		} else {
 			shadow_type = GTK_SHADOW_OUT;
@@ -397,9 +397,9 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 
 		int relief = gtk_button_get_relief(GTK_BUTTON(buttonHandle));
 		char *detail =
-				(data->state & W_THEME_DEFAULTED) != 0 ?
+				(data->state & W_THEME_STATE_DEFAULTED) != 0 ?
 						"buttondefault" : "button";
-		if ((data->state & W_THEME_DEFAULTED) != 0
+		if ((data->state & W_THEME_STATE_DEFAULTED) != 0
 				&& relief == GTK_RELIEF_NORMAL) {
 			gtk_style_context_set_state(gtkStyle, state);
 			_gtk_render_box(gtkStyle, drawable, x, y, width, height);
@@ -407,7 +407,7 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 			y += default_border.top;
 			width -= default_border.left + default_border.right;
 			height -= default_border.top + default_border.bottom;
-		} else if ((data->state & W_THEME_DEFAULTED) != 0) {
+		} else if ((data->state & W_THEME_STATE_DEFAULTED) != 0) {
 			x += default_outside_border.left;
 			y += default_outside_border.top;
 			width -= default_outside_border.left + default_outside_border.right;
@@ -416,14 +416,14 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		}
 
 		int shadow_type = GTK_SHADOW_OUT;
-		if ((data->state & (W_THEME_SELECTED | W_THEME_PRESSED)) != 0)
+		if ((data->state & (W_THEME_STATE_SELECTED | W_THEME_STATE_PRESSED)) != 0)
 			shadow_type = GTK_SHADOW_IN;
 		if (relief != GTK_RELIEF_NONE
-				|| ((data->state & (W_THEME_PRESSED | W_THEME_HOT)) != 0)) {
+				|| ((data->state & (W_THEME_STATE_PRESSED | W_THEME_STATE_HOT)) != 0)) {
 			_gtk_render_box(gtkStyle, drawable, x, y, width, height);
 		}
 
-		if ((data->state & W_THEME_FOCUSED) != 0) {
+		if ((data->state & W_THEME_STATE_FOCUSED) != 0) {
 			int child_displacement_y;
 			gtk_widget_style_get(buttonHandle, "child-displacement-y",
 					&child_displacement_y, NULL);
@@ -451,7 +451,7 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 				height += 2 * (focus_line_width + focus_padding);
 			}
 
-			if ((data->state & W_THEME_PRESSED) != 0 && displace_focus != 0) {
+			if ((data->state & W_THEME_STATE_PRESSED) != 0 && displace_focus != 0) {
 				x += child_displacement_x;
 				y += child_displacement_y;
 			}
@@ -559,34 +559,34 @@ void _gtk_theme_tabitem_draw_background(w_theme *theme, w_themedata *data,
 	int x = bounds->x, y = bounds->y, width = bounds->width, height =
 			bounds->height;
 	GtkStateFlags state_type = GTK_STATE_FLAG_NORMAL;
-	if ((data->state & W_THEME_SELECTED) == 0) {
+	if ((data->state & W_THEME_STATE_SELECTED) == 0) {
 		if ((data->style & W_BOTTOM) == 0) {
 			y += TAB_CURVATURE;
 		}
 		height -= TAB_CURVATURE;
 	}
-	if (data->state & W_THEME_SELECTED) {
+	if (data->state & W_THEME_STATE_SELECTED) {
 		state_type |= GTK_STATE_FLAG_SELECTED;
 	}
-	if (data->state & W_THEME_FOCUSED) {
+	if (data->state & W_THEME_STATE_FOCUSED) {
 		state_type |= GTK_STATE_FLAG_FOCUSED;
 	}
-	if (data->state & W_THEME_HOT) {
+	if (data->state & W_THEME_STATE_HOT) {
 		state_type |= GTK_STATE_FLAG_PRELIGHT;
 	}
-	if (data->state & W_THEME_PRESSED) {
+	if (data->state & W_THEME_STATE_PRESSED) {
 		//state_type |= GTK_STATE_FLAG_PRELIGHT;
 	}
-	if (data->state & W_THEME_ACTIVE) {
+	if (data->state & W_THEME_STATE_ACTIVE) {
 		state_type |= GTK_STATE_FLAG_ACTIVE;
 	}
-	if (data->state & W_THEME_DISABLED) {
+	if (data->state & W_THEME_STATE_DISABLED) {
 		state_type |= GTK_STATE_FLAG_INSENSITIVE;
 	}
-	if (data->state & W_THEME_DEFAULTED) {
+	if (data->state & W_THEME_STATE_DEFAULTED) {
 		state_type |= GTK_STATE_FLAG_ACTIVE;
 	}
-	if (data->state & W_THEME_GRAYED) {
+	if (data->state & W_THEME_STATE_GRAYED) {
 		state_type |= GTK_STATE_FLAG_INCONSISTENT;
 	}
 	gtk_style_context_set_state(context, state_type);

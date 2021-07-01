@@ -18,6 +18,6 @@ typedef struct _w_groupbox_priv {
 } _w_groupbox_priv;
 #define _W_GROUPBOX(x) ((_w_groupbox*)x)
 #define _W_GROUPBOX_PRIV(x) ((_w_groupbox_priv*)x)
-void _w_groupbox_class_init(struct _w_groupbox_class *clazz);
+void _w_groupbox_class_init(w_toolkit *toolkit, wushort classId,struct _w_groupbox_class *clazz);
 
 #endif /* WIN32_CONTROLS_GROUPBOX_H_ */

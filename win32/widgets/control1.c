@@ -273,10 +273,50 @@ wresult _CONTROL_WM_VSCROLL(w_widget *widget, _w_event_platform *e,
 }
 wresult _CONTROL_WM_WINDOWPOSCHANGED(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	win_toolkit->resizeCount++;
+	wresult result = priv->widget.call_window_proc(widget, e, priv);
+	--win_toolkit->resizeCount;
+	return result;
 }
 wresult _CONTROL_WM_WINDOWPOSCHANGING(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	/*
+	 * Bug in Windows.  When WM_SETREDRAW is used to turn off drawing
+	 * for a control and the control is moved or resized, Windows does
+	 * not redraw the area where the control once was in the parent.
+	 * The fix is to detect this case and redraw the area.
+	 */
+	if (!_w_control_get_drawing(W_CONTROL(widget))) {
+		w_shell *shell;
+		w_widget_get_shell(widget, &shell);
+		if (W_WIDGET(shell) != widget) {
+			WINDOWPOS *lpwp = (WINDOWPOS*) e->lparam;
+			if ((lpwp->flags & SWP_NOMOVE) == 0
+					|| (lpwp->flags & SWP_NOSIZE) == 0) {
+				HWND topHandle = priv->handle_top(W_CONTROL(widget));
+				RECT rect;
+				GetWindowRect(topHandle, &rect);
+				int width = rect.right - rect.left;
+				int height = rect.bottom - rect.top;
+				if (width != 0 && height != 0) {
+					w_composite *parent = _W_CONTROL(widget)->parent;
+					HWND hwndParent =
+							parent == 0 ? 0 : _W_WIDGET(parent)->handle;
+					MapWindowPoints(0, hwndParent, (POINT*) &rect, 2);
+					HRGN rgn1 = CreateRectRgn(rect.left, rect.top, rect.right,
+							rect.bottom);
+					HRGN rgn2 = CreateRectRgn(lpwp->x, lpwp->y,
+							lpwp->x + lpwp->cx, lpwp->y + lpwp->cy);
+					CombineRgn(rgn1, rgn1, rgn2, RGN_DIFF);
+					int flags = RDW_ERASE | RDW_FRAME | RDW_INVALIDATE
+							| RDW_ALLCHILDREN;
+					RedrawWindow(hwndParent, NULL, rgn1, flags);
+					DeleteObject(rgn1);
+					DeleteObject(rgn2);
+				}
+			}
+		}
+	}
 	return W_FALSE;
 }
 wresult _CONTROL_WM_CTLCOLORCHILD(w_widget *widget, _w_event_platform *e,

@@ -188,8 +188,12 @@ const char* _w_label_window_class(w_control *control, _w_control_priv *priv) {
 		return WC_STATICA;
 	}
 }
-void _w_label_class_init(struct _w_label_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_label_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_label_class *clazz) {
+	if (classId == _W_CLASS_LABEL) {
+		W_WIDGET_CLASS(clazz)->platformPrivate = &win_toolkit->class_label_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_LABEL;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_label_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_label);
@@ -204,11 +208,17 @@ void _w_label_class_init(struct _w_label_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->compute_size = _w_label_compute_size;
-	priv->widget_extstyle = _w_label_widget_extstyle;
-	priv->widget_style = _w_label_widget_style;
-	priv->window_class = _w_label_window_class;
-	priv->get_def_window_proc = _w_label_get_def_window_proc;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_LABEL) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->compute_size = _w_label_compute_size;
+		priv->widget_extstyle = _w_label_widget_extstyle;
+		priv->widget_style = _w_label_widget_style;
+		priv->window_class = _w_label_window_class;
+		priv->get_def_window_proc = _w_label_get_def_window_proc;
+	}
 }
 

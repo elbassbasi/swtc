@@ -12,7 +12,6 @@
 #include "combobox.h"
 #include "coolbar.h"
 #include "datetime.h"
-#include "expandbar.h"
 #include "groupbox.h"
 #include "label.h"
 #include "progressbar.h"

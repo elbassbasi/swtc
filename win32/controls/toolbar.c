@@ -7,8 +7,12 @@
 #include "toolbar.h"
 #include "../widgets/toolkit.h"
 //#define TOOLITEM_RADIO (1 << 15)
-#define TOOLITEM_SEP (1 << 15)
-#define TOOLITEM_COMMAND_MASK 0x7FFF
+#define TOOLITEM_STYLE_MASK (3 << 14)
+#define TOOLITEM_STYLE_UNKNOWN (0 << 14)
+#define TOOLITEM_STYLE_SEPARATOR (1 << 14)
+#define TOOLITEM_STYLE_DROPDOWN (2 << 14)
+#define TOOLITEM_STYLE_RADIO (3 << 14)
+#define TOOLITEM_COMMAND_MASK 0x3FFF
 wresult _w_toolitem_get_data(w_item *item, void **data) {
 	w_widget *parent = _W_ITEM(item)->parent;
 	HWND handle = _W_WIDGET(parent)->handle;
@@ -109,7 +113,7 @@ wresult _w_toolitem_get_control(w_toolitem *item, w_control **control) {
 	info.fsStyle = 0;
 	info.idCommand = 0;
 	if (SendMessageW(handle, TB_GETBUTTONINFOW, index, (LPARAM) &info) != -1) {
-		if (info.idCommand & TOOLITEM_SEP) {
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) == TOOLITEM_STYLE_SEPARATOR) {
 			w_event_toolbar event;
 			memset(&event, 0, sizeof(event));
 			event.event.type = W_EVENT_ITEM_GET_CONTROL;
@@ -164,10 +168,10 @@ wresult _w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 	*menu = 0;
 	TBBUTTONINFOW info;
 	info.cbSize = sizeof(info);
-	info.dwMask = TBIF_STYLE | TBIF_BYINDEX;
+	info.dwMask = TBIF_COMMAND | TBIF_BYINDEX;
 	info.fsStyle = 0;
 	if (SendMessageW(handle, TB_GETBUTTONINFOW, index, (LPARAM) &info) != -1) {
-		if (info.fsStyle & BTNS_DROPDOWN) {
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) == TOOLITEM_STYLE_DROPDOWN) {
 			w_event_toolbar event;
 			memset(&event, 0, sizeof(event));
 			event.event.type = W_EVENT_ITEM_GET_MENU;
@@ -193,19 +197,20 @@ wresult _w_toolitem_get_style(w_toolitem *item) {
 	info.fsStyle = 0;
 	info.idCommand = 0;
 	if (SendMessageW(handle, TB_GETBUTTONINFOW, index, (LPARAM) &info) != -1) {
-		if (info.idCommand & TOOLITEM_SEP) {
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) == TOOLITEM_STYLE_SEPARATOR) {
 			return W_SEPARATOR;
+		}
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) == TOOLITEM_STYLE_DROPDOWN) {
+			return W_DROP_DOWN;
+		}
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) == TOOLITEM_STYLE_RADIO) {
+			return W_RADIO;
 		}
 		if (info.fsStyle & BTNS_BUTTON)
 			return W_PUSH;
 		if (info.fsStyle & BTNS_CHECK) {
-			if (info.fsStyle & BTNS_GROUP)
-				return W_RADIO;
-			else
-				return W_CHECK;
+			return W_CHECK;
 		}
-		if (info.fsStyle & BTNS_DROPDOWN)
-			return W_DROP_DOWN;
 	}
 	return 0;
 }
@@ -249,7 +254,7 @@ wresult _w_toolitem_set_control(w_toolitem *item, w_control *control) {
 	info.fsStyle = 0;
 	info.idCommand = 0;
 	if (SendMessageW(handle, TB_GETBUTTONINFOW, index, (LPARAM) &info) != -1) {
-		if (info.idCommand & TOOLITEM_SEP) {
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) == TOOLITEM_STYLE_SEPARATOR) {
 			w_event_toolbar event;
 			memset(&event, 0, sizeof(event));
 			event.event.type = W_EVENT_ITEM_SET_CONTROL;
@@ -339,23 +344,15 @@ wresult _w_toolitem_set_image(w_toolitem *item, int image) {
 	info.cbSize = sizeof(TBBUTTONINFOW);
 	info.dwMask = TBIF_IMAGE | TBIF_SIZE | TBIF_STYLE | TBIF_BYINDEX;
 	if (SendMessageW(handle, TB_GETBUTTONINFOW, index, (LPARAM) &info) != -1) {
-		info.dwMask = TBIF_IMAGE | TBIF_BYINDEX;
-		info.iImage = image;
-		if (info.iImage < 0)
-			info.iImage = I_IMAGENONE;
-		/*
-		 * Bug in Windows.  If the width of an item has already been
-		 * calculated, the tool bar control will not recalculate it to
-		 * include the space for the image.  The fix is to set the width
-		 * to zero, forcing the control recalculate the width for the item.
-		 */
-		if ((info.fsStyle & BTNS_SEP) == 0) {
-			info.dwMask |= TBIF_SIZE;
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) != TOOLITEM_STYLE_SEPARATOR) {
+			info.dwMask = TBIF_IMAGE | TBIF_BYINDEX;
+			info.iImage = image;
+			if (info.iImage < 0)
+				info.iImage = I_IMAGENONE;
 			info.cx = 0;
-		}
-		if (SendMessageW(handle, TB_SETBUTTONINFOW, index, (LPARAM) &info)) {
-			result = W_TRUE;
-			if ((info.fsStyle & BTNS_SEP) == 0) {
+			if (SendMessageW(handle, TB_SETBUTTONINFOW, index,
+					(LPARAM) &info)) {
+				result = W_TRUE;
 				HFONT hFont = (HFONT) SendMessageW(handle, WM_GETFONT, 0, 0);
 				SendMessageW(handle, WM_SETFONT, (WPARAM) hFont, 0);
 				_w_toolbar_layout_items(W_TOOLBAR(parent));
@@ -371,10 +368,10 @@ wresult _w_toolitem_set_menu(w_toolitem *item, w_menu *menu) {
 	wresult result = W_FALSE;
 	TBBUTTONINFOW info;
 	info.cbSize = sizeof(info);
-	info.dwMask = TBIF_STYLE | TBIF_BYINDEX;
+	info.dwMask = TBIF_STYLE | TBIF_COMMAND | TBIF_BYINDEX;
 	info.fsStyle = 0;
 	if (SendMessageW(handle, TB_GETBUTTONINFOW, index, (LPARAM) &info) != -1) {
-		if (info.fsStyle & BTNS_DROPDOWN) {
+		if ((info.idCommand & TOOLITEM_STYLE_MASK) == TOOLITEM_STYLE_DROPDOWN) {
 			w_event_toolbar event;
 			memset(&event, 0, sizeof(event));
 			event.event.type = W_EVENT_ITEM_SET_MENU;
@@ -657,7 +654,7 @@ wresult _w_toolbar_get_item_from_point(w_toolbar *toolbar, w_point *point,
 	for (int i = 0; i < count; i++) {
 		SendMessageW(handle, TB_GETITEMRECT, i, (LPARAM) &rect);
 		if (PtInRect(&rect, pt)) {
-			_W_WIDGETDATA(item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
+			W_WIDGETDATA(item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
 			_W_ITEM(item)->parent = W_WIDGET(toolbar);
 			_W_ITEM(item)->index = i;
 			return W_TRUE;
@@ -681,13 +678,11 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 	if (!(0 <= index && index <= count)) {
 		index = count;
 	}
-	int bits = _w_toolbar_widget_item_style(style);
 	TBBUTTON lpButton;
 	WCHAR *t = 0;
 	memset(&lpButton, 0, sizeof(lpButton));
 	lpButton.idCommand = (index & TOOLITEM_COMMAND_MASK);
-	lpButton.fsStyle = (byte) bits;
-	lpButton.fsState = (byte) TBSTATE_ENABLED;
+	lpButton.fsState = TBSTATE_ENABLED;
 	/*
 	 * Bug in Windows.  Despite the fact that the image list
 	 * index has never been set for the item, Windows always
@@ -700,10 +695,26 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 	 * the case when the item has the BTNS_SEP style because
 	 * separators cannot show images.
 	 */
-	if ((bits & BTNS_SEP) == 0)
-		lpButton.iBitmap = I_IMAGENONE;
-	else {
-		lpButton.idCommand |= TOOLITEM_SEP;
+	lpButton.iBitmap = I_IMAGENONE;
+	if ((style & W_DROP_DOWN) != 0) {
+		lpButton.fsStyle = BTNS_DROPDOWN;
+		lpButton.idCommand |= TOOLITEM_STYLE_DROPDOWN;
+	} else if ((style & W_CHECK) != 0) {
+		lpButton.fsStyle = BTNS_CHECK;
+		/*
+		 * This code is intentionally commented.  In order to
+		 * consistently support radio tool items across platforms,
+		 * the platform radio behavior is not used.
+		 */
+	} else if ((style & W_RADIO) != 0) {
+		//lpButton.fsStyle = BTNS_CHECKGROUP;
+		lpButton.fsStyle = BTNS_CHECK;
+		lpButton.idCommand |= TOOLITEM_STYLE_RADIO;
+	} else if ((style & W_SEPARATOR) != 0) {
+		lpButton.fsStyle = BTNS_SEP;
+		lpButton.idCommand |= TOOLITEM_STYLE_SEPARATOR;
+	} else {
+		lpButton.fsStyle = BTNS_BUTTON;
 	}
 	LRESULT result = SendMessageW(_W_WIDGET(toolbar)->handle, TB_INSERTBUTTONW,
 			index, (LPARAM) &lpButton);
@@ -711,7 +722,7 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 		return W_ERROR_ITEM_NOT_ADDED;
 	}
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
+		W_WIDGETDATA(item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
 		_W_ITEM(item)->parent = W_WIDGET(toolbar);
 		_W_ITEM(item)->index = index;
 	}
@@ -723,7 +734,7 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 void _w_toolbar_layout_items(w_toolbar *toolbar) {
 	HWND handle = _W_WIDGET(toolbar)->handle;
 	_w_item item;
-	_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
+	W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
 	item.parent = W_WIDGET(toolbar);
 	int count = (int) SendMessageW(handle, TB_BUTTONCOUNT, 0, 0);
 	TBBUTTONINFOW info;
@@ -758,7 +769,7 @@ void _w_toolbar_layout_items(w_toolbar *toolbar) {
 						hasText = tmp[0] != 0;
 					}
 					if (!hasImage)
-						hasImage = info.iImage > 0;
+						hasImage = info.iImage >= 0;
 					if (hasText && hasImage)
 						break;
 				}
@@ -802,15 +813,16 @@ void _w_toolbar_layout_items(w_toolbar *toolbar) {
 			int info_cx = LOWORD(size);
 			int index = 0, extraPadding = 0;
 			while (index < count) {
-				info.dwMask = TBIF_STYLE | TBIF_BYINDEX;
+				info.dwMask = TBIF_STYLE | TBIF_COMMAND | TBIF_BYINDEX;
 				if (SendMessageW(handle, TB_GETBUTTONINFOW, index,
 						(LPARAM) &info) != -1) {
-					if ((info.fsStyle & BTNS_DROPDOWN) != 0) {
+					if ((info.idCommand & TOOLITEM_STYLE_MASK)
+							== TOOLITEM_STYLE_DROPDOWN) {
 						/*
 						 * Specifying 1 pixel extra padding to avoid truncation
 						 * of widest item in the tool-bar when a tool-bar has
 						 * SWT.VERTICAL style and any of the items in the
-						 * tool-bar has SWT.DROP_DOWN style, Refer bug#437206
+						 * tool-bar has W_DROP_DOWN style, Refer bug#437206
 						 */
 						extraPadding = 1;
 						break;
@@ -823,10 +835,11 @@ void _w_toolbar_layout_items(w_toolbar *toolbar) {
 				info_cx += LOWORD (padding + extraPadding) * 2;
 			}
 			for (int i = 0; i < count; i++) {
-				info.dwMask = TBIF_STYLE | TBIF_BYINDEX;
+				info.dwMask = TBIF_STYLE | TBIF_COMMAND | TBIF_BYINDEX;
 				if (SendMessageW(handle, TB_GETBUTTONINFOW, i, (LPARAM) &info)
 						!= -1) {
-					if ((info.fsStyle & BTNS_SEP) == 0) {
+					if ((info.idCommand & TOOLITEM_STYLE_MASK)
+							!= TOOLITEM_STYLE_SEPARATOR) {
 						info.dwMask = TBIF_SIZE;
 						info.cx = info_cx;
 						SendMessageW(handle, TB_SETBUTTONINFOW, i,
@@ -905,17 +918,18 @@ void _w_toolbar_set_drop_down_items(w_toolbar *toolbar, wresult set) {
 			}
 		}
 		if (hasImage && !hasText) {
+			info.dwMask = TBIF_STYLE | TBIF_COMMAND | TBIF_BYINDEX;
 			for (int i = 0; i < count; i++) {
-				info.dwMask = TBIF_STYLE | TBIF_BYINDEX;
 				if (SendMessageW(handle, TB_GETBUTTONINFOW, i, (LPARAM) &info)
 						!= -1) {
-					if ((info.fsStyle & BTNS_DROPDOWN) != 0) {
+					if ((info.idCommand & TOOLITEM_STYLE_MASK)
+							== TOOLITEM_STYLE_DROPDOWN) {
 						if (set) {
 							info.fsStyle |= BTNS_DROPDOWN;
 						} else {
 							info.fsStyle &= ~BTNS_DROPDOWN;
 						}
-						SendMessageW(handle, TB_SETBUTTONINFO, i,
+						SendMessageW(handle, TB_SETBUTTONINFOW, i,
 								(LPARAM) &info);
 					}
 				}
@@ -940,11 +954,10 @@ wresult _w_toolbar_set_imagelist(w_toolbar *toolbar, w_imagelist *imagelist) {
 		}
 	}
 	if (result > 0) {
+		_w_toolbar_set_drop_down_items(toolbar, FALSE);
 		HWND handle = _W_WIDGET(toolbar)->handle;
 		SendMessageW(handle, TB_SETIMAGELIST, 0, (LPARAM) _imagelist);
-		/*HFONT hFont = (HFONT) SendMessageW(handle, WM_GETFONT, 0, 0);
-		 SendMessageW(handle, WM_SETFONT, (WPARAM) hFont, 0);
-		 _w_toolbar_layout_items(toolbar);*/
+		_w_toolbar_set_drop_down_items(toolbar, TRUE);
 	}
 	return result;
 }
@@ -985,24 +998,6 @@ void _w_toolbar_set_row_count(w_toolbar *toolbar, int count) {
 				rect.bottom - rect.top, flags);
 		_W_WIDGET(toolbar)->state &= ~STATE_IGNORE_RESIZE;
 	}
-}
-DWORD _w_toolbar_widget_item_style(wuint64 style) {
-	if ((style & W_DROP_DOWN) != 0)
-		return BTNS_DROPDOWN;
-	if ((style & W_PUSH) != 0)
-		return BTNS_BUTTON;
-	if ((style & W_CHECK) != 0)
-		return BTNS_CHECK;
-	/*
-	 * This code is intentionally commented.  In order to
-	 * consistently support radio tool items across platforms,
-	 * the platform radio behavior is not used.
-	 */
-	if ((style & W_RADIO) != 0)
-		return BTNS_CHECKGROUP;
-	if ((style & W_SEPARATOR) != 0)
-		return BTNS_SEP;
-	return BTNS_BUTTON;
 }
 DWORD _w_toolbar_widget_style(w_control *control, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(control)->style;
@@ -1051,7 +1046,7 @@ wresult _TOOLBAR_WM_COMMANDCHILD(w_widget *widget, _w_event_platform *e,
 		RECT rect;
 		memset(&event, 0, sizeof(event));
 		SendMessageW(handle, TB_GETITEMRECT, index, (LPARAM) &rect);
-		_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(widget);
+		W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(widget);
 		_W_ITEM(&item)->parent = widget;
 		_W_ITEM(&item)->index = index;
 		memset(&event, 0, sizeof(event));
@@ -1085,7 +1080,7 @@ wresult _TOOLBAR_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 		int index = SendMessageW(handle, TB_COMMANDTOINDEX, lpnmtb->iItem, 0);
 		if (index >= 0) {
 			SendMessageW(handle, TB_GETITEMRECT, index, (LPARAM) &rect);
-			_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(widget);
+			W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(widget);
 			_W_ITEM(&item)->parent = widget;
 			_W_ITEM(&item)->index = index;
 			memset(&event, 0, sizeof(event));
@@ -1161,8 +1156,13 @@ wresult _TOOLBAR_WM_SIZE(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
-void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_toolbar_class *clazz) {
+	if (classId == _W_CLASS_TOOLBAR) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_toolbar_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TOOLBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_toolbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_toolbar);
@@ -1182,6 +1182,7 @@ void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
 	 *
 	 */
 	struct _w_toolitem_class *item = clazz->class_toolitem;
+	W_WIDGETDATA_CLASS(item)->toolkit = W_WIDGET_CLASS(clazz)->toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	W_ITEM_CLASS(item)->get_data = _w_toolitem_get_data;
 	W_ITEM_CLASS(item)->get_text = _w_toolitem_get_text;
@@ -1209,20 +1210,25 @@ void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->create_handle = _w_toolbar_create_handle;
-	priv->check_style = _w_toolbar_check_style;
-	priv->widget_style = _w_toolbar_widget_style;
-	priv->window_class = _w_toolbar_window_class;
-	priv->compute_size = _w_toolbar_compute_size;
-	priv->compute_trim = _w_toolbar_compute_trim;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_COMMANDCHILD] = _TOOLBAR_WM_COMMANDCHILD;
-	msg[_WM_LBUTTONDOWN] = _TOOLBAR_WM_LBUTTONDOWN;
-	msg[_WM_NOTIFYCHILD] = _TOOLBAR_WM_NOTIFYCHILD;
-	msg[_WM_SIZE] = _TOOLBAR_WM_SIZE;
-
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_TOOLBAR) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->create_handle = _w_toolbar_create_handle;
+		priv->check_style = _w_toolbar_check_style;
+		priv->widget_style = _w_toolbar_widget_style;
+		priv->window_class = _w_toolbar_window_class;
+		priv->compute_size = _w_toolbar_compute_size;
+		priv->compute_trim = _w_toolbar_compute_trim;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_COMMANDCHILD] = _TOOLBAR_WM_COMMANDCHILD;
+		msg[_WM_LBUTTONDOWN] = _TOOLBAR_WM_LBUTTONDOWN;
+		msg[_WM_NOTIFYCHILD] = _TOOLBAR_WM_NOTIFYCHILD;
+		msg[_WM_SIZE] = _TOOLBAR_WM_SIZE;
+	}
 }

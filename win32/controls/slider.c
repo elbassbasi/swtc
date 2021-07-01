@@ -493,8 +493,13 @@ wresult _SLIDER_WM_SCROLLCHILD(w_widget *widget, _w_event_platform *e,
 		return W_FALSE;
 	}
 }
-void _w_slider_class_init(struct _w_slider_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_slider_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_slider_class *clazz) {
+	if (classId == _W_CLASS_SLIDER) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_slider_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SLIDER;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_slider_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_slider);
@@ -515,18 +520,23 @@ void _w_slider_class_init(struct _w_slider_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_slider_check_style;
-	priv->compute_size = _w_slider_compute_size;
-	priv->create_handle = _w_slider_create_handle;
-	priv->widget_style = _w_slider_widget_style;
-	priv->widget_extstyle = _w_slider_widget_extstyle;
-	priv->window_class = _w_slider_window_class;
-	priv->get_def_window_proc = _w_slider_get_def_window_proc;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_SCROLLCHILD] = _SLIDER_WM_SCROLLCHILD;
-
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SLIDER) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_slider_check_style;
+		priv->compute_size = _w_slider_compute_size;
+		priv->create_handle = _w_slider_create_handle;
+		priv->widget_style = _w_slider_widget_style;
+		priv->widget_extstyle = _w_slider_widget_extstyle;
+		priv->window_class = _w_slider_window_class;
+		priv->get_def_window_proc = _w_slider_get_def_window_proc;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_SCROLLCHILD] = _SLIDER_WM_SCROLLCHILD;
+	}
 }

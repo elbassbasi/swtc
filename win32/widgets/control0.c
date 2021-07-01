@@ -30,47 +30,36 @@ wresult _w_control_call_window_proc(w_widget *widget, _w_event_platform *e,
 }
 #define W_CONTROL_ACCEL_GROW 0x10
 int _w_control_new_id(w_control *control, _w_accel_id **id) {
-	_w_accel_ids *acc = _W_CONTROL(control)->ids, *newacc;
-	int alloc = 0;
-	int count = 0;
+	w_array *acc = _W_CONTROL(control)->ids;
 	if (acc != 0) {
-		_w_accel_id *_acc = acc->id;
-		for (int i = 0; i < acc->count; i++) {
+		_w_accel_id *_acc = (_w_accel_id*) acc->data;
+		int count = acc->count;
+		for (int i = 0; i < count; i++) {
 			if (_acc[i].menu == 0) {
 				*id = &_acc[i];
 				return i;
 			}
 		}
-		alloc = acc->alloc;
-		count = acc->count;
 	}
-	int newalloc = alloc + W_CONTROL_ACCEL_GROW;
-	const int sz = sizeof(_w_accel_ids) + newalloc * sizeof(_w_accel_id);
-	newacc = realloc(acc, sz);
-	if (newacc != 0) {
-		newacc->alloc = newalloc;
-		newacc->count = count;
-		_w_accel_id *_acc = &newacc->id[newacc->count];
-		newacc->count++;
-		_W_CONTROL(control)->ids = newacc;
-		*id = _acc;
-		return newacc->count;
-	}
-	return -1;
+	int newIndex = -1;
+	*id = w_array_add(&_W_CONTROL(control)->ids, -1, sizeof(_w_accel_id),
+			&newIndex);
+	return newIndex;
 }
 int _w_control_remove_id(w_control *control, int index) {
-	_w_accel_ids *acc = _W_CONTROL(control)->ids;
+	w_array *acc = _W_CONTROL(control)->ids;
+	_w_accel_id *_acc = w_array_get(acc, index, sizeof(_w_accel_id));
 	if (acc == 0)
 		return 0;
-	if (index < acc->count) {
-		acc->id[index].menu = 0;
-		acc->id[index].accelerator = 0;
+	if (_acc != 0) {
+		_acc->menu = 0;
+		_acc->accelerator = 0;
 	}
 	return 0;
 }
 
 int _w_control_create_accelerators(w_control *control) {
-	_w_accel_ids *acc = _W_CONTROL(control)->ids;
+	w_array *acc = _W_CONTROL(control)->ids;
 	if (acc == 0)
 		return W_FALSE;
 	if (acc->count == 0)
@@ -79,7 +68,7 @@ int _w_control_create_accelerators(w_control *control) {
 	if (_acc == 0)
 		return W_FALSE;
 	int nAccel = 0;
-	_w_accel_id *_iacc = acc->id;
+	_w_accel_id *_iacc = (_w_accel_id*) acc->data;
 	for (int i = 0; i < acc->count; i++) {
 		if (_iacc[i].menu != 0 && _iacc[i].accelerator != 0) {
 			if (_w_menuitem_fill_accel(&_acc[nAccel], &_iacc[i])) {
@@ -110,6 +99,7 @@ wresult _w_control_check_border(w_control *control, _w_control_priv *priv) {
 	return W_TRUE;
 }
 wresult _w_control_check_buffered(w_control *control, _w_control_priv *priv) {
+	_W_WIDGET(control)->style &= ~W_DOUBLE_BUFFERED;
 	return W_TRUE;
 }
 wresult _w_control_check_composited(w_control *control, _w_control_priv *priv) {
@@ -254,7 +244,7 @@ void _w_control_draw_background(w_control *control, HDC hDC, RECT *rect,
 	}
 	if (pixel == -1) {
 		if ((_W_WIDGET(control)->state & STATE_THEME_BACKGROUND) != 0) {
-			if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
+			if (win_toolkit->IsAppThemed) {
 				/*c = findThemeControl ();
 				 if (c != 0) {
 				 fillThemeBackground (hDC, c, rect);
@@ -274,7 +264,7 @@ COLOR_BTNTEXT,
 COLOR_WINDOWTEXT,
 COLOR_HIGHLIGHT,
 COLOR_SCROLLBAR, };
-HBRUSH _w_control_find_brush(w_control *control, ULONG_PTR value, int lbStyle) {
+HBRUSH _w_control_find_brush(ULONG_PTR value, int lbStyle) {
 	if (lbStyle == BS_SOLID) {
 		for (int i = 0; i < sizeof(SYSTEM_COLORS) / sizeof(SYSTEM_COLORS[0]);
 				i++) {
@@ -329,8 +319,7 @@ void _w_control_fill_background(w_control *control, HDC hDC, int pixel,
 		SelectPalette(hDC, hPalette, FALSE);
 		RealizePalette(hDC);
 	}
-	FillRect(hDC, rect,
-			_w_control_find_brush(control, pixel & 0x00FFFFFF, BS_SOLID));
+	FillRect(hDC, rect, _w_control_find_brush(pixel & 0x00FFFFFF, BS_SOLID));
 }
 w_cursor* _w_control_find_cursor(w_control *control, _w_control_priv *priv) {
 	if (_W_CONTROL(control)->cursor != 0)
@@ -550,6 +539,13 @@ void _w_control_init_graphics(w_control *control, w_graphics *gc, HDC hDC,
 	if (uiState & UISF_HIDEACCEL) {
 		_W_GRAPHICS(gc)->state |= GRAPHICS_STATE_UISF_HIDEACCEL;
 	}
+}
+wresult _w_control_init_themedata(w_widget *widget, w_themedata *data) {
+	_w_widget_init_themedata(widget, data);
+	data->attr.font = _W_CONTROL(widget)->font;
+	data->attr.background = _W_CONTROL(widget)->background;
+	data->attr.foreground = _W_CONTROL(widget)->foreground;
+	return W_TRUE;
 }
 wresult _w_control_is_enabled(w_control *control) {
 	return IsWindowEnabled(_W_WIDGET(control)->handle);
@@ -794,6 +790,7 @@ wresult _w_control_set_focus(w_control *control) {
 	return _w_control_force_focus(control);
 }
 wresult _w_control_set_font(w_control *control, w_font *font) {
+	_W_CONTROL(control)->font = font;
 	if (font == 0) {
 		w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
 		font = w_toolkit_get_system_font(toolkit);
@@ -990,8 +987,9 @@ DWORD _w_control_widget_style(w_control *control, _w_control_priv *priv) {
 const char* _w_control_window_class(w_control *control, _w_control_priv *priv) {
 	return 0;
 }
-void _w_control_class_init(struct _w_control_class *clazz) {
-	_w_widget_class_init(W_WIDGET_CLASS(clazz));
+void _w_control_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_control_class *clazz) {
+	_w_widget_class_init(toolkit, classId, W_WIDGET_CLASS(clazz));
 	/*
 	 * functions
 	 */
@@ -999,6 +997,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	W_WIDGET_CLASS(clazz)->post_event = _w_control_post_event;
 	W_WIDGET_CLASS(clazz)->dispose = _w_control_dispose;
 	W_WIDGET_CLASS(clazz)->get_shell = _w_control_get_shell;
+	W_WIDGET_CLASS(clazz)->init_themedata = _w_control_init_themedata;
 	clazz->create_dragsource = _w_control_create_dragsource;
 	clazz->create_droptarget = _w_control_create_droptarget;
 	clazz->drag_detect = _w_control_drag_detect;
@@ -1064,112 +1063,130 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->call_window_proc = _w_control_call_window_proc;
-	priv->check_style = _w_control_check_style;
-	priv->compute_size = _w_control_compute_size;
-	priv->get_client_area = _w_control_get_client_area;
-	priv->get_def_window_proc = _w_control_get_def_window_proc;
-	priv->compute_trim = _w_control_compute_trim;
-	priv->handle_top = _w_control_handle;
-	priv->handle_border = _w_control_handle;
-	priv->create_widget = _w_control_create_widget;
-	priv->check_orientation = _w_control_check_orientation;
-	priv->create_handle = _w_control_create_handle;
-	priv->check_background = _w_control_check_background;
-	priv->check_buffered = _w_control_check_buffered;
-	priv->check_composited = _w_control_check_composited;
-	priv->set_default_font = _w_control_set_default_font;
-	priv->check_mirrored = _w_control_check_mirrored;
-	priv->check_border = _w_control_check_border;
-	priv->check_gesture = _w_control_check_gesture;
-	priv->set_background = _w_control_set_background_0;
-	priv->widget_parent = _w_control_widget_parent;
-	priv->widget_style = _w_control_widget_style;
-	priv->widget_extstyle = _w_control_widget_extstyle;
-	priv->window_class = _w_control_window_class;
-	priv->subclass = _w_control_subclass;
-	priv->unsubclass = _w_control_unsubclass;
-	priv->set_cursor_0 = _w_control_set_cursor_0;
-	priv->draw_background = _w_control_draw_background;
-	priv->fill_background = _w_control_fill_background;
-	priv->get_background_pixel = _w_control_get_background_pixel;
-	priv->get_foreground_pixel = _w_control_get_foreground_pixel;
-	priv->default_background = _w_control_default_background;
-	priv->default_foreground = _w_control_default_foreground;
-	priv->default_font = _w_control_default_font;
-	priv->find_cursor = _w_control_find_cursor;
-	priv->find_background_control = _w_control_find_background_control;
-	priv->find_image_control = _w_control_find_image_control;
-	priv->translate_accelerator = _w_control_translate_accelerator;
-	priv->translate_mnemonic = _w_control_translate_mnemonic;
-	priv->translate_traversal = _w_control_translate_traversal;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	for (size_t i = 0; i < _WM_LAST; i++) {
-		priv->messages[i] = _CONTROL_WM_NULL;
-	}
-	msg[_WM_DESTROY] = _CONTROL_WM_DESTROY;
-	msg[_WM_SIZE] = _CONTROL_WM_SIZE;
-	msg[_WM_TIMER] = _CONTROL_WM_TIMER;
-	msg[_WM_CREATE] = _CONTROL_WM_CREATE;
-	msg[_WM_CTLCOLOR] = _CONTROL_WM_CTLCOLOR;
-	msg[_WM_CAPTURECHANGED] = _WIDGET_WM_CAPTURECHANGED;
-	msg[_WM_CHANGEUISTATE] = _CONTROL_WM_CHANGEUISTATE;
-	msg[_WM_CHAR] = _WIDGET_WM_CHAR;
-	msg[_WM_COMMAND] = _CONTROL_WM_COMMAND;
-	msg[_WM_CONTEXTMENU] = _WIDGET_WM_CONTEXTMENU;
-	msg[_WM_DRAWITEM] = _CONTROL_WM_DRAWITEM;
-	msg[_WM_ERASEBKGND] = _CONTROL_WM_ERASEBKGND;
-	msg[_WM_GETOBJECT] = _CONTROL_WM_GETOBJECT;
-	msg[_WM_HELP] = _CONTROL_WM_HELP;
-	msg[_WM_HSCROLL] = _CONTROL_WM_HSCROLL;
-	msg[_WM_IME_CHAR] = _WIDGET_WM_IME_CHAR;
-	msg[_WM_INPUTLANGCHANGE] = _CONTROL_WM_INPUTLANGCHANGE;
-	msg[_WM_KEYDOWN] = _WIDGET_WM_KEYDOWN;
-	msg[_WM_KEYUP] = _WIDGET_WM_KEYUP;
-	msg[_WM_KILLFOCUS] = _WIDGET_WM_KILLFOCUS;
-	msg[_WM_MEASUREITEM] = _CONTROL_WM_MEASUREITEM;
-	msg[_WM_MENUCHAR] = _MENU_WM_MENUCHAR;
-	msg[_WM_MENUSELECT] = _MENU_WM_MENUSELECT;
-	msg[_WM_MOVE] = _CONTROL_WM_MOVE;
-	msg[_WM_NCHITTEST] = _CONTROL_WM_NCHITTEST;
-	msg[_WM_NOTIFY] = _CONTROL_WM_NOTIFY;
-	msg[_WM_PAINT] = _CONTROL_WM_PAINT;
-	msg[_WM_SETCURSOR] = _CONTROL_WM_SETCURSOR;
-	msg[_WM_SETFOCUS] = _WIDGET_WM_SETFOCUS;
-	msg[_WM_SYSCHAR] = _WIDGET_WM_SYSCHAR;
-	msg[_WM_SYSCOMMAND] = _CONTROL_WM_SYSCOMMAND;
-	msg[_WM_SYSKEYDOWN] = _WIDGET_WM_SYSKEYDOWN;
-	msg[_WM_SYSKEYUP] = _WIDGET_WM_SYSKEYUP;
-	msg[_WM_TABLET_FLICK] = _CONTROL_WM_TABLET_FLICK;
-	msg[_WM_TOUCH] = _CONTROL_WM_TOUCH;
-	msg[_WM_VSCROLL] = _CONTROL_WM_VSCROLL;
-	msg[_WM_WINDOWPOSCHANGED] = _CONTROL_WM_WINDOWPOSCHANGED;
-	msg[_WM_WINDOWPOSCHANGING] = _CONTROL_WM_WINDOWPOSCHANGING;
-	msg[_WM_CTLCOLORCHILD] = _CONTROL_WM_CTLCOLORCHILD;
-	msg[_WM_GETDLGCODE] = _CONTROL_WM_GETDLGCODE;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		_W_WIDGET_PRIV(priv)->call_window_proc = _w_control_call_window_proc;
+		priv->check_style = _w_control_check_style;
+		priv->compute_size = _w_control_compute_size;
+		priv->get_client_area = _w_control_get_client_area;
+		priv->get_def_window_proc = _w_control_get_def_window_proc;
+		priv->compute_trim = _w_control_compute_trim;
+		priv->handle_top = _w_control_handle;
+		priv->handle_border = _w_control_handle;
+		priv->create_widget = _w_control_create_widget;
+		priv->check_orientation = _w_control_check_orientation;
+		priv->create_handle = _w_control_create_handle;
+		priv->check_background = _w_control_check_background;
+		priv->check_buffered = _w_control_check_buffered;
+		priv->check_composited = _w_control_check_composited;
+		priv->set_default_font = _w_control_set_default_font;
+		priv->check_mirrored = _w_control_check_mirrored;
+		priv->check_border = _w_control_check_border;
+		priv->check_gesture = _w_control_check_gesture;
+		priv->set_background = _w_control_set_background_0;
+		priv->widget_parent = _w_control_widget_parent;
+		priv->widget_style = _w_control_widget_style;
+		priv->widget_extstyle = _w_control_widget_extstyle;
+		priv->window_class = _w_control_window_class;
+		priv->subclass = _w_control_subclass;
+		priv->unsubclass = _w_control_unsubclass;
+		priv->set_cursor_0 = _w_control_set_cursor_0;
+		priv->draw_background = _w_control_draw_background;
+		priv->fill_background = _w_control_fill_background;
+		priv->get_background_pixel = _w_control_get_background_pixel;
+		priv->get_foreground_pixel = _w_control_get_foreground_pixel;
+		priv->default_background = _w_control_default_background;
+		priv->default_foreground = _w_control_default_foreground;
+		priv->default_font = _w_control_default_font;
+		priv->find_cursor = _w_control_find_cursor;
+		priv->find_background_control = _w_control_find_background_control;
+		priv->find_image_control = _w_control_find_image_control;
+		priv->translate_accelerator = _w_control_translate_accelerator;
+		priv->translate_mnemonic = _w_control_translate_mnemonic;
+		priv->translate_traversal = _w_control_translate_traversal;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		for (size_t i = 0; i < _WM_LAST; i++) {
+			priv->messages[i] = _CONTROL_WM_NULL;
+		}
+		msg[_WM_DESTROY] = _CONTROL_WM_DESTROY;
+		msg[_WM_SIZE] = _CONTROL_WM_SIZE;
+		msg[_WM_TIMER] = _CONTROL_WM_TIMER;
+		msg[_WM_CREATE] = _CONTROL_WM_CREATE;
+		msg[_WM_CTLCOLOR] = _CONTROL_WM_CTLCOLOR;
+		msg[_WM_CAPTURECHANGED] = _WIDGET_WM_CAPTURECHANGED;
+		msg[_WM_CHANGEUISTATE] = _CONTROL_WM_CHANGEUISTATE;
+		msg[_WM_CHAR] = _WIDGET_WM_CHAR;
+		msg[_WM_COMMAND] = _CONTROL_WM_COMMAND;
+		msg[_WM_CONTEXTMENU] = _WIDGET_WM_CONTEXTMENU;
+		msg[_WM_DRAWITEM] = _CONTROL_WM_DRAWITEM;
+		msg[_WM_ERASEBKGND] = _CONTROL_WM_ERASEBKGND;
+		msg[_WM_GETOBJECT] = _CONTROL_WM_GETOBJECT;
+		msg[_WM_HELP] = _CONTROL_WM_HELP;
+		msg[_WM_HSCROLL] = _CONTROL_WM_HSCROLL;
+		msg[_WM_IME_CHAR] = _WIDGET_WM_IME_CHAR;
+		msg[_WM_INPUTLANGCHANGE] = _CONTROL_WM_INPUTLANGCHANGE;
+		msg[_WM_KEYDOWN] = _WIDGET_WM_KEYDOWN;
+		msg[_WM_KEYUP] = _WIDGET_WM_KEYUP;
+		msg[_WM_KILLFOCUS] = _WIDGET_WM_KILLFOCUS;
+		msg[_WM_MEASUREITEM] = _CONTROL_WM_MEASUREITEM;
+		msg[_WM_MENUCHAR] = _MENU_WM_MENUCHAR;
+		msg[_WM_MENUSELECT] = _MENU_WM_MENUSELECT;
+		msg[_WM_MOVE] = _CONTROL_WM_MOVE;
+		msg[_WM_NCHITTEST] = _CONTROL_WM_NCHITTEST;
+		msg[_WM_NOTIFY] = _CONTROL_WM_NOTIFY;
+		msg[_WM_PAINT] = _CONTROL_WM_PAINT;
+		msg[_WM_SETCURSOR] = _CONTROL_WM_SETCURSOR;
+		msg[_WM_SETFOCUS] = _WIDGET_WM_SETFOCUS;
+		msg[_WM_SYSCHAR] = _WIDGET_WM_SYSCHAR;
+		msg[_WM_SYSCOMMAND] = _CONTROL_WM_SYSCOMMAND;
+		msg[_WM_SYSKEYDOWN] = _WIDGET_WM_SYSKEYDOWN;
+		msg[_WM_SYSKEYUP] = _WIDGET_WM_SYSKEYUP;
+		msg[_WM_TABLET_FLICK] = _CONTROL_WM_TABLET_FLICK;
+		msg[_WM_TOUCH] = _CONTROL_WM_TOUCH;
+		msg[_WM_VSCROLL] = _CONTROL_WM_VSCROLL;
+		msg[_WM_WINDOWPOSCHANGED] = _CONTROL_WM_WINDOWPOSCHANGED;
+		msg[_WM_WINDOWPOSCHANGING] = _CONTROL_WM_WINDOWPOSCHANGING;
+		msg[_WM_CTLCOLORCHILD] = _CONTROL_WM_CTLCOLORCHILD;
+		msg[_WM_GETDLGCODE] = _CONTROL_WM_GETDLGCODE;
 
-	//mouse message
-	msg[_WM_LBUTTONDBLCLK] = _WIDGET_WM_LBUTTONDBLCLK;
-	msg[_WM_LBUTTONDOWN] = _WIDGET_WM_LBUTTONDOWN;
-	msg[_WM_LBUTTONUP] = _WIDGET_WM_LBUTTONUP;
-	msg[_WM_MBUTTONDBLCLK] = _WIDGET_WM_MBUTTONDBLCLK;
-	msg[_WM_MBUTTONDOWN] = _WIDGET_WM_MBUTTONDOWN;
-	msg[_WM_MBUTTONUP] = _WIDGET_WM_MBUTTONUP;
-	msg[_WM_MOUSEHOVER] = _WIDGET_WM_MOUSEHOVER;
-	msg[_WM_MOUSELEAVE] = _WIDGET_WM_MOUSELEAVE;
-	msg[_WM_MOUSEMOVE] = _WIDGET_WM_MOUSEMOVE;
-	msg[_WM_MOUSEWHEEL] = _WIDGET_WM_MOUSEWHEEL;
-	msg[_WM_RBUTTONDBLCLK] = _WIDGET_WM_RBUTTONDBLCLK;
-	msg[_WM_RBUTTONDOWN] = _WIDGET_WM_RBUTTONDOWN;
-	msg[_WM_RBUTTONUP] = _WIDGET_WM_RBUTTONUP;
-	msg[_WM_XBUTTONDBLCLK] = _WIDGET_WM_XBUTTONDBLCLK;
-	msg[_WM_XBUTTONDOWN] = _WIDGET_WM_XBUTTONDOWN;
-	msg[_WM_XBUTTONUP] = _WIDGET_WM_XBUTTONUP;
-	msg[_WM_MENUCOMMAND] = _MENU_WM_MENUCOMMAND;
-	msg[_WM_INITMENUPOPUP] = _MENU_WM_INITMENUPOPUP;
-	msg[_WM_UNINITMENUPOPUP] = _MENU_WM_UNINITMENUPOPUP;
+		//mouse message
+		msg[_WM_LBUTTONDBLCLK] = _WIDGET_WM_LBUTTONDBLCLK;
+		msg[_WM_LBUTTONDOWN] = _WIDGET_WM_LBUTTONDOWN;
+		msg[_WM_LBUTTONUP] = _WIDGET_WM_LBUTTONUP;
+		msg[_WM_MBUTTONDBLCLK] = _WIDGET_WM_MBUTTONDBLCLK;
+		msg[_WM_MBUTTONDOWN] = _WIDGET_WM_MBUTTONDOWN;
+		msg[_WM_MBUTTONUP] = _WIDGET_WM_MBUTTONUP;
+		msg[_WM_MOUSEHOVER] = _WIDGET_WM_MOUSEHOVER;
+		msg[_WM_MOUSELEAVE] = _WIDGET_WM_MOUSELEAVE;
+		msg[_WM_MOUSEMOVE] = _WIDGET_WM_MOUSEMOVE;
+		msg[_WM_MOUSEWHEEL] = _WIDGET_WM_MOUSEWHEEL;
+		msg[_WM_RBUTTONDBLCLK] = _WIDGET_WM_RBUTTONDBLCLK;
+		msg[_WM_RBUTTONDOWN] = _WIDGET_WM_RBUTTONDOWN;
+		msg[_WM_RBUTTONUP] = _WIDGET_WM_RBUTTONUP;
+		msg[_WM_XBUTTONDBLCLK] = _WIDGET_WM_XBUTTONDBLCLK;
+		msg[_WM_XBUTTONDOWN] = _WIDGET_WM_XBUTTONDOWN;
+		msg[_WM_XBUTTONUP] = _WIDGET_WM_XBUTTONUP;
+		msg[_WM_MENUCOMMAND] = _MENU_WM_MENUCOMMAND;
+		msg[_WM_INITMENUPOPUP] = _MENU_WM_INITMENUPOPUP;
+		msg[_WM_UNINITMENUPOPUP] = _MENU_WM_UNINITMENUPOPUP;
+	}
+}
+void _w_ccanvas_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_ccanvas_class *clazz) {
+	if (classId == _W_CLASS_CCANVAS) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_ccanvas_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
+	_w_widget_priv *priv = _W_WIDGET_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_CCANVAS) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+	}
 }

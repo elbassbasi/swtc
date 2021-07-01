@@ -12,9 +12,13 @@
 #include "tooltip.h"
 #include "tray.h"
 #include "../controls/controls.h"
+enum {	 //
+	HTHEME_BUTTON = 0, //
+	HTHEME_LAST
+};
 typedef struct _win32_theme {
 	w_theme theme;
-
+	void *hthemes[HTHEME_LAST];
 } _win32_theme;
 #define BRUSHES_SIZE 32
 #define ID_START 108
@@ -36,6 +40,7 @@ size_t _win32_toolkit_alloc_fn(void *user_data, size_t size, void **buf);
 LRESULT CALLBACK messageProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 typedef struct _w_toolkit {
 	w_toolkit toolkit;
+	_w_app app;
 	int win32_version;
 	int comctrl32_version;
 	int shell32_version;
@@ -55,6 +60,7 @@ typedef struct _w_toolkit {
 	unsigned init_startup :1;
 	unsigned ENABLE_TVS_EX_FADEINOUTEXPANDOS :1;
 	unsigned EXPLORER_THEME :1;
+	unsigned IsAppThemed :1;
 	int lastMouse;
 	int lastAscii;
 	int lastKey;
@@ -64,6 +70,7 @@ typedef struct _w_toolkit {
 	int scrollRemainder;
 	int nextTrayId;
 	int nextToolTipId;
+	int resizeCount;
 	RECT clickRect;
 	HWND lastClickHwnd;
 	HWND hwndMessage;
@@ -94,131 +101,29 @@ typedef struct _w_toolkit {
 	/*
 	 * classes
 	 */
-	struct _w_widget_class *classes[_W_CLASS_LAST];
 	struct _w_toolkit_class class_toolkit;
-	/*
-	 * shell
-	 */
-	struct _w_shell_class class_shell;
+	struct _w_toolkit_classes classes;
 	_w_shell_priv class_shell_priv;
-	/*
-	 * canvas
-	 */
-	struct _w_canvas_class class_canvas;
 	_w_canvas_priv class_canvas_priv;
-	struct _w_caret_class class_caret;
-	struct _w_ime_class class_ime;
-	/*
-	 * composite
-	 */
-	struct _w_composite_class class_composite;
+	_w_ccanvas_priv class_ccanvas_priv;
 	_w_composite_priv class_composite_priv;
-	struct _w_scrollbar_class class_scrollbar;
-	/*
-	 * menu
-	 */
-	struct _w_menu_class class_menu;
 	_w_menu_priv class_menu_priv;
-	struct _w_menuitem_class class_menuitem;
-	/*
-	 * treeview
-	 */
-	struct _w_treeview_class class_treeview;
 	_w_treeview_priv class_treeview_priv;
-	struct _w_treeitem_class class_treeitem;
-	struct _w_columnitem_class class_treecolumn;
-	/*
-	 * listview
-	 */
-	struct _w_listview_class class_listview;
 	_w_listview_priv class_listview_priv;
-	struct _w_listitem_class class_listitem;
-	struct _w_columnitem_class class_listcolumn;
-	/*
-	 * sash
-	 */
-	struct _w_sash_class class_sash;
 	_w_sash_priv class_sash_priv;
-	/*
-	 * button
-	 */
-	struct _w_button_class class_button;
 	_w_button_priv class_button_priv;
-	/*
-	 * label
-	 */
-	struct _w_label_class class_label;
 	_w_label_priv class_label_priv;
-	/*
-	 * textedit
-	 */
-	struct _w_textedit_class class_textedit;
 	_w_textedit_priv class_textedit_priv;
-	/*
-	 * progressbar
-	 */
-	struct _w_progressbar_class class_progressbar;
 	_w_progressbar_priv class_progressbar_priv;
-	/*
-	 * groupbox
-	 */
-	struct _w_groupbox_class class_groupbox;
 	_w_groupbox_priv class_groupbox_priv;
-	/*
-	 * combobox
-	 */
-	struct _w_combobox_class class_combobox;
 	_w_combobox_priv class_combobox_priv;
-	struct _w_comboitem_class class_comboitem;
-	/*
-	 * coolbar
-	 */
-	struct _w_coolbar_class class_coolbar;
 	_w_coolbar_priv class_coolbar_priv;
-	struct _w_coolitem_class class_coolitem;
-	/*
-	 * datetime
-	 */
-	struct _w_datetime_class class_datetime;
 	_w_datetime_priv class_datetime_priv;
-	/*
-	 * expandbar
-	 */
-	struct _w_expandbar_class class_expandbar;
-	_w_expandbar_priv class_expandbar_priv;
-	struct _w_expanditem_class class_expanditem;
-	/*
-	 * slider
-	 */
-	struct _w_slider_class class_slider;
 	_w_slider_priv class_slider_priv;
-	/*
-	 * spinner
-	 */
-	struct _w_spinner_class class_spinner;
 	_w_spinner_priv class_spinner_priv;
-	/*
-	 * tabview
-	 */
-	struct _w_tabview_class class_tabview;
 	_w_tabview_priv class_tabview_priv;
-	struct _w_tabitem_class class_tabitem;
-	/*
-	 * toolbar
-	 */
-	struct _w_toolbar_class class_toolbar;
 	_w_toolbar_priv class_toolbar_priv;
-	struct _w_toolitem_class class_toolitem;
-	/*
-	 * tray
-	 */
-	struct _w_tray_class class_tray;
 	_w_tray_priv class_tray_priv;
-	struct _w_trayitem_class class_trayitem;
-	/*
-	 * tooltip
-	 */
-	struct _w_tooltip_class class_tooltip;
 	_w_tooltip_priv class_tooltip_priv;
 	/*
 	 * internal memory
@@ -231,6 +136,7 @@ extern _w_toolkit *win_toolkit;
 extern const char *WindowClass;
 extern const char *WindowShadowClass;
 extern const char *WindowOwnDCClass;
+extern w_widget_init_class win_toolkit_classes_init[_W_CLASS_LAST];
 #define _W_TOOLKIT(x) ((_w_toolkit*)x)
 #define WIN32_VERSION (win_toolkit->win32_version)
 #define _COMCTL32_VERSION (win_toolkit->comctrl32_version)

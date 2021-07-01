@@ -93,6 +93,8 @@ SWT_PUBLIC wresult w_expandbar_set_spacing(w_expandbar *expandbar, int spacing);
 #define W_EXPANDBAR_GET_CLASS(x) ((struct _w_expandbar_class*)W_WIDGET_GET_CLASS(x))
 #define W_EXPANDITEM_CLASS(x) ((struct _w_expanditem_class*)x)
 #define W_EXPANDITEM_GET_CLASS(x) ((struct _w_expanditem_class*)W_WIDGETDATA_GET_CLASS(x))
+#define W_EXPANDBAR_GET_ITEM_CLASS(expandbar) (W_WIDGETDATA_CLASS(W_EXPANDBAR_GET_CLASS(expandbar)->class_expanditem))
+
 
 #ifdef __cplusplus
 }

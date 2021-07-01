@@ -58,11 +58,7 @@ void TCoolBarDemo::CreateCoolBar(int index, int style) {
 		CreateToolBar(*toolbar, style, false, true);
 		toolbar->SetImageList(frame->GetImageList16());
 		/** resize to toolbar */
-		toolbar->ComputeSize(sz, W_DEFAULT, W_DEFAULT);
-		toolbar->SetSize(sz);
 		coolbar->AppendItem(item);
-		item.ComputeSize(sz, sz.width, sz.height);
-		item.SetControl(toolbar);
-		item.SetSize(sz);
+		item.SetControlWithPreferredSize(toolbar);
 	}
 }

@@ -24,6 +24,27 @@ typedef struct w_alloc_buffer {
 } w_alloc_buffer;
 size_t w_alloc_buffer_new(void *user_data, size_t size, void **buffer);
 size_t w_alloc_buffer_copy(void *user_data, size_t size, void **buffer);
+/*
+ * array
+ */
+typedef struct w_array {
+	int alloc;
+	int count;
+	void *user_data;
+	char data[0];
+} w_array;
+typedef void (*w_array_free_element)(w_array *array, void *element, int index);
+SWT_PUBLIC int w_array_get_count(w_array *array, void **firstElement);
+SWT_PUBLIC void* w_array_get(w_array *array, int index, int element_size);
+SWT_PUBLIC void* w_array_set(w_array **array, int index, int element_size);
+SWT_PUBLIC int w_array_alloc(w_array **array, int newalloc,
+		int element_size);
+SWT_PUBLIC void* w_array_add(w_array **array, int index, int element_size,
+		int *newIndex);
+SWT_PUBLIC void w_array_remove(w_array *array, int index, int element_size,
+		w_array_free_element free_element);
+SWT_PUBLIC void w_array_free(w_array *array, int element_size,
+		w_array_free_element free_element);
 
 #ifdef __cplusplus
 }

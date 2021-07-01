@@ -129,6 +129,19 @@ wresult _w_widget_send_event(w_widget *widget, w_event *event) {
 		return w_widget_default_post_event(widget, event);
 	}
 }
+wresult _w_widget_get_theme(w_widget *widget, w_theme **theme) {
+	if (_W_WIDGET(widget)->theme != 0) {
+		*theme = _W_WIDGET(widget)->theme;
+		return W_TRUE;
+	}
+	w_toolkit *toolkit = w_widget_get_toolkit(widget);
+	*theme = w_toolkit_get_theme(toolkit);
+	return W_TRUE;
+}
+wresult _w_widget_set_theme(w_widget *widget, w_theme *theme) {
+	_W_WIDGET(widget)->theme = theme;
+	return W_TRUE;
+}
 int _w_widget_set_input_state(int state) {
 	int statemask = 0;
 	if ((state & GDK_MOD1_MASK) != 0)
@@ -730,6 +743,8 @@ void _w_widget_class_init(struct _w_widget_class *clazz) {
 	clazz->dispose = _w_widget_dispose;
 	clazz->post_event = _w_widget_post_event;
 	clazz->toolkit = W_TOOLKIT(gtk_toolkit);
+	clazz->get_theme = _w_widget_get_theme;
+	clazz->set_theme = _w_widget_set_theme;
 	/*
 	 * private
 	 */

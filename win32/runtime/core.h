@@ -26,5 +26,5 @@ wresult _win_text_copy(char **newtext, const char *text, int length, int enc);
 wresult _win_text_set(WCHAR *text, int length, w_alloc alloc, void *user_data,
 		int enc);
 wresult _win_text_set_0(char *text, int length, w_alloc alloc, void *user_data,
-		int enc) ;
+		int enc);
 #endif /* WIN32_CORE_WIN32_H_ */

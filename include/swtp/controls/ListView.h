@@ -313,63 +313,6 @@ public:
 private:
 	void *handle[(sizeof(w_columnitem) - sizeof(w_item)) / sizeof(void*)];
 };
-class WListTextAttr {
-public:
-	union {
-		int mask;
-		struct {
-			unsigned mask_text :1;
-			unsigned mask_font :1;
-			unsigned mask_background :1;
-			unsigned mask_foreground :1;
-		};
-	};
-	int enc;
-	union {
-		w_alloc alloc;
-		int length;
-	};
-	union {
-		char *text;
-		void *user_data;
-	};
-	WFont *font;
-	WColor background;
-	WColor foreground;
-	bool SetText(const char *text, int length) {
-		return _WReturnBool(_set_text(text, length, W_ENCODING_UTF8));
-	}
-	bool SetText(const char *text) {
-		return SetText(text, -1);
-	}
-	bool SetTextV(const char *format, va_list args) {
-		return _WReturnBool(_printf(W_ENCODING_UTF8, format, args));
-	}
-	bool SetTextV(const char *format, ...) {
-		va_list args;
-		va_start(args, format);
-		bool ret = SetTextV(format, args);
-		va_end(args);
-		return ret;
-	}
-public:
-	WResult _set_text(const char *text, int length, int enc) {
-		if (this->mask & W_LISTITEM_ATTR_MASK_TEXT) {
-			return w_alloc_set_text(alloc, user_data, this->enc, text, length,
-					enc);
-		} else {
-			return false;
-		}
-	}
-	WResult _printf(int enc, const char *format, va_list args) {
-		if (this->mask & W_LISTITEM_ATTR_MASK_TEXT) {
-			return w_alloc_printf(alloc, user_data, this->enc, enc, format,
-					args);
-		} else {
-			return false;
-		}
-	}
-};
 /**
  * Instances of this class represent a selectable user interface object
  * that represents an item in a WListView.
@@ -442,13 +385,13 @@ public:
 		this->SetText(string);
 		return _WReturnBool(result);
 	}
-	WListTextAttr& GetAttr(int index, WListTextAttr &attr) {
-		_get_attr(index, W_LISTITEM_ATTR_MASK_ALL_NO_TEXT, &attr);
+	WItemAttr& GetAttr(int index, WItemAttr &attr) {
+		_get_attr(index, W_ITEM_ATTR_MASK_ALL_NO_TEXT, &attr);
 		return attr;
 	}
-	WListTextAttr GetAttr(int index) {
-		WListTextAttr attr;
-		_get_attr(index, W_LISTITEM_ATTR_MASK_ALL_NO_TEXT, &attr);
+	WItemAttr GetAttr(int index) {
+		WItemAttr attr;
+		_get_attr(index, W_ITEM_ATTR_MASK_ALL_NO_TEXT, &attr);
 		return attr;
 	}
 	/**
@@ -590,11 +533,11 @@ public:
 		_get_text(index, w_alloc_std_string, &str, W_ENCODING_UTF8);
 		return str;
 	}
-	bool SetAttr(int index, int mask, WListTextAttr &attr) {
+	bool SetAttr(int index, int mask, WItemAttr &attr) {
 		return _WReturnBool(_set_attr(index, mask, &attr));
 	}
-	bool SetAttr(int index, WListTextAttr &attr) {
-		return SetAttr(index, W_LISTITEM_ATTR_MASK_ALL, attr);
+	bool SetAttr(int index, WItemAttr &attr) {
+		return SetAttr(index, W_ITEM_ATTR_MASK_ALL, attr);
 	}
 	/**
 	 * Sets the receiver's background color to the color specified
@@ -617,9 +560,9 @@ public:
 	 *
 	 */
 	bool SetBackground(int index, w_color color) {
-		WListTextAttr attr;
+		WItemAttr attr;
 		attr.background = color;
-		return SetAttr(index, W_LISTITEM_ATTR_MASK_BACKGROUND, attr);
+		return SetAttr(index, W_ITEM_ATTR_MASK_BACKGROUND, attr);
 	}
 	/**
 	 * Sets the font that the receiver will use to paint textual information
@@ -641,9 +584,9 @@ public:
 	 * @param font the new font (or null)
 	 */
 	bool SetFont(int index, WFont *font) {
-		WListTextAttr attr;
+		WItemAttr attr;
 		attr.font = font;
-		return SetAttr(index, W_LISTITEM_ATTR_MASK_FONT, attr);
+		return SetAttr(index, W_ITEM_ATTR_MASK_FONT, attr);
 	}
 	/**
 	 * Sets the receiver's foreground color to the color specified
@@ -666,9 +609,9 @@ public:
 	 *
 	 */
 	bool SetForeground(int index, w_color color) {
-		WListTextAttr attr;
+		WItemAttr attr;
 		attr.foreground = color;
-		return SetAttr(index, W_LISTITEM_ATTR_MASK_FORGROUND, attr);
+		return SetAttr(index, W_ITEM_ATTR_MASK_FORGROUND, attr);
 	}
 	bool SetImage(int image) {
 		return _WReturnBool(_set_image(image));
@@ -758,9 +701,9 @@ public:
 		return SetText(index, text, -1);
 	}
 public:
-	WResult _get_attr(int index, int mask, WListTextAttr *attr) {
+	WResult _get_attr(int index, int mask, WItemAttr *attr) {
 		return w_listitem_get_attr(W_LISTITEM(this), index, mask,
-				(w_list_textattr*) attr);
+				(w_item_attr*) attr);
 	}
 	WResult _get_bounds(WRect *bounds) {
 		return w_listitem_get_bounds(W_LISTITEM(this), (w_rect*) bounds);
@@ -779,9 +722,9 @@ public:
 		return w_listitem_get_text(W_LISTITEM(this), index, alloc, user_data,
 				enc);
 	}
-	WResult _set_attr(int index, int mask, WListTextAttr *attr) {
+	WResult _set_attr(int index, int mask, WItemAttr *attr) {
 		return w_listitem_set_attr(W_LISTITEM(this), index, mask,
-				(w_list_textattr*) attr);
+				(w_item_attr*) attr);
 	}
 	WResult _set_checked(int checked) {
 		return w_listitem_set_checked(W_LISTITEM(this), checked);
@@ -813,7 +756,7 @@ public:
 	WColumnItem *column;
 	WListItem *item;
 	WGraphics *gc;
-	WListTextAttr *textattr;
+	WItemAttr *textattr;
 	WTreeItem* GetTreeItem() {
 		return (WTreeItem*) item;
 	}
@@ -839,7 +782,10 @@ public:
 		return SetAttrText(text, -1);
 	}
 	bool SetAttrTextV(const char *format, va_list args) {
-		return textattr->SetTextV(format, args);
+		if (this->detail & W_ITEM_ATTR_MASK_TEXT) {
+			return textattr->SetTextV(format, args);
+		} else
+			return false;
 	}
 	bool SetAttrTextV(const char *format, ...) {
 		va_list args;
@@ -849,15 +795,15 @@ public:
 		return ret;
 	}
 	void SetAttrFont(WFont *font) {
-		if (textattr->mask & W_LISTITEM_ATTR_MASK_FONT)
+		if (this->detail & W_ITEM_ATTR_MASK_FONT)
 			textattr->font = font;
 	}
 	void SetAttrBackground(w_color background) {
-		if (textattr->mask & W_LISTITEM_ATTR_MASK_BACKGROUND)
+		if (this->detail & W_ITEM_ATTR_MASK_BACKGROUND)
 			textattr->background = background;
 	}
 	void SetAttrForeground(w_color foreground) {
-		if (textattr->mask & W_LISTITEM_ATTR_MASK_FORGROUND)
+		if (this->detail & W_ITEM_ATTR_MASK_FORGROUND)
 			textattr->foreground = foreground;
 	}
 };

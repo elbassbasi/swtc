@@ -245,7 +245,7 @@ wresult _w_tabview_get_item(w_tabview *tabview, int index, w_tabitem *item) {
 	HWND handle = _W_WIDGET(tabview)->handle;
 	int count = SendMessageW(handle, TCM_GETITEMCOUNT, 0, 0);
 	if (0 <= index && index < count) {
-		_W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
+		W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
 		_W_ITEM(item)->parent = W_WIDGET(tabview);
 		_W_ITEM(item)->index = index;
 		return W_TRUE;
@@ -260,7 +260,7 @@ wresult _w_tabview_get_item_p(w_tabview *tabview, w_point *point,
 	pinfo.pt.y = point->y;
 	int index = SendMessageW(handle, TCM_HITTEST, 0, (LPARAM) &pinfo);
 	if (index != -1) {
-		_W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
+		W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
 		_W_ITEM(item)->parent = W_WIDGET(tabview);
 		_W_ITEM(item)->index = index;
 		return W_TRUE;
@@ -278,7 +278,7 @@ wresult _w_tabview_get_selection(w_tabview *tabview, w_tabitem *item) {
 	HWND handle = _W_WIDGET(tabview)->handle;
 	int index = SendMessageW(handle, TCM_GETCURSEL, 0, 0);
 	if (index != -1) {
-		_W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
+		W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
 		_W_ITEM(item)->parent = W_WIDGET(tabview);
 		_W_ITEM(item)->index = index;
 		return W_TRUE;
@@ -300,7 +300,7 @@ wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 		return W_ERROR_ITEM_NOT_ADDED;
 	}
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
+		W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
 		_W_ITEM(item)->parent = W_WIDGET(tabview);
 		_W_ITEM(item)->index = i;
 	}
@@ -333,7 +333,7 @@ wresult _w_tabview_set_selection_0(w_tabview *tabview, int index,
 	int oldIndex = SendMessageW(handle, TCM_GETCURSEL, 0, 0);
 	if (oldIndex == index)
 		return W_TRUE;
-	_W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
+	W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
 	_W_ITEM(&item)->parent = W_WIDGET(tabview);
 	if (oldIndex != -1) {
 		_W_ITEM(&item)->index = oldIndex;
@@ -434,7 +434,7 @@ wresult _TABVIEW_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 		w_tabitem item;
 		int index = SendMessageW(hdr->hwndFrom, TCM_GETCURSEL, 0, 0);
 		if (index != -1) {
-			_W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(widget);
+			W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(widget);
 			_W_ITEM(&item)->parent = widget;
 			_W_ITEM(&item)->index = index;
 			w_control *control = (w_control*) w_tabitem_get_control(&item);
@@ -454,7 +454,7 @@ wresult _TABVIEW_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 		}
 		if (hdr->code == TCN_SELCHANGE) {
 			w_event_tabview _e;
-			_W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(widget);
+			W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(widget);
 			_W_ITEM(&item)->parent = widget;
 			_W_ITEM(&item)->index = index;
 			_e.event.type = W_EVENT_ITEM_SELECTION;
@@ -489,7 +489,7 @@ wresult _TABVIEW_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 			if (PtInRect(&closeRect, pt)) {
 				w_event_tabview _e;
 				_w_tabitem item;
-				_W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(widget);
+				W_WIDGETDATA(&item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(widget);
 				_W_ITEM(&item)->parent = widget;
 				_W_ITEM(&item)->index = iTabNow;
 				_e.event.type = W_EVENT_ITEM_CLOSE;
@@ -719,8 +719,13 @@ wresult _w_tabview_call_window_proc(w_widget *widget, _w_event_platform *e,
 		return W_TRUE;
 	}
 }
-void _w_tabview_class_init(struct _w_tabview_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_tabview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_tabview_class *clazz) {
+	if (classId == _W_CLASS_TABVIEW) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_tabview_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TABVIEW;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_tabview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_tabview);
@@ -739,6 +744,7 @@ void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	 * class item
 	 */
 	struct _w_tabitem_class *item = clazz->class_tabitem;
+	W_WIDGETDATA_CLASS(item)->toolkit = W_WIDGET_CLASS(clazz)->toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	item->get_bounds = _w_tabitem_get_bounds;
 	item->get_image = _w_tabitem_get_image;
@@ -752,22 +758,28 @@ void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	/*
 	 * priv
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_tabview_check_style;
-	priv->compute_size = _w_tabview_compute_size;
-	priv->compute_trim = _w_tabview_compute_trim;
-	priv->create_handle = _w_tabview_create_handle;
-	priv->get_client_area = _w_tabview_get_client_area;
-	priv->widget_style = _w_tabview_widget_style;
-	priv->window_class = _w_tabview_window_class;
-	priv->widget.call_window_proc = _w_tabview_call_window_proc;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_SIZE] = _TABVIEW_WM_SIZE;
-	msg[_WM_NOTIFYCHILD] = _TABVIEW_WM_NOTIFYCHILD;
-	msg[_WM_MOUSEMOVE] = _TABVIEW_WM_MOUSEMOVE;
-	msg[_WM_MOUSELEAVE] = _TABVIEW_WM_MOUSELEAVE;
-	msg[_WM_LBUTTONUP] = _TABVIEW_WM_LBUTTONUP;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_TABVIEW) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_tabview_check_style;
+		priv->compute_size = _w_tabview_compute_size;
+		priv->compute_trim = _w_tabview_compute_trim;
+		priv->create_handle = _w_tabview_create_handle;
+		priv->get_client_area = _w_tabview_get_client_area;
+		priv->widget_style = _w_tabview_widget_style;
+		priv->window_class = _w_tabview_window_class;
+		priv->widget.call_window_proc = _w_tabview_call_window_proc;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_SIZE] = _TABVIEW_WM_SIZE;
+		msg[_WM_NOTIFYCHILD] = _TABVIEW_WM_NOTIFYCHILD;
+		msg[_WM_MOUSEMOVE] = _TABVIEW_WM_MOUSEMOVE;
+		msg[_WM_MOUSELEAVE] = _TABVIEW_WM_MOUSELEAVE;
+		msg[_WM_LBUTTONUP] = _TABVIEW_WM_LBUTTONUP;
+	}
 }

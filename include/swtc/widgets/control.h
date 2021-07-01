@@ -97,6 +97,12 @@ struct _w_control_class {
 };
 #define W_CONTROL_CLASS(x) ((struct _w_control_class*)x)
 #define W_CONTROL_GET_CLASS(x) ((struct _w_control_class*)W_WIDGET_GET_CLASS(x))
+
+struct _w_ccanvas_class {
+	struct _w_control_class control;
+};
+#define W_CCANVAS_CLASS(x) ((struct _w_ccanvas_class*)x)
+#define W_CCANVAS_GET_CLASS(x) ((struct _w_ccanvas_class*)W_WIDGET_GET_CLASS(x))
 /*
  * public function
  */

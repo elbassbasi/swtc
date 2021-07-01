@@ -7,10 +7,28 @@
  */
 #include "toolkit.h"
 _w_toolkit *win_toolkit = 0;
+w_app *app = 0;
 const char *WindowClass = "SWT_Window";
 const char *WindowShadowClass = "SWT_WindowShadow";
 const char *WindowOwnDCClass = "SWT_WindowOwnDC";
-w_toolkit* w_toolkit_get_platform(w_app *app) {
+void w_app_init_thread(w_app *app) {
+	app->app->platformToolkit = W_TOOLKIT(win_toolkit);
+}
+w_toolkit* w_app_get_platform_toolkit(w_app *app) {
+	return app->app->platformToolkit;
+}
+wresult w_app_get_current_directory(w_app *app, w_alloc alloc, void *userdata,
+		int enc) {
+	/*if (app->currentdir == 0) {
+	 app->currentdir = getcwd(NULL, 0);
+	 }*/
+	//return app->app->currentdir;
+}
+void w_app_create(w_app *_app, int argc, char **argv) {
+	if (app != 0) {
+		_app->app = 0;
+		return;
+	}
 	if (win_toolkit == 0) {
 		const int total_size = 0x10000;
 		const int toolkit_size = sizeof(_w_toolkit);
@@ -19,12 +37,19 @@ w_toolkit* w_toolkit_get_platform(w_app *app) {
 		if (win_toolkit == 0) {
 			fprintf(stderr, "Error : Do not initialize toolkit\n");
 			exit(EXIT_FAILURE);
-			return 0;
+			return;
 		}
 		win_toolkit->tmp_alloc = tmp_size;
 		_w_toolkit_init(win_toolkit);
+		_app->app = &win_toolkit->app;
 	}
-	return (w_toolkit*) win_toolkit;
+	app = _app;
+	_app->app->argc = argc;
+	_app->app->argv = argv;
+	w_app_init_thread(_app);
+}
+w_app* w_app_get() {
+	return app;
 }
 wresult _w_toolkit_check_widget(w_toolkit *toolkit, w_widget *widget) {
 	if (GetCurrentThreadId() != _W_TOOLKIT(toolkit)->thread.id) {
@@ -39,12 +64,28 @@ wresult _w_toolkit_check_widgetdata(w_toolkit *toolkit,
 	} else
 		return W_TRUE;
 }
+wresult _w_toolkit_init_class(w_toolkit *toolkit, wushort clazz_id,
+		struct _w_widget_class *clazz) {
+	if (clazz_id < _W_CLASS_LAST) {
+		w_widget_init_class fun = win_toolkit_classes_init[clazz_id];
+		if (fun != 0) {
+			struct _w_widget_class *internalClazz =
+			_W_TOOLKIT(toolkit)->classes.classes[clazz_id];
+			if (internalClazz != 0 && internalClazz != clazz) {
+				fun(toolkit, clazz_id, internalClazz);
+			}
+			fun(toolkit, clazz_id, clazz);
+			return W_TRUE;
+		}
+	}
+	return W_FALSE;
+}
 struct _w_widget_class* _w_toolkit_get_class(w_toolkit *toolkit,
 		wushort clazz_id) {
 	if (clazz_id >= _W_CLASS_LAST)
 		return 0;
 	else
-		return _W_TOOLKIT(toolkit)->classes[clazz_id];
+		return _W_TOOLKIT(toolkit)->classes.classes[clazz_id];
 }
 w_theme* _w_toolkit_get_theme(w_toolkit *toolkit) {
 	return _W_TOOLKIT(toolkit)->theme;
@@ -377,7 +418,6 @@ w_tray* _w_toolkit_get_system_tray(w_toolkit *toolkit) {
 		SetWindowLongPtrW(win_toolkit->hwndMessage, GWLP_WNDPROC,
 				(LONG_PTR) messageProc);
 	}
-	_w_tray_class_init(&win_toolkit->class_tray);
 	_w_widget_create(W_WIDGET(tray), toolkit, 0, 0, _W_CLASS_TRAY, 0);
 	return tray;
 }
@@ -567,6 +607,7 @@ void _w_toolkit_class_init(_w_toolkit *toolkit) {
 	clazz->check_widget = _w_toolkit_check_widget;
 	clazz->check_widgetdata = _w_toolkit_check_widgetdata;
 	clazz->get_class = _w_toolkit_get_class;
+	clazz->init_class = _w_toolkit_init_class;
 	clazz->get_theme = _w_toolkit_get_theme;
 	clazz->async_exec = _w_toolkit_async_exec;
 	clazz->beep = _w_toolkit_beep;

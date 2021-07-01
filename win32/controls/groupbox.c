@@ -7,6 +7,7 @@
 #include "groupbox.h"
 #include "../widgets/toolkit.h"
 #define CLIENT_INSET 3
+#define SWT_GROUP "SWT_GROUP"
 wuint64 _w_groupbox_check_style(w_widget *widget, wuint64 style) {
 	style |= W_NO_FOCUS;
 	/*
@@ -17,6 +18,24 @@ wuint64 _w_groupbox_check_style(w_widget *widget, wuint64 style) {
 	 * the SWT style.
 	 */
 	return style & ~(W_HSCROLL | W_VSCROLL);
+}
+wresult _w_groupbox_create_handle(w_control *control, _w_control_priv *priv) {
+	/*
+	 * Feature in Windows.  When a button is created,
+	 * it clears the UI state for all controls in the
+	 * shell by sending WM_CHANGEUISTATE with UIS_SET,
+	 * UISF_HIDEACCEL and UISF_HIDEFOCUS to the parent.
+	 * This is undocumented and unexpected.  The fix
+	 * is to ignore the WM_CHANGEUISTATE, when sent
+	 * from CreateWindowEx().
+	 */
+	w_composite *parent = _W_CONTROL(control)->parent;
+	_W_WIDGET(parent)->state |= STATE_IGNORE_WM_CHANGEUISTATE;
+	wresult result = _w_composite_create_handle(control, priv);
+	_W_WIDGET(parent)->state &= ~STATE_IGNORE_WM_CHANGEUISTATE;
+	_W_WIDGET(control)->state |= STATE_DRAW_BACKGROUND;
+	_W_WIDGET(control)->state &= ~STATE_CANVAS;
+	return result;
 }
 wresult _w_groupbox_get_text(w_groupbox *group, w_alloc alloc, void *user_data,
 		int enc) {
@@ -38,25 +57,27 @@ wresult _w_groupbox_set_text(w_groupbox *group, const char *string, int length,
 	int newlength;
 	wresult result = _win_text_fix(string, length, enc, &str, &newlength);
 	if (result > 0) {
-		SetWindowTextW(_W_WIDGET(group)->handle, str);
+		HWND handle = _W_WIDGET(group)->handle;
+		SetWindowTextW(handle, str);
 	}
 	_win_text_free(string, str, newlength);
 	return result;
 }
 wresult _w_groupbox_get_client_area(w_widget *widget, w_event_client_area *e,
 		_w_control_priv *priv) {
+	HWND handle = _W_WIDGET(widget)->handle;
 	RECT rect;
-	GetClientRect(_W_WIDGET(widget)->handle, &rect);
+	GetClientRect(handle, &rect);
 	HFONT newFont, oldFont = 0;
-	HDC hDC = GetDC(_W_WIDGET(widget)->handle);
-	newFont = (HFONT) SendMessageW(_W_WIDGET(widget)->handle, WM_GETFONT, 0, 0);
+	HDC hDC = GetDC(handle);
+	newFont = (HFONT) SendMessageW(handle, WM_GETFONT, 0, 0);
 	if (newFont != 0)
 		oldFont = SelectObject(hDC, newFont);
 	TEXTMETRICW tm;
 	GetTextMetricsW(hDC, &tm);
 	if (newFont != 0)
 		SelectObject(hDC, oldFont);
-	ReleaseDC(_W_WIDGET(widget)->handle, hDC);
+	ReleaseDC(handle, hDC);
 	int offsetY = _COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed() ? 0 : 1;
 	e->rect->x = CLIENT_INSET;
 	e->rect->y = tm.tmHeight + offsetY;
@@ -71,9 +92,10 @@ wresult _w_groupbox_compute_size(w_widget *widget, w_event_compute_size *e,
 	int length = GetWindowTextLengthW(handle);
 	if (length != 0) {
 		WCHAR *buffer;
-		buffer = _w_toolkit_malloc((length + 3) * sizeof(WCHAR));
+		const int _size = (length + 3) * sizeof(WCHAR);
+		buffer = _w_toolkit_malloc(_size);
 		if (buffer != 0) {
-			GetWindowTextW(handle, buffer, length + 3);
+			length = GetWindowTextW(handle, buffer, length + 3);
 			//String string = fixText(false);
 
 			/*
@@ -87,16 +109,16 @@ wresult _w_groupbox_compute_size(w_widget *widget, w_event_compute_size *e,
 				oldFont = SelectObject(hDC, newFont);
 			RECT rect;
 			int flags = DT_CALCRECT | DT_SINGLELINE;
-			DrawTextW(hDC, buffer, -1, &rect, flags);
+			DrawTextW(hDC, buffer, length, &rect, flags);
 			if (newFont != 0)
 				SelectObject(hDC, oldFont);
 			ReleaseDC(handle, hDC);
 			int offsetY =
 			_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed() ? 0 : 1;
-			e->size->width = WMAX(e->size->width,
-					rect.right - rect.left + CLIENT_INSET * 6 + offsetY);
+			int textwidth = rect.right - rect.left + CLIENT_INSET * 6 + offsetY;
+			e->size->width = WMAX(e->size->width, textwidth);
 		}
-		_w_toolkit_free(buffer, (length + 3) * sizeof(WCHAR));
+		_w_toolkit_free(buffer, _size);
 	}
 	return ret;
 }
@@ -147,14 +169,25 @@ const char* _w_groupbox_window_class(w_control *control,
 wresult _GROUP_WM_ERASEBKGND(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	_COMPOSITE_WM_ERASEBKGND(widget, e, priv);
+	/*
+	 * Feature in Windows.  Group boxes do not erase
+	 * the background before drawing.  The fix is to
+	 * fill the background.
+	 */
 	RECT rect;
-	GetClientRect(_W_WIDGET(widget)->handle, &rect);
-	DrawThemeBackground(NULL, (HDC) e->wparam, 0, 0, &rect, NULL);
+	GetClientRect(e->hwnd, &rect);
+	priv->draw_background(W_CONTROL(widget), (HDC) e->wparam, &rect, -1, 0, 0,
+			priv);
 	e->result = 1;
 	return W_TRUE;
 }
-void _w_groupbox_class_init(struct _w_groupbox_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_groupbox_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_groupbox_class *clazz) {
+	if (classId == _W_CLASS_GROUPBOX) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_groupbox_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_GROUPBOX;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_groupbox_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_groupbox);
@@ -167,16 +200,23 @@ void _w_groupbox_class_init(struct _w_groupbox_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_groupbox_check_style;
-	priv->get_client_area = _w_groupbox_get_client_area;
-	priv->compute_trim = _w_groupbox_compute_trim;
-	priv->compute_size = _w_groupbox_compute_size;
-	priv->widget_style = _w_groupbox_widget_style;
-	priv->window_class = _w_groupbox_window_class;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	//msg[_WM_ERASEBKGND] = _GROUP_WM_ERASEBKGND;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_GROUPBOX) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_groupbox_check_style;
+		priv->get_client_area = _w_groupbox_get_client_area;
+		priv->compute_trim = _w_groupbox_compute_trim;
+		priv->compute_size = _w_groupbox_compute_size;
+		priv->create_handle = _w_groupbox_create_handle;
+		priv->widget_style = _w_groupbox_widget_style;
+		priv->window_class = _w_groupbox_window_class;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		//msg[_WM_ERASEBKGND] = _GROUP_WM_ERASEBKGND;
+	}
 }

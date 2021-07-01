@@ -36,6 +36,7 @@ public:
 	WSpinner spinner_2;
 	WSlider slider_2;
 	void Create_2(WComposite *composite);
+	WFontAuto boldFont;
 };
 
 #endif /* TESTS_CONTROLS_EXPANDBAR_TEXPANDBARDEMO_H_ */

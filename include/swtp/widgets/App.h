@@ -10,11 +10,8 @@
 #include "Toolkit.h"
 class SWTP_PUBLIC WApp: public w_app {
 public:
-	WApp() {
-		w_app_init(this);
-	}
 	WApp(int argc, char **argv) {
-		w_app_init_with_args(this, argc, argv);
+		w_app_create(this, argc, argv);
 	}
 	~WApp() {
 		w_app_dispose(this);
@@ -23,19 +20,25 @@ public:
 		return (WApp*) w_app_get();
 	}
 	int GetArgc() {
-		return this->argc;
+		return this->app->argc;
 	}
 	char** GetArgv() {
-		return this->argv;
+		return this->app->argv;
 	}
 	const char* GetExecutableFile() {
 		return w_app_get_executable_file(this);
 	}
-	const char* GetExecutablePath() {
-		return w_app_get_executable_path(this);
+	WString GetExecutablePath() {
+		w_string_ref *ref = 0;
+		w_app_get_executable_path(this, w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
+		return ref;
 	}
-	const char* GetCurrentDirectory() {
-		return w_app_get_current_directory(this);
+	WString GetCurrentDirectory() {
+		w_string_ref *ref = 0;
+		w_app_get_current_directory(this, w_alloc_string_ref, &ref,
+				W_ENCODING_UTF8);
+		return ref;
 	}
 	/**
 	 * Returns the platform toolkit. One is created (making the
@@ -58,7 +61,7 @@ public:
 		return (WToolkit*) w_app_get_default_toolkit(this);
 	}
 	WToolkit* SetDefaultToolkit(WToolkit *toolkit) {
-		return (WToolkit*)w_app_set_default_toolkit(this, W_TOOLKIT(toolkit));
+		return (WToolkit*) w_app_set_default_toolkit(this, W_TOOLKIT(toolkit));
 	}
 	int Run() {
 		return GetDefaultToolkit()->Run();

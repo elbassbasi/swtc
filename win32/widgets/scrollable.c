@@ -15,7 +15,7 @@ HWND _w_scrollbar_hwnd_scrollbar(w_widget *parent) {
 	return _W_SCROLLABLE_PRIV(priv)->handle_scrolled(W_CONTROL(parent));
 }
 wresult _w_scrollbar_copy(w_widgetdata *from, w_widgetdata *to) {
-	_W_WIDGETDATA(to)->clazz = _W_WIDGETDATA(from)->clazz;
+	W_WIDGETDATA(to)->clazz = W_WIDGETDATA(from)->clazz;
 	_W_SCROLLBAR(to)->parent = _W_SCROLLBAR(from)->parent;
 	_W_SCROLLBAR(to)->type = _W_SCROLLBAR(from)->type;
 	return W_TRUE;
@@ -270,7 +270,7 @@ int _SetScrollInfo(w_scrollbar *scrollbar, HWND hwnd, int flags,
 	int type = _W_SCROLLBAR(scrollbar)->type;
 	int state_mask_disabled = (type == SB_HORZ) ?
 	STATE_HSCROLLBAR_DISABLED :
-											STATE_VSCROLLBAR_DISABLED;
+													STATE_VSCROLLBAR_DISABLED;
 	if (!visible || (_W_WIDGET(parent)->state & state_mask_disabled) != 0)
 		fRedraw = FALSE;
 	int result = SetScrollInfo(hwnd, flags, info, fRedraw);
@@ -589,7 +589,7 @@ wresult _w_scrollable_get_client_area(w_widget *widget, w_event_client_area *e,
 }
 wresult _w_scrollable_get_horizontal_bar(w_scrollable *scrollable,
 		w_scrollbar *scrollbar) {
-	_W_WIDGETDATA(scrollbar)->clazz = W_WIDGETDATA_CLASS(
+	W_WIDGETDATA(scrollbar)->clazz = W_WIDGETDATA_CLASS(
 			W_SCROLLABLE_GET_CLASS(scrollable)->class_scrollbar);
 	_W_SCROLLBAR(scrollbar)->type = SB_HORZ;
 	_W_SCROLLBAR(scrollbar)->parent = W_WIDGET(scrollable);
@@ -600,7 +600,7 @@ wresult _w_scrollable_get_scrollbars_mode(w_scrollable *scrollable) {
 }
 wresult _w_scrollable_get_vertical_bar(w_scrollable *scrollable,
 		w_scrollbar *scrollbar) {
-	_W_WIDGETDATA(scrollbar)->clazz = W_WIDGETDATA_CLASS(
+	W_WIDGETDATA(scrollbar)->clazz = W_WIDGETDATA_CLASS(
 			W_SCROLLABLE_GET_CLASS(scrollable)->class_scrollbar);
 	_W_SCROLLBAR(scrollbar)->type = SB_VERT;
 	_W_SCROLLBAR(scrollbar)->parent = W_WIDGET(scrollable);
@@ -635,7 +635,7 @@ wresult _SCROLLABLE_WM_MOUSEWHEEL(w_widget *widget, _w_event_platform *e,
 }
 wresult _SCROLLABLE_WM_SIZE(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	return _CONTROL_WM_SIZE(widget, e, priv);
 }
 wresult _SCROLLABLE_WM_SCROLL(w_widget *widget, _w_event_platform *e,
 		wresult update, _w_control_priv *priv) {
@@ -774,8 +774,9 @@ wresult _SCROLLABLE_WM_HSCROLL(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
-void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_scrollable_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_scrollable_class *clazz) {
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	/*
 	 * scrollable class
 	 */
@@ -785,10 +786,9 @@ void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
 	/*
 	 * scrollbar class
 	 */
-	clazz->class_scrollbar = &win_toolkit->class_scrollbar;
-	if (win_toolkit->class_scrollbar.get_values == 0) {
-		struct _w_scrollbar_class *scrollbar = &win_toolkit->class_scrollbar;
-		scrollbar->widgetdata.toolkit = (w_toolkit*) win_toolkit;
+	struct _w_scrollbar_class *scrollbar = clazz->class_scrollbar;
+	if (scrollbar->get_values == 0) {
+		scrollbar->widgetdata.toolkit = W_WIDGET_CLASS(clazz)->toolkit;
 		scrollbar->widgetdata.is_ok = _w_widgetdata_is_ok;
 		scrollbar->widgetdata.close = _w_widgetdata_close;
 		scrollbar->widgetdata.copy = _w_scrollbar_copy;
@@ -820,19 +820,22 @@ void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->get_client_area = _w_scrollable_get_client_area;
-	priv->compute_trim = _w_scrollable_compute_trim;
-	priv->window_class = _w_scrollable_window_class;
-	priv->create_handle = _w_scrollable_create_handle;
-	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_control_handle;
-	_W_SCROLLABLE_PRIV(priv)->WM_SCROLL = _SCROLLABLE_WM_SCROLL;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_HSCROLL] = _SCROLLABLE_WM_HSCROLL;
-	msg[_WM_MOUSEWHEEL] = _SCROLLABLE_WM_MOUSEWHEEL;
-	msg[_WM_SIZE] = _SCROLLABLE_WM_SIZE;
-	msg[_WM_VSCROLL] = _SCROLLABLE_WM_VSCROLL;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		priv->get_client_area = _w_scrollable_get_client_area;
+		priv->compute_trim = _w_scrollable_compute_trim;
+		priv->window_class = _w_scrollable_window_class;
+		priv->create_handle = _w_scrollable_create_handle;
+		_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_control_handle;
+		_W_SCROLLABLE_PRIV(priv)->WM_SCROLL = _SCROLLABLE_WM_SCROLL;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_HSCROLL] = _SCROLLABLE_WM_HSCROLL;
+		msg[_WM_MOUSEWHEEL] = _SCROLLABLE_WM_MOUSEWHEEL;
+		msg[_WM_SIZE] = _SCROLLABLE_WM_SIZE;
+		msg[_WM_VSCROLL] = _SCROLLABLE_WM_VSCROLL;
+	}
 }

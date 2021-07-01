@@ -228,8 +228,12 @@ wresult _SASH_WM_SETCURSOR(w_widget *widget, _w_event_platform *e,
 	e->result = 1;
 	return W_TRUE;
 }
-void _w_sash_class_init(struct _w_sash_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_sash_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_sash_class *clazz) {
+	if (classId == _W_CLASS_SASH) {
+		W_WIDGET_CLASS(clazz)->platformPrivate = &win_toolkit->class_sash_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SASH;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_sash_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_sash);
@@ -237,16 +241,22 @@ void _w_sash_class_init(struct _w_sash_class *clazz) {
 	/*
 	 * priv
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_sash_check_style;
-	priv->window_class = _w_sash_window_class;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_SETCURSOR] = _SASH_WM_SETCURSOR;
-	msg[_WM_MOUSEMOVE] = _SASH_WM_MOUSEMOVE;
-	msg[_WM_LBUTTONUP] = _SASH_WM_LBUTTONUP;
-	msg[_WM_LBUTTONDOWN] = _SASH_WM_LBUTTONDOWN;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SASH) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_sash_check_style;
+		priv->window_class = _w_sash_window_class;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_SETCURSOR] = _SASH_WM_SETCURSOR;
+		msg[_WM_MOUSEMOVE] = _SASH_WM_MOUSEMOVE;
+		msg[_WM_LBUTTONUP] = _SASH_WM_LBUTTONUP;
+		msg[_WM_LBUTTONDOWN] = _SASH_WM_LBUTTONDOWN;
+	}
 }
 

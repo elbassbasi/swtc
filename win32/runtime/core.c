@@ -43,12 +43,13 @@ wresult w_alloc_set_text(w_alloc alloc, void *user_data, int toenc,
 		} else {
 			if (length < 0)
 				length = strlen(text);
-			void *buf = 0;
-			int l2 = alloc(user_data, length + 1, &buf);
+			char *buf = 0;
+			int l2 = alloc(user_data, length + 1,(void**) &buf);
 			if (buf == 0)
 				return W_ERROR_NO_MEMORY;
 			int l = WMIN(length, l2);
 			memcpy(buf, text, l);
+			buf[length] = 0;
 			return W_TRUE;
 		}
 	}

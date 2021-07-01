@@ -25,6 +25,12 @@ wresult _w_composite_create_handle(w_control *control, _w_control_priv *priv) {
 	}
 	return result;
 }
+wresult _w_composite_check_buffered(w_control *control, _w_control_priv *priv) {
+	if (_W_WIDGET(control)->state & STATE_CANVAS == 0) {
+		return _w_control_check_buffered(control, priv);
+	}
+	return W_TRUE;
+}
 wresult _w_composite_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv) {
 	w_size size;
@@ -543,8 +549,13 @@ wresult _COMPOSITE_WM_NOTIFY(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	return _CONTROL_WM_NOTIFY(widget, e, priv);
 }
-void _w_composite_class_init(struct _w_composite_class *clazz) {
-	_w_scrollable_class_init(W_SCROLLABLE_CLASS(clazz));
+void _w_composite_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_composite_class *clazz) {
+	if (classId == _W_CLASS_COMPOSITE) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_composite_priv;
+	}
+	_w_scrollable_class_init(toolkit, classId, W_SCROLLABLE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_COMPOSITE;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_composite_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_composite);
@@ -564,26 +575,33 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->create_handle = _w_composite_create_handle;
-	priv->compute_size = _w_composite_compute_size;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_ERASEBKGND] = _COMPOSITE_WM_ERASEBKGND;
-	msg[_WM_GETDLGCODE] = _COMPOSITE_WM_GETDLGCODE;
-	msg[_WM_GETFONT] = _COMPOSITE_WM_GETFONT;
-	msg[_WM_LBUTTONDOWN] = _COMPOSITE_WM_LBUTTONDOWN;
-	msg[_WM_NCHITTEST] = _COMPOSITE_WM_NCHITTEST;
-	msg[_WM_PARENTNOTIFY] = _COMPOSITE_WM_PARENTNOTIFY;
-	msg[_WM_PAINT] = _COMPOSITE_WM_PAINT;
-	msg[_WM_PRINTCLIENT] = _COMPOSITE_WM_PRINTCLIENT;
-	msg[_WM_SETFONT] = _COMPOSITE_WM_SETFONT;
-	msg[_WM_SIZE] = _COMPOSITE_WM_SIZE;
-	msg[_WM_SYSCOLORCHANGE] = _COMPOSITE_WM_SYSCOLORCHANGE;
-	msg[_WM_SYSCOMMAND] = _COMPOSITE_WM_SYSCOMMAND;
-	msg[_WM_UPDATEUISTATE] = _COMPOSITE_WM_UPDATEUISTATE;
-	msg[_WM_NCPAINT] = _COMPOSITE_WM_NCPAINT;
-	msg[_WM_NOTIFY] = _COMPOSITE_WM_NOTIFY;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_COMPOSITE) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->create_handle = _w_composite_create_handle;
+		priv->compute_size = _w_composite_compute_size;
+		priv->check_buffered = _w_composite_check_buffered;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_ERASEBKGND] = _COMPOSITE_WM_ERASEBKGND;
+		msg[_WM_GETDLGCODE] = _COMPOSITE_WM_GETDLGCODE;
+		msg[_WM_GETFONT] = _COMPOSITE_WM_GETFONT;
+		msg[_WM_LBUTTONDOWN] = _COMPOSITE_WM_LBUTTONDOWN;
+		msg[_WM_NCHITTEST] = _COMPOSITE_WM_NCHITTEST;
+		msg[_WM_PARENTNOTIFY] = _COMPOSITE_WM_PARENTNOTIFY;
+		msg[_WM_PAINT] = _COMPOSITE_WM_PAINT;
+		msg[_WM_PRINTCLIENT] = _COMPOSITE_WM_PRINTCLIENT;
+		msg[_WM_SETFONT] = _COMPOSITE_WM_SETFONT;
+		msg[_WM_SIZE] = _COMPOSITE_WM_SIZE;
+		msg[_WM_SYSCOLORCHANGE] = _COMPOSITE_WM_SYSCOLORCHANGE;
+		msg[_WM_SYSCOMMAND] = _COMPOSITE_WM_SYSCOMMAND;
+		msg[_WM_UPDATEUISTATE] = _COMPOSITE_WM_UPDATEUISTATE;
+		msg[_WM_NCPAINT] = _COMPOSITE_WM_NCPAINT;
+		msg[_WM_NOTIFY] = _COMPOSITE_WM_NOTIFY;
+	}
 }

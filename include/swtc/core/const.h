@@ -435,13 +435,13 @@ enum {
 enum {
 	W_SELECTED = 1 << 1,
 	W_FOCUSED = 1 << 2,
-	W_BACKGROUND = 1 << 3,
-	W_FOREGROUND = 1 << 4,
+	W_DISABLED = 1 << 3,
+	W_DEFAULTED = 1 << 4,
 	W_HOT = 1 << 5,
-	W_PRESSED = 1 << 6,
-	W_ACTIVE = 1 << 7,
-	W_DISABLED = 1 << 8,
-	W_DEFAULTED = 1 << 9,
+	W_BACKGROUND = 1 << 6,
+	W_FOREGROUND = 1 << 7,
+	W_PRESSED = 1 << 8,
+	W_ACTIVE = 1 << 9,
 	W_GRAYED = 1 << 10,
 };
 /*

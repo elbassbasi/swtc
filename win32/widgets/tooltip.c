@@ -241,8 +241,12 @@ void _w_tooltip_update_message(w_tooltip *tooltip) {
 		}
 	}
 }
-void _w_tooltip_class_init(struct _w_tooltip_class *clazz) {
-	_w_widget_class_init(W_WIDGET_CLASS(clazz));
+void _w_tooltip_class_init(w_toolkit *toolkit, wushort classId,struct _w_tooltip_class *clazz) {
+	if (classId == _W_CLASS_TOOLTIP) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_tooltip_priv;
+	}
+	_w_widget_class_init(toolkit,classId,W_WIDGET_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TOOLTIP;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_tooltip_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_tooltip);

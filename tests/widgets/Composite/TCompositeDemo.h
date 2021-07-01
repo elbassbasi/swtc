@@ -20,6 +20,7 @@ public:
 protected:
 	bool OnPaint(WPaintEvent &e);
 	bool OnNotifySelection(WEvent& e);
+	bool OnMouseUp(WMouseEvent &e);
 };
 
 #endif /* TESTS_WIDGETS_COMPOSITE_TCOMPOSITEDEMO_H_ */

@@ -21,7 +21,7 @@ void TThemeDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "ComboBox",
 			new TThemeDemo(W_THEME_CLASS_COMBOBOX, 0, 0));
 	ITreeItem::Regitre(parent, "TabItem",
-			new TThemeDemo(W_THEME_CLASS_TABVIEW, W_THEME_TABITEM, 0));
+			new TThemeDemo(W_THEME_CLASS_TABITEM,0, 0));
 }
 
 TThemeDemo::TThemeDemo(wushort clazz, wushort part, int style) {
@@ -29,9 +29,9 @@ TThemeDemo::TThemeDemo(wushort clazz, wushort part, int style) {
 	this->part = part;
 	this->style = style;
 }
-int TThemeDemo::states[] = { W_THEME_SELECTED, W_THEME_FOCUSED, W_THEME_HOT,
-		W_THEME_PRESSED, W_THEME_ACTIVE, W_THEME_DISABLED, W_THEME_DEFAULTED,
-		W_THEME_GRAYED, };
+int TThemeDemo::states[] = { W_THEME_STATE_SELECTED, W_THEME_STATE_FOCUSED, W_THEME_STATE_HOT,
+		W_THEME_STATE_PRESSED, W_THEME_STATE_ACTIVE, W_THEME_STATE_DISABLED, W_THEME_STATE_DEFAULTED,
+		W_THEME_STATE_GRAYED, };
 const char *TThemeDemo::texts[] = { "selected", "focused", "hot", "pressed",
 		"active", "disabled", "defaulted", "grayed" };
 bool TThemeDemo::OnPaint(WPaintEvent &e) {
@@ -48,11 +48,13 @@ bool TThemeDemo::OnPaint(WPaintEvent &e) {
 	rect.height = height;
 	data.style = this->style;
 	data.clazz = this->clazz;
-	data.part = this->part;
+	//data.part = this->part;
+	data.gc = e.gc;
+	data.bounds = &rect;
 	for (int i = 0; i < states_length; i++) {
 		data.state = states[i];
-		theme->DrawBackground(data, *e.gc, rect);
-		theme->DrawTextCenter(data, *e.gc, rect, texts[i]);
+		data.SetText(texts[i]);
+		data.DrawAll(theme);
 		if (i == 3) {
 			rect.x += width + 5;
 			rect.y = area.y;

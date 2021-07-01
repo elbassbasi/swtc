@@ -63,10 +63,7 @@ void TToolBarDemo::SetToolCombo(int index, WToolItem &item) {
 		snprintf(txt, sizeof(txt), "combo Item %d", i);
 		combo.Add(comboitem, txt);
 	}
-	combo.Pack();
-	combo.GetSize(size);
-	item.SetWidth(size.width);
-	item.SetControl(combo);
+	item.SetControlWithPreferredWith(combo);
 }
 void TToolBarDemo::CreateControl(WComposite *parent) {
 	this->Create(parent, W_NONE);

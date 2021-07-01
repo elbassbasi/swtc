@@ -107,7 +107,7 @@ wresult w_columnitem_set_width(w_columnitem *column, int width) {
  * w_listitem
  */
 wresult w_listitem_get_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr) {
+		w_item_attr *attr) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
 		return W_LISTITEM_GET_CLASS(item)->get_attr(item, index, mask, attr);
@@ -160,7 +160,7 @@ wresult w_listitem_get_text(w_listitem *item, int index, w_alloc alloc,
 		return result;
 }
 wresult w_listitem_set_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr) {
+		w_item_attr *attr) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
 		return W_LISTITEM_GET_CLASS(item)->set_attr(item, index, mask, attr);

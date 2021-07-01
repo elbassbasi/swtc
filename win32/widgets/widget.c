@@ -7,13 +7,6 @@
  */
 #include "widget.h"
 #include "toolkit.h"
-_w_widget_priv* _w_widget_get_priv(w_widget *widget) {
-	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(widget);
-	while (clazz->toolkit != (struct w_toolkit*) win_toolkit) {
-		clazz = clazz->next_class;
-	}
-	return _W_WIDGET_PRIV(clazz->reserved[0]);
-}
 w_widget* _w_widget_find_control(HWND hwnd) {
 	w_widget *widget = (w_widget*) GetWindowLongPtrW(hwnd, GWLP_USERDATA);
 	return widget;
@@ -76,6 +69,24 @@ wresult _w_widget_dispose(w_widget *obj) {
 wresult _w_widget_call_window_proc(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	e->result = 0;
+	return W_TRUE;
+}
+wresult _w_widget_get_theme(w_widget *widget, w_theme **theme) {
+	if (_W_WIDGET(widget)->theme != 0) {
+		*theme = _W_WIDGET(widget)->theme;
+		return W_TRUE;
+	}
+	w_toolkit *toolkit = w_widget_get_toolkit(widget);
+	*theme = w_toolkit_get_theme(toolkit);
+	return W_TRUE;
+}
+wresult _w_widget_set_theme(w_widget *widget, w_theme *theme) {
+	_W_WIDGET(widget)->theme = theme;
+	return W_TRUE;
+}
+wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data) {
+	w_themedata_init(data, 0, 0);
+	data->style = w_widget_get_style(widget);
 	return W_TRUE;
 }
 wresult _w_widget_send_event(w_widget *widget, w_event *event) {
@@ -429,6 +440,31 @@ int _w_send_key_event(w_event_key *event) {
 	return _w_widget_send_event(event->event.widget, (w_event*) event);
 }
 int _w_widget_show_menu(w_widget *widget, int x, int y, int detail) {
+	w_event_menu_detect event;
+	event.event.type = W_EVENT_MENUDETECT;
+	event.event.widget = widget;
+	event.event.platform_event = 0;
+	event.event.time = 0;
+	event.event.data = 0;
+	event.location.x = x;
+	event.location.y = y;
+	event.detail = detail;
+	event.menu = 0;
+	if (event.detail == W_MENU_KEYBOARD) {
+		//updateMenuLocation(event);
+	}
+	_w_widget_send_event(widget, W_EVENT(&event));
+	// widget could be disposed at this point
+	if (w_widget_is_ok(widget) <= 0)
+		return W_FALSE;
+	//if (!event.doit) return true;
+	if (w_widget_is_ok(W_WIDGET(event.menu)) > 0) {
+		if (x != event.location.x || y != event.location.y) {
+			w_menu_set_location(event.menu, &event.location);
+		}
+		w_menu_set_visible(event.menu, W_TRUE);
+		return W_TRUE;
+	}
 	return W_FALSE;
 }
 /*
@@ -1169,8 +1205,7 @@ int _w_get_click_count(int type, int button, HWND hwnd, LPARAM lParam) {
 			win_toolkit->clickCount = 1;
 		}
 	}
-//FALL THROUGH
-	if (type == W_EVENT_MOUSEDOUBLECLICK) {
+	if (type == W_EVENT_MOUSEDOUBLECLICK || type == W_EVENT_MOUSEDOWN) {
 		win_toolkit->lastButton = button;
 		win_toolkit->lastClickHwnd = hwnd;
 		win_toolkit->lastTime = _w_get_last_event_time();
@@ -1179,9 +1214,9 @@ int _w_get_click_count(int type, int button, HWND hwnd, LPARAM lParam) {
 		int x = GET_X_LPARAM(lParam), y = GET_Y_LPARAM(lParam);
 		SetRect(&win_toolkit->clickRect, x - xInset, y - yInset, x + xInset,
 				y + yInset);
-//FALL THROUGH
 	}
-	if (type == W_EVENT_MOUSEUP) {
+	if (type == W_EVENT_MOUSEUP || type == W_EVENT_MOUSEDOUBLECLICK
+			|| type == W_EVENT_MOUSEDOWN) {
 		return win_toolkit->clickCount;
 	}
 	return 0;
@@ -1208,7 +1243,6 @@ wresult _WIDGET_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	int count = _w_get_click_count(W_EVENT_MOUSEDOWN, 1, e->hwnd, e->lparam);
 	w_event_mouse event;
 	if (count == 1 && (_W_WIDGET(widget)->state & STATE_DRAG_DETECT) != 0) {
-#if !IsWinCE
 		/*
 		 * Feature in Windows.  It's possible that the drag
 		 * operation will not be started while the mouse is
@@ -1220,7 +1254,6 @@ wresult _WIDGET_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		dragging = dragDetect(e->hwnd, x, y, W_TRUE, &detect, &consume);
 		//if (isDisposed ()) return LRESULT.ZERO;
 		mouseDown = GetKeyState(VK_LBUTTON) < 0;
-#endif
 	}
 	win_toolkit->captureChanged = W_FALSE;
 	event.event.type = W_EVENT_MOUSEDOWN;
@@ -1813,13 +1846,20 @@ wresult _WIDGET_WM_PAINT(w_widget *widget, _w_event_platform *e,
 	DeleteObject(rgn);
 	return result;
 }
-void _w_widget_class_init(struct _w_widget_class *clazz) {
+void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_widget_class *clazz) {
 	clazz->is_ok = _w_widget_is_ok;
 	clazz->dispose = _w_widget_dispose;
-	clazz->toolkit = (w_toolkit*) win_toolkit;
+	clazz->get_theme = _w_widget_get_theme;
+	clazz->set_theme = _w_widget_set_theme;
+	clazz->init_themedata = _w_widget_init_themedata;
+	clazz->toolkit = toolkit;
 	/*
 	 * private
 	 */
-	_w_widget_priv *priv = _W_WIDGET_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->call_window_proc = _w_widget_call_window_proc;
+	_w_widget_priv *priv = _W_WIDGET_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (priv->init == 0) {
+		priv->call_window_proc = _w_widget_call_window_proc;
+	}
 }

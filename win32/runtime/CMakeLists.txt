@@ -1,7 +1,6 @@
 	set(CURRENT_DIR win32/runtime)
 	set(src_win32 
 		${src_win32}
-		${CURRENT_DIR}/app.c
 		${CURRENT_DIR}/atomic.c
 		${CURRENT_DIR}/condition.c
 		${CURRENT_DIR}/core.c

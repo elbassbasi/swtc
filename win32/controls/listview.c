@@ -31,7 +31,7 @@ wresult _w_listitem_get_data(w_item *item, void **data) {
 			if ((_W_WIDGET(parent)->style & W_VIRTUAL) != 0) {
 				*data = (void*) tvItem.lParam;
 			} else {
-				_w_items_list *arr = (_w_items_list*) tvItem.lParam;
+				w_array *arr = (w_array*) tvItem.lParam;
 				if (arr != 0) {
 					*data = arr->user_data;
 				}
@@ -47,12 +47,11 @@ wresult _w_listitem_get_data(w_item *item, void **data) {
 }
 wresult _w_listitem_get_text_0(w_listitem *item, int index, w_alloc alloc,
 		void *user_data, int enc) {
-	w_list_textattr attr;
-	attr.mask = W_LISTITEM_ATTR_MASK_TEXT;
+	w_item_attr attr;
 	attr.alloc = alloc;
 	attr.user_data = user_data;
 	attr.enc = enc;
-	return _w_listitem_get_attr(item, index, W_LISTITEM_ATTR_MASK_TEXT, &attr);
+	return _w_listitem_get_attr(item, index, W_ITEM_ATTR_MASK_TEXT, &attr);
 }
 wresult _w_listitem_get_text(w_item *item, w_alloc alloc, void *user_data,
 		int enc) {
@@ -77,9 +76,9 @@ wresult _w_listitem_set_data(w_item *item, void *data) {
 			tvItem.mask = TVIF_PARAM;
 			tvItem.lParam = 0;
 			if (SendMessageW(handle, TVM_GETITEMW, 0, (LPARAM) &tvItem)) {
-				_w_items_list *arr = (_w_items_list*) tvItem.lParam;
-				_w_items_list *lastarr = arr;
-				_w_items_list_get(&arr, 0, TRUE);
+				w_array *arr = (w_array**) tvItem.lParam;
+				w_array *lastarr = arr;
+				w_array_set(&arr, 0, sizeof(_w_item_list));
 				if (arr != 0) {
 					arr->user_data = data;
 					if (lastarr != arr) {
@@ -119,20 +118,21 @@ wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 		lItem.lvItem.iSubItem = index;
 	}
 	if ((_W_WIDGET(parent)->style & W_VIRTUAL) == 0) {
-		_w_items_list *arr;
+		w_array *arr;
 		if (class_id == _W_CLASS_TREEVIEW) {
 			lItem.tvItem.mask = TVIF_PARAM;
 			lresult = SendMessageW(handle, TVM_GETITEMW, 0,
 					(LPARAM) &lItem.tvItem);
-			arr = (_w_items_list*) lItem.tvItem.lParam;
+			arr = (w_array*) lItem.tvItem.lParam;
 		} else {
 			lItem.lvItem.mask = LVIF_PARAM;
 			lresult = SendMessageW(handle, LVM_GETITEMW, 0,
 					(LPARAM) &lItem.lvItem);
-			arr = (_w_items_list*) lItem.lvItem.lParam;
+			arr = (w_array*) lItem.lvItem.lParam;
 		}
 		if (lresult) {
-			_w_item_list *_i = _w_items_list_get(&arr, index, TRUE);
+			_w_item_list *_i = (_w_item_list*) w_array_set(&arr, index,
+					sizeof(_w_item_list));
 			if (_i != 0) {
 				_win_text_copy(&_i->text, text, length, enc);
 			}
@@ -179,7 +179,7 @@ wresult _w_listitem_set_text(w_item *item, const char *text, int length,
 	return _w_listitem_set_text_0(W_LISTITEM(item), 0, text, length, enc);
 }
 wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr) {
+		w_item_attr *attr) {
 	w_widget *parent = _W_ITEM(item)->parent;
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
 	w_class_id class_id = clazz->class_id;
@@ -195,48 +195,47 @@ wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
 		lvItem.mask = LVIF_TEXT;
 		lvItem.iSubItem = index;
 	}
-	if (attr->mask & W_LISTITEM_ATTR_MASK_FONT) {
+	if (mask & W_ITEM_ATTR_MASK_FONT) {
 		attr->font = 0;
 	}
-	if (attr->mask & W_LISTITEM_ATTR_MASK_BACKGROUND) {
+	if (mask & W_ITEM_ATTR_MASK_BACKGROUND) {
 		attr->background = 0;
 	}
-	if (attr->mask & W_LISTITEM_ATTR_MASK_FORGROUND) {
+	if (mask & W_ITEM_ATTR_MASK_FORGROUND) {
 		attr->foreground = 0;
 	}
 	if ((_W_WIDGET(parent)->style & W_VIRTUAL) == 0) {
-		_w_items_list *arr;
+		w_array *arr;
 		if (class_id == _W_CLASS_TREEVIEW) {
 			tvItem.mask = TVIF_PARAM;
 			lresult = SendMessageW(handle, TVM_GETITEMW, 0, (LPARAM) &tvItem);
-			arr = (_w_items_list*) tvItem.lParam;
+			arr = (w_array*) tvItem.lParam;
 		} else {
-			lvItem.mask = LVIF_TEXT;
+			lvItem.mask = LVIF_PARAM;
 			lresult = SendMessageW(handle, LVM_GETITEMW, 0, (LPARAM) &lvItem);
-			arr = (_w_items_list*) lvItem.lParam;
+			arr = (w_array*) lvItem.lParam;
 		}
 		if (lresult) {
-			_w_item_list *_i = _w_items_list_get(&arr, index, FALSE);
+			_w_item_list *_i = (_w_item_list*) w_array_get(arr, index,
+					sizeof(_w_item_list));
 			if (_i != 0) {
-				if (attr->mask & W_LISTITEM_ATTR_MASK_TEXT) {
+				if (mask & W_ITEM_ATTR_MASK_TEXT) {
 					_win_text_set_0(_i->text, -1, attr->alloc, attr->user_data,
 							attr->enc);
 				}
-				if (attr->mask & W_LISTITEM_ATTR_MASK_FONT) {
+				if (mask & W_ITEM_ATTR_MASK_FONT) {
 					attr->font = _i->font;
 				}
-				if (attr->mask & W_LISTITEM_ATTR_MASK_BACKGROUND) {
+				if (mask & W_ITEM_ATTR_MASK_BACKGROUND) {
 					attr->background = _i->background;
 				}
-				if (attr->mask & W_LISTITEM_ATTR_MASK_FORGROUND) {
+				if (mask & W_ITEM_ATTR_MASK_FORGROUND) {
 					attr->foreground = _i->foreground;
 				}
 				result = W_TRUE;
 			}
 		}
 	} else {
-		if (index == 0) {
-		}
 		w_event_list event;
 		_w_item column;
 		W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(parent);
@@ -267,7 +266,7 @@ wresult _w_listitem_get_image(w_listitem *item) {
 	return W_FALSE;
 }
 wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr) {
+		w_item_attr *attr) {
 	w_widget *parent = _W_ITEM(item)->parent;
 	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
 	w_class_id class_id = clazz->class_id;
@@ -284,31 +283,32 @@ wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
 		lvItem.iSubItem = index;
 	}
 	if ((_W_WIDGET(parent)->style & W_VIRTUAL) == 0) {
-		_w_items_list *arr, *lastarr;
+		w_array *arr, *lastarr;
 		if (class_id == _W_CLASS_TREEVIEW) {
 			tvItem.mask = TVIF_PARAM;
 			lresult = SendMessageW(handle, TVM_GETITEMW, 0, (LPARAM) &tvItem);
-			arr = (_w_items_list*) tvItem.lParam;
+			arr = (w_array*) tvItem.lParam;
 		} else {
 			lvItem.mask = LVIF_PARAM;
 			lresult = SendMessageW(handle, LVM_GETITEMW, 0, (LPARAM) &lvItem);
-			arr = (_w_items_list*) lvItem.lParam;
+			arr = (w_array*) lvItem.lParam;
 		}
 		if (lresult) {
 			lastarr = arr;
-			_w_item_list *_i = _w_items_list_get(&arr, index, TRUE);
+			_w_item_list *_i = (_w_item_list*) w_array_set(&arr, index,
+					sizeof(_w_item_list));
 			if (_i != 0) {
-				if (mask & W_LISTITEM_ATTR_MASK_TEXT) {
+				if (mask & W_ITEM_ATTR_MASK_TEXT) {
 					_win_text_copy(&_i->text, attr->text, attr->length,
 							attr->enc);
 				}
-				if (mask & W_LISTITEM_ATTR_MASK_FONT) {
+				if (mask & W_ITEM_ATTR_MASK_FONT) {
 					_i->font = attr->font;
 				}
-				if (mask & W_LISTITEM_ATTR_MASK_BACKGROUND) {
+				if (mask & W_ITEM_ATTR_MASK_BACKGROUND) {
 					_i->background = attr->background;
 				}
-				if (mask & W_LISTITEM_ATTR_MASK_FORGROUND) {
+				if (mask & W_ITEM_ATTR_MASK_FORGROUND) {
 					_i->foreground = attr->foreground;
 				}
 				if (lastarr != arr) {
@@ -587,7 +587,7 @@ wresult _w_listview_insert_item(w_listview *list, w_listitem *item, int index) {
 	/* Resize to show the first item */
 	//if (count == 0) setScrollWidth (item, false);
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(list);
+		W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(list);
 		_W_ITEM(item)->parent = W_WIDGET(list);
 		_W_ITEM(item)->index = result;
 	}
@@ -646,8 +646,13 @@ wresult _w_listview_set_top_item(w_listview *list, w_listitem *item) {
 wresult _w_listview_show_item(w_listview *list, w_listitem *item) {
 	return W_FALSE;
 }
-void _w_listview_class_init(struct _w_listview_class *clazz) {
-	_w_listviewbase_class_init(W_LISTVIEWBASE_CLASS(clazz));
+void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listview_class *clazz) {
+	if (classId == _W_CLASS_LISTVIEW) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_listview_priv;
+	}
+	_w_listviewbase_class_init(toolkit, classId, W_LISTVIEWBASE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_LISTVIEW;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_listview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_listview);
@@ -691,8 +696,14 @@ void _w_listview_class_init(struct _w_listview_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->create_handle = _w_listview_create_handle;
-	priv->widget_style = _w_listview_widget_style;
-	priv->window_class = _w_listview_window_class;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_LISTVIEW) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->create_handle = _w_listview_create_handle;
+		priv->widget_style = _w_listview_widget_style;
+		priv->window_class = _w_listview_window_class;
+	}
 }

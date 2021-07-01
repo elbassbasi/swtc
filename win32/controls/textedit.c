@@ -668,8 +668,13 @@ const char* _w_textedit_window_class(w_control *control,
 		_w_control_priv *priv) {
 	return WC_EDITA;
 }
-void _w_textedit_class_init(struct _w_textedit_class *clazz) {
-	_w_scrollable_class_init(W_SCROLLABLE_CLASS(clazz));
+void _w_textedit_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_textedit_class *clazz) {
+	if (classId == _W_CLASS_TEXTEDIT) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_textedit_priv;
+	}
+	_w_scrollable_class_init(toolkit, classId, W_SCROLLABLE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TEXTEDIT;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_textedit_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_textedit);
@@ -719,12 +724,18 @@ void _w_textedit_class_init(struct _w_textedit_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_textedit_check_style;
-	priv->compute_size = _w_textedit_compute_size;
-	priv->compute_trim = _w_textedit_compute_trim;
-	priv->window_class = _w_textedit_window_class;
-	priv->widget_extstyle = _w_textedit_widget_extstyle;
-	priv->widget_style = _w_textedit_widget_style;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_TEXTEDIT) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_textedit_check_style;
+		priv->compute_size = _w_textedit_compute_size;
+		priv->compute_trim = _w_textedit_compute_trim;
+		priv->window_class = _w_textedit_window_class;
+		priv->widget_extstyle = _w_textedit_widget_extstyle;
+		priv->widget_style = _w_textedit_widget_style;
+	}
 }
 

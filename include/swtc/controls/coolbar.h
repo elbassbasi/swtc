@@ -22,6 +22,13 @@ typedef struct w_coolitem {
 	void *handle[6];
 } w_coolitem;
 #define W_COOLITEM(x) ((w_coolitem*)x)
+
+typedef struct w_event_coolbar {
+	w_event event;
+	int detail;
+	w_point location;
+	w_coolitem* item;
+} w_event_coolbar;
 struct _w_coolitem_class {
 	struct _w_item_class item;
 	wresult (*compute_size)(w_coolitem *coolitem, w_size *result, int wHint,

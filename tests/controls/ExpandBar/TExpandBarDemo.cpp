@@ -26,7 +26,13 @@ void TExpandBarDemo::CreateControl(WComposite *parent) {
 	WExpandItem item;
 	WSize size;
 	this->Create(parent, W_VSCROLL);
-	//this->Create(parent, W_NONE);
+	WFont *font = GetFont();
+	WFontData fontData;
+	font->GetFontData(fontData);
+	fontData.SetBold();
+	fontData.SetHeight(fontData.GetHeight() - 4);
+	this->boldFont.Create(fontData);
+	this->SetFont(boldFont);
 	MFrame *frame = (MFrame*) GetFrame();
 	this->SetImageList(frame->GetImageList16());
 	for (int i = 0; i < length; i++) {

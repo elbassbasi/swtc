@@ -61,8 +61,9 @@ typedef struct _w_treeview {
 	unsigned ignoreResize :1;
 	unsigned ignoreGetDisp :1;
 	unsigned painted :1;
-	unsigned dragStarted:1;
-	unsigned gestureCompleted:1;
+	unsigned dragStarted :1;
+	unsigned gestureCompleted :1;
+	unsigned hooksEraseItem :1;
 	int scrollWidth;
 	w_color selectionForeground;
 	HTREEITEM hSelect;
@@ -92,6 +93,62 @@ typedef struct _w_treeview_priv {
 #define TREEVIEW_BOUNDS_FULLTEXT (1 << 2)
 #define TREEVIEW_BOUNDS_FULLIMAGE (1 << 3)
 #define TREEVIEW_BOUNDS_CLIP (1 << 4)
+
+#define TREEVIEW_BOUNDS_GET (TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_GET_IMAGE)
+#define TREEVIEW_BOUNDS_GET_CLIP (TREEVIEW_BOUNDS_GET | TREEVIEW_BOUNDS_CLIP)
+#define TREEVIEW_BOUNDS_GET_TEXT_CLIP (TREEVIEW_BOUNDS_GET_TEXT | TREEVIEW_BOUNDS_CLIP)
+#define TREEVIEW_BOUNDS_GET_IMAGE_CLIP (TREEVIEW_BOUNDS_GET_IMAGE | TREEVIEW_BOUNDS_CLIP)
+#define TREEVIEW_BOUNDS_FULL (TREEVIEW_BOUNDS_FULLTEXT | TREEVIEW_BOUNDS_FULLIMAGE)
+#define TREEVIEW_BOUNDS_ALL (TREEVIEW_BOUNDS_GET_CLIP | TREEVIEW_BOUNDS_FULL)
+typedef struct _w_treeview_draw {
+	HWND hwndHeader;
+	int firstColumn;
+	int columnCount;
+	RECT itemRect;
+	RECT textRect;
+	RECT headerRect;
+	HIMAGELIST imagelist;
+	WCHAR *text;
+	int text_length;
+	/* **/
+	unsigned draw :1;
+	unsigned clear :1;
+	unsigned drawItem :1;
+	unsigned drawText :1;
+	unsigned drawImage :1;
+	unsigned drawBackground :1;
+	unsigned drawForeground :1;
+	unsigned selected :1;
+	unsigned focused :1;
+	unsigned hot :1;
+	unsigned fullSelection :1;
+	unsigned customDraw :1;
+	unsigned measureEvent :1;
+	unsigned hasFocusRect :1;
+
+	int clrText;
+	int clrTextBk;
+	int sortIndex;
+	int clrSortBk;
+	w_event_list event;
+	w_item_attr attr;
+	_w_treeitem item;
+	_w_item column;
+	HDITEMW hdItem;
+	_w_graphics gc;
+	w_rect bounds;
+	w_rect r;
+	RECT focusRect;
+	RECT rect;
+	RECT clientRect;
+	RECT tmpRect;
+	RECT *clipRect;
+	RECT *backgroundRect;
+	HDC hDC;
+	NMTVCUSTOMDRAW *nmcd;
+	int index;
+	int totalWidth;
+} _w_treeview_draw;
 /*
  * functions
  */
@@ -108,8 +165,9 @@ wresult _w_treeview_post_event(w_widget *widget, w_event *ee);
 void _w_treeview_set_scroll_width_0(w_treeview *tree, int width);
 void _w_treeview_set_scroll_width(w_treeview *tree);
 void _w_treeview_update_scrollbar(w_treeview *tree);
-void _w_treeview_set_checkbox_imagelist (w_treeview *tree,_w_control_priv* priv);
-void _w_treeview_class_init(struct _w_treeview_class *clazz);
+void _w_treeview_set_checkbox_imagelist(w_treeview *tree,
+		_w_control_priv *priv);
+void _w_treeview_class_init(w_toolkit *toolkit, wushort classId,struct _w_treeview_class *clazz);
 /*
  * messages
  */

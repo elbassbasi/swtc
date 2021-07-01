@@ -42,6 +42,7 @@ if (UNIX AND APPLE)
 	add_subdirectory(osx)
 endif()
 	add_subdirectory(common)
+	add_subdirectory(custom)
 
 #build swtc
 if(swtc)

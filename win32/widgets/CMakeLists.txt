@@ -7,7 +7,6 @@
 		${CURRENT_DIR}/control1.c
 		${CURRENT_DIR}/dnd0.c
 		${CURRENT_DIR}/dnd1.c
-		${CURRENT_DIR}/item.c
 		${CURRENT_DIR}/menu.c
 		${CURRENT_DIR}/scrollable.c
 		${CURRENT_DIR}/shell.c

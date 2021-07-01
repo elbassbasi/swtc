@@ -24,6 +24,7 @@ enum {
 	 */
 	W_EVENT_NONE = 0,
 	W_EVENT_PLATFORM,
+	W_EVENT_NOTIFYCHANGE,
 	W_EVENT_FREE_MEMORY,
 	W_EVENT_DISPOSE,
 	W_EVENT_KEYDOWN,
@@ -153,6 +154,20 @@ typedef struct w_event_platform {
 	void *args[3];
 } w_event_platform;
 #define _EVENT_PLATFORM(x) ((w_event_platform*)x)
+enum {
+	W_NOTIFYCHANGE_UNKNOWN = 0,
+	W_NOTIFYCHANGE_FONT = 1,
+
+};
+typedef struct w_event_notifychange {
+	w_event event;
+	int id;
+	union {
+		void *info[3];
+		w_font *font;
+		w_color color;
+	};
+} w_event_notifychange;
 typedef struct w_event_mouse {
 	w_event event;
 	union {

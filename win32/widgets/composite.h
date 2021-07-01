@@ -35,12 +35,13 @@ struct _w_composite_priv {
  * functions
  */
 wresult _w_composite_create_handle(w_control *control, _w_control_priv *priv);
+wresult _w_composite_check_buffered(w_control *control, _w_control_priv *priv);
 wresult _w_composite_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv);
 void _w_composite_minimum_size(w_composite *composite, w_size *result,
 		int wHint, int hHint, wresult changed);
 DWORD _w_composite_widget_style(w_control *control, _w_control_priv *priv);
-void _w_composite_class_init(struct _w_composite_class *clazz);
+void _w_composite_class_init(w_toolkit *toolkit, wushort classId,struct _w_composite_class *clazz);
 /*
  * messages
  */

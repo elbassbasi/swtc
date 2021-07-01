@@ -2,7 +2,6 @@
 	set(src_common 
 		${src_common}
 		${CURRENT_DIR}/accessible.c
-		${CURRENT_DIR}/app.c
 		${CURRENT_DIR}/canvas.c
 		${CURRENT_DIR}/composite.c
 		${CURRENT_DIR}/control.c

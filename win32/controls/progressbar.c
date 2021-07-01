@@ -114,8 +114,13 @@ const char* _w_progressbar_window_class(w_control *control,
 		_w_control_priv *priv) {
 	return PROGRESS_CLASSA;
 }
-void _w_progressbar_class_init(struct _w_progressbar_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_progressbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_progressbar_class *clazz) {
+	if (classId == _W_CLASS_PROGRESSBAR) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_progressbar_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_PROGRESSBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_progressbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_progressbar);
@@ -132,9 +137,15 @@ void _w_progressbar_class_init(struct _w_progressbar_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_progressbar_check_style;
-	priv->compute_size = _w_progressbar_compute_size;
-	priv->widget_style = _w_progressbar_widget_style;
-	priv->window_class = _w_progressbar_window_class;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_PROGRESSBAR) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_progressbar_check_style;
+		priv->compute_size = _w_progressbar_compute_size;
+		priv->widget_style = _w_progressbar_widget_style;
+		priv->window_class = _w_progressbar_window_class;
+	}
 }

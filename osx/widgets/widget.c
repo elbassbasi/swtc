@@ -127,6 +127,19 @@ wresult _w_widget_post_event(w_widget *widget, w_event *ee) {
 	}
 	return W_FALSE;
 }
+wresult _w_widget_get_theme(w_widget *widget, w_theme **theme) {
+	if (_W_WIDGET(widget)->theme != 0) {
+		*theme = _W_WIDGET(widget)->theme;
+		return W_TRUE;
+	}
+	w_toolkit *toolkit = w_widget_get_toolkit(widget);
+	*theme = w_toolkit_get_theme(toolkit);
+	return W_TRUE;
+}
+wresult _w_widget_set_theme(w_widget *widget, w_theme *theme) {
+	_W_WIDGET(widget)->theme = theme;
+	return W_TRUE;
+}
 /*
  * messages
  */
@@ -187,6 +200,8 @@ void _w_widget_class_init(struct _w_widget_class *clazz) {
 	clazz->dispose = _w_widget_dispose;
 	clazz->toolkit = (w_toolkit*) mac_toolkit;
 	clazz->post_event = _w_widget_post_event;
+	clazz->get_theme = _w_widget_get_theme;
+	clazz->set_theme = _w_widget_set_theme;
 	/*
 	 * private
 	 */

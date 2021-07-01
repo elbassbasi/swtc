@@ -237,6 +237,15 @@ public:
 	bool SetControl(WControl *control) {
 		return w_coolitem_set_control(W_COOLITEM(this), W_CONTROL(control)) > 0;
 	}
+	bool SetControlWithPreferredSize(WControl *control) {
+		bool ret = SetControl(control);
+		WSize sz;
+		control->ComputeSize(sz, W_DEFAULT, W_DEFAULT);
+		control->SetSize(sz);
+		ComputeSize(sz, sz.width, sz.height);
+		SetSize(sz);
+		return ret;
+	}
 	/**
 	 * Sets the minimum size that the cool item can be resized to
 	 * using the cool item's gripper, to the point specified by the arguments.

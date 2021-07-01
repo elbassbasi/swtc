@@ -60,35 +60,6 @@ SWT_PUBLIC wresult w_columnitem_set_width(w_columnitem *column, int width);
 /*
  * w_listitem
  */
-#define W_LISTITEM_ATTR_MASK_TEXT 0x1
-#define W_LISTITEM_ATTR_MASK_FONT 0x2
-#define W_LISTITEM_ATTR_MASK_BACKGROUND 0x4
-#define W_LISTITEM_ATTR_MASK_FORGROUND 0x8
-#define W_LISTITEM_ATTR_MASK_ALL_NO_TEXT (W_LISTITEM_ATTR_MASK_FONT | W_LISTITEM_ATTR_MASK_BACKGROUND |W_LISTITEM_ATTR_MASK_FORGROUND)
-#define W_LISTITEM_ATTR_MASK_ALL (W_LISTITEM_ATTR_MASK_TEXT | W_LISTITEM_ATTR_MASK_ALL_NO_TEXT)
-typedef struct w_list_textattr {
-	union {
-		int mask;
-		struct {
-			unsigned mask_text :1;
-			unsigned mask_font :1;
-			unsigned mask_background :1;
-			unsigned mask_foreground :1;
-		};
-	};
-	int enc;
-	union {
-		w_alloc alloc;
-		int length;
-	};
-	union {
-		char *text;
-		void *user_data;
-	};
-	w_font *font;
-	w_color background;
-	w_color foreground;
-} w_list_textattr;
 typedef struct w_listitem {
 	w_item item;
 	void *handle[6];
@@ -97,7 +68,7 @@ typedef struct w_listitem {
 struct _w_listitem_class {
 	struct _w_item_class item;
 	wresult (*get_attr)(w_listitem *item, int index, int mask,
-			w_list_textattr *attr);
+			w_item_attr *attr);
 	wresult (*get_bounds)(w_listitem *item, w_rect *bounds);
 	wresult (*get_bounds_index)(w_listitem *item, int index, w_rect *bounds);
 	wresult (*get_checked)(w_listitem *item);
@@ -106,7 +77,7 @@ struct _w_listitem_class {
 	wresult (*get_text)(w_listitem *item, int index, w_alloc alloc,
 			void *user_data, int enc);
 	wresult (*set_attr)(w_listitem *item, int index, int mask,
-			w_list_textattr *attr);
+			w_item_attr *attr);
 	wresult (*set_checked)(w_listitem *item, int checked);
 	wresult (*set_grayed)(w_listitem *item, int grayed);
 	wresult (*set_image)(w_listitem *item, int image);
@@ -116,7 +87,7 @@ struct _w_listitem_class {
 #define W_LISTITEM_CLASS(x) ((struct _w_listitem_class*)x)
 #define W_LISTITEM_GET_CLASS(x) ((struct _w_listitem_class*)W_WIDGETDATA_GET_CLASS(x))
 SWT_PUBLIC wresult w_listitem_get_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr);
+		w_item_attr *attr);
 SWT_PUBLIC wresult w_listitem_get_bounds(w_listitem *item, w_rect *bounds);
 SWT_PUBLIC wresult w_listitem_get_bounds_index(w_listitem *item, int index,
 		w_rect *bounds);
@@ -126,7 +97,7 @@ SWT_PUBLIC wresult w_listitem_get_image(w_listitem *item);
 SWT_PUBLIC wresult w_listitem_get_text(w_listitem *item, int index,
 		w_alloc alloc, void *user_data, int enc);
 SWT_PUBLIC wresult w_listitem_set_attr(w_listitem *item, int index, int mask,
-		w_list_textattr *attr);
+		w_item_attr *attr);
 SWT_PUBLIC wresult w_listitem_set_checked(w_listitem *item, int checked);
 SWT_PUBLIC wresult w_listitem_set_grayed(w_listitem *item, int grayed);
 SWT_PUBLIC wresult w_listitem_set_image(w_listitem *item, int image);
@@ -152,7 +123,7 @@ typedef struct w_event_list {
 	w_columnitem *column;
 	w_listitem *item;
 	w_graphics *gc;
-	w_list_textattr *textattr;
+	w_item_attr *textattr;
 } w_event_list;
 
 typedef struct w_listviewbase {

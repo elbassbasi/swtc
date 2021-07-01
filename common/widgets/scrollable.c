@@ -205,7 +205,7 @@ wresult w_scrollable_compute_trim(w_scrollable *scrollable, w_rect *_result,
 		e.result = _result;
 		return w_widget_send_event(W_WIDGET(scrollable), (w_event*) &e);
 	} else {
-		memset(_result, 0, sizeof(w_rect));
+		memcpy(_result, rect, sizeof(w_rect));
 		return result;
 	}
 }

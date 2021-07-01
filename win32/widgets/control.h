@@ -7,7 +7,7 @@
  */
 #ifndef WIN32_WIDGETS_CONTROL_H_
 #define WIN32_WIDGETS_CONTROL_H_
-#include "item.h"
+#include "widget.h"
 /*
  * states
  */
@@ -30,19 +30,14 @@ typedef struct _w_accel_id {
 	wushort sub_id;
 	int accelerator;
 } _w_accel_id;
-typedef struct _w_accel_ids {
-	int alloc;
-	int count;
-	_w_accel_id id[0];
-} _w_accel_ids;
 typedef struct _w_control {
 	_w_widget widget;
 	w_composite *parent;
 	w_menu *menu;
 	w_cursor *cursor;
-	_w_accel_ids *ids;
+	w_array *ids;
 	HACCEL hAccel;
-	//w_font *font;
+	w_font *font;
 	HMENU activeMenu;
 	wushort drawCount;
 	wuchar backgroundAlpha;
@@ -109,7 +104,11 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 };
 #define _W_CONTROL_PRIV(x) ((_w_control_priv*)x)
-#define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)W_WIDGET_GET_CLASS(x)->platformPrivate)
+
+typedef struct _w_ccanvas_priv {
+	_w_control_priv control;
+}_w_ccanvas_priv;
 /*
  * functions
  */
@@ -152,6 +151,7 @@ HWND _w_control_create_window(DWORD dwExStyle, const char *lpClassName,
 wresult _w_control_dispose(w_widget *widget);
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event);
 wresult _w_control_force_focus(w_control *control);
+HBRUSH _w_control_find_brush(ULONG_PTR value, int lbStyle);
 wresult _w_control_get_accessible(w_control *control,
 		w_accessible **accessible);
 wresult _w_control_get_background(w_control *control, w_color *background);
@@ -236,7 +236,8 @@ DWORD _w_control_widget_extstyle(w_control *control, _w_control_priv *priv);
 HWND _w_control_widget_parent(w_control *control, _w_control_priv *priv);
 DWORD _w_control_widget_style(w_control *control, _w_control_priv *priv);
 const char* _w_control_window_class(w_control *control, _w_control_priv *priv);
-void _w_control_class_init(struct _w_control_class *clazz);
+void _w_control_class_init(w_toolkit *toolkit, wushort classId,struct _w_control_class *clazz);
+void _w_ccanvas_class_init(w_toolkit *toolkit, wushort classId,struct _w_ccanvas_class *clazz);
 /*
  * messages
  */

@@ -503,15 +503,15 @@ wresult _w_spinner_subclass(w_control *control, _w_control_priv *priv) {
 		_w_spinner_priv *spriv = (_w_spinner_priv*) priv;
 		if (spriv->EditProc == 0) {
 			spriv->EditProc = (WNDPROC) GetWindowLongPtrW(
-					_W_SPINNER(control)->hwndText,
-					GWLP_WNDPROC);
+			_W_SPINNER(control)->hwndText,
+			GWLP_WNDPROC);
 		}
 		SetWindowLongPtrW(_W_SPINNER(control)->hwndText, GWLP_WNDPROC,
 				(LONG_PTR) _w_control_window_proc);
 		if (spriv->UpDownProc == 0) {
 			spriv->UpDownProc = (WNDPROC) GetWindowLongPtrW(
-					_W_SPINNER(control)->hwndUpDown,
-					GWLP_WNDPROC);
+			_W_SPINNER(control)->hwndUpDown,
+			GWLP_WNDPROC);
 		}
 		SetWindowLongPtrW(_W_SPINNER(control)->hwndUpDown, GWLP_WNDPROC,
 				(LONG_PTR) _w_control_window_proc);
@@ -877,8 +877,13 @@ wresult _SPINNER_WM_SCROLLCHILD(w_widget *widget, _w_event_platform *e,
 	}
 	return W_FALSE;
 }
-void _w_spinner_class_init(struct _w_spinner_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_spinner_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_spinner_class *clazz) {
+	if (classId == _W_CLASS_SPINNER) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_spinner_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SPINNER;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_spinner_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_spinner);
@@ -909,29 +914,35 @@ void _w_spinner_class_init(struct _w_spinner_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_spinner_check_style;
-	priv->compute_size = _w_spinner_compute_size;
-	priv->compute_trim = _w_spinner_compute_trim;
-	priv->create_handle = _w_spinner_create_handle;
-	priv->widget_extstyle = _w_spinner_widget_extstyle;
-	priv->widget.call_window_proc = _w_spinner_call_window_proc;
-	priv->subclass = _w_spinner_subclass;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_ERASEBKGND] = _SPINNER_WM_ERASEBKGND;
-	msg[_WM_KILLFOCUS] = _SPINNER_WM_KILLFOCUS;
-	msg[_WM_SETFOCUS] = _SPINNER_WM_SETFOCUS;
-	msg[_WM_SETFONT] = _SPINNER_WM_SETFONT;
-	msg[_WM_SIZE] = _SPINNER_WM_SIZE;
-	msg[_WM_IME_CHAR] = _SPINNER_IME_CHAR;
-	msg[_WM_CHAR] = _SPINNER_WM_CHAR;
-	//msg[_WM_CLIPBOARD] = _SPINNER_WM_CLIPBOARD;
-	msg[_WM_COMMANDCHILD] = _SPINNER_WM_COMMANDCHILD;
-	msg[_WM_KEYDOWN] = _SPINNER_WM_KEYDOWN;
-	//msg[_WM_KILLFOCUS] = _SPINNER_WM_KILLFOCUS;
-	msg[_WM_NOTIFYCHILD] = _SPINNER_WM_NOTIFYCHILD;
-	msg[_WM_SCROLLCHILD] = _SPINNER_WM_SCROLLCHILD;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SPINNER) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_spinner_check_style;
+		priv->compute_size = _w_spinner_compute_size;
+		priv->compute_trim = _w_spinner_compute_trim;
+		priv->create_handle = _w_spinner_create_handle;
+		priv->widget_extstyle = _w_spinner_widget_extstyle;
+		priv->widget.call_window_proc = _w_spinner_call_window_proc;
+		priv->subclass = _w_spinner_subclass;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_ERASEBKGND] = _SPINNER_WM_ERASEBKGND;
+		msg[_WM_KILLFOCUS] = _SPINNER_WM_KILLFOCUS;
+		msg[_WM_SETFOCUS] = _SPINNER_WM_SETFOCUS;
+		msg[_WM_SETFONT] = _SPINNER_WM_SETFONT;
+		msg[_WM_SIZE] = _SPINNER_WM_SIZE;
+		msg[_WM_IME_CHAR] = _SPINNER_IME_CHAR;
+		msg[_WM_CHAR] = _SPINNER_WM_CHAR;
+		//msg[_WM_CLIPBOARD] = _SPINNER_WM_CLIPBOARD;
+		msg[_WM_COMMANDCHILD] = _SPINNER_WM_COMMANDCHILD;
+		msg[_WM_KEYDOWN] = _SPINNER_WM_KEYDOWN;
+		//msg[_WM_KILLFOCUS] = _SPINNER_WM_KILLFOCUS;
+		msg[_WM_NOTIFYCHILD] = _SPINNER_WM_NOTIFYCHILD;
+		msg[_WM_SCROLLCHILD] = _SPINNER_WM_SCROLLCHILD;
+	}
 }

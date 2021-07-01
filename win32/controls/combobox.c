@@ -320,7 +320,7 @@ wresult _w_combobox_insert_item(w_combobox *combo, w_comboitem *item,
 	int newIndex = SendMessageW(handle, CBEM_INSERTITEMW, 0, (LPARAM) &cbei);
 	if (newIndex != -1) {
 		if (item != 0) {
-			_W_WIDGETDATA(item)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(combo);
+			W_WIDGETDATA(item)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(combo);
 			_W_ITEM(item)->parent = W_WIDGET(combo);
 			_W_ITEM(item)->index = newIndex;
 		}
@@ -401,8 +401,13 @@ const char* _w_combobox_window_class(w_control *control,
 	return WC_COMBOBOXEXA;
 }
 
-void _w_combobox_class_init(struct _w_combobox_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_combobox_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_combobox_class *clazz) {
+	if (classId == _W_CLASS_COMBOBOX) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_combobox_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_COMBOBOX;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_combobox_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_combobox);
@@ -445,6 +450,7 @@ void _w_combobox_class_init(struct _w_combobox_class *clazz) {
 	 * combo item
 	 */
 	struct _w_comboitem_class *item = W_COMBOITEM_CLASS(clazz->class_comboitem);
+	W_WIDGETDATA_CLASS(item)->toolkit = W_WIDGET_CLASS(clazz)->toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	W_ITEM_CLASS(item)->get_data = _w_comboitem_get_data;
 	W_ITEM_CLASS(item)->get_text = _w_comboitem_get_text;
@@ -455,11 +461,17 @@ void _w_combobox_class_init(struct _w_combobox_class *clazz) {
 	/*
 	 * priv
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_combobox_check_style;
-	priv->compute_size = _w_combobox_compute_size;
-	priv->create_handle = _w_combobox_create_handle;
-	priv->widget_style = _w_combobox_widget_style;
-	priv->widget_extstyle = _w_combobox_widget_extstyle;
-	priv->window_class = _w_combobox_window_class;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_COMBOBOX) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_combobox_check_style;
+		priv->compute_size = _w_combobox_compute_size;
+		priv->create_handle = _w_combobox_create_handle;
+		priv->widget_style = _w_combobox_widget_style;
+		priv->widget_extstyle = _w_combobox_widget_extstyle;
+		priv->window_class = _w_combobox_window_class;
+	}
 }

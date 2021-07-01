@@ -7,8 +7,7 @@
  */
 #ifndef SWT_WIDGETS_TOOLKIT_H_
 #define SWT_WIDGETS_TOOLKIT_H_
-#include "../runtime/runtime.h"
-#include "theme.h"
+#include "../controls/controls.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,6 +34,8 @@ struct _w_toolkit_class {
 	wresult (*check_widget)(w_toolkit *toolkit, w_widget *widget);
 	wresult (*check_widgetdata)(w_toolkit *toolkit, w_widgetdata *widgetdata);
 	struct _w_widget_class* (*get_class)(w_toolkit *toolkit, wushort clazz_id);
+	void (*init_class)(w_toolkit *toolkit, wushort clazz_id,
+			struct _w_widget_class*);
 	w_theme* (*get_theme)(w_toolkit *toolkit);
 	wresult (*async_exec)(w_toolkit *toolkit, w_thread_start function,
 			void *args);
@@ -69,10 +70,10 @@ struct _w_toolkit_class {
 	wresult (*map_1)(w_toolkit *toolkit, w_control *from, w_control *to,
 			w_rect *result, w_rect *rectangle);
 	wresult (*post)(w_toolkit *toolkit, w_event *event);
-	wresult (*post_quit)(w_toolkit *toolkit,int quit);
+	wresult (*post_quit)(w_toolkit *toolkit, int quit);
 	wresult (*dispatch)(w_toolkit *toolkit);
 	wresult (*set_cursor_location)(w_toolkit *toolkit, w_point *point);
-    wresult (*set_theme)(w_toolkit *toolkit,w_theme* theme);
+	wresult (*set_theme)(w_toolkit *toolkit, w_theme *theme);
 	int (*run)(w_toolkit *toolkit);
 	wresult (*read)(w_toolkit *toolkit);
 	wresult (*sync_exec)(w_toolkit *toolkit, w_thread_start function,
@@ -85,7 +86,8 @@ struct _w_toolkit_class {
 	 *
 	 */
 	int (*register_type)(w_toolkit *toolkit, const char *formatName);
-	wresult (*open_clipboard)(w_toolkit *toolkit, w_clipboard *clipboard,int clipboards);
+	wresult (*open_clipboard)(w_toolkit *toolkit, w_clipboard *clipboard,
+			int clipboards);
 	/*
 	 * dialogs
 	 */
@@ -102,15 +104,19 @@ struct _w_toolkit_class {
 
 SWT_PUBLIC struct _w_widget_class* w_toolkit_get_class(w_toolkit *toolkit,
 		wushort clazz_id);
-SWT_PUBLIC wresult w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args);
+SWT_PUBLIC void w_toolkit_init_class(w_toolkit *toolkit, wushort clazz_id,
+		struct _w_widget_class*);
+SWT_PUBLIC wresult w_toolkit_async_exec(w_toolkit *toolkit,
+		w_thread_start function, void *args);
 SWT_PUBLIC wresult w_toolkit_beep(w_toolkit *toolkit);
 SWT_PUBLIC w_shell* w_toolkit_get_active_shell(w_toolkit *toolkit);
 SWT_PUBLIC w_menu* w_toolkit_get_menubar(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_get_bounds(w_toolkit *toolkit, w_rect *bounds);
-SWT_PUBLIC wresult w_toolkit_get_client_area(w_toolkit *toolkit, w_rect *clientArea);
+SWT_PUBLIC wresult w_toolkit_get_client_area(w_toolkit *toolkit,
+		w_rect *clientArea);
 SWT_PUBLIC w_control* w_toolkit_get_cursor_control(w_toolkit *toolkit);
-SWT_PUBLIC wresult w_toolkit_get_cursor_location(w_toolkit *toolkit, w_point *location);
+SWT_PUBLIC wresult w_toolkit_get_cursor_location(w_toolkit *toolkit,
+		w_point *location);
 SWT_PUBLIC size_t w_toolkit_get_cursor_sizes(w_toolkit *toolkit, w_size *sizes,
 		size_t length);
 SWT_PUBLIC int w_toolkit_get_dismissal_alignment(w_toolkit *toolkit);
@@ -132,28 +138,72 @@ SWT_PUBLIC struct w_tray* w_toolkit_get_system_tray(w_toolkit *toolkit);
 SWT_PUBLIC w_thread* w_toolkit_get_thread(w_toolkit *toolkit);
 SWT_PUBLIC wuint64 w_toolkit_get_thread_id(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_get_touch_enabled(w_toolkit *toolkit);
-SWT_PUBLIC wresult w_toolkit_map_0(w_toolkit *toolkit, w_control *from, w_control *to,
-		w_point *result, w_point *point);
-SWT_PUBLIC wresult w_toolkit_map_1(w_toolkit *toolkit, w_control *from, w_control *to,
-		w_rect *result, w_rect *rectangle);
+SWT_PUBLIC wresult w_toolkit_map_0(w_toolkit *toolkit, w_control *from,
+		w_control *to, w_point *result, w_point *point);
+SWT_PUBLIC wresult w_toolkit_map_1(w_toolkit *toolkit, w_control *from,
+		w_control *to, w_rect *result, w_rect *rectangle);
 SWT_PUBLIC wresult w_toolkit_post(w_toolkit *toolkit, w_event *event);
-SWT_PUBLIC wresult w_toolkit_post_quit(w_toolkit *toolkit,int quit);
+SWT_PUBLIC wresult w_toolkit_post_quit(w_toolkit *toolkit, int quit);
 SWT_PUBLIC wresult w_toolkit_read_and_dispatch(w_toolkit *toolkit);
-SWT_PUBLIC wresult w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *point);
+SWT_PUBLIC wresult w_toolkit_set_cursor_location(w_toolkit *toolkit,
+		w_point *point);
 SWT_PUBLIC int w_toolkit_run(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_sleep(w_toolkit *toolkit);
-SWT_PUBLIC wresult w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args);
+SWT_PUBLIC wresult w_toolkit_sync_exec(w_toolkit *toolkit,
+		w_thread_start function, void *args);
 SWT_PUBLIC wresult w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
 		w_thread_start function, void *args);
 SWT_PUBLIC wresult w_toolkit_update(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_wake(w_toolkit *toolkit);
 SWT_PUBLIC w_theme* w_toolkit_get_theme(w_toolkit *toolkit);
-SWT_PUBLIC wresult w_toolkit_set_theme(w_toolkit *toolkit,w_theme* theme);
+SWT_PUBLIC wresult w_toolkit_set_theme(w_toolkit *toolkit, w_theme *theme);
 SWT_PUBLIC int w_toolkit_register_type(w_toolkit *toolkit,
 		const char *formatName);
 SWT_PUBLIC wresult w_toolkit_open_clipboard(w_toolkit *toolkit,
-		w_clipboard *clipboard,int clipboards);
+		w_clipboard *clipboard, int clipboards);
+
+struct _w_toolkit_classes {
+	struct _w_widget_class *classes[_W_CLASS_LAST];
+	struct _w_shell_class class_shell;
+	struct _w_canvas_class class_canvas;
+	struct _w_ccanvas_class class_ccanvas;
+	struct _w_caret_class class_caret;
+	struct _w_ime_class class_ime;
+	struct _w_composite_class class_composite;
+	struct _w_scrollbar_class class_scrollbar;
+	struct _w_menu_class class_menu;
+	struct _w_menuitem_class class_menuitem;
+	struct _w_treeview_class class_treeview;
+	struct _w_treeitem_class class_treeitem;
+	struct _w_columnitem_class class_treecolumn;
+	struct _w_listview_class class_listview;
+	struct _w_listitem_class class_listitem;
+	struct _w_columnitem_class class_listcolumn;
+	struct _w_sash_class class_sash;
+	struct _w_button_class class_button;
+	struct _w_label_class class_label;
+	struct _w_textedit_class class_textedit;
+	struct _w_progressbar_class class_progressbar;
+	struct _w_groupbox_class class_groupbox;
+	struct _w_combobox_class class_combobox;
+	struct _w_comboitem_class class_comboitem;
+	struct _w_coolbar_class class_coolbar;
+	struct _w_coolitem_class class_coolitem;
+	struct _w_datetime_class class_datetime;
+	struct _w_expandbar_class class_expandbar;
+	struct _w_expanditem_class class_expanditem;
+	struct _w_slider_class class_slider;
+	struct _w_spinner_class class_spinner;
+	struct _w_tabview_class class_tabview;
+	struct _w_tabitem_class class_tabitem;
+	struct _w_toolbar_class class_toolbar;
+	struct _w_toolitem_class class_toolitem;
+	struct _w_tray_class class_tray;
+	struct _w_trayitem_class class_trayitem;
+	struct _w_tooltip_class class_tooltip;
+};
+
+SWT_PUBLIC void _w_toolkit_classes_init(struct _w_toolkit_classes *classes);
 
 #ifdef __cplusplus
 }

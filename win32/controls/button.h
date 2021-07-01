@@ -27,6 +27,6 @@ typedef struct _w_button_priv {
  * functions
  */
 void _w_button_update_selection(w_button *button, int flags);
-void _w_button_class_init(struct _w_button_class *clazz);
+void _w_button_class_init(w_toolkit *toolkit, wushort classId,struct _w_button_class *clazz);
 
 #endif /* WIN32_CONTROLS_BUTTON_H_ */

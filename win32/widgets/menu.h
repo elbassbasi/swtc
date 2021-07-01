@@ -7,7 +7,7 @@
  */
 #ifndef WIN32_WIDGETS_MENU_H_
 #define WIN32_WIDGETS_MENU_H_
-#include "item.h"
+#include "widget.h"
 #define STATE_MENU_HAS_LOCATION (1 << (STATE_CONTROL_END + 1))
 /*
  * menu
@@ -47,7 +47,6 @@ struct _w_menu {
 	int y;
 };
 #define _W_MENU(x) ((_w_menu*)x)
-#define _W_MENU_GET_ITEM_CLASS(menu) (W_WIDGETDATA_CLASS(W_MENU_GET_CLASS(menu)->class_menuitem))
 /*
  * menuitem
  */
@@ -69,7 +68,7 @@ struct _w_menu_priv {
  */
 wresult _w_menuitem_fill_accel(ACCEL *accel, struct _w_accel_id *item);
 wresult _w_menu_get_shell(w_widget *menu, w_shell **shell);
-void _w_menu_class_init(struct _w_menu_class *clazz);
+void _w_menu_class_init(w_toolkit *toolkit, wushort classId,struct _w_menu_class *clazz);
 /*
  * message
  */

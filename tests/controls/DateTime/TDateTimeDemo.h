@@ -12,7 +12,7 @@ class TDateTimeDemo: public CompositeTreeItem {
 public:
 	static const int length = 3;
 	static int styles[length];
-	static const char* names[length];
+	static const char *names[length];
 	static void Registre(WTreeItem &parent);
 	void CreateControl(WComposite *parent);
 protected:
@@ -21,7 +21,7 @@ public:
 	WGridLayout layout;
 	WDateTime dates[length];
 	WLabel label[length];
-	WButton ok;
+	WButton btn[length];
 };
 
 #endif /* TESTS_CONTROLS_DATETIME_TDATETIMEDEMO_H_ */

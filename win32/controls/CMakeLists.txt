@@ -5,7 +5,6 @@
 		${CURRENT_DIR}/combobox.c
 		${CURRENT_DIR}/coolbar.c
 		${CURRENT_DIR}/datetime.c
-		${CURRENT_DIR}/expandbar.c
 		${CURRENT_DIR}/groupbox.c
 		${CURRENT_DIR}/label.c
 		${CURRENT_DIR}/listview.c

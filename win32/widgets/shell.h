@@ -49,7 +49,7 @@ wresult _w_shell_menu_item_tooltip_handle(w_shell *shell, HWND *handle);
 void _w_shell_set_tooltip_title(w_shell *shell, HWND hwndToolTip, char *text,
 		int icon);
 void _w_shell_bring_totop(w_shell *shell);
-void _w_shell_class_init(struct _w_shell_class *clazz);
+void _w_shell_class_init(w_toolkit *toolkit, wushort classId,struct _w_shell_class *clazz);
 /*
  * messages
  */

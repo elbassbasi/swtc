@@ -116,36 +116,20 @@ bool TTreeVirtual::OnItemPaint(WTreeEvent &e) {
 		r.y += NUM_PIXEL;
 		r.width -= 2 * NUM_PIXEL;
 		r.height -= 2 * NUM_PIXEL;
-		e.gc->SetForeground(W_COLOR_BLUE);
-		e.gc->SetBackground(W_COLOR_RED);
+		WTheme *theme = GetTheme();
+		WProgressBarThemeData data;
 		if (p != 0) {
-			WTheme *theme = GetToolkit()->GetTheme();
-			if (theme) {
-				e.gc->FillRectangle(r);
-				WProgressBarThemeData data;
-				data.maximum = 5;
-				data.selection = p->progress;
-				theme->DrawBackground(data, *e.gc, r);
-				sprintf(txt, "%d%%", p->progress);
-				theme->DrawText(data, *e.gc, r, txt, W_THEME_DRAW_CENTER);
-			} else {
-				//WColor foreground = e.gc->GetForeground();
-				//WColor background = e.gc->GetBackground();
-				WSize sz = e.gc->TextExtent(txt);
-				int w = r.x + (r.width - sz.width) / 2;
-				r.width = (r.width * p->progress) / 5;
-				e.gc->SetForeground(W_COLOR_RED);
-				e.gc->SetBackground(W_COLOR_YELLOW);
-				e.gc->FillGradientRectangle(r, true);
-				e.gc->DrawRectangle(r);
-				sprintf(txt, "%d%%", p->progress);
-				e.gc->SetForeground(0xFFFF8080);
-				e.gc->DrawText(txt, w, r.y, W_DRAW_TRANSPARENT);
-			}
+			data.maximum = 5;
+			data.selection = p->progress;
+			sprintf(txt, "%d%%", p->progress);
 		} else {
-			e.gc->SetForeground(W_COLOR_BLUE);
-			e.gc->DrawText("unknown", r.x, r.y, W_DRAW_TRANSPARENT);
+			sprintf(txt, "unknown");
+			data.maximum = 5;
+			data.selection = 0;
 		}
+		e.gc->FillRectangle(r);
+		data.SetText(txt);
+		data.DrawAll(theme);
 		return true;
 	}
 	return WTreeView::OnItemPaint(e);

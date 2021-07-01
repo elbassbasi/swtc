@@ -18,7 +18,7 @@ typedef struct _w_progressbar_priv {
 
 #define _W_PROGRESSBAR(x) ((_w_progressbar*)x)
 #define _W_PROGRESSBAR_PRIV(x) ((_w_progressbar_priv*)x)
-void _w_progressbar_class_init(struct _w_progressbar_class *clazz);
+void _w_progressbar_class_init(w_toolkit *toolkit, wushort classId,struct _w_progressbar_class *clazz);
 
 
 #endif /* WIN32_CONTROLS_PROGRESSBAR_H_ */

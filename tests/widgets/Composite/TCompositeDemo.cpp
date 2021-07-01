@@ -55,3 +55,8 @@ bool TCompositeDemo::OnNotifySelection(WEvent &e) {
 	}
 	return true;
 }
+
+bool TCompositeDemo::OnMouseUp(WMouseEvent &e) {
+	ForceFocus();
+	return WComposite::OnMouseUp(e);
+}

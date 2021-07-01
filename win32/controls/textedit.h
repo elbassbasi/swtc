@@ -27,5 +27,5 @@ typedef struct _w_textedit_priv {
 #define _W_TEXTEDIT_PRIV(x) ((_w_textedit_priv*)x)
 wresult _w_textedit_get_caret_position(w_textedit *text, int enc);
 int _w_textedit_get_message_0(w_textedit *text,WCHAR** str,int* length);
-void _w_textedit_class_init(struct _w_textedit_class *clazz);
+void _w_textedit_class_init(w_toolkit *toolkit, wushort classId,struct _w_textedit_class *clazz);
 #endif /* WIN32_CONTROLS_TEXTEDIT_H_ */

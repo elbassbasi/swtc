@@ -58,7 +58,7 @@ wresult _w_treeitem_insert_item_0(w_treeitem *item, w_treeitem *subitem,
 	if (hNewItem == 0)
 		return W_ERROR_ITEM_NOT_ADDED;
 	if (subitem != 0) {
-		_W_WIDGETDATA(subitem)->clazz = _W_WIDGETDATA(item)->clazz;
+		W_WIDGETDATA(subitem)->clazz = W_WIDGETDATA(item)->clazz;
 		_W_ITEM(subitem)->parent = tree;
 		_W_ITEM(subitem)->index = -1;
 		_W_TREEITEM(subitem)->htreeitem = hNewItem;
@@ -71,8 +71,8 @@ wresult _w_treeitem_clear(w_treeitem *item, int index, int all) {
 wresult _w_treeitem_clear_all(w_treeitem *item, int all) {
 	return W_FALSE;
 }
-void _w_treeitem_get_bounds_0(w_treeitem *item, RECT *rect, HDC hDC, int index,
-		int flags) {
+void _w_treeitem_get_bounds_1(w_treeitem *item, _w_treeview_draw *info,
+		RECT *rect, HDC hDC, int index, int flags) {
 	memset(rect, 0, sizeof(RECT));
 	if (!(flags & TREEVIEW_BOUNDS_GET_TEXT)
 			&& !(flags & TREEVIEW_BOUNDS_GET_IMAGE))
@@ -92,8 +92,7 @@ void _w_treeitem_get_bounds_0(w_treeitem *item, RECT *rect, HDC hDC, int index,
 	int columnCount = 0;
 	HWND hwndHeader = _W_TREEVIEW(tree)->hwndHeader;
 	if (hwndHeader != 0) {
-		columnCount = SendMessageW(hwndHeader,
-		HDM_GETITEMCOUNT, 0, 0);
+		columnCount = SendMessageW(hwndHeader, HDM_GETITEMCOUNT, 0, 0);
 		firstColumn = index == SendMessageW(hwndHeader, HDM_ORDERTOINDEX, 0, 0);
 	}
 	if (firstColumn) {
@@ -232,6 +231,57 @@ void _w_treeitem_get_bounds_0(w_treeitem *item, RECT *rect, HDC hDC, int index,
 	}
 	rect->bottom = WMAX(rect->top, rect->bottom - gridWidth);
 	return;
+}
+void _w_treeitem_get_bounds_0(w_treeitem *item, RECT *rect, HDC hDC, int index,
+		int flags) {
+	_w_treeview_draw info;
+	w_widget *tree = _W_ITEM(item)->parent;
+	HWND handle = _W_WIDGET(tree)->handle;
+	info.hwndHeader = _W_TREEVIEW(tree)->hwndHeader;
+	if (info.hwndHeader != 0) {
+		info.columnCount = SendMessageW(info.hwndHeader, HDM_GETITEMCOUNT, 0,
+				0);
+		info.firstColumn = SendMessageW(info.hwndHeader, HDM_ORDERTOINDEX, 0,
+				0);
+		int getheaderRect = TRUE;
+		if (info.firstColumn == index) {
+			if ((flags & TREEVIEW_BOUNDS_FULLTEXT)
+					|| (flags & TREEVIEW_BOUNDS_FULLIMAGE)
+					|| (flags & TREEVIEW_BOUNDS_CLIP)) {
+				getheaderRect = TRUE;
+			} else
+				getheaderRect = FALSE;
+		}
+		if (getheaderRect) {
+			if (SendMessageW(info.hwndHeader, HDM_GETITEMRECT, index,
+					(LPARAM) &info.headerRect) == 0) {
+				return;
+			}
+		}
+	} else {
+		info.columnCount = 1;
+		info.firstColumn = 0;
+	}
+	wresult full;
+	RECT *r;
+	if (index == info.firstColumn) {
+		full = info.columnCount == 0 && (flags & TREEVIEW_BOUNDS_GET_TEXT)
+				&& (flags & TREEVIEW_BOUNDS_GET_IMAGE)
+				&& (flags & TREEVIEW_BOUNDS_FULLTEXT)
+				&& (flags & TREEVIEW_BOUNDS_FULLIMAGE);
+	} else {
+		full = FALSE;
+	}
+	if (full)
+		r = &info.itemRect;
+	else
+		r = &info.textRect;
+	*((HTREEITEM*) r) = _W_TREEITEM(item)->htreeitem;
+	if (!(WINBOOL) SendMessageW(handle, TVM_GETITEMRECT, !full, (LPARAM) r)) {
+		memset(rect, 0, sizeof(RECT));
+		return;
+	}
+	_w_treeitem_get_bounds_1(item, &info, rect, hDC, index, flags);
 }
 wresult _w_treeitem_get_bounds(w_listitem *item, w_rect *bounds) {
 	return W_FALSE;
@@ -380,6 +430,22 @@ wresult _w_treeview_create_handle(w_control *control, _w_control_priv *priv) {
 
 	_W_LISTVIEWBASE(control)->createdAsRTL = (_W_WIDGET(control)->style
 			& W_RIGHT_TO_LEFT) != 0;
+	return result;
+}
+wresult _w_treeview_check_buffered(w_control *control, _w_control_priv *priv) {
+	wresult result = _w_composite_check_buffered(control, priv);
+	//if ((_W_WIDGET(control)->style & W_VIRTUAL) != 0) {
+	_W_WIDGET(control)->style |= W_DOUBLE_BUFFERED;
+	SendMessageW(_W_WIDGET(control)->handle, TVM_SETSCROLLTIME, 0, 0);
+	//}
+	if (win_toolkit->EXPLORER_THEME) {
+		if (win_toolkit->IsAppThemed) {
+			DWORD exStyle = SendMessageW(_W_WIDGET(control)->handle,
+			TVM_GETEXTENDEDSTYLE, 0, 0);
+			if ((exStyle & TVS_EX_DOUBLEBUFFER) != 0)
+				_W_WIDGET(control)->style |= W_DOUBLE_BUFFERED;
+		}
+	}
 	return result;
 }
 DWORD _w_treeview_widget_style(w_control *control, _w_control_priv *priv) {
@@ -571,7 +637,7 @@ wresult _w_treeview_get_item_from_point(w_treeview *tree, w_point *point,
 			}
 		}
 		if ((lpht.flags & flags) != 0 && lpht.hItem != 0) {
-			_W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
+			W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
 			_W_ITEM(item)->parent = W_WIDGET(tree);
 			_W_ITEM(item)->index = -1;
 			_W_TREEITEM(item)->htreeitem = lpht.hItem;
@@ -581,7 +647,7 @@ wresult _w_treeview_get_item_from_point(w_treeview *tree, w_point *point,
 	return W_FALSE;
 }
 wresult _w_treeview_get_root_item(w_treeview *tree, w_treeitem *root) {
-	_W_WIDGETDATA(root)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
+	W_WIDGETDATA(root)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
 	_W_ITEM(root)->parent = W_WIDGET(tree);
 	_W_ITEM(root)->index = -1;
 	_W_TREEITEM(root)->htreeitem = TVI_ROOT;
@@ -592,7 +658,7 @@ wresult _w_treeview_get_top_item(w_treeview *tree, w_treeitem *topitem) {
 	HTREEITEM hItem = (HTREEITEM) SendMessageW(handle, TVM_GETNEXTITEM,
 	TVGN_FIRSTVISIBLE, 0);
 	if (hItem != 0) {
-		_W_WIDGETDATA(topitem)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
+		W_WIDGETDATA(topitem)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
 		_W_ITEM(topitem)->parent = W_WIDGET(tree);
 		_W_ITEM(topitem)->index = -1;
 		_W_TREEITEM(topitem)->htreeitem = hItem;
@@ -612,7 +678,7 @@ wresult _w_treeview_set_bounds(w_control *control, w_point *location,
 wuchar checkbox_imagelist_states_0[] = { CBS_UNCHECKEDNORMAL, CBS_CHECKEDNORMAL,
 		CBS_UNCHECKEDNORMAL, CBS_MIXEDNORMAL };
 wushort checkbox_imagelist_states_1[] = { DFCS_FLAT, DFCS_CHECKED | DFCS_FLAT,
-		DFCS_INACTIVE | DFCS_FLAT, DFCS_CHECKED | DFCS_INACTIVE | DFCS_FLAT };
+DFCS_INACTIVE | DFCS_FLAT, DFCS_CHECKED | DFCS_INACTIVE | DFCS_FLAT };
 void _w_treeview_set_checkbox_imagelist(w_treeview *tree,
 		_w_control_priv *priv) {
 	if ((_W_WIDGET(tree)->style & W_CHECK) == 0)
@@ -870,8 +936,13 @@ void _w_treeview_update_scrollbar(w_treeview *tree) {
 		}
 	}
 }
-void _w_treeview_class_init(struct _w_treeview_class *clazz) {
-	_w_listviewbase_class_init(W_LISTVIEWBASE_CLASS(clazz));
+void _w_treeview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_treeview_class *clazz) {
+	if (classId == _W_CLASS_TREEVIEW) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_treeview_priv;
+	}
+	_w_listviewbase_class_init(toolkit, classId, W_LISTVIEWBASE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TREEVIEW;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_treeview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_treeview);
@@ -917,40 +988,48 @@ void _w_treeview_class_init(struct _w_treeview_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->create_handle = _w_treeview_create_handle;
-	priv->widget_style = _w_treeview_widget_style;
-	priv->window_class = _w_treeview_window_class;
-	priv->widget.call_window_proc = _w_treeview_call_window_proc;
-	priv->handle_top = _w_treeview_top_handle;
-	_W_CONTROL_PRIV(priv)->default_background = _w_treeview_default_background;
-	//win_toolkit->EXPLORER_THEME = TRUE;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_CHAR] = _TREEVIEW_WM_CHAR;
-	msg[_WM_ERASEBKGND] = _TREEVIEW_WM_ERASEBKGND;
-	msg[_WM_GETOBJECT] = _TREEVIEW_WM_GETOBJECT;
-	msg[_WM_HSCROLL] = _TREEVIEW_WM_HSCROLL;
-	msg[_WM_KEYDOWN] = _TREEVIEW_WM_KEYDOWN;
-	msg[_WM_KILLFOCUS] = _TREEVIEW_WM_KILLFOCUS;
-	msg[_WM_LBUTTONDBLCLK] = _TREEVIEW_WM_LBUTTONDBLCLK;
-	msg[_WM_LBUTTONDOWN] = _TREEVIEW_WM_LBUTTONDOWN;
-	msg[_WM_MOUSEMOVE] = _TREEVIEW_WM_MOUSEMOVE;
-	msg[_WM_MOUSEWHEEL] = _TREEVIEW_WM_MOUSEWHEEL;
-	msg[_WM_MOVE] = _TREEVIEW_WM_MOVE;
-	msg[_WM_RBUTTONDOWN] = _TREEVIEW_WM_RBUTTONDOWN;
-	msg[_WM_PAINT] = _TREEVIEW_WM_PAINT;
-	msg[_WM_SETCURSOR] = _TREEVIEW_WM_SETCURSOR;
-	msg[_WM_SETFOCUS] = _TREEVIEW_WM_SETFOCUS;
-	msg[_WM_SETFONT] = _TREEVIEW_WM_SETFONT;
-	msg[_WM_SETREDRAW] = _TREEVIEW_WM_SETREDRAW;
-	msg[_WM_SIZE] = _TREEVIEW_WM_SIZE;
-	msg[_WM_SYSCOLORCHANGE] = _TREEVIEW_WM_SYSCOLORCHANGE;
-	msg[_WM_VSCROLL] = _TREEVIEW_WM_VSCROLL;
-	msg[_WM_TIMER] = _TREEVIEW_WM_TIMER;
-	msg[_WM_CTLCOLORCHILD] = _TREEVIEW_WM_CTLCOLORCHILD;
-	msg[_WM_NOTIFY] = _TREEVIEW_WM_NOTIFY;
-	msg[_WM_NOTIFYCHILD] = _TREEVIEW_WM_NOTIFYCHILD;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_TREEVIEW) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->create_handle = _w_treeview_create_handle;
+		priv->widget_style = _w_treeview_widget_style;
+		priv->window_class = _w_treeview_window_class;
+		priv->widget.call_window_proc = _w_treeview_call_window_proc;
+		priv->handle_top = _w_treeview_top_handle;
+		priv->check_buffered = _w_treeview_check_buffered;
+		_W_CONTROL_PRIV(priv)->default_background =
+				_w_treeview_default_background;
+		win_toolkit->EXPLORER_THEME = TRUE;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_CHAR] = _TREEVIEW_WM_CHAR;
+		msg[_WM_ERASEBKGND] = _TREEVIEW_WM_ERASEBKGND;
+		msg[_WM_GETOBJECT] = _TREEVIEW_WM_GETOBJECT;
+		msg[_WM_HSCROLL] = _TREEVIEW_WM_HSCROLL;
+		msg[_WM_KEYDOWN] = _TREEVIEW_WM_KEYDOWN;
+		msg[_WM_KILLFOCUS] = _TREEVIEW_WM_KILLFOCUS;
+		msg[_WM_LBUTTONDBLCLK] = _TREEVIEW_WM_LBUTTONDBLCLK;
+		msg[_WM_LBUTTONDOWN] = _TREEVIEW_WM_LBUTTONDOWN;
+		msg[_WM_MOUSEMOVE] = _TREEVIEW_WM_MOUSEMOVE;
+		msg[_WM_MOUSEWHEEL] = _TREEVIEW_WM_MOUSEWHEEL;
+		msg[_WM_MOVE] = _TREEVIEW_WM_MOVE;
+		msg[_WM_RBUTTONDOWN] = _TREEVIEW_WM_RBUTTONDOWN;
+		msg[_WM_PAINT] = _TREEVIEW_WM_PAINT;
+		msg[_WM_SETCURSOR] = _TREEVIEW_WM_SETCURSOR;
+		msg[_WM_SETFOCUS] = _TREEVIEW_WM_SETFOCUS;
+		msg[_WM_SETFONT] = _TREEVIEW_WM_SETFONT;
+		msg[_WM_SETREDRAW] = _TREEVIEW_WM_SETREDRAW;
+		msg[_WM_SIZE] = _TREEVIEW_WM_SIZE;
+		msg[_WM_SYSCOLORCHANGE] = _TREEVIEW_WM_SYSCOLORCHANGE;
+		msg[_WM_VSCROLL] = _TREEVIEW_WM_VSCROLL;
+		msg[_WM_TIMER] = _TREEVIEW_WM_TIMER;
+		msg[_WM_CTLCOLORCHILD] = _TREEVIEW_WM_CTLCOLORCHILD;
+		msg[_WM_NOTIFY] = _TREEVIEW_WM_NOTIFY;
+		msg[_WM_NOTIFYCHILD] = _TREEVIEW_WM_NOTIFYCHILD;
+	}
 }

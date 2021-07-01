@@ -1,5 +1,5 @@
 /*
- * toolkit.c
+ * classes.c
  *
  *  Created on: 29 avr. 2020
  *      Author: Azeddine El Bassbasi
@@ -10,7 +10,7 @@ w_toolkit* w_toolkit_get_default() {
 	return w_app_get_default_toolkit(w_app_get());
 }
 wresult w_toolkit_set_default(w_toolkit *toolkit) {
-	w_app_set_default_toolkit(w_app_get(),toolkit);
+	w_app_set_default_toolkit(w_app_get(), toolkit);
 	return W_TRUE;
 }
 struct _w_widget_class* w_toolkit_get_class(w_toolkit *toolkit,
@@ -18,6 +18,12 @@ struct _w_widget_class* w_toolkit_get_class(w_toolkit *toolkit,
 	if (toolkit == 0)
 		toolkit = w_toolkit_get_default();
 	return W_TOOLKIT_GET_CLASS(toolkit)->get_class(toolkit, clazz_id);
+}
+void w_toolkit_init_class(w_toolkit *toolkit, wushort clazz_id,
+		struct _w_widget_class *clazz) {
+	if (toolkit == 0)
+		return;
+	W_TOOLKIT_GET_CLASS(toolkit)->init_class(toolkit, clazz_id, clazz);
 }
 wresult w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
 		void *args) {
@@ -245,4 +251,199 @@ wresult w_toolkit_open_clipboard(w_toolkit *toolkit, w_clipboard *clipboard,
 		toolkit = w_toolkit_get_default();
 	return W_TOOLKIT_GET_CLASS(toolkit)->open_clipboard(toolkit, clipboard,
 			clipboards);
+}
+
+/*
+ * init classes
+ */
+void _w_toolkit_classes_init(struct _w_toolkit_classes *classes) {
+	/*  shell */
+	W_SCROLLABLE_CLASS(&classes->class_shell)->class_scrollbar =
+			&classes->class_scrollbar;
+	classes->classes[_W_CLASS_SHELL] = W_WIDGET_CLASS(&classes->class_shell);
+	/*  canvas */
+	W_SCROLLABLE_CLASS(&classes->class_canvas)->class_scrollbar =
+			&classes->class_scrollbar;
+	classes->classes[_W_CLASS_CANVAS] = W_WIDGET_CLASS(&classes->class_canvas);
+	classes->classes[_W_CLASS_CCANVAS] = W_WIDGET_CLASS(
+			&classes->class_ccanvas);
+	/* composite */
+	W_SCROLLABLE_CLASS(&classes->class_composite)->class_scrollbar =
+			&classes->class_scrollbar;
+	classes->classes[_W_CLASS_COMPOSITE] = W_WIDGET_CLASS(
+			&classes->class_composite);
+	/*  menu  */
+	W_MENU_CLASS(&classes->class_menu)->class_menuitem =
+			&classes->class_menuitem;
+	classes->classes[_W_CLASS_MENU] = W_WIDGET_CLASS(&classes->class_menu);
+	/*  treeview */
+	W_SCROLLABLE_CLASS(&classes->class_treeview)->class_scrollbar =
+			&classes->class_scrollbar;
+	W_LISTVIEWBASE_CLASS(&classes->class_treeview)->class_item = W_ITEM_CLASS(
+			&classes->class_treeitem);
+	W_LISTVIEWBASE_CLASS(&classes->class_treeview)->class_column =
+			&classes->class_treecolumn;
+	classes->classes[_W_CLASS_TREEVIEW] = W_WIDGET_CLASS(
+			&classes->class_treeview);
+	/* listview */
+	W_SCROLLABLE_CLASS(&classes->class_listview)->class_scrollbar =
+			&classes->class_scrollbar;
+	W_LISTVIEWBASE_CLASS(&classes->class_listview)->class_item = W_ITEM_CLASS(
+			&classes->class_listitem);
+	W_LISTVIEWBASE_CLASS(&classes->class_listview)->class_column =
+			&classes->class_listcolumn;
+	classes->classes[_W_CLASS_LISTVIEW] = W_WIDGET_CLASS(
+			&classes->class_listview);
+	/*  sash */
+	classes->classes[_W_CLASS_SASH] = W_WIDGET_CLASS(&classes->class_sash);
+	/* button */
+	classes->classes[_W_CLASS_BUTTON] = W_WIDGET_CLASS(&classes->class_button);
+	/* label */
+	classes->classes[_W_CLASS_LABEL] = W_WIDGET_CLASS(&classes->class_label);
+	/* textedit */
+	W_SCROLLABLE_CLASS(&classes->class_textedit)->class_scrollbar =
+			&classes->class_scrollbar;
+	classes->classes[_W_CLASS_TEXTEDIT] = W_WIDGET_CLASS(
+			&classes->class_textedit);
+	/* progressbar */
+	classes->classes[_W_CLASS_PROGRESSBAR] = W_WIDGET_CLASS(
+			&classes->class_progressbar);
+	/* groupbox */
+	W_SCROLLABLE_CLASS(&classes->class_groupbox)->class_scrollbar =
+			&classes->class_scrollbar;
+	classes->classes[_W_CLASS_GROUPBOX] = W_WIDGET_CLASS(
+			&classes->class_groupbox);
+	/* combobox */
+	W_SCROLLABLE_CLASS(&classes->class_combobox)->class_scrollbar =
+			&classes->class_scrollbar;
+	W_COMBOBOX_CLASS(&classes->class_combobox)->class_comboitem =
+			&classes->class_comboitem;
+	classes->classes[_W_CLASS_COMBOBOX] = W_WIDGET_CLASS(
+			&classes->class_combobox);
+	/* coolbar */
+	W_SCROLLABLE_CLASS(&classes->class_coolbar)->class_scrollbar =
+			&classes->class_scrollbar;
+	W_COOLBAR_CLASS(&classes->class_coolbar)->class_coolitem =
+			&classes->class_coolitem;
+	classes->classes[_W_CLASS_COOLBAR] = W_WIDGET_CLASS(
+			&classes->class_coolbar);
+	/* datetime */
+	W_SCROLLABLE_CLASS(&classes->class_datetime)->class_scrollbar =
+			&classes->class_scrollbar;
+	classes->classes[_W_CLASS_DATETIME] = W_WIDGET_CLASS(
+			&classes->class_datetime);
+	/* expandbar */
+	W_SCROLLABLE_CLASS(&classes->class_expandbar)->class_scrollbar =
+			&classes->class_scrollbar;
+	W_EXPANDBAR_CLASS(&classes->class_expandbar)->class_expanditem =
+			&classes->class_expanditem;
+	classes->classes[_W_CLASS_EXPANDBAR] = W_WIDGET_CLASS(
+			&classes->class_expandbar);
+	/* slider */
+	classes->classes[_W_CLASS_SLIDER] = W_WIDGET_CLASS(&classes->class_slider);
+	/* spinner */
+	W_SCROLLABLE_CLASS(&classes->class_spinner)->class_scrollbar =
+			&classes->class_scrollbar;
+	classes->classes[_W_CLASS_SPINNER] = W_WIDGET_CLASS(
+			&classes->class_spinner);
+	/* tabview */
+	W_SCROLLABLE_CLASS(&classes->class_tabview)->class_scrollbar =
+			&classes->class_scrollbar;
+	W_TABVIEW_CLASS(&classes->class_tabview)->class_tabitem =
+			&classes->class_tabitem;
+	classes->classes[_W_CLASS_TABVIEW] = W_WIDGET_CLASS(
+			&classes->class_tabview);
+	/* toolbar */
+	W_SCROLLABLE_CLASS(&classes->class_toolbar)->class_scrollbar =
+			&classes->class_scrollbar;
+	W_TOOLBAR_CLASS(&classes->class_toolbar)->class_toolitem =
+			&classes->class_toolitem;
+	classes->classes[_W_CLASS_TOOLBAR] = W_WIDGET_CLASS(
+			&classes->class_toolbar);
+	/* tray */
+	W_TRAY_CLASS(&classes->class_tray)->class_trayitem =
+			&classes->class_trayitem;
+	classes->classes[_W_CLASS_TRAY] = W_WIDGET_CLASS(&classes->class_tray);
+	classes->classes[_W_CLASS_TRAYITEM] = W_WIDGET_CLASS(
+			&classes->class_trayitem);
+	/* tooltip */
+	classes->classes[_W_CLASS_TOOLTIP] = W_WIDGET_CLASS(
+			&classes->class_tooltip);
+}
+void w_app_dispose(w_app *app) {
+	w_app_dispose_all();
+}
+const char* w_app_get_executable_file(w_app *app) {
+	if (app->app->argv != 0)
+		return app->app->argv[0];
+	else
+		return 0;
+}
+wresult w_app_get_executable_path(w_app *app, w_alloc alloc, void *userdata,
+		int enc) {
+	char *file = app->app->argv[0];
+	int i = 0, last_index = 0;
+	while (file[i] != 0) {
+		if (file[i] == '/' || file[i] == '\\') {
+			last_index = i;
+		}
+		i++;
+	}
+	return w_alloc_set_text(alloc, userdata, enc, app->app->argv[0],
+			last_index, W_ENCODING_UTF8);
+}
+w_toolkit* w_app_get_default_toolkit(w_app *app) {
+	if (app->app->defaultToolkit != 0)
+		return app->app->defaultToolkit;
+	else
+		return app->app->platformToolkit;
+}
+w_toolkit* w_app_set_default_toolkit(w_app *app, w_toolkit *toolkit) {
+	w_toolkit *last = app->app->defaultToolkit;
+	if (toolkit == 0) {
+		app->app->defaultToolkit = app->app->platformToolkit;
+	} else {
+		app->app->defaultToolkit = toolkit;
+	}
+	return last;
+}
+/**
+ *
+ */
+void w_app_dispose_all() {
+	w_app *app = w_app_get();
+	w_disposable *disposable = app->app->disposable, *next;
+	while (disposable != 0) {
+		next = disposable->next;
+		disposable->clazz->dispose(disposable);
+		disposable = next;
+	}
+}
+void w_app_dispose_registre(w_disposable *disposable) {
+	w_app *app = w_app_get();
+	w_disposable *d = app->app->disposable;
+	while (d != 0) {
+		if (d == disposable) {
+			return;
+		}
+		d = d->next;
+	}
+	disposable->next = app->app->disposable;
+	app->app->disposable = disposable;
+}
+void w_app_dispose_remove(w_disposable *disposable) {
+	w_app *app = w_app_get();
+	w_disposable *d = app->app->disposable, *prev = 0;
+	while (d != 0) {
+		if (d == disposable) {
+			if (prev == 0) {
+				app->app->disposable = d->next;
+			} else {
+				prev->next = d->next;
+			}
+			return;
+		}
+		prev = d;
+		d = d->next;
+	}
 }

@@ -61,7 +61,7 @@ DWORD _w_scrollable_widget_style(w_control *control, _w_control_priv *priv);
 wresult _w_scrollable_compute_trim(w_widget *widget, w_event_compute_trim *e,
 		_w_control_priv *priv);
 wresult _w_scrollable_create_handle(w_control *control, _w_control_priv *priv);
-void _w_scrollable_class_init(struct _w_scrollable_class *clazz);
+void _w_scrollable_class_init(w_toolkit *toolkit, wushort classId,struct _w_scrollable_class *clazz);
 /*
  * messages
  */

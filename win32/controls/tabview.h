@@ -35,6 +35,6 @@ typedef struct _w_tabitem {
 } _w_tabitem;
 #define _W_TABITEM(x) ((_w_tabitem*)x)
 
-void _w_tabview_class_init(struct _w_tabview_class *clazz);
+void _w_tabview_class_init(w_toolkit *toolkit, wushort classId,struct _w_tabview_class *clazz);
 
 #endif /* WIN32_CONTROLS_TABVIEW_H_ */

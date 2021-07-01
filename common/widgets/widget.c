@@ -36,6 +36,13 @@ wresult w_widget_is_ok(w_widget *widget) {
 	} else
 		return W_FALSE;
 }
+wresult w_widget_init_themedata(w_widget *widget, w_themedata *data) {
+	wresult result = W_WIDGET_CHECK0(widget);
+	if (result > 0) {
+		return widget->clazz->init_themedata(widget, data);
+	} else
+		return result;
+}
 wresult w_widget_dispose(w_widget *widget) {
 	wresult result = W_WIDGET_CHECK0(widget);
 	if (result > 0) {
@@ -89,7 +96,7 @@ w_widget* w_widget_ref_dec(w_widget *widget) {
 	}
 	return widget;
 }
-wresult w_widget_get_shell(w_widget *widget, w_shell **shell){
+wresult w_widget_get_shell(w_widget *widget, w_shell **shell) {
 	wresult result = W_WIDGET_CHECK0(widget);
 	if (result > 0) {
 		return W_WIDGET_GET_CLASS(widget)->get_shell(widget, shell);
@@ -104,8 +111,12 @@ w_toolkit* w_widget_get_toolkit(w_widget *widget) {
 	} else
 		return w_app_get_default_toolkit(w_app_get());
 }
-w_theme* w_widget_get_theme(w_widget *widget) {
-	return w_toolkit_get_theme(w_widget_get_toolkit(widget));
+wresult w_widget_get_theme(w_widget *widget, w_theme **theme) {
+	wresult result = W_WIDGET_CHECK0(widget);
+	if (result > 0) {
+		return W_WIDGET_GET_CLASS(widget)->get_theme(widget, theme);
+	} else
+		return result;
 }
 w_widget_post_event_proc w_widget_get_post_event(w_widget *widget) {
 	wresult result = W_WIDGET_CHECK0(widget);
@@ -138,6 +149,13 @@ wuint w_widget_get_id(w_widget *widget) {
 		return widget->id;
 	} else
 		return 0;
+}
+wresult w_widget_set_theme(w_widget *widget, w_theme *theme) {
+	wresult result = W_WIDGET_CHECK0(widget);
+	if (result > 0) {
+		return W_WIDGET_GET_CLASS(widget)->set_theme(widget, theme);
+	} else
+		return result;
 }
 wuint64 w_widget_get_style(w_widget *widget) {
 	wresult result = W_WIDGET_CHECK0(widget);
@@ -200,7 +218,7 @@ wresult _w_widget_create(w_widget *widget, w_toolkit *toolkit, w_widget *parent,
 	if (clazz == 0)
 		return W_ERROR_INVALID_SUBCLASS;
 	if (clazz->class_id == 0)
-		clazz->init_class((struct _w_widget_class*) clazz);
+		w_toolkit_init_class(toolkit, class_id, clazz);
 	memset(&(widget->clazz), 0, clazz->object_used_size);
 	widget->clazz = clazz;
 	wresult ret = clazz->create(widget, parent, style, post_event);
@@ -234,7 +252,7 @@ w_widget* _w_widget_new(w_toolkit *toolkit, w_widget *parent, wuint64 style,
 	if (clazz == 0)
 		return 0;
 	if (clazz->class_id == 0)
-		clazz->init_class(clazz);
+		w_toolkit_init_class(toolkit, class_id, clazz);
 	w_widget *widget = (w_widget*) malloc(clazz->object_total_size);
 	if (widget == 0)
 		return 0;

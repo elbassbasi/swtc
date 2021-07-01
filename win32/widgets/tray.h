@@ -31,7 +31,7 @@ typedef struct _w_tray_priv {
 } _w_tray_priv;
 #define _W_TRAY(x) ((_w_tray*)x)
 #define _W_TRAY_PRIV(x) ((_w_tray_priv*)x)
-void _w_tray_class_init(struct _w_tray_class *clazz);
-void _w_trayitem_class_init(struct _w_trayitem_class *item);
+void _w_tray_class_init(w_toolkit *toolkit, wushort classId,struct _w_tray_class *clazz);
+void _w_trayitem_class_init(w_toolkit *toolkit, wushort classId,struct _w_trayitem_class *item);
 
 #endif /* WIN32_WIDGETS_TRAY_H_ */

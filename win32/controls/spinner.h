@@ -27,7 +27,7 @@ typedef struct _w_spinner_priv {
 #define _W_SPINNER_PRIV(x) ((_w_spinner_priv*)x)
 
 wresult _w_spinner_set_selection_0(w_spinner *spinner,int value, int setPos, int setText, int notify);
-void _w_spinner_class_init(struct _w_spinner_class *clazz);
+void _w_spinner_class_init(w_toolkit *toolkit, wushort classId,struct _w_spinner_class *clazz);
 
 
 

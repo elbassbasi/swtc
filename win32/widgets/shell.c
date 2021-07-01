@@ -780,8 +780,12 @@ wresult _SHELL_WM_WINDOWPOSCHANGING(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	return W_FALSE;
 }
-void _w_shell_class_init(struct _w_shell_class *clazz) {
-	_w_canvas_class_init(W_CANVAS_CLASS(clazz));
+void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_shell_class *clazz) {
+	if (classId == _W_CLASS_SHELL) {
+		W_WIDGET_CLASS(clazz)->platformPrivate = &win_toolkit->class_shell_priv;
+	}
+	_w_canvas_class_init(toolkit, classId, W_CANVAS_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SHELL;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_shell_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_shell);
@@ -822,41 +826,47 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.call_window_proc = _w_shell_call_window_proc;
-	priv->check_style = _w_shell_check_style;
-	priv->create_handle = _w_shell_create_handle;
-	priv->window_class = _w_shell_window_class;
-	priv->widget_parent = _w_shell_widget_parent;
-	priv->widget_extstyle = _w_shell_widget_extstyle;
-	priv->widget_style = _w_shell_widget_style;
-	priv->subclass = _w_shell_subclass;
-	priv->unsubclass = _w_shell_unsubclass;
-	priv->find_cursor = _w_shell_find_cursor;
-	priv->translate_accelerator = _w_shell_translate_accelerator;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_CLOSE] = _SHELL_WM_CLOSE;
-	msg[_WM_KILLFOCUS] = _SHELL_WM_KILLFOCUS;
-	msg[_WM_NCACTIVATE] = _SHELL_WM_NCACTIVATE;
-	msg[_WM_QUERYOPEN] = _SHELL_WM_QUERYOPEN;
-	msg[_WM_SETFOCUS] = _SHELL_WM_SETFOCUS;
-	msg[_WM_SIZE] = _SHELL_WM_SIZE;
-	msg[_WM_SYSCOMMAND] = _SHELL_WM_SYSCOMMAND;
-	msg[_WM_ACTIVATE] = _SHELL_WM_ACTIVATE;
-	msg[_WM_DESTROY] = _SHELL_WM_DESTROY;
-	msg[_WM_ERASEBKGND] = _SHELL_WM_ERASEBKGND;
-	msg[_WM_ENTERIDLE] = _SHELL_WM_ENTERIDLE;
-	msg[_WM_GETMINMAXINFO] = _SHELL_WM_GETMINMAXINFO;
-	msg[_WM_MOUSEACTIVATE] = _SHELL_WM_MOUSEACTIVATE;
-	msg[_WM_MOVE] = _SHELL_WM_MOVE;
-	msg[_WM_NCHITTEST] = _SHELL_WM_NCHITTEST;
-	msg[_WM_NCLBUTTONDOWN] = _SHELL_WM_NCLBUTTONDOWN;
-	msg[_WM_PALETTECHANGED] = _SHELL_WM_PALETTECHANGED;
-	msg[_WM_QUERYNEWPALETTE] = _SHELL_WM_QUERYNEWPALETTE;
-	msg[_WM_SETCURSOR] = _SHELL_WM_SETCURSOR;
-	msg[_WM_SHOWWINDOW] = _SHELL_WM_SHOWWINDOW;
-	msg[_WM_WINDOWPOSCHANGING] = _SHELL_WM_WINDOWPOSCHANGING;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SHELL) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.call_window_proc = _w_shell_call_window_proc;
+		priv->check_style = _w_shell_check_style;
+		priv->create_handle = _w_shell_create_handle;
+		priv->window_class = _w_shell_window_class;
+		priv->widget_parent = _w_shell_widget_parent;
+		priv->widget_extstyle = _w_shell_widget_extstyle;
+		priv->widget_style = _w_shell_widget_style;
+		priv->subclass = _w_shell_subclass;
+		priv->unsubclass = _w_shell_unsubclass;
+		priv->find_cursor = _w_shell_find_cursor;
+		priv->translate_accelerator = _w_shell_translate_accelerator;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_CLOSE] = _SHELL_WM_CLOSE;
+		msg[_WM_KILLFOCUS] = _SHELL_WM_KILLFOCUS;
+		msg[_WM_NCACTIVATE] = _SHELL_WM_NCACTIVATE;
+		msg[_WM_QUERYOPEN] = _SHELL_WM_QUERYOPEN;
+		msg[_WM_SETFOCUS] = _SHELL_WM_SETFOCUS;
+		msg[_WM_SIZE] = _SHELL_WM_SIZE;
+		msg[_WM_SYSCOMMAND] = _SHELL_WM_SYSCOMMAND;
+		msg[_WM_ACTIVATE] = _SHELL_WM_ACTIVATE;
+		msg[_WM_DESTROY] = _SHELL_WM_DESTROY;
+		msg[_WM_ERASEBKGND] = _SHELL_WM_ERASEBKGND;
+		msg[_WM_ENTERIDLE] = _SHELL_WM_ENTERIDLE;
+		msg[_WM_GETMINMAXINFO] = _SHELL_WM_GETMINMAXINFO;
+		msg[_WM_MOUSEACTIVATE] = _SHELL_WM_MOUSEACTIVATE;
+		msg[_WM_MOVE] = _SHELL_WM_MOVE;
+		msg[_WM_NCHITTEST] = _SHELL_WM_NCHITTEST;
+		msg[_WM_NCLBUTTONDOWN] = _SHELL_WM_NCLBUTTONDOWN;
+		msg[_WM_PALETTECHANGED] = _SHELL_WM_PALETTECHANGED;
+		msg[_WM_QUERYNEWPALETTE] = _SHELL_WM_QUERYNEWPALETTE;
+		msg[_WM_SETCURSOR] = _SHELL_WM_SETCURSOR;
+		msg[_WM_SHOWWINDOW] = _SHELL_WM_SHOWWINDOW;
+		msg[_WM_WINDOWPOSCHANGING] = _SHELL_WM_WINDOWPOSCHANGING;
+	}
 }

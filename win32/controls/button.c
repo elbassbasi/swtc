@@ -799,8 +799,13 @@ wresult _w_button_compute_size(w_widget *widget, w_event_compute_size *e,
 	e->size->height = height;
 	return W_TRUE;
 }
-void _w_button_class_init(struct _w_button_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_button_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_button_class *clazz) {
+	if (classId == _W_CLASS_BUTTON) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&win_toolkit->class_button_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_BUTTON;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_button_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_button);
@@ -821,27 +826,33 @@ void _w_button_class_init(struct _w_button_class *clazz) {
 	/*
 	 * priv
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->check_style = _w_button_check_style;
-	priv->compute_size = _w_button_compute_size;
-	priv->create_handle = _w_button_create_handle;
-	priv->widget_style = _w_button_widget_style;
-	priv->window_class = _w_button_window_class;
-	/*
-	 * messages
-	 */
-	dispatch_message *msg = priv->messages;
-	msg[_WM_GETDLGCODE] = _BUTTON_WM_GETDLGCODE;
-	msg[_WM_GETOBJECT] = _BUTTON_WM_GETOBJECT;
-	msg[_WM_KILLFOCUS] = _BUTTON_WM_KILLFOCUS;
-	msg[_WM_LBUTTONDOWN] = _BUTTON_WM_LBUTTONDOWN;
-	msg[_WM_LBUTTONUP] = _BUTTON_WM_LBUTTONUP;
-	msg[_WM_SETFOCUS] = _BUTTON_WM_SETFOCUS;
-	msg[_WM_SIZE] = _BUTTON_WM_SIZE;
-	msg[_WM_SYSCOLORCHANGE] = _BUTTON_WM_SYSCOLORCHANGE;
-	msg[_WM_UPDATEUISTATE] = _BUTTON_WM_UPDATEUISTATE;
-	msg[_WM_COMMANDCHILD] = _BUTTON_WM_COMMANDCHILD;
-	msg[_WM_NOTIFYCHILD] = _BUTTON_WM_NOTIFYCHILD;
-	msg[_WM_DRAWCHILD] = _BUTTON_WM_DRAWCHILD;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_BUTTON) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->check_style = _w_button_check_style;
+		priv->compute_size = _w_button_compute_size;
+		priv->create_handle = _w_button_create_handle;
+		priv->widget_style = _w_button_widget_style;
+		priv->window_class = _w_button_window_class;
+		/*
+		 * messages
+		 */
+		dispatch_message *msg = priv->messages;
+		msg[_WM_GETDLGCODE] = _BUTTON_WM_GETDLGCODE;
+		msg[_WM_GETOBJECT] = _BUTTON_WM_GETOBJECT;
+		msg[_WM_KILLFOCUS] = _BUTTON_WM_KILLFOCUS;
+		msg[_WM_LBUTTONDOWN] = _BUTTON_WM_LBUTTONDOWN;
+		msg[_WM_LBUTTONUP] = _BUTTON_WM_LBUTTONUP;
+		msg[_WM_SETFOCUS] = _BUTTON_WM_SETFOCUS;
+		msg[_WM_SIZE] = _BUTTON_WM_SIZE;
+		msg[_WM_SYSCOLORCHANGE] = _BUTTON_WM_SYSCOLORCHANGE;
+		msg[_WM_UPDATEUISTATE] = _BUTTON_WM_UPDATEUISTATE;
+		msg[_WM_COMMANDCHILD] = _BUTTON_WM_COMMANDCHILD;
+		msg[_WM_NOTIFYCHILD] = _BUTTON_WM_NOTIFYCHILD;
+		msg[_WM_DRAWCHILD] = _BUTTON_WM_DRAWCHILD;
+	}
 }
 

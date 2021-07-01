@@ -31,5 +31,5 @@ typedef struct _w_tooltip_priv {
 #define _W_TOOLTIP(x) ((_w_tooltip*)x)
 #define _W_TOOLTIP_PRIV(x) ((_w_tooltip_priv*)x)
 void _w_tooltip_update_message (w_tooltip *tooltip);
-void _w_tooltip_class_init(struct _w_tooltip_class *clazz);
+void _w_tooltip_class_init(w_toolkit *toolkit, wushort classId,struct _w_tooltip_class *clazz);
 #endif /* WIN32_WIDGETS_TOOLTIP_H_ */

@@ -109,6 +109,7 @@ SWT_PUBLIC wresult w_menu_set_visible(w_menu *menu, int visible);
 #define W_MENU(x) ((w_menu*)x)
 #define W_MENU_CLASS(x) ((struct _w_menu_class*)x)
 #define W_MENU_GET_CLASS(x) ((struct _w_menu_class*)W_WIDGET_GET_CLASS(x))
+#define _W_MENU_GET_ITEM_CLASS(menu) (W_WIDGETDATA_CLASS(W_MENU_GET_CLASS(menu)->class_menuitem))
 
 #define W_MENUITEM(x) ((w_menuitem*)x)
 #define W_MENUITEM_CLASS(x) ((struct _w_menuitem_class*)x)

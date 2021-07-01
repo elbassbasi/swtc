@@ -173,6 +173,7 @@ typedef struct _w_widget {
 		HWND handle;
 		HMENU handleMenu;
 	};
+	w_theme *theme;
 	w_widget_post_event_proc post_event;
 	void *data[5];
 } _w_widget;
@@ -183,6 +184,7 @@ typedef struct _w_widget {
 typedef struct _w_widget_priv _w_widget_priv;
 typedef struct _w_control_priv _w_control_priv;
 struct _w_widget_priv {
+	int init;
 	void (*destroy)(w_widget *widget);
 	wresult (*window_proc)(w_widget *widget, _w_event_platform *e,
 			_w_control_priv *priv);
@@ -190,11 +192,10 @@ struct _w_widget_priv {
 			_w_control_priv *priv);
 };
 #define _W_WIDGET_PRIV(x) ((_w_widget_priv*)x)
-#define _W_WIDGET_GET_PRIV(x) ((_w_widget_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_WIDGET_GET_PRIV(x) ((_w_widget_priv*)W_WIDGET_GET_CLASS(widget)->reserved[0])
 /*
  * functions
  */
-_w_widget_priv* _w_widget_get_priv(w_widget *widget);
 w_widget* _w_widget_find_control(HWND hwnd);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
@@ -203,7 +204,8 @@ int _w_translate_key(int key);
 int _w_untranslate_key(int key);
 int _w_send_key_event(w_event_key *event);
 void _w_set_input_state(w_event *event);
-void _w_widget_class_init(struct _w_widget_class *clazz);
+wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data);
+void _w_widget_class_init(w_toolkit *toolkit, wushort classId,struct _w_widget_class *clazz);
 /*
  * messages
  */

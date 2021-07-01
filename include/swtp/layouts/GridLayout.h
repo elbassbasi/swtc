@@ -650,7 +650,13 @@ public:
 			bool flushCache);
 	void DoLayout(WComposite *composite, bool flushCache);
 	void SetData(WControl *control, const WLayoutData &data);
+	void SetData(WControl &control, const WLayoutData &data) {
+		SetData(&control, data);
+	}
 	void GetData(WControl *control, WLayoutData &data);
+	void GetData(WControl &control, WLayoutData &data) {
+		GetData(&control, data);
+	}
 };
 
 #endif /* SWTP_LAYOUTS_GRIDLAYOUT_H_ */
