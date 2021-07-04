@@ -115,8 +115,41 @@ wresult w_widget_get_theme(w_widget *widget, w_theme **theme) {
 	wresult result = W_WIDGET_CHECK0(widget);
 	if (result > 0) {
 		return W_WIDGET_GET_CLASS(widget)->get_theme(widget, theme);
-	} else
+	} else {
+		*theme = 0;
 		return result;
+	}
+}
+wresult w_widget_get_next_sibling(w_widget *widget, w_widget **next_sibling,
+		int filter) {
+	wresult result = W_WIDGET_CHECK0(widget);
+	if (result > 0) {
+		return W_WIDGET_GET_CLASS(widget)->get_next_sibling(widget,
+				next_sibling, filter);
+	} else {
+		*next_sibling = 0;
+		return result;
+	}
+}
+wresult w_widget_get_parent(w_widget *widget, w_widget **parent) {
+	wresult result = W_WIDGET_CHECK0(widget);
+	if (result > 0) {
+		return W_WIDGET_GET_CLASS(widget)->get_parent(widget, parent);
+	} else {
+		*parent = 0;
+		return result;
+	}
+}
+wresult w_widget_get_prev_sibling(w_widget *widget, w_widget **prev_sibling,
+		int filter) {
+	wresult result = W_WIDGET_CHECK0(widget);
+	if (result > 0) {
+		return W_WIDGET_GET_CLASS(widget)->get_prev_sibling(widget,
+				prev_sibling, filter);
+	} else {
+		*prev_sibling = 0;
+		return result;
+	}
 }
 w_widget_post_event_proc w_widget_get_post_event(w_widget *widget) {
 	wresult result = W_WIDGET_CHECK0(widget);
@@ -180,22 +213,10 @@ void* w_widget_set_data(w_widget *widget, wuint index, void *data) {
 	} else
 		return 0;
 }
-wresult w_widget_default_post_event(w_widget *widget, w_event *e) {
+wresult w_widget_post_event(w_widget *widget, w_event *event, int flags) {
 	wresult result = W_WIDGET_CHECK0(widget);
 	if (result > 0) {
-		return W_WIDGET_GET_CLASS(widget)->post_event(widget, e);
-	} else
-		return result;
-}
-wresult w_widget_send_event(w_widget *widget, w_event *event) {
-	wresult result = W_WIDGET_CHECK0(widget);
-	if (result > 0) {
-		if (widget->post_event != 0) {
-			return widget->post_event(widget, event);
-		} else {
-			struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(widget);
-			return clazz->post_event(widget, event);
-		}
+		return W_WIDGET_GET_CLASS(widget)->post_event(widget, event, flags);
 	} else
 		return result;
 }

@@ -26,7 +26,10 @@ wresult _w_control_post_event_platform(w_widget *widget, _w_event_platform *ee,
 	}
 	return ret;
 }
-wresult _w_control_post_event(w_widget *widget, w_event *e) {
+wresult _w_control_post_event(w_widget *widget, w_event *e,int flags) {
+	if (widget->post_event != 0) {
+		widget->post_event(widget, e);
+	}
 	switch (e->type) {
 	case W_EVENT_PLATFORM:
 		return _w_control_post_event_platform(widget, _W_EVENT_PLATFORM(e),
@@ -79,7 +82,7 @@ LRESULT CALLBACK _w_control_window_proc(HWND hWnd, UINT message, WPARAM wParam,
 		e.wparam = wParam;
 		e.lparam = lParam;
 		e.result = 0;
-		_w_widget_send_event(widget, (w_event*) &e);
+		_w_widget_post_event(widget, (w_event*) &e, W_EVENT_SEND);
 		return e.result;
 	} else {
 		return DefWindowProcW(hWnd, message, wParam, lParam);
@@ -231,7 +234,7 @@ wresult _CONTROL_WM_SIZE(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.type = W_EVENT_RESIZE;
 	event.widget = widget;
-	_w_widget_send_event(widget, &event);
+	_w_widget_post_event(widget, &event, W_EVENT_SEND);
 	//}
 	return W_FALSE;
 }
@@ -256,7 +259,7 @@ wresult _CONTROL_WM_TIMER(w_widget *widget, _w_event_platform *e,
 		event.event.type = W_EVENT_TIMER;
 		event.event.widget = widget;
 		event.id = e->wparam - 0x200;
-		_w_widget_send_event(widget, (w_event*) &event);
+		_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 	return W_FALSE;
 }
@@ -299,7 +302,7 @@ wresult _CONTROL_WM_WINDOWPOSCHANGING(w_widget *widget, _w_event_platform *e,
 				int width = rect.right - rect.left;
 				int height = rect.bottom - rect.top;
 				if (width != 0 && height != 0) {
-					w_composite *parent = _W_CONTROL(widget)->parent;
+					w_widget *parent = _W_WIDGET(widget)->parent;
 					HWND hwndParent =
 							parent == 0 ? 0 : _W_WIDGET(parent)->handle;
 					MapWindowPoints(0, hwndParent, (POINT*) &rect, 2);

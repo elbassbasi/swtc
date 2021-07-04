@@ -110,9 +110,9 @@ DWORD _w_progressbar_widget_style(w_control *control, _w_control_priv *priv) {
 		bits |= PBS_MARQUEE;
 	return bits;
 }
-const char* _w_progressbar_window_class(w_control *control,
+WCHAR* _w_progressbar_window_class(w_control *control,
 		_w_control_priv *priv) {
-	return PROGRESS_CLASSA;
+	return PROGRESS_CLASSW;
 }
 void _w_progressbar_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_progressbar_class *clazz) {

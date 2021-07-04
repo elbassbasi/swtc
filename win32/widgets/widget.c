@@ -89,12 +89,27 @@ wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data) {
 	data->style = w_widget_get_style(widget);
 	return W_TRUE;
 }
-wresult _w_widget_send_event(w_widget *widget, w_event *event) {
-	if (widget->post_event != 0) {
-		return widget->post_event(widget, event);
-	} else {
-		return w_widget_default_post_event(widget, event);
-	}
+wresult _w_widget_get_parent(w_widget *widget, w_widget **parent) {
+	*parent = _W_WIDGET(widget)->parent;
+	return W_TRUE;
+}
+wresult _w_widget_get_first_child(w_widget *widget, w_widget **first_child,
+		int filter) {
+	*first_child = _W_WIDGET(widget)->first_child;
+	return W_TRUE;
+}
+wresult _w_widget_get_next_sibling(w_widget *widget, w_widget **next_sibling,
+		int filter) {
+	*next_sibling = _W_WIDGET(widget)->next_sibling;
+	return W_TRUE;
+}
+wresult _w_widget_get_prev_sibling(w_widget *widget, w_widget **prev_sibling,
+		int filter) {
+	*prev_sibling = _W_WIDGET(widget)->prev_sibling;
+	return W_TRUE;
+}
+wresult _w_widget_post_event(w_widget *widget, w_event *event, int flags) {
+	return W_WIDGET_GET_CLASS(widget)->post_event(widget, event, flags);
 }
 int _w_numpad_key(int key) {
 	if (key >= VK_NUMPAD0) {
@@ -437,7 +452,8 @@ int _w_set_key_state(w_event_key *event) {
 int _w_send_key_event(w_event_key *event) {
 	if (!_w_set_key_state(event))
 		return W_TRUE;
-	return _w_widget_send_event(event->event.widget, (w_event*) event);
+	return _w_widget_post_event(event->event.widget, (w_event*) event,
+			W_EVENT_SEND);
 }
 int _w_widget_show_menu(w_widget *widget, int x, int y, int detail) {
 	w_event_menu_detect event;
@@ -453,7 +469,7 @@ int _w_widget_show_menu(w_widget *widget, int x, int y, int detail) {
 	if (event.detail == W_MENU_KEYBOARD) {
 		//updateMenuLocation(event);
 	}
-	_w_widget_send_event(widget, W_EVENT(&event));
+	_w_widget_post_event(widget, W_EVENT(&event), W_EVENT_SEND);
 	// widget could be disposed at this point
 	if (w_widget_is_ok(widget) <= 0)
 		return W_FALSE;
@@ -854,7 +870,7 @@ wresult _WIDGET_WM_KEYUP(w_widget *widget, _w_event_platform *e,
 			return W_FALSE;
 		}
 	}
-	int ret = W_FALSE;
+	wresult ret = W_FALSE;
 	memset(&event, 0, sizeof(event));
 	event.event.type = W_EVENT_KEYUP;
 	event.event.widget = widget;
@@ -879,7 +895,7 @@ wresult _WIDGET_WM_KILLFOCUS(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_FOCUSOUT;
 	event.widget = widget;
 	event.platform_event = (struct w_event_platform*) e;
-	_w_widget_send_event(widget, &event);
+	_w_widget_post_event(widget, &event, W_EVENT_SEND);
 // widget could be disposed at this point
 
 	/*
@@ -901,7 +917,7 @@ wresult _WIDGET_WM_SETFOCUS(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_FOCUSIN;
 	event.widget = widget;
 	event.platform_event = (struct w_event_platform*) e;
-	_w_widget_send_event(widget, &event);
+	_w_widget_post_event(widget, &event, W_EVENT_SEND);
 	// widget could be disposed at this point
 
 	/*
@@ -1105,7 +1121,7 @@ wresult _WIDGET_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 				event.x = GET_X_LPARAM(e->lparam);
 				event.y = GET_Y_LPARAM(e->lparam);
 				_w_set_input_state((w_event*) &event);
-				_w_widget_send_event(widget, (w_event*) &event);
+				_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 			} else {
 				lpEventTrack.dwFlags = TME_HOVER;
 				TrackMouseEvent(&lpEventTrack);
@@ -1125,7 +1141,7 @@ wresult _WIDGET_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 		event.x = GET_X_LPARAM(e->lparam);
 		event.y = GET_Y_LPARAM(e->lparam);
 		_w_set_input_state((w_event*) &event);
-		result = _w_widget_send_event(widget, (w_event*) &event);
+		result = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 #endif
 	win_toolkit->captureChanged = W_FALSE;
@@ -1159,7 +1175,7 @@ wresult _WIDGET_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1171,7 +1187,7 @@ wresult _WIDGET_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1251,7 +1267,7 @@ wresult _WIDGET_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		 * to cancel the drag.  The fix is to query the state
 		 * of the mouse and capture the mouse accordingly.
 		 */
-		dragging = dragDetect(e->hwnd, x, y, W_TRUE, &detect, &consume);
+		//dragging = dragDetect(e->hwnd, x, y, W_TRUE, &detect, &consume);
 		//if (isDisposed ()) return LRESULT.ZERO;
 		mouseDown = GetKeyState(VK_LBUTTON) < 0;
 	}
@@ -1267,7 +1283,7 @@ wresult _WIDGET_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	dispatch = _w_widget_send_event(widget, (w_event*) &event);
+	dispatch = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!dispatch && !consume) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1292,7 +1308,7 @@ wresult _WIDGET_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		event.x = GET_X_LPARAM(e->lparam);
 		event.y = GET_Y_LPARAM(e->lparam);
 		_w_set_input_state((w_event*) &event);
-		_w_widget_send_event(widget, (w_event*) &event);
+		_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	} else {
 		if (detect) {
 			/*
@@ -1336,7 +1352,8 @@ wresult _WIDGET_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult result = _w_widget_send_event(widget, (w_event*) &event);
+	wresult result = _w_widget_post_event(widget, (w_event*) &event,
+			W_EVENT_SEND);
 	if (!result) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1385,7 +1402,7 @@ wresult _WIDGET_WM_MBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1397,7 +1414,7 @@ wresult _WIDGET_WM_MBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1424,7 +1441,7 @@ wresult _WIDGET_WM_MBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1450,7 +1467,7 @@ wresult _WIDGET_WM_MBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1485,7 +1502,7 @@ wresult _WIDGET_WM_MOUSEHOVER(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (ret) {
 		e->result = 0;
 		return W_TRUE;
@@ -1510,7 +1527,7 @@ wresult _WIDGET_WM_MOUSELEAVE(w_widget *widget, _w_event_platform *e,
 	event.x = pt.x;
 	event.y = pt.y;
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (ret) {
 		e->result = 0;
 		return W_TRUE;
@@ -1548,7 +1565,7 @@ wresult _WIDGET_WM_MOUSEWHEEL(w_widget *widget, _w_event_platform *e,
 	event.x = pt.x;
 	event.y = pt.y;
 	_w_set_input_state((w_event*) &event);
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return W_TRUE;
 }
 wresult _WIDGET_WM_MOUSEHWHEEL(w_widget *widget, _w_event_platform *e,
@@ -1575,7 +1592,7 @@ wresult _WIDGET_WM_MOUSEHWHEEL(w_widget *widget, _w_event_platform *e,
 	event.x = pt.x;
 	event.y = pt.y;
 	_w_set_input_state((w_event*) &event);
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return W_TRUE;
 }
 wresult _WIDGET_WM_RBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
@@ -1606,7 +1623,7 @@ wresult _WIDGET_WM_RBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1618,7 +1635,7 @@ wresult _WIDGET_WM_RBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1645,7 +1662,7 @@ wresult _WIDGET_WM_RBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1671,7 +1688,7 @@ wresult _WIDGET_WM_RBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1723,7 +1740,7 @@ wresult _WIDGET_WM_XBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1735,7 +1752,7 @@ wresult _WIDGET_WM_XBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1764,7 +1781,7 @@ wresult _WIDGET_WM_XBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1791,7 +1808,7 @@ wresult _WIDGET_WM_XBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1839,7 +1856,7 @@ wresult _WIDGET_WM_PAINT(w_widget *widget, _w_event_platform *e,
 		event.bounds.width = rect.right - rect.left;
 		event.bounds.height = rect.bottom - rect.top;
 		event.gc = &gc;
-		result = _w_widget_send_event(widget, W_EVENT(&event));
+		result = _w_widget_post_event(widget, W_EVENT(&event), W_EVENT_SEND);
 	}
 	w_graphics_dispose(&gc);
 	ShowCaret(e->hwnd);
@@ -1853,6 +1870,10 @@ void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
 	clazz->get_theme = _w_widget_get_theme;
 	clazz->set_theme = _w_widget_set_theme;
 	clazz->init_themedata = _w_widget_init_themedata;
+	clazz->get_parent = _w_widget_get_parent;
+	clazz->get_first_child = _w_widget_get_first_child;
+	clazz->get_next_sibling = _w_widget_get_next_sibling;
+	clazz->get_prev_sibling = _w_widget_get_prev_sibling;
 	clazz->toolkit = toolkit;
 	/*
 	 * private

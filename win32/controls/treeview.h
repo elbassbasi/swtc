@@ -161,7 +161,7 @@ int _w_treeview_find_cell(w_treeview *tree, int x, int y, w_listitem *item,
 		int *index, RECT *cellRect, RECT *itemRect);
 HTREEITEM _w_treeview_get_bottom_item(HWND handle);
 int _w_treeview_get_header_width(w_treeview *tree);
-wresult _w_treeview_post_event(w_widget *widget, w_event *ee);
+wresult _w_treeview_post_event(w_widget *widget, w_event *ee,int flags);
 void _w_treeview_set_scroll_width_0(w_treeview *tree, int width);
 void _w_treeview_set_scroll_width(w_treeview *tree);
 void _w_treeview_update_scrollbar(w_treeview *tree);

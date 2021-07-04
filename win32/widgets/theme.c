@@ -8,6 +8,19 @@
 #include "toolkit.h"
 #include "vsstyle.h"
 #include "vssym32.h"
+WCHAR *_themes_names[HTHEME_LAST] = { //
+		[HTHEME_BUTTON]=L"BUTTON", //
+
+		};
+void* _win32_get_hteme(wuint id) {
+	if (id > HTHEME_LAST)
+		return 0;
+	void **hthemes = win_toolkit->win32theme.hthemes;
+	if (hthemes[id] == 0) {
+		hthemes[id] = OpenThemeData(NULL, _themes_names[id]);
+	}
+	return hthemes[id];
+}
 typedef void (*_win32_theme_part_id)(w_theme *theme, w_themedata *data,
 		int *ids, int part);
 /* expandbar */
@@ -271,7 +284,7 @@ void _win32_themedata_expanditem_measure(w_theme *theme, int mask,
 		WCHAR *str;
 		int newlength;
 		RECT rect;
-		_win_text_fix(data->attr.text, -1, W_ENCODING_UTF8, &str, &newlength);
+		_win_text_fix(data->attr.text, -1, data->attr.enc, &str, &newlength);
 		if (hTheme != 0) {
 			GetThemeTextExtent(hTheme, hDC, EBP_NORMALGROUPHEAD, 0, str,
 					newlength, DT_SINGLELINE, NULL, &rect);
@@ -398,17 +411,116 @@ int _win32_theme_hit(w_theme *theme, int mask, w_themedata *data,
 	}
 	return W_THEME_PART_NOWHERE;
 }
-w_color _win32_theme_get_color(w_theme *theme, wuint colorid) {
-	return 0;
+wuchar _system_colors[] = { //
+		[W_COLOR_WIDGET_DARK_SHADOW] = COLOR_3DDKSHADOW, //
+				[W_COLOR_WIDGET_NORMAL_SHADOW] = COLOR_3DSHADOW, //
+				[W_COLOR_WIDGET_LIGHT_SHADOW] = COLOR_3DLIGHT, //
+				[W_COLOR_WIDGET_HIGHLIGHT_SHADOW] = COLOR_3DHIGHLIGHT, //
+				[W_COLOR_WIDGET_BACKGROUND] = COLOR_3DFACE, //
+				[W_COLOR_WIDGET_BORDER] = COLOR_WINDOWFRAME, //
+				[W_COLOR_WIDGET_FOREGROUND] = COLOR_WINDOWTEXT, //
+				[W_COLOR_LIST_FOREGROUND] = COLOR_WINDOWTEXT, //
+				[W_COLOR_LIST_BACKGROUND] = COLOR_WINDOW, //
+				[W_COLOR_LIST_SELECTION] = COLOR_HIGHLIGHT, //
+				[W_COLOR_LIST_SELECTION_TEXT] = COLOR_HIGHLIGHTTEXT, //
+				[W_COLOR_LINK_FOREGROUND] = COLOR_HOTLIGHT, //
+				[W_COLOR_INFO_FOREGROUND] = COLOR_INFOTEXT, //
+				[W_COLOR_INFO_BACKGROUND] = COLOR_INFOBK, //
+				[W_COLOR_TITLE_FOREGROUND] = COLOR_CAPTIONTEXT, //
+				[W_COLOR_TITLE_BACKGROUND] = COLOR_ACTIVECAPTION, //
+				[W_COLOR_TITLE_BACKGROUND_GRADIENT
+						] = COLOR_GRADIENTACTIVECAPTION, //
+				[W_COLOR_TITLE_INACTIVE_FOREGROUND] = COLOR_INACTIVECAPTIONTEXT, //
+				[W_COLOR_TITLE_INACTIVE_BACKGROUND] = COLOR_INACTIVECAPTION, //
+				[W_COLOR_TITLE_INACTIVE_BACKGROUND_GRADIENT
+						] = COLOR_GRADIENTINACTIVECAPTION, //
+
+		};
+wresult _win32_theme_get_color(w_theme *theme, wuint colorid, w_color *color) {
+	*color = 0x00000000;
+	if (colorid < sizeof(_system_colors) / sizeof(_system_colors[0])) {
+		int nIndex = _system_colors[colorid];
+		if (nIndex != 0) {
+			*color = GetSysColor(nIndex);
+			if (color == 0) {
+				switch (colorid) {
+				case W_COLOR_TITLE_BACKGROUND_GRADIENT:
+					*color = GetSysColor(COLOR_ACTIVECAPTION);
+					break;
+				case W_COLOR_TITLE_INACTIVE_BACKGROUND_GRADIENT:
+					*color = GetSysColor(COLOR_INACTIVECAPTION);
+					break;
+				}
+
+			}
+		}
+		return W_TRUE;
+	}
+	return W_FALSE;
 }
-w_font* _win32_theme_get_font(w_theme *theme) {
-	return 0;
+wresult _win32_theme_get_font(w_theme *theme, w_font **font) {
+	_win32_theme *t = (_win32_theme*) theme;
+	if (t->systemFont == 0) {
+		t->systemFont = GetStockObject(DEFAULT_GUI_FONT);
+		if (t->systemFont == 0)
+			t->systemFont = GetStockObject(SYSTEM_FONT);
+	}
+	*font = (w_font*) t->systemFont;
+	return W_TRUE;
 }
-w_cursor* _win32_theme_get_cursor(w_theme *theme, wuint id) {
-	return 0;
+wresult _win32_theme_get_cursor(w_theme *theme, wuint id, w_cursor **cursor) {
+	_win32_theme *t = (_win32_theme*) theme;
+	if (id <= W_CURSOR_HAND) {
+		*cursor = (w_cursor*) &t->cursors[id];
+		return W_TRUE;
+	} else {
+		*cursor = 0;
+		return W_FALSE;
+	}
 }
-w_image* _win32_theme_get_image(w_theme *theme, wuint id) {
-	return 0;
+#ifndef OIC_HAND
+#define OIC_HAND 32513
+#define OIC_NOTE 32516
+#define OIC_INFORMATION OIC_NOTE
+#define OIC_QUES 32514
+#define OIC_BANG 32515
+#endif
+wresult _win32_theme_get_image(w_theme *theme, wuint id, w_image **image) {
+	_win32_theme *t = (_win32_theme*) theme;
+	int index = -1, sys;
+	switch (id) {
+	case W_ICON_ERROR:
+		sys = OIC_HAND;
+		index = 0;
+		break;
+	case W_ICON_WORKING:
+	case W_ICON_INFORMATION:
+		sys = OIC_INFORMATION;
+		index = 1;
+		break;
+	case W_ICON_QUESTION:
+		sys = OIC_QUES;
+		index = 2;
+		break;
+	case W_ICON_WARNING:
+		sys = OIC_BANG;
+		index = 3;
+		break;
+	}
+	if (index != -1) {
+		_w_image *img = &t->images[index];
+		if (img->handle == 0) {
+			img->handle = LoadImageW(0, MAKEINTRESOURCEW(sys), IMAGE_ICON, 0, 0,
+			LR_SHARED);
+			if (img->handle != 0) {
+				img->type = _IMAGE_ICON;
+				*image = (w_image*) img;
+				return W_TRUE;
+			}
+		}
+	}
+	*image = 0;
+	return W_FALSE;
 }
 _w_theme_class _win32_theme_clazz = { //
 		_win32_theme_dispose, //

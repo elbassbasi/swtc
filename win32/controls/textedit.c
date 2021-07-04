@@ -664,9 +664,9 @@ DWORD _w_textedit_widget_extstyle(w_control *control, _w_control_priv *priv) {
 	}
 	return bits;
 }
-const char* _w_textedit_window_class(w_control *control,
+WCHAR* _w_textedit_window_class(w_control *control,
 		_w_control_priv *priv) {
-	return WC_EDITA;
+	return WC_EDITW;
 }
 void _w_textedit_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_textedit_class *clazz) {

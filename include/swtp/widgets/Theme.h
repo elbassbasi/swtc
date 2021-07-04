@@ -14,11 +14,11 @@ public:
 	WFont *font;
 	WColor background;
 	WColor foreground;
-	int imageIndex;
+	int image;
 	int enc;
 	union {
 		struct {
-			char *text;
+			const char *text;
 			int length;
 		};
 		struct {
@@ -50,22 +50,24 @@ public:
 		return w_alloc_printf(alloc, user_data, this->enc, enc, format, args);
 	}
 };
-class WItemAttrImage: public WItemAttr {
-public:
-	w_imagelist *imagelist;
-	w_image *image;
-	int flags;
-};
+typedef w_scrollbar_value WScrollBarValue;
 class WBasicThemeData {
 public:
 	wuchar clazz;
-	wuchar state0;
-	wushort state;
+	unsigned state :14;
+	unsigned textflags :10;
 	wuint style;
 	WGraphics *gc;
 	WRect *bounds;
-	WRect *clienArea;
-	WItemAttrImage attr;
+	WRect *clientArea;
+	union {
+		WImageList *imagelist;
+		WImage *image;
+	};
+	WItemAttr attr;
+	union {
+		WScrollBarValue *range;
+	};
 protected:
 	void Init(WGraphics *gc, WRect *bounds) {
 		w_themedata_init((w_themedata*) this, (w_graphics*) gc,
@@ -112,7 +114,7 @@ public:
 		Draw(theme, W_THEME_MASK_TEXT);
 	}
 	void SetText(const char *text, int length, int enc) {
-		this->attr.text =(char *) text;
+		this->attr.text = text;
 		this->attr.length = length;
 		this->attr.enc = enc;
 	}
@@ -123,13 +125,13 @@ public:
 		SetText(text, -1);
 	}
 	void SetDrawLeft() {
-		this->attr.flags = W_THEME_DRAW_LEFT;
+		this->textflags |= W_THEME_DRAW_LEFT;
 	}
 	void SetDrawRight() {
-		this->attr.flags = W_THEME_DRAW_RIGHT;
+		this->textflags = W_THEME_DRAW_RIGHT;
 	}
 	void SetDrawCenter() {
-		this->attr.flags = W_THEME_DRAW_CENTER;
+		this->textflags = W_THEME_DRAW_CENTER;
 	}
 public:
 	void SetStateNull() {
@@ -234,16 +236,24 @@ public:
 		return w_theme_get_name((w_theme*) this);
 	}
 	w_color GetColor(wuint id) {
-		return w_theme_get_color((w_theme*) this, id);
+		w_color color;
+		w_theme_get_color((w_theme*) this, id, &color);
+		return color;
 	}
 	WFont* GetFont() {
-		return (WFont*) w_theme_get_font((w_theme*) this);
+		WFont *font;
+		w_theme_get_font((w_theme*) this, (w_font**) &font);
+		return font;
 	}
 	WCursor* GetCursor(wuint id) {
-		return (WCursor*) w_theme_get_cursor((w_theme*) this, id);
+		WCursor *cursor;
+		w_theme_get_cursor((w_theme*) this, id, (w_cursor**) &cursor);
+		return cursor;
 	}
 	WImage* GetImage(wuint id) {
-		return (WImage*) w_theme_get_image((w_theme*) this, id);
+		WImage *image;
+		w_theme_get_image((w_theme*) this, id, (w_image**) &image);
+		return image;
 	}
 };
 

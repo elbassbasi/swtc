@@ -87,7 +87,7 @@ bool TTreeVirtual::OnItemMeasure(WTreeEvent &e) {
 
 bool TTreeVirtual::OnItemErase(WTreeEvent &e) {
 	e.detail &= ~W_HOT;
-	if (!e.selected)
+	if (!(e.detail & W_SELECTED))
 		return false; /* item not selected */
 	WRect rect;
 	GetClientArea(rect);
@@ -143,7 +143,7 @@ bool TTreeVirtual::OnItemGetText(WTreeEvent &e) {
 			e.SetAttrText(p->name);
 			break;
 		case 2:
-			e.SetAttrTextV("i %s %d", p->name, p->progress);
+			e.SetAttrTextV("n:%s p:%d", p->name, p->progress);
 			if (e.item->GetChecked()) {
 				e.SetAttrBackground(W_COLOR_MAGENTA);
 				e.SetAttrForeground(W_COLOR_RED);

@@ -20,7 +20,7 @@ w_control* w_tabitem_get_control(w_tabitem *item) {
 			event.event.widget = widget;
 			event.control = 0;
 			event.item = item;
-			w_widget_send_event(widget, (w_event*) &event);
+			w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
 			return event.control;
 		}
 	}
@@ -63,7 +63,7 @@ wresult w_tabitem_set_control(w_tabitem *item, w_control *control) {
 			event.event.widget = widget;
 			event.control = control;
 			event.item = item;
-			int ret = w_widget_send_event(widget, (w_event*) &event);
+			int ret = w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
 			W_TABITEM_GET_CLASS(item)->pack(item, control);
 			return ret;
 		}

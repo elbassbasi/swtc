@@ -239,7 +239,7 @@ wresult _ns_treeview_outlineViewItemWillExpand(w_widget *widget,
 	_W_TREEITEM(&item)->handle = e->args[0]._ptr;
 	NSOutlineView *view = priv->get_view(widget);
 	_W_TREEITEM(&item)->view = view;
-	_w_widget_send_event(widget, W_EVENT(&event));
+	_w_widget_post_event(widget, W_EVENT(&event));
 	return W_FALSE;
 }
 wresult _ns_treeview_outlineViewSelectionDidChange(w_widget *widget,
@@ -263,7 +263,7 @@ wresult _ns_treeview_outlineViewSelectionDidChange(w_widget *widget,
 		NSOutlineView *view = (NSOutlineView *)priv->get_view(widget);
 		_W_TREEITEM(&item)->view = view;
 	}
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event);
 	return W_FALSE;
 }
 void _w_treeview_class_init(struct _w_treeview_class *clazz) {

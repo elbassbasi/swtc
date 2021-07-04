@@ -25,25 +25,24 @@
  * control
  */
 typedef struct _w_accel_id {
-	HMENU menu;
+	HMENU hMenu;
 	wushort flags;
 	wushort sub_id;
 	int accelerator;
 } _w_accel_id;
 typedef struct _w_control {
 	_w_widget widget;
-	w_composite *parent;
 	w_menu *menu;
 	w_cursor *cursor;
-	w_array *ids;
-	HACCEL hAccel;
 	w_font *font;
 	HMENU activeMenu;
 	wushort drawCount;
 	wuchar backgroundAlpha;
 	w_color background;
 	w_color foreground;
-	HBITMAP backgroundImage;
+	_w_image backgroundImage;
+	w_array *ids;
+	HACCEL hAccel;
 } _w_control;
 #define _W_CONTROL(x) ((_w_control*)x)
 /*
@@ -60,7 +59,7 @@ struct _w_control_priv {
 	HWND (*handle_border)(w_control *control);
 	wresult (*create_widget)(w_control *control, _w_control_priv *priv);
 	wuint64 (*check_style)(w_widget *widget, wuint64 style);
-	wresult (*check_orientation)(w_control *control, w_composite *parent,
+	wresult (*check_orientation)(w_control *control, w_widget *parent,
 			_w_control_priv *priv);
 	wresult (*create_handle)(w_control *control, _w_control_priv *priv);
 	wresult (*subclass)(w_control *control, _w_control_priv *priv);
@@ -87,7 +86,7 @@ struct _w_control_priv {
 	HWND (*widget_parent)(w_control *control, _w_control_priv *priv);
 	DWORD (*widget_style)(w_control *control, _w_control_priv *priv);
 	DWORD (*widget_extstyle)(w_control *control, _w_control_priv *priv);
-	const char* (*window_class)(w_control *control, _w_control_priv *priv);
+	WCHAR* (*window_class)(w_control *control, _w_control_priv *priv);
 	wresult (*compute_size)(w_widget *widget, w_event_compute_size *e,
 			_w_control_priv *priv);
 	wresult (*get_client_area)(w_widget *widget, w_event_client_area *e,
@@ -102,19 +101,24 @@ struct _w_control_priv {
 			_w_control_priv *priv);
 	wresult (*translate_traversal)(w_control *control, MSG *msg,
 			_w_control_priv *priv);
+	wresult (*traverse)(w_control *control, w_event_key *event,
+			_w_control_priv *priv);
+	wresult (*traverse_mnemonic)(w_control *control, int key,
+			_w_control_priv *priv);
+	wresult (*mnemonic_hit)(w_control *control, int key, _w_control_priv *priv);
 };
 #define _W_CONTROL_PRIV(x) ((_w_control_priv*)x)
 #define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)W_WIDGET_GET_CLASS(x)->platformPrivate)
 
 typedef struct _w_ccanvas_priv {
 	_w_control_priv control;
-}_w_ccanvas_priv;
+} _w_ccanvas_priv;
 /*
  * functions
  */
 wresult _w_control_post_event_platform(w_widget *widget, _w_event_platform *ee,
 		_w_control_priv *priv);
-wresult _w_control_post_event(w_widget *widget, w_event *e);
+wresult _w_control_post_event(w_widget *widget, w_event *e,int flags);
 LRESULT CALLBACK _w_control_window_proc(HWND hWnd, UINT message, WPARAM wParam,
 		LPARAM lParam);
 int _w_control_new_id(w_control *control, _w_accel_id **id);
@@ -146,8 +150,6 @@ wresult _w_control_create_droptarget(w_control *control,
 		w_widget_post_event_proc post_event);
 wresult _w_control_create_handle(w_control *control, _w_control_priv *priv);
 wresult _w_control_create_widget(w_control *control, _w_control_priv *priv);
-HWND _w_control_create_window(DWORD dwExStyle, const char *lpClassName,
-		DWORD dwStyle, HWND hWndParent, LPVOID lpParam);
 wresult _w_control_dispose(w_widget *widget);
 wresult _w_control_drag_detect(w_control *control, w_event_mouse *event);
 wresult _w_control_force_focus(w_control *control);
@@ -235,9 +237,11 @@ wresult _w_control_update(w_control *control);
 DWORD _w_control_widget_extstyle(w_control *control, _w_control_priv *priv);
 HWND _w_control_widget_parent(w_control *control, _w_control_priv *priv);
 DWORD _w_control_widget_style(w_control *control, _w_control_priv *priv);
-const char* _w_control_window_class(w_control *control, _w_control_priv *priv);
-void _w_control_class_init(w_toolkit *toolkit, wushort classId,struct _w_control_class *clazz);
-void _w_ccanvas_class_init(w_toolkit *toolkit, wushort classId,struct _w_ccanvas_class *clazz);
+WCHAR* _w_control_window_class(w_control *control, _w_control_priv *priv);
+void _w_control_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_control_class *clazz);
+void _w_ccanvas_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_ccanvas_class *clazz);
 /*
  * messages
  */

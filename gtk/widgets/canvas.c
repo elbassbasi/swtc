@@ -685,7 +685,7 @@ gboolean _gtk_ime_commit(w_widget *widget, _w_event_platform *e,
 			event.range.end = _W_IME(ime)->startOffset + length;
 			event.text = _W_IME(ime)->text = textPtr;
 			_W_IME(ime)->commitCount = length;
-			doit = w_widget_send_event(widget, (w_event*) &event);
+			doit = w_widget_post_event(widget, (w_event*) &event);
 			_W_IME(ime)->text = "";
 			_W_IME(ime)->startOffset = -1;
 			_W_IME(ime)->commitCount = 0;
@@ -743,7 +743,7 @@ gboolean _gtk_ime_preedit_changed(w_widget *widget, _w_event_platform *e,
 			event.range.start = 0;
 			event.range.end = 0;
 			event.text = 0;
-			w_widget_send_event(widget, (w_event*) &event);
+			w_widget_post_event(widget, (w_event*) &event);
 			_W_IME(ime)->startOffset = event.range.start;
 			end = event.range.end;
 		}
@@ -758,7 +758,7 @@ gboolean _gtk_ime_preedit_changed(w_widget *widget, _w_event_platform *e,
 		event.range.start = _W_IME(ime)->startOffset;
 		event.range.end = end;
 		event.text = chars;
-		w_widget_send_event(widget, (w_event*) &event);
+		w_widget_post_event(widget, (w_event*) &event);
 	}
 	return 1;
 }

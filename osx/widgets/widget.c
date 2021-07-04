@@ -44,7 +44,7 @@ void _w_event_platform_init(_w_event_platform *e, w_widget *widget,
 	memset(e->args, 0, sizeof(e->args));
 }
 wresult _w_widget_send_msg(_w_event_platform *e) {
-	return _w_widget_send_event(e->event.widget, (w_event*) &e);
+	return _w_widget_post_event(e->event.widget, (w_event*) &e);
 }
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5) {
@@ -72,7 +72,7 @@ wresult _w_widget_dispose(w_widget *obj) {
 	obj->clazz = 0;
 	return W_TRUE;
 }
-wresult _w_widget_send_event(w_widget *widget, w_event *event) {
+wresult _w_widget_post_event(w_widget *widget, w_event *event) {
     if(widget == 0) return W_FALSE;
 	if (widget->post_event != 0) {
 		return widget->post_event(widget, event);

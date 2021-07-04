@@ -41,14 +41,15 @@ wresult _w_treeitem_insert_item_0(w_treeitem *item, w_treeitem *subitem,
 	w_widget *tree = _W_ITEM(item)->parent;
 	TV_INSERTSTRUCTW tvInsert;
 	tvInsert.hParent = _W_TREEITEM(item)->htreeitem;
-	tvInsert.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+	tvInsert.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE
+			| TVIF_STATE;
 	tvInsert.item.iSelectedImage = I_IMAGECALLBACK;
 	tvInsert.item.iImage = I_IMAGECALLBACK;
 	tvInsert.hInsertAfter = after;
 	tvInsert.item.pszText = LPSTR_TEXTCALLBACKW;
-	if ((_W_WIDGET(tree)->style & W_CHECK) != 0) {
-		tvInsert.item.mask = tvInsert.item.mask | TVIF_STATE;
-		tvInsert.item.state = 1 << 12;
+	if (_W_WIDGET(tree)->style & W_CHECK) {
+		tvInsert.item.mask |= TVIF_STATE;
+		tvInsert.item.state = 0x8000;
 		tvInsert.item.stateMask = TVIS_STATEIMAGEMASK;
 	}
 	_W_TREEVIEW(tree)->ignoreGetDisp = TRUE;
@@ -283,16 +284,7 @@ void _w_treeitem_get_bounds_0(w_treeitem *item, RECT *rect, HDC hDC, int index,
 	}
 	_w_treeitem_get_bounds_1(item, &info, rect, hDC, index, flags);
 }
-wresult _w_treeitem_get_bounds(w_listitem *item, w_rect *bounds) {
-	return W_FALSE;
-}
-wresult _w_treeitem_get_checked(w_listitem *item) {
-	return W_FALSE;
-}
 wresult _w_treeitem_get_expanded(w_treeitem *item) {
-	return W_FALSE;
-}
-wresult _w_treeitem_get_grayed(w_listitem *item) {
 	return W_FALSE;
 }
 wresult _w_treeitem_get_item(w_treeitem *item, int index, w_treeitem *subitem,
@@ -303,9 +295,6 @@ wresult _w_treeitem_get_item_count(w_treeitem *item) {
 	return W_FALSE;
 }
 wresult _w_treeitem_get_items(w_treeitem *item, w_iterator *items) {
-	return W_FALSE;
-}
-wresult _w_treeitem_get_image(w_listitem *item) {
 	return W_FALSE;
 }
 wresult _w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
@@ -320,13 +309,7 @@ wresult _w_treeitem_insert_item(w_treeitem *item, w_treeitem *subitem,
 wresult _w_treeitem_remove_all(w_treeitem *item) {
 	return W_FALSE;
 }
-wresult _w_treeitem_set_checked(w_listitem *item, int checked) {
-	return W_FALSE;
-}
 wresult _w_treeitem_set_expanded(w_treeitem *item, int expanded) {
-	return W_FALSE;
-}
-wresult _w_treeitem_set_grayed(w_listitem *item, int grayed) {
 	return W_FALSE;
 }
 wresult _w_treeitem_set_has_children(w_treeitem *item) {
@@ -337,19 +320,6 @@ wresult _w_treeitem_set_has_children(w_treeitem *item) {
 	tvItem.hItem = _W_TREEITEM(item)->htreeitem;
 	HRESULT result = SendMessageW(_W_WIDGET(tree)->handle, TVM_SETITEMW, 0,
 			(LPARAM) &tvItem);
-	if (result == 0)
-		return W_FALSE;
-	else
-		return W_TRUE;
-}
-wresult _w_treeitem_set_image(w_listitem *item, int image) {
-	TVITEMW tvItem;
-	tvItem.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
-	tvItem.iImage = image;
-	tvItem.iSelectedImage = image;
-	tvItem.hItem = _W_TREEITEM(item)->htreeitem;
-	HRESULT result = SendMessageW(_W_WIDGET(_W_ITEM(item)->parent)->handle,
-	TVM_SETITEMW, 0, (LPARAM) &tvItem);
 	if (result == 0)
 		return W_FALSE;
 	else
@@ -477,9 +447,8 @@ DWORD _w_treeview_widget_style(w_control *control, _w_control_priv *priv) {
 //	bits |= TVS_NOTOOLTIPS | TVS_DISABLEDRAGDROP;
 	return bits | TVS_DISABLEDRAGDROP;
 }
-const char* _w_treeview_window_class(w_control *control,
-		_w_control_priv *priv) {
-	return WC_TREEVIEWA;
+WCHAR* _w_treeview_window_class(w_control *control, _w_control_priv *priv) {
+	return WC_TREEVIEWW;
 }
 wresult _w_treeview_clear(w_treeview *tree, w_treeitem *item) {
 	return W_FALSE;
@@ -489,7 +458,6 @@ wresult _w_treeview_create_parent(w_treeview *tree, _w_control_priv *priv) {
 	HWND handle = _W_WIDGET(tree)->handle;
 	HWND parent = GetParent(handle);
 	RECT rect;
-	WCHAR tmp[30];
 	GetWindowRect(handle, &rect);
 	MapWindowPoints(0, parent, (LPPOINT) &rect, 2);
 	DWORD dwExStyle = priv->widget_extstyle(W_CONTROL(tree), priv);
@@ -500,8 +468,7 @@ wresult _w_treeview_create_parent(w_treeview *tree, _w_control_priv *priv) {
 		newStyle |= WS_DISABLED;
 	if ((oldStyle & WS_VISIBLE) != 0)
 		newStyle |= WS_VISIBLE;
-	w_utf8_to_utf16(WindowClass, -1, tmp, 30);
-	HWND hwndParent = CreateWindowExW(dwExStyle, tmp,
+	HWND hwndParent = CreateWindowExW(dwExStyle, WindowClass,
 	NULL, newStyle, rect.left, rect.top, rect.right - rect.left,
 			rect.bottom - rect.top, parent, 0, hinst,
 			NULL);
@@ -516,8 +483,7 @@ wresult _w_treeview_create_parent(w_treeview *tree, _w_control_priv *priv) {
 		if ((_W_WIDGET(tree)->style & W_RIGHT_TO_LEFT) != 0)
 			bits |= WS_EX_LAYOUTRTL;
 	}
-	w_utf8_to_utf16(WC_HEADERA, -1, tmp, 30);
-	HWND hwndHeader = CreateWindowExW(bits, tmp, NULL,
+	HWND hwndHeader = CreateWindowExW(bits, WC_HEADERW, NULL,
 			HDS_BUTTONS | HDS_FULLDRAG | HDS_DRAGDROP | HDS_HIDDEN | WS_CHILD
 					| WS_CLIPSIBLINGS, 0, 0, 0, 0, hwndParent, 0, hinst, NULL);
 	if (hwndHeader == 0) {
@@ -684,120 +650,64 @@ void _w_treeview_set_checkbox_imagelist(w_treeview *tree,
 	if ((_W_WIDGET(tree)->style & W_CHECK) == 0)
 		return;
 	HWND handle = _W_WIDGET(tree)->handle;
-	int count = 5, flags = 0;
-	if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
-		flags |= ILC_COLOR32;
-	} else {
-		HDC hDC = GetDC(handle);
-		int bits = GetDeviceCaps(hDC, BITSPIXEL);
-		int planes = GetDeviceCaps(hDC, PLANES);
-		ReleaseDC(handle, hDC);
-		int depth = bits * planes;
-		switch (depth) {
-		case 4:
-			flags |= ILC_COLOR4;
-			break;
-		case 8:
-			flags |= ILC_COLOR8;
-			break;
-		case 16:
-			flags |= ILC_COLOR16;
-			break;
-		case 24:
-			flags |= ILC_COLOR24;
-			break;
-		case 32:
-			flags |= ILC_COLOR32;
-			break;
-		default:
-			flags |= ILC_COLOR;
-			break;
-		}
-		flags |= ILC_MASK;
-	}
-	if ((_W_WIDGET(tree)->style & W_RIGHT_TO_LEFT) != 0)
-		flags |= ILC_MIRROR;
-	int height = SendMessageW(handle, TVM_GETITEMHEIGHT, 0, 0);
-	int width = height;
-	HIMAGELIST hStateList = ImageList_Create(width, height, flags, count,
-			count);
-	HDC hDC = GetDC(handle);
-	HDC memDC = CreateCompatibleDC(hDC);
-	HBITMAP hBitmap = CreateCompatibleBitmap(hDC, width * count, height);
-	HBITMAP hOldBitmap = SelectObject(memDC, hBitmap);
-	RECT rect;
-	SetRect(&rect, 0, 0, width * count, height);
-	/*
-	 * NOTE: DrawFrameControl() draws a black and white
-	 * mask when not drawing a push button.  In order to
-	 * make the box surrounding the check mark transparent,
-	 * fill it with a color that is neither black or white.
-	 */
-	int clrBackground = 0;
-	if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
-		w_control *control = priv->find_background_control(W_CONTROL(tree),
-				priv);
-		_w_control_priv *cpriv;
-		if (control == 0) {
-			control = W_CONTROL(tree);
-			cpriv = priv;
+	int count = 16;
+	/*if ((_W_WIDGET(tree)->style & W_RIGHT_TO_LEFT) != 0)
+	 flags |= ILC_MIRROR;*/
+	w_size size;
+	size.height = SendMessageW(handle, TVM_GETITEMHEIGHT, 0, 0);
+	size.width = size.height;
+	w_imagelist imagelist;
+	w_imagelist_init(&imagelist);
+	w_imagelist_create(&imagelist, &size, count);
+	HIMAGELIST hStateList = _W_IMAGELIST(&imagelist)->imagelist;
+	HDC memDC = CreateCompatibleDC(NULL);
+	BITMAPINFO bmi;
+	memset(&bmi, 0, sizeof(bmi));
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFO);
+	bmi.bmiHeader.biWidth = size.width * 4;
+	bmi.bmiHeader.biHeight = -size.height;
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biCompression = BI_RGB;
+	VOID *pBits;
+	HBITMAP hBitmap = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBits, NULL,
+			0);
+	if (hBitmap != 0) {
+		HBITMAP hOldBitmap = SelectObject(memDC, hBitmap);
+		RECT rect;
+		rect.left = 0;
+		rect.right = size.width;
+		rect.top = 0;
+		rect.bottom = size.height;
+		if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
+			HTHEME hTheme = OpenThemeData(NULL, L"BUTTON");
+			for (int i = 0; i < 4; i++) {
+				DrawThemeBackground(hTheme, memDC, BP_CHECKBOX,
+						checkbox_imagelist_states_0[i % 4], &rect, NULL);
+				rect.left += size.width;
+				rect.right += size.width;
+			}
+			CloseThemeData(hTheme);
 		} else {
-			cpriv = _W_CONTROL_GET_PRIV(control);
+			for (int i = 0; i < 4; i++) {
+				DrawFrameControl(memDC, &rect, DFC_BUTTON,
+				DFCS_BUTTONCHECK | checkbox_imagelist_states_1[i % 4]);
+				rect.left += size.width;
+				rect.right += size.width;
+			}
 		}
-		clrBackground = cpriv->get_background_pixel(control, cpriv);
-	} else {
-		clrBackground = 0x020000FF;
-		if ((clrBackground & 0xFFFFFF) == GetSysColor(COLOR_WINDOW)) {
-			clrBackground = 0x0200FF00;
-		}
-	}
-	HBRUSH hBrush = CreateSolidBrush(clrBackground);
-	FillRect(memDC, &rect, hBrush);
-	DeleteObject(hBrush);
-	HFONT oldFont = SelectObject(hDC,
-			priv->default_font(W_CONTROL(tree), priv));
-	TEXTMETRICW tm;
-	GetTextMetricsW(hDC, &tm);
-	SelectObject(hDC, oldFont);
-	int itemWidth = WMIN(tm.tmHeight, width);
-	int itemHeight = WMIN(tm.tmHeight, height);
-	/*
-	 * On Windows when OS level custom zoom is more than 150% then OS
-	 * doesn't support auto-scaling of the native check-box images and hence
-	 * the size of native check-box never goes more than 20px wide. So, to
-	 * handle this special case in Table/Tree, need to apply the same upper
-	 * cap to the size of custom drawn check-box images, so check-box images
-	 * look in proper ratio. For more details refer bug 489828.
-	 */
-	itemWidth = WMIN(20, itemWidth);
-	itemHeight = WMIN(20, itemHeight);
-	int left = (width - itemWidth) / 2, top = (height - itemHeight) / 2 + 1;
-	SetRect(&rect, left + width, top, left + width + itemWidth,
-			top + itemHeight);
-	if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
-		HTHEME hTheme = OpenThemeData(NULL, L"BUTTON");
-		for (int i = 0; i < 4; i++) {
-			DrawThemeBackground(hTheme, memDC, BP_CHECKBOX,
-					checkbox_imagelist_states_0[i], &rect, NULL);
-			rect.left += width;
-			rect.right += width;
-		}
-		CloseThemeData(hTheme);
-	} else {
-		for (int i = 0; i < 4; i++) {
-			DrawFrameControl(memDC, &rect, DFC_BUTTON,
-			DFCS_BUTTONCHECK | checkbox_imagelist_states_1[i]);
-			rect.left += width;
-			rect.right += width;
+		SelectObject(memDC, hOldBitmap);
+		int *colors = pBits;
+		int length = size.width * 4 * size.height;
+		for (int i = 0; i < length; i++) {
+			if (colors[i] == 0xFF000000) {
+				colors[i] = 0;
+			}
 		}
 	}
-	SelectObject(memDC, hOldBitmap);
 	DeleteDC(memDC);
-	ReleaseDC(handle, hDC);
-	if (_COMCTL32_VERSION >= VERSION(6, 0) && IsAppThemed()) {
+	for (int i = 0; i < 4; i++) {
 		ImageList_Add(hStateList, hBitmap, 0);
-	} else {
-		ImageList_AddMasked(hStateList, hBitmap, clrBackground);
 	}
 	DeleteObject(hBitmap);
 	HIMAGELIST hOldStateList = (HIMAGELIST) SendMessageW(handle,
@@ -968,13 +878,6 @@ void _w_treeview_class_init(w_toolkit *toolkit, wushort classId,
 	 */
 	struct _w_treeitem_class *treeitem = W_TREEITEM_CLASS(
 			clazz->base.class_item);
-	W_LISTITEM_CLASS(treeitem)->get_bounds = _w_treeitem_get_bounds;
-	W_LISTITEM_CLASS(treeitem)->get_checked = _w_treeitem_get_checked;
-	W_LISTITEM_CLASS(treeitem)->get_grayed = _w_treeitem_get_grayed;
-	W_LISTITEM_CLASS(treeitem)->get_image = _w_treeitem_get_image;
-	W_LISTITEM_CLASS(treeitem)->set_checked = _w_treeitem_set_checked;
-	W_LISTITEM_CLASS(treeitem)->set_grayed = _w_treeitem_set_grayed;
-	W_LISTITEM_CLASS(treeitem)->set_image = _w_treeitem_set_image;
 	treeitem->clear = _w_treeitem_clear;
 	treeitem->clear_all = _w_treeitem_clear_all;
 	treeitem->get_expanded = _w_treeitem_get_expanded;

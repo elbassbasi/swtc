@@ -556,7 +556,7 @@ wresult _w_scrollable_create_handle(w_control *control, _w_control_priv *priv) {
 DWORD _w_scrollable_widget_extstyle(w_control *control, _w_control_priv *priv) {
 	return _w_control_widget_extstyle(control, priv);
 }
-const char* _w_scrollable_window_class(w_control *control,
+WCHAR* _w_scrollable_window_class(w_control *control,
 		_w_control_priv *priv) {
 	return WindowClass;
 }
@@ -748,7 +748,7 @@ wresult _SCROLLABLE_WM_SCROLL(w_widget *widget, _w_event_platform *e,
 		event.detail = W_PAGE_UP;
 		break;
 	}
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return W_TRUE;
 }
 

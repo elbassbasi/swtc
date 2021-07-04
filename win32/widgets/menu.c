@@ -59,17 +59,15 @@ int _w_menu_find_menu_ids(UINT id, HMENU *hmenu, _w_menu_id **menuid,
 				*acc = _acc;
 			if (_acc->flags & _MENU_FLAGS_ID) {
 				_id = _acc->sub_id;
-				menu = (w_menu*) _w_hmenu_get_top(_acc->menu);
+				menu = (w_menu*) _w_hmenu_get_top(_acc->hMenu);
 			} else
 				return W_FALSE;
 		}
 		if (menuid != 0) {
 			if (menu == 0)
 				menu = (w_menu*) _w_hmenu_get_top(*hmenu);
-			_w_menu_ids *_ids = _W_MENU(menu)->ids;
-			if (_ids != 0 && _id < _ids->count) {
-				*menuid = &_ids->id[_id];
-			}
+			w_array *_ids = _W_MENU(menu)->ids;
+			*menuid = w_array_get(_ids, _id, sizeof(_w_menu_id));
 		}
 	}
 	return W_TRUE;
@@ -412,7 +410,7 @@ wresult _w_menuitem_get_items(w_menuitem *item, w_iterator *items) {
 	}
 	return W_FALSE;
 }
-wresult _w_menuitem_get_id(w_menuitem *item) {
+wresult _w_menuitem_get_id(w_menuitem *item, int mask) {
 	HMENU hMenu = _W_MENUITEM(item)->menu;
 	int index = _W_ITEM(item)->index;
 	if (index < 0)
@@ -421,7 +419,11 @@ wresult _w_menuitem_get_id(w_menuitem *item) {
 	info.cbSize = sizeof(info);
 	info.fMask = MIIM_ID;
 	if (GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
-		return (info.wID >> 16) & 0xFFFF;
+		if (mask == 0) {
+			w_widget *menu = _W_ITEM(item)->parent;
+			mask = _W_MENU(menu)->id_mask & 0xFFFF;
+		}
+		return (info.wID >> 16) & mask;
 	} else
 		return 0;
 }
@@ -550,7 +552,7 @@ wresult _w_menuitem_remove(w_menuitem *item) {
 	ei.event.platform_event = 0;
 	ei.event.widget = menu;
 	ei.item = item;
-	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
+	_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
 	W_WIDGETDATA(item)->clazz = 0;
 	if (DeleteMenu(hMenu, index, MF_BYPOSITION)) {
 		return W_TRUE;
@@ -714,7 +716,7 @@ wresult _w_menuitem_set_accelerator(w_menuitem *item, wuint accelerator) {
 								| _MENU_ID_ACCEL | (_id & _MENU_ID_MASK);
 						acc->sub_id = index;
 					}
-					acc->menu = hMenu;
+					acc->hMenu = hMenu;
 				}
 			}
 			if (acc != 0) {
@@ -754,7 +756,7 @@ wresult _w_menuitem_set_enabled(w_menuitem *item, int enabled) {
 	}
 	return W_FALSE;
 }
-wresult _w_menuitem_set_id(w_menuitem *item, wushort id) {
+wresult _w_menuitem_set_id(w_menuitem *item, int mask, wushort id) {
 	int index = _W_ITEM(item)->index;
 	if (index < 0)
 		return W_FALSE;
@@ -764,7 +766,12 @@ wresult _w_menuitem_set_id(w_menuitem *item, wushort id) {
 	info.fMask = MIIM_ID;
 	info.wID = 0;
 	if (GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
-		info.wID = (info.wID & 0xFFFF) | (id & 0xFFFF) << 16;
+		if (mask == 0) {
+			w_widget *menu = _W_ITEM(item)->parent;
+			mask = _W_MENU(menu)->id_mask & 0xFFFF;
+		}
+		int newid = ((info.wID >> 16) & ~mask) | (id & mask);
+		info.wID = (info.wID & 0xFFFF) | (newid & 0xFFFF) << 16;
 		if (SetMenuItemInfoW(hMenu, index, TRUE, &info)) {
 			return W_TRUE;
 		}
@@ -971,9 +978,13 @@ wresult _w_menu_create(w_widget *widget, w_widget *parent, wuint64 style,
 	_W_WIDGET(widget)->post_event = post_event;
 	_W_MENU(widget)->x = -1;
 	_W_MENU(widget)->y = -1;
+	_W_MENU(widget)->id_mask = 0xFFFF;
 	return W_TRUE;
 }
-wresult _w_menu_post_event(w_widget *widget, w_event *e) {
+wresult _w_menu_post_event(w_widget *widget, w_event *e,int flags) {
+	if (widget->post_event != 0) {
+		widget->post_event(widget, e);
+	}
 	return W_FALSE;
 }
 void _w_menu_radio_select(HMENU hMenu, int i, int pas, MENUITEMINFOW *info) {
@@ -1035,7 +1046,7 @@ wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
 	_W_ITEM(&item)->parent = W_WIDGET(menu);
 	_W_ITEM(&item)->index = index;
 	_W_MENUITEM(&item)->menu = hMenu;
-	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
+	_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
 	e->result = FALSE;
 	return W_TRUE;
 }
@@ -1052,7 +1063,7 @@ wresult _MENU_WM_COMMAND(w_widget *widget, _w_event_platform *e,
 	_w_menu_find_menu_ids(LOWORD(e->wparam), &hmenu, 0, &_acc, 0,
 			W_CONTROL(widget));
 	if (_acc != 0) {
-		e->lparam = (LPARAM) _acc->menu;
+		e->lparam = (LPARAM) _acc->hMenu;
 		e->wparam = _acc->sub_id;
 		result = _MENU_WM_MENUCOMMAND(widget, e, priv);
 	}
@@ -1105,7 +1116,8 @@ wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 					ei.event.platform_event = _EVENT_PLATFORM(e);
 					ei.event.widget = W_WIDGET(menu);
 					ei.item = (w_menuitem*) &item;
-					_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+					_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+							W_EVENT_SEND);
 				}
 			}
 			menu = _w_hmenu_get_parent(menu);
@@ -1137,7 +1149,8 @@ wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 				ei.event.platform_event = _EVENT_PLATFORM(e);
 				ei.event.widget = W_WIDGET(_menu);
 				ei.item = (w_menuitem*) &item;
-				_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+				_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+						W_EVENT_SEND);
 			}
 		}
 		// widget could be disposed at this point
@@ -1160,7 +1173,8 @@ wresult _MENU_WM_UNINITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 				ei.event.platform_event = _EVENT_PLATFORM(e);
 				ei.event.widget = W_WIDGET(_menu);
 				ei.item = (w_menuitem*) &item;
-				_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+				_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+						W_EVENT_SEND);
 			}
 		}
 		if (hiddenMenu == _W_CONTROL(shell)->activeMenu)
@@ -1224,7 +1238,8 @@ wresult _MENU_WM_MENUSELECT(w_widget *widget, _w_event_platform *e,
 					ei.event.platform_event = _EVENT_PLATFORM(e);
 					ei.event.widget = W_WIDGET(_menu);
 					ei.item = (w_menuitem*) &item;
-					_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei));
+					_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+							W_EVENT_SEND);
 				}
 				if (w_widget_is_ok(W_WIDGET(_menu)) <= 0)
 					break;
@@ -1329,12 +1344,12 @@ wresult _MENU_WM_MEASUREITEM(w_widget *widget, _w_event_platform *e,
 	}
 	return W_FALSE;
 }
-void _w_menu_class_init(w_toolkit *toolkit, wushort classId,struct _w_menu_class *clazz) {
+void _w_menu_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_menu_class *clazz) {
 	if (classId == _W_CLASS_MENU) {
-		W_WIDGET_CLASS(clazz)->platformPrivate =
-				&win_toolkit->class_menu_priv;
+		W_WIDGET_CLASS(clazz)->platformPrivate = &win_toolkit->class_menu_priv;
 	}
-	_w_widget_class_init(toolkit,classId,W_WIDGET_CLASS(clazz));
+	_w_widget_class_init(toolkit, classId, W_WIDGET_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_MENU;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_menu_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_menu);

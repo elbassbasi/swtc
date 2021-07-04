@@ -8,9 +8,9 @@
 #include "toolkit.h"
 _w_toolkit *win_toolkit = 0;
 w_app *app = 0;
-const char *WindowClass = "SWT_Window";
-const char *WindowShadowClass = "SWT_WindowShadow";
-const char *WindowOwnDCClass = "SWT_WindowOwnDC";
+WCHAR *WindowClass = L"SWT_Window";
+WCHAR *WindowShadowClass = L"SWT_WindowShadow";
+WCHAR *WindowOwnDCClass = L"SWT_WindowOwnDC";
 void w_app_init_thread(w_app *app) {
 	app->app->platformToolkit = W_TOOLKIT(win_toolkit);
 }
@@ -252,7 +252,7 @@ _w_shell* _w_shells_iterator_find_next(_w_shell *parent, _w_shell *current) {
 	else {
 		_w_shell *s = current->next;
 		while (s != 0) {
-			if (_W_CONTROL(s)->parent == W_COMPOSITE(parent))
+			if (_W_WIDGET(s)->parent == W_WIDGET(parent))
 				return s;
 			s = s->next;
 		}
@@ -262,7 +262,7 @@ _w_shell* _w_shells_iterator_find_next(_w_shell *parent, _w_shell *current) {
 _w_shell* _w_shells_iterator_find_first(_w_shell *parent) {
 	_w_shell *s = win_toolkit->shells;
 	while (s != 0) {
-		if (_W_CONTROL(s)->parent == W_COMPOSITE(parent))
+		if (_W_WIDGET(s)->parent == W_WIDGET(parent))
 			return s;
 		s = s->next;
 	}
@@ -301,8 +301,8 @@ size_t _w_shells_iterator_count(w_iterator *it) {
 			_w_shell *s = win_toolkit->shells;
 			size_t count = 0;
 			while (s != 0) {
-				if (_W_CONTROL(s)->parent
-						== (w_composite*) _W_SHELLS_ITERATOR(it)->parent)
+				if (_W_WIDGET(s)->parent
+						== (w_widget*) _W_SHELLS_ITERATOR(it)->parent)
 					count++;
 				s = s->next;
 			}
@@ -332,66 +332,23 @@ void _w_toolkit_get_shells_from_parent(w_shell *shell, w_iterator *iterator) {
 }
 w_color _w_toolkit_get_system_color(w_toolkit *toolkit, wuint id) {
 	w_theme *theme = _W_TOOLKIT(toolkit)->theme;
-	return w_theme_get_color(theme, id);
+	w_color color;
+	w_theme_get_color((w_theme*) &win_toolkit->win32theme, id, &color);
+	return color;
 }
 w_cursor* _w_toolkit_get_system_cursor(w_toolkit *toolkit, wuint style) {
-	if (style <= W_CURSOR_HAND) {
-		return W_CURSOR(&_W_TOOLKIT(toolkit)->cursors[style]);
-	} else
-		return 0;
+	w_cursor *font = 0;
+	w_theme_get_cursor((w_theme*) &win_toolkit->win32theme, style, &font);
+	return font;
 }
 w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
-	_w_toolkit *t = (_w_toolkit*) toolkit;
-	if (t->systemFont == 0) {
-		t->systemFont = GetStockObject(DEFAULT_GUI_FONT);
-		if (t->systemFont == 0)
-			t->systemFont = GetStockObject(SYSTEM_FONT);
-	}
-	return (w_font*) t->systemFont;
+	w_font *font = 0;
+	w_theme_get_font((w_theme*) &win_toolkit->win32theme, &font);
+	return font;
 }
-#ifndef OIC_HAND
-#define OIC_HAND 32513
-#define OIC_NOTE 32516
-#define OIC_INFORMATION OIC_NOTE
-#define OIC_QUES 32514
-#define OIC_BANG 32515
-#endif
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {
-	int index = -1, sys;
-	switch (id) {
-	case W_ICON_ERROR:
-		sys = OIC_HAND;
-		index = 0;
-		break;
-	case W_ICON_WORKING:
-	case W_ICON_INFORMATION:
-		sys = OIC_INFORMATION;
-		index = 1;
-		break;
-	case W_ICON_QUESTION:
-		sys = OIC_QUES;
-		index = 2;
-		break;
-	case W_ICON_WARNING:
-		sys = OIC_BANG;
-		index = 3;
-		break;
-	}
-	if (index != -1) {
-		_w_image *img = &_W_TOOLKIT(toolkit)->images[index];
-		if (img->handle == 0) {
-			img->handle = LoadImageW(0, MAKEINTRESOURCEW(sys), IMAGE_ICON, 0, 0,
-			LR_SHARED);
-			if (img->handle != 0) {
-				img->type = _IMAGE_ICON;
-				*image = (w_image*) img;
-				return W_TRUE;
-			}
-		}
-	}
-	*image = 0;
-	return W_FALSE;
+	return w_theme_get_image((w_theme*) &win_toolkit->win32theme, id, image);
 }
 w_menu* _w_toolkit_get_system_menu(w_toolkit *toolkit) {
 	return 0;
@@ -411,7 +368,7 @@ w_tray* _w_toolkit_get_system_tray(w_toolkit *toolkit) {
 	if (w_widget_is_ok(W_WIDGET(tray)))
 		return tray;
 	if (win_toolkit->hwndMessage == 0) {
-		win_toolkit->hwndMessage = CreateWindowExA(0, WindowClass, NULL,
+		win_toolkit->hwndMessage = CreateWindowExW(0, WindowClass, NULL,
 		WS_OVERLAPPED, 0, 0, 0, 0, 0, 0, hinst, NULL);
 		if (win_toolkit->hwndMessage == 0)
 			return 0;

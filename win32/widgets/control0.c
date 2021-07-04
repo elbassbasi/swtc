@@ -35,7 +35,7 @@ int _w_control_new_id(w_control *control, _w_accel_id **id) {
 		_w_accel_id *_acc = (_w_accel_id*) acc->data;
 		int count = acc->count;
 		for (int i = 0; i < count; i++) {
-			if (_acc[i].menu == 0) {
+			if (_acc[i].hMenu == 0) {
 				*id = &_acc[i];
 				return i;
 			}
@@ -52,7 +52,7 @@ int _w_control_remove_id(w_control *control, int index) {
 	if (acc == 0)
 		return 0;
 	if (_acc != 0) {
-		_acc->menu = 0;
+		_acc->hMenu = 0;
 		_acc->accelerator = 0;
 	}
 	return 0;
@@ -70,7 +70,7 @@ int _w_control_create_accelerators(w_control *control) {
 	int nAccel = 0;
 	_w_accel_id *_iacc = (_w_accel_id*) acc->data;
 	for (int i = 0; i < acc->count; i++) {
-		if (_iacc[i].menu != 0 && _iacc[i].accelerator != 0) {
+		if (_iacc[i].hMenu != 0 && _iacc[i].accelerator != 0) {
 			if (_w_menuitem_fill_accel(&_acc[nAccel], &_iacc[i])) {
 				_acc[nAccel].cmd = i | _MENU_ID_ACCEL | _MENU_ID_ID;
 				nAccel++;
@@ -140,7 +140,7 @@ wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 	if (w_widget_class_id(parent) < _W_CLASS_COMPOSITE)
 		return W_ERROR_INVALID_ARGUMENT;
 	_W_CONTROL(widget)->hAccel = INVALID_HANDLE_VALUE;
-	_W_CONTROL(widget)->parent = W_COMPOSITE(parent);
+	_W_WIDGET(widget)->parent = parent;
 	_W_WIDGET(widget)->post_event = post_event;
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(widget);
 	_W_WIDGET(widget)->style = priv->check_style(widget, style);
@@ -158,16 +158,16 @@ wresult _w_control_create_droptarget(w_control *control,
 }
 wresult _w_control_create_handle(w_control *control, _w_control_priv *priv) {
 	HWND hwndParent = priv->widget_parent(control, priv);
-	const char *_clazz = priv->window_class(control, priv);
+	WCHAR *_clazz = priv->window_class(control, priv);
 	DWORD style, extstyle;
 	style = priv->widget_style(control, priv);
 	extstyle = priv->widget_extstyle(control, priv);
-	HWND handle = _w_control_create_window(extstyle, _clazz, style, hwndParent,
-			0);
+	HWND handle = CreateWindowExW(extstyle, _clazz, 0, style, CW_USEDEFAULT, 0,
+	CW_USEDEFAULT, 0, hwndParent, 0, hinst, 0);
 	if (handle == 0)
 		return W_ERROR_NO_HANDLES;
 	_W_WIDGET(control)->handle = handle;
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_widget *parent = _W_WIDGET(control)->parent;
 	if (parent != 0) {
 		_W_COMPOSITE(parent)->children_count++;
 	}
@@ -184,7 +184,7 @@ wresult _w_control_create_handle(w_control *control, _w_control_priv *priv) {
 }
 wresult _w_control_create_widget(w_control *control, _w_control_priv *priv) {
 	_W_WIDGET(control)->state |= STATE_DRAG_DETECT;
-	priv->check_orientation(control, _W_CONTROL(control)->parent, priv);
+	priv->check_orientation(control, _W_WIDGET(control)->parent, priv);
 	wresult result = priv->create_handle(control, priv);
 	if (result <= 0)
 		return result;
@@ -199,16 +199,6 @@ wresult _w_control_create_widget(w_control *control, _w_control_priv *priv) {
 		priv->set_background(control, priv);
 	}
 	return result;
-}
-HWND _w_control_create_window(DWORD dwExStyle, const char *lpClassName,
-		DWORD dwStyle, HWND hWndParent, LPVOID lpParam) {
-	int newlength;
-	WCHAR *clazz;
-	_win_text_fix(lpClassName, -1, W_ENCODING_UTF8, &clazz, &newlength);
-	HWND hwnd = CreateWindowExW(dwExStyle, clazz, 0, dwStyle, CW_USEDEFAULT, 0,
-	CW_USEDEFAULT, 0, hWndParent, 0, hinst, lpParam);
-	_win_text_free(lpClassName, clazz, newlength);
-	return hwnd;
 }
 wresult _w_control_dispose(w_widget *widget) {
 	if (widget->clazz != 0) {
@@ -235,7 +225,7 @@ void _w_control_draw_background(w_control *control, HDC hDC, RECT *rect,
 		int pixel, int tx, int ty, _w_control_priv *priv) {
 	w_control *c = priv->find_background_control(control, priv);
 	if (c != 0) {
-		if (_W_CONTROL(c)->backgroundImage != 0) {
+		if (_W_CONTROL(c)->backgroundImage.handle != 0) {
 			//fillImageBackground (hDC, c, rect, tx, ty);
 			return;
 		}
@@ -324,18 +314,18 @@ void _w_control_fill_background(w_control *control, HDC hDC, int pixel,
 w_cursor* _w_control_find_cursor(w_control *control, _w_control_priv *priv) {
 	if (_W_CONTROL(control)->cursor != 0)
 		return _W_CONTROL(control)->cursor;
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_widget *parent = _W_WIDGET(control)->parent;
 	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 	return ppriv->find_cursor(W_CONTROL(parent), ppriv);
 }
 w_control* _w_control_find_background_control(w_control *control,
 		_w_control_priv *priv) {
 	if ((_W_CONTROL(control)->background != 0
-			|| _W_CONTROL(control)->backgroundImage != 0)
+			|| _W_CONTROL(control)->backgroundImage.handle != 0)
 			&& _W_CONTROL(control)->backgroundAlpha > 0)
 		return control;
 	if ((_W_WIDGET(control)->state & STATE_PARENT_BACKGROUND) != 0) {
-		w_composite *parent = _W_CONTROL(control)->parent;
+		w_widget *parent = _W_WIDGET(control)->parent;
 		_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 		return ppriv->find_background_control(W_CONTROL(parent), ppriv);
 	} else
@@ -344,7 +334,7 @@ w_control* _w_control_find_background_control(w_control *control,
 w_control* _w_control_find_image_control(w_control *control,
 		_w_control_priv *priv) {
 	w_control *c = priv->find_background_control(control, priv);
-	return c != 0 && _W_CONTROL(c)->backgroundImage != 0 ? c : 0;
+	return c != 0 && _W_CONTROL(c)->backgroundImage.handle != 0 ? c : 0;
 }
 wresult _w_control_force_focus(w_control *control) {
 	SetFocus(_W_WIDGET(control)->handle);
@@ -466,15 +456,11 @@ wresult _w_control_get_menu(w_control *control, w_menu **menu) {
 wresult _w_control_get_orientation(w_control *control) {
 	return _W_WIDGET(control)->style & (W_LEFT_TO_RIGHT | W_RIGHT_TO_LEFT);
 }
-wresult _w_control_get_parent(w_control *control, w_composite **parent) {
-	*parent = _W_CONTROL(control)->parent;
-	return W_TRUE;
-}
 wresult _w_control_get_region(w_control *control, w_region *region) {
 	return W_FALSE;
 }
 wresult _w_control_get_shell(w_widget *control, w_shell **shell) {
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_widget *parent = _W_WIDGET(control)->parent;
 	return W_WIDGET_GET_CLASS(parent)->get_shell(W_WIDGET(parent), shell);
 }
 wresult _w_control_get_tab(w_control *control) {
@@ -563,13 +549,17 @@ wresult _w_control_kill_timer(w_control *control, wushort id) {
 	KillTimer(_W_WIDGET(control)->handle, id + 0x200);
 	return W_TRUE;
 }
+wresult _w_control_mnemonic_hit(w_control *control, int key,
+		_w_control_priv *priv) {
+	return W_FALSE;
+}
 wresult _w_control_move_above(w_control *control, w_control *_control) {
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
 	HWND topHandle = priv->handle_top(control), hwndAbove = HWND_TOP;
 	if (_control != 0) {
 		if (!w_widget_is_ok(W_WIDGET(_control)))
 			return W_ERROR_INVALID_ARGUMENT;
-		if (_W_CONTROL(control)->parent != _W_CONTROL(_control)->parent)
+		if (_W_WIDGET(control)->parent != _W_WIDGET(_control)->parent)
 			return W_FALSE;
 		_w_control_priv *_priv = _W_CONTROL_GET_PRIV(_control);
 		HWND hwnd = _priv->handle_top(_control);
@@ -594,11 +584,11 @@ wresult _w_control_move_above(w_control *control, w_control *_control) {
 wresult _w_control_move_below(w_control *control, w_control *_control) {
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
 	HWND topHandle = priv->handle_top(control), hwndAbove = HWND_BOTTOM;
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_widget *parent = _W_WIDGET(control)->parent;
 	if (_control != 0) {
 		if (!w_widget_is_ok(W_WIDGET(_control)))
 			return W_ERROR_INVALID_ARGUMENT;
-		if (parent != _W_CONTROL(_control)->parent)
+		if (parent != _W_WIDGET(_control)->parent)
 			return W_FALSE;
 		_w_control_priv *_priv = _W_CONTROL_GET_PRIV(_control);
 		hwndAbove = _priv->handle_top(_control);
@@ -903,7 +893,7 @@ wresult _w_control_translate_accelerator(w_control *control, MSG *msg,
 			_W_CONTROL(control)->hAccel, msg) != 0;
 	if (result <= 0) {
 		if (w_widget_class_id(W_WIDGET(control)) != _W_CLASS_SHELL) {
-			w_control *parent = (w_control*) _W_CONTROL(control)->parent;
+			w_control *parent = (w_control*) _W_WIDGET(control)->parent;
 			if (parent != 0) {
 				_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 				result = ppriv->translate_accelerator(parent, msg, ppriv);
@@ -918,6 +908,193 @@ wresult _w_control_translate_mnemonic(w_control *control, MSG *msg,
 }
 wresult _w_control_translate_traversal(w_control *control, MSG *msg,
 		_w_control_priv *priv) {
+	HWND hwnd = msg->hwnd;
+	int key = msg->wParam;
+	if (key == VK_MENU) {
+		if ((msg->lParam & 0x40000000) == 0) {
+			SendMessage(hwnd, WM_CHANGEUISTATE, UIS_INITIALIZE, 0);
+		}
+		return W_FALSE;
+	}
+	int detail = W_TRAVERSE_NONE;
+	int doit = W_TRUE;
+	int all = W_FALSE;
+	int lastVirtual = W_FALSE;
+	int lastKey = key, lastAscii = 0;
+	switch (key) {
+	case VK_ESCAPE: {
+		all = W_TRUE;
+		lastAscii = 27;
+		LRESULT code = SendMessageW(hwnd, WM_GETDLGCODE, 0, 0);
+		if ((code & DLGC_WANTALLKEYS) != 0) {
+			/*
+			 * Use DLGC_HASSETSEL to determine that the control
+			 * is a text widget.  A text widget normally wants
+			 * all keys except VK_ESCAPE.  If this bit is not
+			 * set, then assume the control wants all keys,
+			 * including VK_ESCAPE.
+			 */
+			if ((code & DLGC_HASSETSEL) == 0)
+				doit = W_FALSE;
+		}
+		detail = W_TRAVERSE_ESCAPE;
+		break;
+	}
+	case VK_RETURN: {
+		all = W_TRUE;
+		lastAscii = '\r';
+		LRESULT code = SendMessageW(hwnd, WM_GETDLGCODE, 0, 0);
+		if ((code & DLGC_WANTALLKEYS) != 0)
+			doit = W_FALSE;
+		detail = W_TRAVERSE_RETURN;
+		break;
+	}
+	case VK_TAB: {
+		lastAscii = '\t';
+		boolean next = GetKeyState(VK_SHIFT) >= 0;
+		LRESULT code = SendMessageW(hwnd, WM_GETDLGCODE, 0, 0);
+		if ((code & (DLGC_WANTTAB | DLGC_WANTALLKEYS)) != 0) {
+			/*
+			 * Use DLGC_HASSETSEL to determine that the control is a
+			 * text widget.  If the control is a text widget, then
+			 * Ctrl+Tab and Shift+Tab should traverse out of the widget.
+			 * If the control is not a text widget, the correct behavior
+			 * is to give every character, including Tab, Ctrl+Tab and
+			 * Shift+Tab to the control.
+			 */
+			if ((code & DLGC_HASSETSEL) != 0) {
+				if (next && GetKeyState(VK_CONTROL) >= 0) {
+					doit = W_FALSE;
+				}
+			} else {
+				doit = W_FALSE;
+			}
+		}
+		detail = next ? W_TRAVERSE_TAB_NEXT : W_TRAVERSE_TAB_PREVIOUS;
+		break;
+	}
+	case VK_UP:
+	case VK_LEFT:
+	case VK_DOWN:
+	case VK_RIGHT: {
+		lastVirtual = W_TRUE;
+		LRESULT code = SendMessage(hwnd, WM_GETDLGCODE, 0, 0);
+		if ((code & (DLGC_WANTARROWS /*| DLGC_WANTALLKEYS*/)) != 0)
+			doit = W_FALSE;
+		int next = key == VK_DOWN || key == VK_RIGHT;
+		w_widget *parent = _W_WIDGET(control)->parent;
+		if (parent != 0 && (_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
+			if (key == VK_LEFT || key == VK_RIGHT)
+				next = !next;
+		}
+		detail = next ? W_TRAVERSE_ARROW_NEXT : W_TRAVERSE_ARROW_PREVIOUS;
+		break;
+	}
+	case VK_PRIOR:
+	case VK_NEXT: {
+		all = W_TRUE;
+		lastVirtual = W_TRUE;
+		if (GetKeyState(VK_CONTROL) >= 0)
+			return W_FALSE;
+		LRESULT code = SendMessage(hwnd, WM_GETDLGCODE, 0, 0);
+		if ((code & DLGC_WANTALLKEYS) != 0) {
+			/*
+			 * Use DLGC_HASSETSEL to determine that the control is a
+			 * text widget.  If the control is a text widget, then
+			 * Ctrl+PgUp and Ctrl+PgDn should traverse out of the widget.
+			 */
+			if ((code & DLGC_HASSETSEL) == 0)
+				doit = W_FALSE;
+		}
+		detail =
+				key == VK_PRIOR ?
+						W_TRAVERSE_PAGE_PREVIOUS : W_TRAVERSE_PAGE_NEXT;
+		break;
+	}
+	default:
+		return W_FALSE;
+	}
+	_w_event_platform e;
+	e.hwnd = msg->hwnd;
+	e.msg = msg->message;
+	e.wparam = msg->wParam;
+	e.lparam = msg->lParam;
+	w_event_key event;
+	memset(&event, 0, sizeof(event));
+	event.event.type = W_EVENT_TRAVERSE;
+	event.event.widget = W_WIDGET(control);
+	event.event.platform_event = _EVENT_PLATFORM(&e);
+	event.event.time = win_toolkit->msg.time;
+	event.doit = doit;
+	event.detail = detail;
+	win_toolkit->lastKey = lastKey;
+	win_toolkit->lastAscii = lastAscii;
+	win_toolkit->lastVirtual = lastVirtual;
+	win_toolkit->lastNull = win_toolkit->lastDead = W_FALSE;
+	if (!_w_set_key_state(&event))
+		return W_FALSE;
+	w_shell *shell;
+	w_widget_get_shell(W_WIDGET(control), &shell);
+	w_control *c = control;
+	do {
+		wresult result = priv->traverse(c, &event, priv);
+		if (result > 0) {
+			SendMessageW(hwnd, WM_CHANGEUISTATE, UIS_INITIALIZE, 0);
+			return W_TRUE;
+		}
+		if (!event.doit)
+			return W_FALSE;
+		if (c == W_CONTROL(shell))
+			return W_FALSE;
+		c = (w_control*) _W_WIDGET(c)->parent;
+		priv = _W_CONTROL_GET_PRIV(c);
+	} while (all && c != 0);
+	return W_FALSE;
+}
+wresult _w_control_traverse_mnemonic(w_control *control, int key,
+		_w_control_priv *priv) {
+	if (priv->mnemonic_hit(control, key, priv)) {
+		SendMessageW(_W_WIDGET(control)->handle, WM_CHANGEUISTATE,
+				UIS_INITIALIZE, 0);
+		return W_TRUE;
+	}
+	return W_FALSE;
+}
+wresult _w_control_traverse_0(w_control *control, w_event_key *event,
+		_w_control_priv *priv) {
+	/*
+	 * It is possible (but unlikely), that application
+	 * code could have disposed the widget in the traverse
+	 * event.  If this happens, return true to stop further
+	 * event processing.
+	 */
+	_w_widget_post_event(W_WIDGET(control), W_EVENT(event), W_EVENT_SEND);
+	if (w_widget_is_ok(W_WIDGET(control)) <= 0)
+		return W_TRUE;
+	if (!event->doit)
+		return W_FALSE;
+	switch (event->detail & W_TRAVERSE_MASK) {
+	case W_TRAVERSE_NONE:
+		return W_TRUE;
+		/*case W_TRAVERSE_ESCAPE:
+		 return traverseEscape();
+		 case W_TRAVERSE_RETURN:
+		 return traverseReturn();
+		 case W_TRAVERSE_TAB_NEXT:
+		 return traverseGroup(W_TRUE);
+		 case W_TRAVERSE_TAB_PREVIOUS:
+		 return traverseGroup(W_FALSE);
+		 case W_TRAVERSE_ARROW_NEXT:
+		 return traverseItem(W_TRUE);
+		 case W_TRAVERSE_ARROW_PREVIOUS:
+		 return traverseItem(W_FALSE);*/
+	case W_TRAVERSE_MNEMONIC:
+		return priv->traverse_mnemonic(control, event->character, priv);
+		/*case W_TRAVERSE_PAGE_NEXT:
+		 return traversePage(W_TRUE);
+		 case W_TRAVERSE_PAGE_PREVIOUS:
+		 return traversePage(W_FALSE);*/
+	}
 	return W_FALSE;
 }
 wresult _w_control_traverse(w_control *control, int traversal,
@@ -960,7 +1137,7 @@ DWORD _w_control_widget_extstyle(w_control *control, _w_control_priv *priv) {
 	return bits;
 }
 HWND _w_control_widget_parent(w_control *control, _w_control_priv *priv) {
-	return _W_WIDGET(_W_CONTROL(control)->parent)->handle;
+	return _W_WIDGET(_W_WIDGET(control)->parent)->handle;
 }
 DWORD _w_control_widget_style(w_control *control, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(control)->style;
@@ -984,7 +1161,7 @@ DWORD _w_control_widget_style(w_control *control, _w_control_priv *priv) {
 //	if ((style & W_CLIP_CHILDREN) != 0) bits |= WS_CLIPCHILDREN;
 //	return bits;
 }
-const char* _w_control_window_class(w_control *control, _w_control_priv *priv) {
+WCHAR* _w_control_window_class(w_control *control, _w_control_priv *priv) {
 	return 0;
 }
 void _w_control_class_init(w_toolkit *toolkit, wushort classId,
@@ -1016,7 +1193,6 @@ void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 	clazz->get_layout_data = _w_control_get_layout_data;
 	clazz->get_menu = _w_control_get_menu;
 	clazz->get_orientation = _w_control_get_orientation;
-	clazz->get_parent = _w_control_get_parent;
 	clazz->get_region = _w_control_get_region;
 	clazz->get_tab = _w_control_get_tab;
 	clazz->get_text_direction = _w_control_get_text_direction;
@@ -1105,6 +1281,9 @@ void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 		priv->translate_accelerator = _w_control_translate_accelerator;
 		priv->translate_mnemonic = _w_control_translate_mnemonic;
 		priv->translate_traversal = _w_control_translate_traversal;
+		priv->traverse = _w_control_traverse_0;
+		priv->traverse_mnemonic = _w_control_traverse_mnemonic;
+		priv->mnemonic_hit = _w_control_mnemonic_hit;
 		/*
 		 * messages
 		 */

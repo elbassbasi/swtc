@@ -728,7 +728,7 @@ gboolean _gtk_scrollbar_value_changed(w_widget *widget, _w_event_platform *e,
 	scrollbar.parent = W_SCROLLABLE(widget);
 	scrollbar.widgetdata.clazz = W_WIDGETDATA_CLASS(
 			&gtk_toolkit->class_scrollbar);
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event);
 	_W_SCROLLABLE_PRIV(priv)->update_scrollbar_value(W_SCROLLABLE(widget),
 			style, priv);
 #if GTK3
@@ -776,7 +776,7 @@ gboolean _gtk_scrollbar_event_after(w_widget *widget, _w_event_platform *e,
 			event.scrollbar = &scrollbar;
 			if (!dragSent) {
 				event.detail = W_DRAG;
-				_w_widget_send_event(widget, (w_event*) &event);
+				_w_widget_post_event(widget, (w_event*) &event);
 			}
 			if (style & W_VSCROLL) {
 				event.event.type = W_EVENT_VSCROLL;
@@ -789,7 +789,7 @@ gboolean _gtk_scrollbar_event_after(w_widget *widget, _w_event_platform *e,
 			event.event.platform_event = (w_event_platform*) e;
 			event.scrollbar = &scrollbar;
 			event.detail = 0;
-			_w_widget_send_event(widget, (w_event*) &event);
+			_w_widget_post_event(widget, (w_event*) &event);
 		}
 		if (style & W_VSCROLL) {
 			_W_SCROLLABLE(widget)->vdetail = GTK_SCROLL_NONE;

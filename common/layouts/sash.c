@@ -28,9 +28,9 @@ _w_layout_class w_layout_sash_class = { //
 		};
 int w_layout_sash_default_selection(w_widget *widget, w_event *event) {
 	w_event_sash *e = (w_event_sash*) event;
-	w_composite *parent;
+	w_widget *parent;
 	w_layout_sash_data *d;
-	w_control_get_parent(W_CONTROL(widget), &parent);
+	w_widget_get_parent(W_WIDGET(widget), &parent);
 	if (parent == 0)
 		return W_FALSE;
 	w_control_get_layout_data(W_CONTROL(widget), (void**) &d);
@@ -40,7 +40,7 @@ int w_layout_sash_default_selection(w_widget *widget, w_event *event) {
 	w_control *c, *c1 = 0, *c2 = 0;
 	w_iterator children;
 	w_iterator_init(&children);
-	w_composite_get_children(parent, &children);
+	w_composite_get_children(W_COMPOSITE(parent), &children);
 	int i = 0;
 	while (w_iterator_next(&children, &c)) {
 		if (w_widget_class_id(W_WIDGET(c)) != _W_CLASS_SASH) {
@@ -134,7 +134,7 @@ wresult w_layout_sash_event_proc(w_widget *widget, w_event *event) {
 	if (event->type == W_EVENT_SELECTION) {
 		return w_layout_sash_default_selection(widget, event);
 	}
-	return w_widget_default_post_event(widget, event);
+	return w_widget_post_event(widget, event, W_EVENT_SEND);
 }
 void w_layout_sash_init(w_layout_sash *layout, int style) {
 	layout->layout.clazz = &w_layout_sash_class;

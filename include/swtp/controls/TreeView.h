@@ -221,8 +221,11 @@ public:
 	bool SetHasChildren() {
 		return _WReturnBool(_set_has_children());
 	}
+	bool SetItemCount(int count, void **userdata) {
+		return _WReturnBool(_set_item_count(count, userdata));
+	}
 	bool SetItemCount(int count) {
-		return _WReturnBool(_set_item_count(count));
+		return SetItemCount(count, 0);
 	}
 public:
 	WResult _clear(int index, int all) {
@@ -279,8 +282,8 @@ public:
 	WResult _set_has_children() {
 		return w_treeitem_set_has_children(W_TREEITEM(this));
 	}
-	WResult _set_item_count(int count) {
-		return w_treeitem_set_item_count(W_TREEITEM(this), count);
+	WResult _set_item_count(int count, void **userdata) {
+		return w_treeitem_set_item_count(W_TREEITEM(this), count, userdata);
 	}
 };
 typedef WListEvent WTreeEvent;

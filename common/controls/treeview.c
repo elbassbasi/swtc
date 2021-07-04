@@ -22,6 +22,15 @@ wresult w_treeitem_clear_all(w_treeitem *item, int all) {
 	} else
 		return result;
 }
+wresult w_treeitem_for_all_children(w_treeitem *item,
+		w_widget_callback callback, void *user_data, int flags) {
+	wresult result = W_WIDGETDATA_CHECK0(item);
+	if (result > 0) {
+		return W_TREEITEM_GET_CLASS(item)->for_all_children(item, callback,
+				user_data, flags);
+	} else
+		return result;
+}
 wresult w_treeitem_get_expanded(w_treeitem *item) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
@@ -114,10 +123,11 @@ wresult w_treeitem_set_has_children(w_treeitem *item) {
 	} else
 		return result;
 }
-wresult w_treeitem_set_item_count(w_treeitem *item, int count) {
+wresult w_treeitem_set_item_count(w_treeitem *item, int count,
+		void **userdata) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
-		return W_TREEITEM_GET_CLASS(item)->set_item_count(item, count);
+		return W_TREEITEM_GET_CLASS(item)->set_item_count(item, count, userdata);
 	} else
 		return result;
 }

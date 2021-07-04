@@ -228,13 +228,13 @@ wresult _w_spinner_get_increment(w_spinner *spinner) {
 wresult _w_spinner_get_maximum(w_spinner *spinner) {
 	HWND hwndUpDown = _W_SPINNER(spinner)->hwndUpDown;
 	int max = 0;
-	SendMessageW(hwndUpDown, UDM_GETRANGE32, NULL, (LPARAM) (&max));
+	SendMessageW(hwndUpDown, UDM_GETRANGE32, 0, (LPARAM) &max);
 	return max;
 }
 wresult _w_spinner_get_minimum(w_spinner *spinner) {
 	HWND hwndUpDown = _W_SPINNER(spinner)->hwndUpDown;
 	int min = 0;
-	SendMessageW(hwndUpDown, UDM_GETRANGE32, (WPARAM) (&min), NULL);
+	SendMessageW(hwndUpDown, UDM_GETRANGE32, (WPARAM) &min, 0);
 	return min;
 }
 wresult _w_spinner_get_page_increment(w_spinner *spinner) {
@@ -374,7 +374,7 @@ wresult _w_spinner_set_increment(w_spinner *spinner, int value) {
 wresult _w_spinner_set_maximum(w_spinner *spinner, int value) {
 	HWND hwndUpDown = _W_SPINNER(spinner)->hwndUpDown;
 	int min = 0;
-	SendMessageW(hwndUpDown, UDM_GETRANGE32, (WPARAM) (&min), NULL);
+	SendMessageW(hwndUpDown, UDM_GETRANGE32, (WPARAM) &min, 0);
 	if (value < min)
 		return W_FALSE;
 	int pos;
@@ -389,7 +389,7 @@ wresult _w_spinner_set_maximum(w_spinner *spinner, int value) {
 wresult _w_spinner_set_minimum(w_spinner *spinner, int value) {
 	HWND hwndUpDown = _W_SPINNER(spinner)->hwndUpDown;
 	int max = 0;
-	SendMessageW(hwndUpDown, UDM_GETRANGE32, NULL, (LPARAM) (&max));
+	SendMessageW(hwndUpDown, UDM_GETRANGE32, 0, (LPARAM) &max);
 	if (value > max)
 		return W_FALSE;
 	int pos;
@@ -467,7 +467,7 @@ wresult _w_spinner_set_selection_0(w_spinner *spinner, int value, int setPos,
 		e.platform_event = 0;
 		e.time = 0;
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(spinner), &e);
+		_w_widget_post_event(W_WIDGET(spinner), &e, W_EVENT_SEND);
 	}
 	return result;
 }
@@ -635,7 +635,7 @@ wresult _SPINNER_WM_CHAR(w_widget *widget, _w_event_platform *e,
 		ee.platform_event = 0;
 		ee.time = 0;
 		ee.data = 0;
-		_w_widget_send_event(widget, &ee);
+		_w_widget_post_event(widget, &ee, W_EVENT_SEND);
 		e->result = 0;
 		return W_TRUE;
 		break;
@@ -872,7 +872,7 @@ wresult _SPINNER_WM_SCROLLCHILD(w_widget *widget, _w_event_platform *e,
 		ee.platform_event = 0;
 		ee.time = 0;
 		ee.data = 0;
-		_w_widget_send_event(widget, &ee);
+		_w_widget_post_event(widget, &ee, W_EVENT_SEND);
 		break;
 	}
 	return W_FALSE;

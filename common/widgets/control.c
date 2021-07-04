@@ -65,7 +65,8 @@ wresult w_control_compute_size_0(w_control *control, w_size *size, int wHint,
 		e.size = size;
 		e.wHint = wHint;
 		e.hHint = hHint;
-		return w_widget_send_event(W_WIDGET(control), (w_event*) &e);
+		return w_widget_post_event(W_WIDGET(control), (w_event*) &e,
+				W_EVENT_SEND);
 	} else
 		return result;
 }
@@ -313,11 +314,11 @@ wresult w_control_new_layout_data(w_control *control, void **data,
 
 wresult w_control_layout_set_data(w_control *control,
 		const w_layout_data *data) {
-	w_composite *parent;
-	wresult result = w_control_get_parent(control, &parent);
+	w_widget *parent;
+	wresult result = w_widget_get_parent(W_WIDGET(control), &parent);
 	if (result >= 0 && parent != 0) {
 		w_layout *layout;
-		result = w_composite_get_layout(parent, &layout);
+		result = w_composite_get_layout(W_COMPOSITE(parent), &layout);
 		if (result >= 0 && layout != 0) {
 			w_layout_set_data(layout, control, data);
 		}
@@ -325,11 +326,11 @@ wresult w_control_layout_set_data(w_control *control,
 	return result;
 }
 wresult w_control_layout_get_data(w_control *control, w_layout_data *data) {
-	w_composite *parent;
-	wresult result = w_control_get_parent(control, &parent);
+	w_widget *parent;
+	wresult result = w_widget_get_parent(W_WIDGET(control), &parent);
 	if (result >= 0 && parent != 0) {
 		w_layout *layout;
-		result = w_composite_get_layout(parent, &layout);
+		result = w_composite_get_layout(W_COMPOSITE(parent), &layout);
 		if (result >= 0 && layout != 0) {
 			w_layout_get_data(layout, control, data);
 		}
@@ -359,15 +360,6 @@ wresult w_control_set_menu(w_control *control, struct w_menu *menu) {
 	} else
 		return result;
 }
-wresult w_control_get_parent(w_control *control, w_composite **parent) {
-	wresult result = W_WIDGET_CHECK0(control);
-	if (result > 0) {
-		return W_CONTROL_GET_CLASS(control)->get_parent(control, parent);
-	} else {
-		*parent = 0;
-		return result;
-	}
-}
 wresult w_control_set_parent(w_control *control, w_composite *parent) {
 	wresult result = W_WIDGET_CHECK0(control);
 	if (result > 0) {
@@ -383,21 +375,21 @@ wresult w_control_is_reparentable(w_control *control) {
 		return result;
 }
 wresult w_control_get_tooltip_text(w_control *control, w_alloc alloc,
-		void *user_data,int enc) {
+		void *user_data, int enc) {
 	wresult result = W_WIDGET_CHECK0(control);
 	if (result > 0) {
 		return W_CONTROL_GET_CLASS(control)->get_tooltip_text(control, alloc,
-				user_data,enc);
+				user_data, enc);
 	} else {
 		return result;
 	}
 }
 wresult w_control_set_tooltip_text(w_control *control, const char *text,
-		int length,int enc) {
+		int length, int enc) {
 	wresult result = W_WIDGET_CHECK0(control);
 	if (result > 0) {
 		return W_CONTROL_GET_CLASS(control)->set_tooltip_text(control, text,
-				length,enc);
+				length, enc);
 	} else
 		return result;
 }

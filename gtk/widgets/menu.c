@@ -681,7 +681,7 @@ wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 		ei.event.time = 0;
 		ei.event.data = 0;
 		ei.item = 0;
-		_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
+		_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei);
 		int itemcount = _w_menuitem_get_item_count_0(_W_WIDGET(menu)->handle);
 		if (itemcount != 0) {
 			/*
@@ -715,7 +715,7 @@ wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 			ei.event.time = 0;
 			ei.event.data = 0;
 			ei.item = 0;
-			_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei);
+			_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei);
 		}
 	} else {
 		gtk_menu_popdown(GTK_MENU(_W_WIDGET(menu)->handle));
@@ -762,7 +762,7 @@ gboolean _gtk_menu_activate(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = (w_menuitem*) &item;
-	_w_widget_send_event(widget, (w_event*) &ei);
+	_w_widget_post_event(widget, (w_event*) &ei);
 	return FALSE;
 }
 gboolean _gtk_menu_hide(w_widget *widget, _w_event_platform *e,
@@ -774,7 +774,7 @@ gboolean _gtk_menu_hide(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = 0;
-	_w_widget_send_event(widget, (w_event*) &ei);
+	_w_widget_post_event(widget, (w_event*) &ei);
 	return FALSE;
 }
 gboolean _gtk_menu_select(w_widget *widget, _w_event_platform *e,
@@ -791,7 +791,7 @@ gboolean _gtk_menu_select(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = (w_menuitem*) &item;
-	_w_widget_send_event(widget, (w_event*) &ei);
+	_w_widget_post_event(widget, (w_event*) &ei);
 	return FALSE;
 }
 gboolean _gtk_menu_show(w_widget *widget, _w_event_platform *e,
@@ -803,7 +803,7 @@ gboolean _gtk_menu_show(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = 0;
-	_w_widget_send_event(widget, (w_event*) &ei);
+	_w_widget_post_event(widget, (w_event*) &ei);
 	return FALSE;
 }
 gboolean _gtk_menu_show_help(w_widget *widget, _w_event_platform *e,
@@ -820,7 +820,7 @@ gboolean _gtk_menu_show_help(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = (w_menuitem*) &item;
-	_w_widget_send_event(widget, (w_event*) &ei);
+	_w_widget_post_event(widget, (w_event*) &ei);
 	return FALSE;
 }
 

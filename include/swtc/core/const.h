@@ -332,16 +332,16 @@ enum {
  */
 enum {
 	W_DRAW_TRANSPARENT = 1 << 0,
-	W_DRAW_DELIMITER = 1 << 1,
 	W_DRAW_TAB = 1 << 2,
-	W_DRAW_MNEMONIC = 1 << 3,
-	W_DRAW_LEFT = 1 << 4,
-	W_DRAW_TOP = 1 << 5,
-	W_DRAW_RIGHT = 1 << 6,
+	W_DRAW_MNEMONIC = 1 << 2,
+	W_DRAW_LEFT = 1 << 3,
+	W_DRAW_RIGHT = 1 << 4,
+	W_DRAW_HCENTER = 1 << 5,
+	W_DRAW_TOP = 1 << 6,
 	W_DRAW_BOTTOM = 1 << 7,
-	W_DRAW_HCENTER = 1 << 8,
-	W_DRAW_VCENTER = 1 << 9,
+	W_DRAW_VCENTER = 1 << 8,
 	W_DRAW_CENTRE = W_DRAW_HCENTER | W_DRAW_VCENTER,
+	W_DRAW_DELIMITER = 1 << 9,
 };
 enum {
 	W_CURSOR_ARROW = 0,

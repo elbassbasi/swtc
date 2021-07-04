@@ -129,7 +129,7 @@ void _w_widget_set_orientation(w_widget *widget, int create,
 void _w_widget_hook_events(w_widget *widget, _w_control_priv *priv);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
-wresult _w_widget_send_event(w_widget *widget, w_event *event);
+wresult _w_widget_post_event(w_widget *widget, w_event *event);
 gboolean _w_widget_send_IM_key_event(w_widget *widget, _w_event_platform *e,
 		int type, GdkEventKey *keyEvent, const char *chars, int length);
 void _w_widget_init_signal_0();

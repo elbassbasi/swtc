@@ -50,7 +50,7 @@ wresult _w_trayitem_create(w_widget *widget, w_widget *parent, wuint64 style,
 	_tray->count++;
 	return W_TRUE;
 }
-wresult _w_trayitem_post_event(w_widget *widget, w_event *e) {
+wresult _w_trayitem_post_event(w_widget *widget, w_event *e,int flags) {
 	return W_FALSE;
 }
 
@@ -155,7 +155,7 @@ wresult _w_trayitem_set_visible(w_trayitem *trayitem, int visible) {
 		e.time = 0;
 		e.data = 0;
 		e.platform_event = 0;
-		_w_widget_send_event(W_WIDGET(trayitem), &e);
+		_w_widget_post_event(W_WIDGET(trayitem), &e, W_EVENT_SEND);
 		if (w_widget_is_ok(W_WIDGET(trayitem)) < 0)
 			return W_FALSE;
 	}
@@ -186,7 +186,7 @@ wresult _w_trayitem_set_visible(w_trayitem *trayitem, int visible) {
 		e.time = 0;
 		e.data = 0;
 		e.platform_event = 0;
-		_w_widget_send_event(W_WIDGET(trayitem), &e);
+		_w_widget_post_event(W_WIDGET(trayitem), &e, W_EVENT_SEND);
 	}
 	return W_TRUE;
 }
@@ -201,7 +201,7 @@ wresult _w_tray_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
 	return W_FALSE;
 }
-wresult _w_tray_post_event(w_widget *widget, w_event *e) {
+wresult _w_tray_post_event(w_widget *widget, w_event *e,int flags) {
 	return W_FALSE;
 }
 

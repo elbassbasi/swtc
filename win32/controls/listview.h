@@ -40,6 +40,13 @@ typedef union LISTITEM {
 /*
  * listitem
  */
+#define ITEM_STATE_IMAGEMASK 0x3000
+#define ITEM_STATE_PARAMMASK 0x4000
+#define ITEM_STATE_UNCHECKEDNORMAL 0x0000
+#define ITEM_STATE_CHECKEDNORMAL 0x1000
+#define ITEM_STATE_MIXEDNORMAL 0x3000
+#define ITEM_STATE_SET_CHECK(x) (x)
+#define ITEM_STATE_SELECTED(x)  x ^= ITEM_STATE_CHECKEDNORMAL;
 typedef struct _w_listitem {
 	_w_item item;
 } _w_listitem;
@@ -73,7 +80,8 @@ typedef struct _w_listviewbase_priv {
 } _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
 #define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_w_widget_get_priv(W_WIDGET(x)))
-void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,struct _w_listviewbase_class *clazz);
+void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listviewbase_class *clazz);
 typedef struct _w_listview_priv {
 	_w_listviewbase_priv base;
 } _w_listview_priv;
@@ -93,16 +101,21 @@ wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 		int length, int enc);
 wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
 		w_item_attr *attr);
+wresult _w_listitem_get_attr_0(w_listitem *item, int index, int mask,
+		w_item_attr *attr, int flags);
 wresult _w_listitem_get_bounds(w_listitem *item, w_rect *bounds);
 wresult _w_listitem_get_bounds_index(w_listitem *item, int index,
 		w_rect *bounds);
 wresult _w_listitem_get_checked(w_listitem *item);
+wresult _w_listitem_get_grayed(w_listitem *item);
 wresult _w_listitem_get_image(w_listitem *item);
 wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
 		w_item_attr *attr);
 wresult _w_listitem_set_checked(w_listitem *item, int checked);
+wresult _w_listitem_set_grayed(w_listitem *item, int grayed);
 wresult _w_listitem_set_image(w_listitem *item, int image);
 wresult _w_listviewbase_insert_column(w_listviewbase *list,
 		w_columnitem *column, int index);
-void _w_listview_class_init(w_toolkit *toolkit, wushort classId,struct _w_listview_class *clazz);
+void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listview_class *clazz);
 #endif /* WIN32_CONTROLS_TABLE_H_ */

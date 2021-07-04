@@ -143,7 +143,7 @@ void _w_combobox_clear_text(w_combobox *combo) {
 				e.time = 0;
 				e.widget = W_WIDGET(combo);
 				e.data = 0;
-				_w_widget_send_event(W_WIDGET(combo), &e);
+				_w_widget_post_event(W_WIDGET(combo), &e);
 			}
 			g_free(ptr);
 		}
@@ -495,7 +495,7 @@ wresult _w_combobox_select(w_combobox *combo, int index) {
 		e.time = 0;
 		e.widget = W_WIDGET(combo);
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(combo), &e);
+		_w_widget_post_event(W_WIDGET(combo), &e);
 	}
 	return W_TRUE;
 }
@@ -583,7 +583,7 @@ wresult _w_combobox_set_text(w_combobox *combo, const char *string, int length,
 	e.time = 0;
 	e.widget = W_WIDGET(combo);
 	e.data = 0;
-	_w_widget_send_event(W_WIDGET(combo), &e);
+	_w_widget_post_event(W_WIDGET(combo), &e);
 	return W_TRUE;
 }
 wresult _w_combobox_set_text_limit(w_combobox *combo, int limit) {

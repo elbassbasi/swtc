@@ -8,6 +8,16 @@
 /*
  * menuitem
  */
+wresult w_menuitem_for_all_children(w_menuitem *parent,
+		w_widget_callback callback, void *user_data, int flags) {
+	wresult result = W_WIDGETDATA_CHECK0(parent);
+	if (result > 0) {
+		return W_MENUITEM_GET_CLASS(parent)->for_all_children(parent, callback,
+				user_data, flags);
+	} else {
+		return result;
+	}
+}
 wresult w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 		int index) {
 	w_widgetdata_close(W_WIDGETDATA(item));
@@ -61,10 +71,10 @@ wresult w_menuitem_get_items(w_menuitem *item, w_iterator *items) {
 		return result;
 	}
 }
-wresult w_menuitem_get_id(w_menuitem *item) {
+wresult w_menuitem_get_id(w_menuitem *item, int mask) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
-		return W_MENUITEM_GET_CLASS(item)->get_id(item);
+		return W_MENUITEM_GET_CLASS(item)->get_id(item, mask);
 	} else {
 		return result;
 	}
@@ -143,10 +153,10 @@ wresult w_menuitem_set_enabled(w_menuitem *item, int enabled) {
 		return result;
 	}
 }
-wresult w_menuitem_set_id(w_menuitem *item, unsigned short id) {
+wresult w_menuitem_set_id(w_menuitem *item, int mask, wushort id) {
 	wresult result = W_WIDGETDATA_CHECK0(item);
 	if (result > 0) {
-		return W_MENUITEM_GET_CLASS(item)->set_id(item, id);
+		return W_MENUITEM_GET_CLASS(item)->set_id(item, mask, id);
 	} else {
 		return result;
 	}
@@ -236,6 +246,14 @@ wresult w_menu_is_visible(w_menu *menu) {
 	wresult result = W_WIDGET_CHECK0(menu);
 	if (result > 0) {
 		return W_MENU_GET_CLASS(menu)->is_visible(menu);
+	} else {
+		return result;
+	}
+}
+wresult w_menu_set_id_mask(w_menu *menu, int mask) {
+	wresult result = W_WIDGET_CHECK0(menu);
+	if (result > 0) {
+		return W_MENU_GET_CLASS(menu)->set_id_mask(menu, mask);
 	} else {
 		return result;
 	}

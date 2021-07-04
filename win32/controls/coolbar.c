@@ -106,10 +106,10 @@ wresult _w_coolitem_set_control(w_coolitem *coolitem, w_control *control) {
 	if (control != 0) {
 		if (!w_widget_is_ok(W_WIDGET(control)))
 			return W_ERROR_INVALID_ARGUMENT;
-		w_composite *p;
-		w_control_get_parent(control, &p);
+		w_widget *p;
+		w_widget_get_parent(W_WIDGET(control), &p);
 
-		if (p != W_COMPOSITE(parent))
+		if (p != parent)
 			return W_ERROR_INVALID_PARENT;
 	}
 	int index = _W_ITEM(coolitem)->index;
@@ -436,8 +436,8 @@ DWORD _w_coolbar_widget_style(w_control *control, _w_control_priv *priv) {
 		bits |= RBS_BANDBORDERS;
 	return bits;
 }
-const char* _w_coolbar_window_class(w_control *control, _w_control_priv *priv) {
-	return REBARCLASSNAMEA;
+WCHAR* _w_coolbar_window_class(w_control *control, _w_control_priv *priv) {
+	return REBARCLASSNAMEW;
 }
 /*
  *	messages
@@ -550,7 +550,7 @@ wresult _COOLBAR_WM_SETREDRAW(w_widget *widget, _w_event_platform *e,
 	DefWindowProcW(e->hwnd, WM_SETREDRAW, e->wparam, e->lparam);
 	w_control_get_bounds(W_CONTROL(widget), &r.pt, &r.sz);
 	if (!w_rect_equals(&r, &rect)) {
-		w_composite *parent = _W_CONTROL(widget)->parent;
+		w_widget *parent = _W_WIDGET(widget)->parent;
 		w_control_redraw(W_CONTROL(parent), &rect, W_TRUE);
 	}
 	return W_TRUE;
@@ -641,7 +641,7 @@ wresult _COOLBAR_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 			event.location.x = lpnm->rc.left;
 			event.location.y = lpnm->rc.bottom;
 		}
-		_w_widget_send_event(widget, W_EVENT(&event));
+		_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
 		break;
 	}
 	case NM_CUSTOMDRAW: {

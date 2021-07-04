@@ -342,7 +342,7 @@ void _gtk_treeview_send_default_selection(w_widget *widget,
 		event.event.widget = widget;
 		event.event.platform_event = _EVENT_PLATFORM(e);
 		event.item = W_ITEM(&item);
-		_w_widget_send_event(widget, (w_event*) &event);
+		_w_widget_post_event(widget, (w_event*) &event);
 	}
 }
 gboolean _gtk_treeview_button_press_event(w_widget *widget,
@@ -399,7 +399,7 @@ gboolean _gtk_treeview_changed(w_widget *widget, _w_event_platform *e,
 		_W_ITEM(&item)->parent = widget;
 		_W_ITEM(&item)->index = -1;
 		gtk_tree_model_get_iter(modelHandle, &_W_TREEITEM(&item)->iter, path);
-		_w_widget_send_event(widget, (w_event*) &event);
+		_w_widget_post_event(widget, (w_event*) &event);
 		gtk_tree_path_free(path);
 	}
 	return FALSE;
@@ -464,7 +464,7 @@ gboolean _gtk_treeview_test_expand_row(w_widget *widget, _w_event_platform *e,
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;
 	memcpy(&_W_TREEITEM(&item)->iter, iter, sizeof(GtkTreeIter));
-	_w_widget_send_event(widget, (w_event*) &event);
+	_w_widget_post_event(widget, (w_event*) &event);
 	return FALSE;
 }
 gboolean _gtk_treeview_toggled(w_widget *widget, _w_event_platform *e,
@@ -484,7 +484,7 @@ gboolean _gtk_treeview_toggled(w_widget *widget, _w_event_platform *e,
 		event.event.type = W_EVENT_SELECTION;
 		event.event.widget = widget;
 		event.item = W_ITEM(&item);
-		_w_widget_send_event(widget, (w_event*) &event);
+		_w_widget_post_event(widget, (w_event*) &event);
 	}
 	return FALSE;
 }

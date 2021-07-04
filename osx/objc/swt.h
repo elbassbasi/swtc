@@ -40,7 +40,7 @@ typedef struct _w_event_platform {
 #define _W_EVENT_PLATFORM(x) ((_w_event_platform*)x)
 void _w_event_platform_init(_w_event_platform *e, w_widget *widget,
 		void *handle, int msg);
-wresult _w_widget_send_event(w_widget *widget, w_event *event);
+wresult _w_widget_post_event(w_widget *widget, w_event *event);
 wresult _w_toolkit_notify(int msg,void* obj);
 enum {
 	_NS_CLASS_VIEW,

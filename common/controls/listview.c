@@ -215,20 +215,20 @@ wresult w_listviewbase_deselect_all(w_listviewbase *list) {
 		return result;
 }
 wresult w_listviewbase_for_all_column(w_listviewbase *list,
-		w_widget_callback callback, void *user_data) {
+		w_widget_callback callback, void *user_data, int flags) {
 	wresult result = W_WIDGET_CHECK0(list);
 	if (result > 0) {
 		return W_LISTVIEWBASE_GET_CLASS(list)->for_all_column(list, callback,
-				user_data);
+				user_data, flags);
 	} else
 		return result;
 }
 wresult w_listviewbase_for_all_item(w_listviewbase *list,
-		w_widget_callback callback, void *user_data) {
+		w_widget_callback callback, void *user_data, int flags) {
 	wresult result = W_WIDGET_CHECK0(list);
 	if (result > 0) {
 		return W_LISTVIEWBASE_GET_CLASS(list)->for_all_item(list, callback,
-				user_data);
+				user_data, flags);
 	} else
 		return result;
 }

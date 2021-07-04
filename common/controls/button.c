@@ -80,7 +80,7 @@ wresult w_button_set_selection(w_button *button, int selected) {
 	} else
 		return result;
 }
-wresult w_button_set_text(w_button *button, const char *string,size_t length,int enc) {
+wresult w_button_set_text(w_button *button, const char *string,int length,int enc) {
 	wresult result = W_WIDGET_CHECK0(button);
 	if (result >= 0) {
 		return W_BUTTON_GET_CLASS(button)->set_text(button, string,length,enc);

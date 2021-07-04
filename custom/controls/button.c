@@ -103,7 +103,7 @@ wresult cw_button_post_event(w_widget *widget, w_event *e) {
 		return cw_button_compute_size(widget, (w_event_compute_size*) e);
 		break;
 	}
-	return widget->clazz->parentClass->post_event(widget, e);
+	return widget->clazz->parentClass->post_event(widget, e,W_EVENT_SEND);
 }
 int cw_button_get_alignment(w_button *button) {
 	return 0;

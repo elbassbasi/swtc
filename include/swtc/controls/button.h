@@ -42,7 +42,7 @@ SWT_PUBLIC wresult w_button_set_alignment(w_button *button, int alignment);
 SWT_PUBLIC wresult w_button_set_grayed(w_button *button, int grayed);
 SWT_PUBLIC wresult w_button_set_image(w_button *button, w_image *image);
 SWT_PUBLIC wresult w_button_set_selection(w_button *button, int selected);
-SWT_PUBLIC wresult w_button_set_text(w_button *button, const char *string,size_t length,int enc);
+SWT_PUBLIC wresult w_button_set_text(w_button *button, const char *string,int length,int enc);
 
 #define W_BUTTON_CLASS(x) ((struct _w_button_class*)x)
 #define W_BUTTON_GET_CLASS(x) ((struct _w_button_class*)W_WIDGET_GET_CLASS(x))

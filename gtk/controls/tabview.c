@@ -459,7 +459,7 @@ gboolean _gtk_tabview_switch_page(w_widget *widget, _w_event_platform *e,
 	_e.event.data = 0;
 	_e.item = W_TABITEM(&item);
 	_e.control = c;
-	_w_widget_send_event(widget, (w_event*) &_e);
+	_w_widget_post_event(widget, (w_event*) &_e);
 	return FALSE;
 }
 gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
@@ -486,7 +486,7 @@ gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
 	_e.event.data = 0;
 	_e.item = W_TABITEM(&item);
 	_e.control = 0;
-	_w_widget_send_event(widget, (w_event*) &_e);
+	_w_widget_post_event(widget, (w_event*) &_e);
 	return FALSE;
 }
 _gtk_signal_info _gtk_tabview_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //

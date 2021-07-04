@@ -244,7 +244,7 @@ wresult _w_columnitem_pack(w_columnitem *column) {
 				event.event.widget = parent;
 				event.event.platform_event = 0;
 				event.event.type = W_EVENT_ITEM_MEASURE;
-				wresult ret = w_widget_send_event(parent, (w_event*) &event);
+				wresult ret = w_widget_post_event(parent, (w_event*) &event,W_EVENT_SEND);
 				if (ret) {
 					itemRight = _r.x + _r.width;
 				} else {
@@ -945,8 +945,10 @@ void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,
 	listitem->get_bounds = _w_listitem_get_bounds;
 	listitem->get_bounds_index = _w_listitem_get_bounds_index;
 	listitem->get_checked = _w_listitem_get_checked;
+	listitem->get_grayed = _w_listitem_get_grayed;
 	listitem->get_image = _w_listitem_get_image;
 	listitem->set_checked = _w_listitem_set_checked;
+	listitem->set_grayed = _w_listitem_set_grayed;
 	listitem->set_image = _w_listitem_set_image;
 	listitem->set_attr = _w_listitem_set_attr;
 	listitem->set_text = _w_listitem_set_text_0;

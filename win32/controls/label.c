@@ -180,12 +180,12 @@ DWORD _w_label_widget_style(w_control *control, _w_control_priv *priv) {
 	}
 	return bits;
 }
-const char* _w_label_window_class(w_control *control, _w_control_priv *priv) {
+WCHAR* _w_label_window_class(w_control *control, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(control)->style;
 	if (style & W_HYPERLINK) {
-		return "SysLink";
+		return L"SysLink";
 	} else {
-		return WC_STATICA;
+		return WC_STATICW;
 	}
 }
 void _w_label_class_init(w_toolkit *toolkit, wushort classId,

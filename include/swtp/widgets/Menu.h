@@ -133,8 +133,16 @@ public:
 	 *
 	 * @return the receiver's identifier
 	 */
+	wushort GetId(int mask) {
+		return _WReturnInt(_get_id(mask));
+	}
+	/**
+	 * Gets the identifier associated with the receiver.
+	 *
+	 * @return the receiver's identifier
+	 */
 	wushort GetId() {
-		return _WReturnInt(_get_id());
+		return GetId(0);
 	}
 	/**
 	 * Returns the receiver's image if it has one, or null
@@ -290,9 +298,17 @@ public:
 	 *
 	 * @param id the new identifier. This must be a non-negative value. System-defined identifiers are negative values.
 	 */
-	WMenuItem& SetId(wushort id) {
-		_set_id(id);
+	WMenuItem& SetId(int mask, wushort id) {
+		_set_id(mask, id);
 		return *this;
+	}
+	/**
+	 * Sets the identifier associated with the receiver to the argument.
+	 *
+	 * @param id the new identifier. This must be a non-negative value. System-defined identifiers are negative values.
+	 */
+	WMenuItem& SetId(wushort id) {
+		return SetId(0, id);
 	}
 	/**
 	 * Sets the receiver's image to the argument, which may be
@@ -449,8 +465,8 @@ public:
 	WResult _get_items(WIterator<WMenuItem> &items) {
 		return w_menuitem_get_items(W_MENUITEM(this), (w_iterator*) &items);
 	}
-	WResult _get_id() {
-		return w_menuitem_get_id(W_MENUITEM(this));
+	WResult _get_id(int mask) {
+		return w_menuitem_get_id(W_MENUITEM(this), mask);
 	}
 	WResult _get_image(WImage *image) {
 		return w_menuitem_get_image(W_MENUITEM(this), W_IMAGE(image));
@@ -479,8 +495,8 @@ public:
 	WResult _set_enabled(int enabled) {
 		return w_menuitem_set_enabled(W_MENUITEM(this), enabled);
 	}
-	WResult _set_id(wushort id) {
-		return w_menuitem_set_id(W_MENUITEM(this), id);
+	WResult _set_id(int mask, wushort id) {
+		return w_menuitem_set_id(W_MENUITEM(this), mask, id);
 	}
 	WResult _set_image(const WImage *image) {
 		return w_menuitem_set_image(W_MENUITEM(this), W_IMAGE(image));

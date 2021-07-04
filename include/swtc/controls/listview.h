@@ -138,9 +138,9 @@ struct _w_listviewbase_class {
 	wresult (*clear_all)(w_listviewbase *list);
 	wresult (*deselect_all)(w_listviewbase *list);
 	wresult (*for_all_column)(w_listviewbase *list, w_widget_callback callback,
-			void *user_data);
+			void *user_data, int flags);
 	wresult (*for_all_item)(w_listviewbase *list, w_widget_callback callback,
-			void *user_data);
+			void *user_data, int flags);
 	wresult (*get_column)(w_listviewbase *list, int index,
 			w_columnitem *column);
 	wresult (*get_column_count)(w_listviewbase *list);
@@ -166,6 +166,7 @@ struct _w_listviewbase_class {
 	wresult (*set_header_visible)(w_listviewbase *list, int show);
 	wresult (*set_imagelist)(w_listviewbase *list, w_imagelist *imagelist);
 	wresult (*set_item_height)(w_listviewbase *list, int itemHeight);
+	wresult (*set_item_count)(w_listviewbase *list, int count, void **userdata);
 	wresult (*set_lines_visible)(w_listviewbase *list, int show);
 	wresult (*set_sort_column)(w_listviewbase *list, w_columnitem *column);
 	wresult (*set_sort_direction)(w_listviewbase *list, int direction);
@@ -178,9 +179,9 @@ struct _w_listviewbase_class {
 SWT_PUBLIC wresult w_listviewbase_clear_all(w_listviewbase *list);
 SWT_PUBLIC wresult w_listviewbase_deselect_all(w_listviewbase *list);
 SWT_PUBLIC wresult w_listviewbase_for_all_column(w_listviewbase *list,
-		w_widget_callback callback, void *user_data);
+		w_widget_callback callback, void *user_data, int flags);
 SWT_PUBLIC wresult w_listviewbase_for_all_item(w_listviewbase *list,
-		w_widget_callback callback, void *user_data);
+		w_widget_callback callback, void *user_data, int flags);
 SWT_PUBLIC wresult w_listviewbase_get_column(w_listviewbase *list, int index,
 		w_columnitem *column);
 SWT_PUBLIC wresult w_listviewbase_get_column_count(w_listviewbase *list);

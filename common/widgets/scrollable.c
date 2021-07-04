@@ -203,7 +203,7 @@ wresult w_scrollable_compute_trim(w_scrollable *scrollable, w_rect *_result,
 		e.event.data = 0;
 		e.rect = rect;
 		e.result = _result;
-		return w_widget_send_event(W_WIDGET(scrollable), (w_event*) &e);
+		return w_widget_post_event(W_WIDGET(scrollable), (w_event*) &e,W_EVENT_SEND);
 	} else {
 		memcpy(_result, rect, sizeof(w_rect));
 		return result;
@@ -217,7 +217,7 @@ wresult w_scrollable_get_client_area(w_scrollable *scrollable, w_rect *rect) {
 		e.event.platform_event = 0;
 		e.event.data = 0;
 		e.rect = rect;
-		return w_widget_send_event(W_WIDGET(scrollable), (w_event*) &e);
+		return w_widget_post_event(W_WIDGET(scrollable), (w_event*) &e,W_EVENT_SEND);
 	} else {
 		memset(rect, 0, sizeof(w_rect));
 		return result;

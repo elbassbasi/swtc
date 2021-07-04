@@ -47,7 +47,6 @@ struct _w_control_class {
 	wresult (*get_layout_data)(w_control *control, void **data);
 	wresult (*get_menu)(w_control *control, w_menu **menu);
 	wresult (*get_orientation)(w_control *control);
-	wresult (*get_parent)(w_control *control, w_composite **parent);
 	wresult (*get_region)(w_control *control, w_region *region);
 	wresult (*get_tab)(w_control *control);
 	wresult (*get_text_direction)(w_control *control);
@@ -142,8 +141,6 @@ SWT_PUBLIC wresult w_control_get_graphics(w_control *control, w_graphics *gc);
 SWT_PUBLIC wresult w_control_get_layout_data(w_control *control, void **data);
 SWT_PUBLIC wresult w_control_get_menu(w_control *control, w_menu **menu);
 SWT_PUBLIC wresult w_control_get_orientation(w_control *control);
-SWT_PUBLIC wresult w_control_get_parent(w_control *control,
-		w_composite **parent);
 SWT_PUBLIC wresult w_control_get_region(w_control *control, w_region *region);
 SWT_PUBLIC wresult w_control_get_tab(w_control *control);
 SWT_PUBLIC wresult w_control_get_text_direction(w_control *control);

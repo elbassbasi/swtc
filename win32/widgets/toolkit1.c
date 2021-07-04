@@ -287,9 +287,7 @@ void _w_toolkit_init_dll(_w_toolkit *toolkit) {
 	int immEnabled = GetSystemMetrics(SM_IMMENABLED) != 0;
 	win_toolkit->IsDBLocale = dbcsEnabled || immEnabled;
 }
-void _w_toolkit_registre_class_0(_w_toolkit *toolkit, const char *clazz,
-		int style) {
-	WCHAR clazzName[50];
+void _w_toolkit_registre_class_0(_w_toolkit *toolkit, WCHAR *clazz, int style) {
 	WNDCLASSEXW wincl;
 	ATOM atom;
 	wincl.hInstance = hinst;
@@ -303,9 +301,7 @@ void _w_toolkit_registre_class_0(_w_toolkit *toolkit, const char *clazz,
 	wincl.cbClsExtra = 0;
 	wincl.cbWndExtra = 0;
 	wincl.hbrBackground = (HBRUSH) (COLOR_3DFACE + 1);
-	w_utf8_to_utf16(clazz, -1, clazzName,
-			sizeof(clazzName) / sizeof(clazzName[0]));
-	wincl.lpszClassName = clazzName;
+	wincl.lpszClassName = clazz;
 	atom = RegisterClassExW(&wincl);
 	if (atom == 0) {
 		fprintf(stderr, "Error registre Atom %s", clazz);
@@ -413,28 +409,37 @@ wushort _wm_msg[] = { //
 		};
 w_widget_init_class win_toolkit_classes_init[_W_CLASS_LAST] = {			//
 		[_W_CLASS_SHELL] =(w_widget_init_class) _w_shell_class_init,		//
-		[_W_CLASS_CANVAS] =(w_widget_init_class) _w_canvas_class_init,		//
-		[_W_CLASS_CCANVAS] =(w_widget_init_class) _w_ccanvas_class_init,		//
-		[_W_CLASS_COMPOSITE] =(w_widget_init_class) _w_composite_class_init,		//
-		[_W_CLASS_MENU] =(w_widget_init_class) _w_menu_class_init,		//
-		[_W_CLASS_TREEVIEW] =(w_widget_init_class) _w_treeview_class_init,		//
-		[_W_CLASS_LISTVIEW] =(w_widget_init_class) _w_listview_class_init,		//
-		[_W_CLASS_SASH] =(w_widget_init_class) _w_sash_class_init,		//
-		[_W_CLASS_BUTTON] =(w_widget_init_class) _w_button_class_init,		//
-		[_W_CLASS_LABEL] =(w_widget_init_class) _w_label_class_init,		//
-		[_W_CLASS_TEXTEDIT] =(w_widget_init_class) _w_textedit_class_init,		//
-		[_W_CLASS_PROGRESSBAR] =(w_widget_init_class) _w_progressbar_class_init,		//
-		[_W_CLASS_GROUPBOX] =(w_widget_init_class) _w_groupbox_class_init,		//
-		[_W_CLASS_COMBOBOX] =(w_widget_init_class) _w_combobox_class_init,		//
-		[_W_CLASS_COOLBAR] =(w_widget_init_class) _w_coolbar_class_init,		//
-		[_W_CLASS_DATETIME] =(w_widget_init_class) _w_datetime_class_init,		//
-		[_W_CLASS_SLIDER] =(w_widget_init_class) _w_slider_class_init,		//
-		[_W_CLASS_SPINNER] =(w_widget_init_class) _w_spinner_class_init,		//
-		[_W_CLASS_TABVIEW] =(w_widget_init_class) _w_tabview_class_init,		//
-		[_W_CLASS_TOOLBAR] =(w_widget_init_class) _w_toolbar_class_init,		//
-		[_W_CLASS_TRAY] =(w_widget_init_class) _w_tray_class_init,		//
-		[_W_CLASS_TOOLTIP] =(w_widget_init_class) _w_tooltip_class_init,		//
-		[_W_CLASS_EXPANDBAR] =(w_widget_init_class) cw_expandbar_class_init,		//
+				[_W_CLASS_CANVAS] =(w_widget_init_class) _w_canvas_class_init,//
+				[_W_CLASS_CCANVAS] =(w_widget_init_class) _w_ccanvas_class_init,//
+				[_W_CLASS_COMPOSITE
+						] =(w_widget_init_class) _w_composite_class_init,	//
+				[_W_CLASS_MENU] =(w_widget_init_class) _w_menu_class_init,	//
+				[_W_CLASS_TREEVIEW
+						] =(w_widget_init_class) _w_treeview_class_init,	//
+				[_W_CLASS_LISTVIEW
+						] =(w_widget_init_class) _w_listview_class_init,	//
+				[_W_CLASS_SASH] =(w_widget_init_class) _w_sash_class_init,	//
+				[_W_CLASS_BUTTON] =(w_widget_init_class) _w_button_class_init,//
+				[_W_CLASS_LABEL] =(w_widget_init_class) _w_label_class_init,//
+				[_W_CLASS_TEXTEDIT
+						] =(w_widget_init_class) _w_textedit_class_init,	//
+				[_W_CLASS_PROGRESSBAR
+						] =(w_widget_init_class) _w_progressbar_class_init,	//
+				[_W_CLASS_GROUPBOX
+						] =(w_widget_init_class) _w_groupbox_class_init,	//
+				[_W_CLASS_COMBOBOX
+						] =(w_widget_init_class) _w_combobox_class_init,	//
+				[_W_CLASS_COOLBAR] =(w_widget_init_class) _w_coolbar_class_init,//
+				[_W_CLASS_DATETIME
+						] =(w_widget_init_class) _w_datetime_class_init,	//
+				[_W_CLASS_SLIDER] =(w_widget_init_class) _w_slider_class_init,//
+				[_W_CLASS_SPINNER] =(w_widget_init_class) _w_spinner_class_init,//
+				[_W_CLASS_TABVIEW] =(w_widget_init_class) _w_tabview_class_init,//
+				[_W_CLASS_TOOLBAR] =(w_widget_init_class) _w_toolbar_class_init,//
+				[_W_CLASS_TRAY] =(w_widget_init_class) _w_tray_class_init,	//
+				[_W_CLASS_TOOLTIP] =(w_widget_init_class) _w_tooltip_class_init,//
+				[_W_CLASS_EXPANDBAR
+						] =(w_widget_init_class) cw_expandbar_class_init,	//
 		};
 void _w_toolkit_init_messages(_w_toolkit *toolkit) {
 	wuchar *wm_msg = toolkit->wm_msg;

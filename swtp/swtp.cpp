@@ -159,9 +159,6 @@ WResult WWidget::PostEvent0(WEvent *e) {
 	if (e->type == W_EVENT_DISPOSE) {
 		SetListener(0);
 	}
-	if (!ret) {
-		ret = this->DefaultPostEvent((WEvent*) e);
-	}
 	return ret;
 }
 #if __cplusplus >= 201103L
@@ -443,7 +440,7 @@ bool WMenu::OnItemSelection(WMenuEvent &e) {
 	else {
 		if (this->items != 0) {
 			wushort id = e.item->GetId();
-			__SelectionAction       __action = this->items[id].action;
+			__SelectionAction         __action = this->items[id].action;
 			void *notify = GetData(__DATA_NOTIFY);
 			if (__action != 0 && notify != 0) {
 				SelectionAction action = *((SelectionAction*) &__action);
@@ -619,7 +616,7 @@ bool WControl::PostEvent(WEvent *e) {
 }
 
 bool WControl::OnComputeSize(w_event_compute_size *e) {
-	return w_widget_default_post_event(W_WIDGET(this), (w_event*) e);
+	return false; //w_widget_post_event(W_WIDGET(this), (w_event*) e, W_EVENT_SEND);
 }
 
 bool WControl::OnResize(WEvent &e) {

@@ -158,7 +158,7 @@ wresult _w_composite_update_layout(w_control *_this, int flags,
 		_e.platform_event = 0;
 		_e.widget = W_WIDGET(_this);
 		_e.data = 0;
-		_w_widget_send_event(W_WIDGET(_this), &_e);
+		_w_widget_post_event(W_WIDGET(_this), &_e);
 	}
 	if (flags & W_ALL) {
 		_W_WIDGET(_this)->state &= ~STATE_LAYOUT_CHILD;

@@ -876,7 +876,7 @@ wresult _w_textedit_set_text(w_textedit *text, const char *string,
 		e.platform_event = 0;
 		e.time = 0;
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(text), &e);
+		_w_widget_post_event(W_WIDGET(text), &e);
 		if ((_W_WIDGET(text)->style & W_SEARCH) != 0) {
 			if ((_W_WIDGET(text)->style & W_ICON_CANCEL) != 0) {
 				gtk_entry_set_icon_sensitive(GTK_ENTRY(handle),

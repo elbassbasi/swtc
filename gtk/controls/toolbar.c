@@ -154,7 +154,7 @@ wresult _w_toolitem_get_control(w_toolitem *item, w_control **control) {
 		event.event.type = W_EVENT_ITEM_GET_CONTROL;
 		event.event.widget = parent;
 		event.item = item;
-		_w_widget_send_event(parent, W_EVENT(&event));
+		_w_widget_post_event(parent, W_EVENT(&event));
 		*control = event.control;
 		return W_TRUE;
 	} else {
@@ -182,7 +182,7 @@ wresult _w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 		event.event.type = W_EVENT_ITEM_GET_CONTROL;
 		event.event.widget = parent;
 		event.item = item;
-		_w_widget_send_event(parent, W_EVENT(&event));
+		_w_widget_post_event(parent, W_EVENT(&event));
 		*menu = event.menu;
 		return W_TRUE;
 	} else {
@@ -281,7 +281,7 @@ wresult _w_toolitem_set_control(w_toolitem *item, w_control *control) {
 		event.event.widget = parent;
 		event.item = item;
 		event.control = control;
-		_w_widget_send_event(parent, W_EVENT(&event));
+		_w_widget_post_event(parent, W_EVENT(&event));
 		_w_toolbar_relayout(W_TOOLBAR(parent));
 		return W_TRUE;
 	}
@@ -327,7 +327,7 @@ wresult _w_toolitem_set_menu(w_toolitem *item, w_menu *menu) {
 		event.event.widget = parent;
 		event.item = item;
 		event.menu = menu;
-		_w_widget_send_event(parent, W_EVENT(&event));
+		_w_widget_post_event(parent, W_EVENT(&event));
 		GtkWidget *hmenu = _W_WIDGET(menu)->handle;
 		gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(toolitem), hmenu);
 		return W_TRUE;
@@ -732,7 +732,7 @@ void _gtk_toolbar_send_selection(GtkWidget *widget,
 	_W_ITEM(&item)->parent = st->parent;
 	_W_ITEM(&item)->index = -1;
 	_W_TOOLITEM(&item)->toolItem = GTK_TOOL_ITEM(st->lastSelected);
-	_w_widget_send_event(st->parent, W_EVENT(&event));
+	_w_widget_post_event(st->parent, W_EVENT(&event));
 }
 void _gtk_toolbar_select_radio_callback(GtkWidget *widget, gpointer data) {
 	struct _gtk_toolbar_select_radio_struct *st =
@@ -840,7 +840,7 @@ gboolean _gtk_toolbar_clicked(w_widget *widget, _w_event_platform *e,
 			}
 		}
 	}
-	_w_widget_send_event(widget, W_EVENT(&event));
+	_w_widget_post_event(widget, W_EVENT(&event));
 	return FALSE;
 }
 

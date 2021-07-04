@@ -24,7 +24,7 @@ void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	event.platform_event = (w_event_platform*) e;
 	event.widget = W_WIDGET(shell);
 	event.data = 0;
-	_w_widget_send_event(W_WIDGET(shell), &event);
+	_w_widget_post_event(W_WIDGET(shell), &event);
 	if (style & W_DISPOSE_ON_CLOSE) {
 		w_widget_dispose(W_WIDGET(shell));
 	}
@@ -460,7 +460,7 @@ void _w_shell_resize_bounds(w_control *control, int width, int height,
 		_e.time = 0;
 		_e.platform_event = 0;
 		_e.data = 0;
-		_w_widget_send_event(W_WIDGET(control), &_e);
+		_w_widget_post_event(W_WIDGET(control), &_e);
 		if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 			return;
 		priv->mark_layout(control, 0, priv);
@@ -517,7 +517,7 @@ void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 			e.platform_event = 0;
 			e.widget = W_WIDGET(deactivate);
 			e.data = 0;
-			_w_widget_send_event(W_WIDGET(deactivate), &e);
+			_w_widget_post_event(W_WIDGET(deactivate), &e);
 		}
 		deactivate = _w_shell_path_next(shell, deactivate);
 	}
@@ -530,7 +530,7 @@ void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 			e.widget = W_WIDGET(activate);
 			e.data = 0;
 			//e.detail = type;
-			_w_widget_send_event(W_WIDGET(activate), &e);
+			_w_widget_post_event(W_WIDGET(activate), &e);
 		}
 	}
 }
@@ -575,7 +575,7 @@ wresult _w_shell_set_bounds_0(w_control *control, w_point *location,
 			event.time = 0;
 			event.platform_event = 0;
 			event.data = 0;
-			_w_widget_send_event(W_WIDGET(control), &event);
+			_w_widget_post_event(W_WIDGET(control), &event);
 			if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 				return 0;
 			result |= 1;
@@ -711,7 +711,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		e.widget = W_WIDGET(control);
 		e.platform_event = 0;
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(control), &e);
+		_w_widget_post_event(W_WIDGET(control), &e);
 		if (!w_widget_is_ok(W_WIDGET(control)))
 			return W_FALSE;
 
@@ -788,7 +788,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_send_event(W_WIDGET(control), &e);
+			_w_widget_post_event(W_WIDGET(control), &e);
 			if (!w_widget_is_ok(W_WIDGET(control)))
 				return W_FALSE;
 		}
@@ -811,13 +811,13 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_send_event(W_WIDGET(control), &e);
+			_w_widget_post_event(W_WIDGET(control), &e);
 			e.type = W_EVENT_LAYOUTDETECT;
 			e.widget = W_WIDGET(control);
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_send_event(W_WIDGET(control), &e);
+			_w_widget_post_event(W_WIDGET(control), &e);
 		}
 	} else {
 		//_w_shell_fix_active_shell(W_SHELL(control));
@@ -826,7 +826,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		e.widget = W_WIDGET(control);
 		e.platform_event = 0;
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(control), &e);
+		_w_widget_post_event(W_WIDGET(control), &e);
 	}
 	return W_TRUE;
 }
@@ -919,7 +919,7 @@ gboolean _gtk_shell_configure_event(w_widget *widget, _w_event_platform *e,
 		event.platform_event = (w_event_platform*) e;
 		event.time = 0;
 		event.data = 0;
-		w_widget_send_event(widget, &event);
+		w_widget_post_event(widget, &event);
 		// widget could be disposed at this point
 	}
 	return FALSE;
@@ -996,7 +996,7 @@ gboolean _gtk_shell_focus_in_event(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.time = 0;
 	event.data = 0;
-	w_widget_send_event(widget, &event);
+	w_widget_post_event(widget, &event);
 	return FALSE;
 }
 gboolean _gtk_shell_focus_out_event(w_widget *widget, _w_event_platform *e,
@@ -1011,7 +1011,7 @@ gboolean _gtk_shell_focus_out_event(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.time = 0;
 	event.data = 0;
-	w_widget_send_event(widget, &event);
+	w_widget_post_event(widget, &event);
 	_w_shell_set_active_control(W_SHELL(widget), 0);
 	if (gtk_toolkit->activeShell == W_SHELL(widget)
 			&& !_W_SHELL(widget)->ignoreFocusOut) {

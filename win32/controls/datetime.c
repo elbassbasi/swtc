@@ -398,10 +398,10 @@ DWORD _w_datetime_widget_style(w_control *control, _w_control_priv *priv) {
 	}
 	return bits;
 }
-const char* _w_datetime_window_class(w_control *control,
+WCHAR* _w_datetime_window_class(w_control *control,
 		_w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(control)->style;
-	return (style & W_CALENDAR) != 0 ? MONTHCAL_CLASSA : DATETIMEPICK_CLASSA;
+	return (style & W_CALENDAR) != 0 ? MONTHCAL_CLASSW : DATETIMEPICK_CLASSW;
 }
 /*
  * messages
@@ -434,7 +434,7 @@ wresult _DATETIME_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 		event.platform_event = _EVENT_PLATFORM(e);
 		event.time = 0;
 		event.data = 0;
-		_w_widget_send_event(widget, &event);
+		_w_widget_post_event(widget, &event, W_EVENT_SEND);
 		break;
 	}
 	case DTN_DATETIMECHANGE: {
@@ -449,7 +449,7 @@ wresult _DATETIME_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 			event.platform_event = _EVENT_PLATFORM(e);
 			event.time = 0;
 			event.data = 0;
-			_w_widget_send_event(widget, &event);
+			_w_widget_post_event(widget, &event, W_EVENT_SEND);
 			if ((_W_WIDGET(widget)->style & W_TIME) == 0) {
 				memcpy(&_W_DATETIME(widget)->lastSystemTime, &systime,
 						sizeof(SYSTEMTIME));
@@ -480,7 +480,7 @@ wresult _DATETIME_WM_CHAR(w_widget *widget, _w_event_platform *e,
 		event.platform_event = _EVENT_PLATFORM(e);
 		event.time = 0;
 		event.data = 0;
-		_w_widget_send_event(widget, &event);
+		_w_widget_post_event(widget, &event, W_EVENT_SEND);
 		e->result = 0;
 		return W_TRUE;
 		break;
@@ -541,7 +541,7 @@ wresult _DATETIME_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 		event.platform_event = _EVENT_PLATFORM(e);
 		event.time = 0;
 		event.data = 0;
-		_w_widget_send_event(widget, &event);
+		_w_widget_post_event(widget, &event, W_EVENT_SEND);
 	}
 	_W_WIDGET(widget)->state &= ~STATE_DATETIME_DOUBLECLICK;
 	return result;

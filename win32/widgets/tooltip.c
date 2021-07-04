@@ -35,8 +35,8 @@ HWND _w_tooltip_hwnd_tooltip(w_tooltip *tooltip) {
 	}
 	return handle;
 }
-wresult _w_tooltip_post_event(w_widget *widget, w_event *e) {
-	return _w_control_post_event(widget, e);
+wresult _w_tooltip_post_event(w_widget *widget, w_event *e,int flags) {
+	return _w_control_post_event(widget, e,flags);
 }
 wresult _w_tooltip_get_auto_hide(w_tooltip *tooltip) {
 	return _W_TOOLTIP(tooltip)->autoHide;
@@ -215,7 +215,7 @@ wresult _w_tooltip_set_visible(w_tooltip *tooltip, int visible) {
 			e.time = 0;
 			e.data = 0;
 			e.platform_event = 0;
-			_w_widget_send_event(W_WIDGET(tooltip), &e);
+			_w_widget_post_event(W_WIDGET(tooltip), &e, W_EVENT_SEND);
 			_tooltip->visible = Shell_NotifyIconW(NIM_MODIFY, &iconData);
 		} else {
 		}

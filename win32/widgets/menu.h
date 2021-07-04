@@ -30,11 +30,6 @@ typedef struct _w_menu_id {
 	HMENU menu;
 	HBITMAP image;
 } _w_menu_id;
-typedef struct _w_menu_ids {
-	int alloc;
-	int count;
-	_w_menu_id id[0];
-} _w_menu_ids;
 typedef struct _w_menu _w_menu;
 struct _w_menu {
 	_w_widget widget;
@@ -42,9 +37,10 @@ struct _w_menu {
 	_w_menu *prev;
 	w_control *parent;
 	HMENU handle;
-	_w_menu_ids *ids;
+	w_array *ids;
 	int x;
 	int y;
+	int id_mask;
 };
 #define _W_MENU(x) ((_w_menu*)x)
 /*
@@ -68,7 +64,8 @@ struct _w_menu_priv {
  */
 wresult _w_menuitem_fill_accel(ACCEL *accel, struct _w_accel_id *item);
 wresult _w_menu_get_shell(w_widget *menu, w_shell **shell);
-void _w_menu_class_init(w_toolkit *toolkit, wushort classId,struct _w_menu_class *clazz);
+void _w_menu_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_menu_class *clazz);
 /*
  * message
  */

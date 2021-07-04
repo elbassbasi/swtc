@@ -22,7 +22,7 @@ wuint64 _w_shell_check_style(w_widget *widget, wuint64 style) {
 	int mask = W_SYSTEM_MODAL | W_APPLICATION_MODAL | W_PRIMARY_MODAL;
 	if ((style & W_SHEET) != 0) {
 		style &= ~W_SHEET;
-		w_composite *parent = _W_CONTROL(widget)->parent;
+		w_composite *parent = _W_WIDGET(widget)->parent;
 		style |= parent == 0 ? W_FRAME_TRIM : W_DIALOG_TRIM;
 		if ((style & mask) == 0) {
 			style |= parent == 0 ? W_APPLICATION_MODAL : W_PRIMARY_MODAL;
@@ -46,7 +46,7 @@ wresult _w_shell_create_embedded(w_widget *widget, w_widget *parent,
 		if (w_widget_class_id(parent) != _W_CLASS_SHELL)
 			return W_ERROR_INVALID_ARGUMENT;
 	}
-	_W_CONTROL(widget)->parent = W_COMPOSITE(parent);
+	_W_WIDGET(widget)->parent = parent;
 	_W_SHELL(widget)->center = parent != 0 && (style & W_SHEET) != 0;
 	_W_WIDGET(widget)->post_event = post_event;
 	_W_WIDGET(widget)->style = _w_shell_check_style(widget, style);
@@ -207,7 +207,7 @@ wresult _w_shell_call_window_proc(w_widget *widget, _w_event_platform *e,
 	if ((style & W_NO_MOVE) != 0) {
 		_w_shell_set_item_enabled(widget, SC_MOVE, FALSE);
 	}
-	if (_W_CONTROL(widget)->parent != 0) {
+	if (_W_WIDGET(widget)->parent != 0) {
 		switch (e->msg) {
 		case WM_KILLFOCUS:
 		case WM_SETFOCUS:
@@ -281,7 +281,7 @@ wresult _w_shell_create_handle(w_control *control, _w_control_priv *priv) {
 		wresult result = _w_composite_create_handle(control, priv);
 		if (result <= 0)
 			return result;
-		if (_W_CONTROL(control)->parent != 0
+		if (_W_WIDGET(control)->parent != 0
 				|| ((_W_WIDGET(control)->style & W_TOOL) != 0)) {
 			_w_shell_set_system_menu(W_SHELL(control));
 		}
@@ -328,21 +328,21 @@ wresult _w_shell_create_handle(w_control *control, _w_control_priv *priv) {
 	_W_SHELL(control)->swFlags = SW_SHOWNOACTIVATE;
 	return W_TRUE;
 }
-const char *DialogClass = "#32770";
-const char* _w_shell_window_class(w_control *control, _w_control_priv *priv) {
+WCHAR *DialogClass = L"#32770";
+WCHAR* _w_shell_window_class(w_control *control, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(control)->style;
 	if ((style & W_TOOL) != 0) {
 		int trim = W_TITLE | W_CLOSE | W_MIN | W_MAX | W_BORDER | W_RESIZE;
 		if ((style & trim) == 0)
 			return WindowShadowClass;
 	}
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_composite *parent = _W_WIDGET(control)->parent;
 	return parent != 0 ? DialogClass : _w_canvas_window_class(control, priv);
 }
 HWND _w_shell_widget_parent(w_control *control, _w_control_priv *priv) {
 	if (_W_WIDGET(control)->handle != 0)
 		return _W_WIDGET(control)->handle;
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_composite *parent = _W_WIDGET(control)->parent;
 	return parent != 0 ? _W_WIDGET(parent)->handle : 0;
 }
 DWORD _w_shell_widget_extstyle_0(w_control *control, _w_control_priv *priv) {
@@ -369,7 +369,7 @@ DWORD _w_shell_widget_extstyle(w_control *control, _w_control_priv *priv) {
 	 * even when it has no title.  The fix is to use WS_EX_TOOLWINDOW
 	 * which does not cause the window to appear in the Task Bar.
 	 */
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_composite *parent = _W_WIDGET(control)->parent;
 	if (parent == 0) {
 		if ((style & W_ON_TOP) != 0) {
 			int trim = W_TITLE | W_CLOSE | W_MIN | W_MAX;
@@ -412,7 +412,7 @@ DWORD _w_shell_widget_style_0(w_control *control, _w_control_priv *priv) {
 	/* Set the title bits and no-trim bits */
 	bits &= ~WS_BORDER;
 	if ((style & W_NO_TRIM) != 0) {
-		if (_W_CONTROL(control)->parent == 0) {
+		if (_W_WIDGET(control)->parent == 0) {
 			bits |= WS_SYSMENU | WS_MINIMIZEBOX;
 		}
 		return bits;
@@ -481,7 +481,7 @@ void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	event.platform_event = (w_event_platform*) e;
 	event.widget = W_WIDGET(shell);
 	event.data = 0;
-	_w_widget_send_event(W_WIDGET(shell), &event);
+	_w_widget_post_event(W_WIDGET(shell), &event, W_EVENT_SEND);
 	if (style & W_DISPOSE_ON_CLOSE) {
 		w_widget_dispose(W_WIDGET(shell));
 	}
@@ -494,47 +494,160 @@ w_cursor* _w_shell_find_cursor(w_control *control, _w_control_priv *priv) {
 	return _W_CONTROL(control)->cursor;
 }
 wresult _w_shell_force_active(w_shell *shell) {
-	return W_FALSE;
+	if (_w_shell_is_visible(W_CONTROL(shell)) <= 0)
+		return W_FALSE;
+	SetForegroundWindow(_W_WIDGET(shell)->handle);
+	return W_TRUE;
+}
+wresult _w_shell_get_bounds(w_control *control, w_point *location,
+		w_size *size) {
+	if (IsIconic(_W_WIDGET(control)->handle)) {
+		WINDOWPLACEMENT lpwndpl;
+		lpwndpl.length = sizeof(lpwndpl);
+		GetWindowPlacement(_W_WIDGET(control)->handle, &lpwndpl);
+		if ((lpwndpl.flags & WPF_RESTORETOMAXIMIZED) != 0) {
+			/*int width = maxRect.right - maxRect.left;
+			 int height = maxRect.bottom - maxRect.top;
+			 return new Rectangle(maxRect.left, maxRect.top, width, height);*/
+		}
+		if (location != 0) {
+			location->x = lpwndpl.rcNormalPosition.left;
+			location->y = lpwndpl.rcNormalPosition.top;
+		}
+		if (size != 0) {
+			size->width = lpwndpl.rcNormalPosition.right
+					- lpwndpl.rcNormalPosition.left;
+			size->height = lpwndpl.rcNormalPosition.bottom
+					- lpwndpl.rcNormalPosition.top;
+		}
+	} else {
+		RECT rect;
+		GetWindowRect(_W_WIDGET(control)->handle, &rect);
+		if (location != 0) {
+			location->x = rect.left;
+			location->y = rect.top;
+		}
+		if (size != 0) {
+			size->width = rect.right - rect.left;
+			size->height = rect.bottom - rect.top;
+		}
+	}
+	return W_TRUE;
 }
 wresult _w_shell_get_default_button(w_shell *shell, w_button **button) {
-	return W_FALSE;
+	if (_W_SHELL(shell)->defaultButton != 0
+			&& w_widget_is_ok(W_WIDGET(_W_SHELL(shell)->defaultButton)) <= 0) {
+		*button = 0;
+	} else {
+		*button = _W_SHELL(shell)->defaultButton;
+	}
+	return W_TRUE;
 }
 wresult _w_shell_get_alpha(w_shell *shell) {
-	return W_FALSE;
+	if (WIN32_VERSION >= VERSION(5, 1)) {
+		BYTE pbAlpha[2];
+		if (GetLayeredWindowAttributes(_W_WIDGET(shell)->handle, 0, pbAlpha,
+				0)) {
+			return pbAlpha[0] & 0xFF;
+		}
+	}
+	return 0xFF;
 }
 wresult _w_shell_get_full_screen(w_shell *shell) {
-	return W_FALSE;
+	return _W_SHELL(shell)->fullScreen;
 }
 wresult _w_shell_get_minimum_size(w_shell *shell, w_size *size) {
-	return W_FALSE;
+	int width = WMAX(0, _W_SHELL(shell)->minWidth);
+	wuint64 style = _W_WIDGET(shell)->style;
+	int trim = W_TITLE | W_CLOSE | W_MIN | W_MAX;
+	if ((style & W_NO_TRIM) == 0 && (style & trim) != 0) {
+		width = WMAX(width, GetSystemMetrics(SM_CXMINTRACK));
+	}
+	int height = WMAX(0, _W_SHELL(shell)->minHeight);
+	if ((style & W_NO_TRIM) == 0 && (style & trim) != 0) {
+		if ((style & W_RESIZE) != 0) {
+			height = WMAX(height, GetSystemMetrics(SM_CYMINTRACK));
+		} else {
+			RECT rect;
+			int bits1 = GetWindowLongW(_W_WIDGET(shell)->handle, GWL_STYLE);
+			int bits2 = GetWindowLongW(_W_WIDGET(shell)->handle, GWL_EXSTYLE);
+			AdjustWindowRectEx(&rect, bits1, FALSE, bits2);
+			height = WMAX(height, rect.bottom - rect.top);
+		}
+	}
+	size->width = width;
+	size->height = height;
+	return W_TRUE;
 }
 wresult _w_shell_get_modified(w_shell *shell) {
-	return W_FALSE;
+	return _W_SHELL(shell)->modified;
 }
 wresult _w_shell_get_images(w_shell *shell, w_image *image, size_t length) {
 	return W_FALSE;
 }
 wresult _w_shell_get_ime_input_mode(w_shell *shell) {
-	return W_FALSE;
+	if (!win_toolkit->IsDBLocale)
+		return 0;
+	HIMC hIMC = ImmGetContext(_W_WIDGET(shell)->handle);
+	DWORD lpfdwConversion, lpfdwSentence;
+	WINBOOL open = ImmGetOpenStatus(hIMC);
+	if (open)
+		open = ImmGetConversionStatus(hIMC, &lpfdwConversion, &lpfdwSentence);
+	ImmReleaseContext(_W_WIDGET(shell)->handle, hIMC);
+	if (!open)
+		return W_NONE;
+	wresult result = 0;
+	if ((lpfdwConversion & IME_CMODE_ROMAN) != 0)
+		result |= W_ROMAN;
+	if ((lpfdwConversion & IME_CMODE_FULLSHAPE) != 0)
+		result |= W_DBCS;
+	if ((lpfdwConversion & IME_CMODE_KATAKANA) != 0)
+		return result | W_PHONETIC;
+	if ((lpfdwConversion & IME_CMODE_NATIVE) != 0)
+		return result | W_NATIVE;
+	return result | W_ALPHA;
 }
 wresult _w_shell_get_maximized(w_shell *shell) {
+	if (!_W_SHELL(shell)->fullScreen) {
+		//if (IsWinCE) return swFlags == SW_SHOWMAXIMIZED;
+		if (IsWindowVisible(_W_WIDGET(shell)->handle))
+			return IsZoomed(_W_WIDGET(shell)->handle);
+		return _W_SHELL(shell)->swFlags == SW_SHOWMAXIMIZED;
+	}
 	return W_FALSE;
 }
 wresult _w_shell_get_menu_bar(w_shell *shell, w_menu **menu) {
-	return W_FALSE;
+	*menu = _W_SHELL(shell)->menubar;
+	return W_TRUE;
 }
 wresult _w_shell_get_minimized(w_shell *shell) {
-	return W_FALSE;
+	if (IsWindowVisible(_W_WIDGET(shell)->handle))
+		return IsIconic(_W_WIDGET(shell)->handle);
+	return _W_SHELL(shell)->swFlags == SW_SHOWMINNOACTIVE;
 }
 wresult _w_shell_get_shells(w_shell *shell, w_iterator *iterator) {
-	return W_FALSE;
+	_w_toolkit_get_shells_from_parent(shell, iterator);
+	return W_TRUE;
 }
 wresult _w_shell_get_text(w_shell *shell, w_alloc alloc, void *user_data,
 		int enc) {
-	return W_FALSE;
+	wresult result;
+	int length = GetWindowTextLengthW(_W_WIDGET(shell)->handle);
+	WCHAR *s = _w_toolkit_malloc(length);
+	if (s != 0) {
+		GetWindowTextW(_W_WIDGET(shell)->handle, s, length);
+		result = _win_text_set(s, length, alloc, user_data, enc);
+		_w_toolkit_free(s, length);
+		return result;
+	} else
+		return W_ERROR_NO_MEMORY;
 }
 wresult _w_shell_get_toolbar(w_shell *shell, w_toolbar **toolbar) {
-	return W_FALSE;
+	*toolbar = 0;
+	return W_TRUE;
+}
+wresult _w_shell_is_visible(w_control *control) {
+	return _w_control_get_visible(control);
 }
 wresult _w_shell_open(w_shell *shell) {
 	wresult result = W_TRUE;
@@ -576,22 +689,188 @@ wresult _w_shell_set_active(w_shell *shell) {
 	return W_FALSE;
 }
 wresult _w_shell_set_alpha(w_shell *shell, int alpha) {
+	if (WIN32_VERSION >= VERSION(5, 1)) {
+		alpha &= 0xFF;
+		int bits = GetWindowLong(_W_WIDGET(shell)->handle, GWL_EXSTYLE);
+		if (alpha == 0xFF) {
+			SetWindowLong(_W_WIDGET(shell)->handle, GWL_EXSTYLE,
+					bits & ~WS_EX_LAYERED);
+			int flags = RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN;
+			RedrawWindow(_W_WIDGET(shell)->handle, 0, 0, flags);
+		} else {
+			SetWindowLong(_W_WIDGET(shell)->handle, GWL_EXSTYLE,
+					bits | WS_EX_LAYERED);
+			SetLayeredWindowAttributes(_W_WIDGET(shell)->handle, 0,
+					(byte) alpha,
+					LWA_ALPHA);
+		}
+	}
+	return W_TRUE;
+}
+wresult _w_shell_set_bounds(w_control *control, w_point *location, w_size *size,
+		int flags, int defer) {
+//if (fullScreen) setFullScreen (false);
+	/*
+	 * Bug in Windows.  When a window has alpha and
+	 * SetWindowPos() is called with SWP_DRAWFRAME,
+	 * the contents of the window are copied rather
+	 * than allowing the windows underneath to draw.
+	 * This causes pixel corruption.  The fix is to
+	 * clear the SWP_DRAWFRAME bits.
+	 */
+	HWND handle = _W_WIDGET(control)->handle;
+	DWORD bits = GetWindowLongW(handle, GWL_EXSTYLE);
+	if ((bits & WS_EX_LAYERED) != 0) {
+		flags &= ~SWP_DRAWFRAME;
+	}
 	return W_FALSE;
+}
+wresult _w_shell_set_default_button_0(w_shell *shell, w_button *button,
+		int save) {
+	_w_shell *_shell = _W_SHELL(shell);
+	if (button == 0) {
+		if (_shell->defaultButton == _shell->saveDefault) {
+			if (save)
+				_shell->saveDefault = 0;
+			return W_TRUE;
+		}
+	} else {
+		if ((_W_WIDGET(button)->style & W_PUSH) == 0)
+			return W_TRUE;
+		if (button == _shell->defaultButton) {
+			if (save)
+				_shell->saveDefault = _shell->defaultButton;
+			return W_TRUE;
+		}
+	}
+	if (_shell->defaultButton != 0) {
+		if (w_widget_is_ok(W_WIDGET(_shell->defaultButton)) > 0) {
+			//w_button_set_default(_shell->defaultButton,W_FALSE);
+		}
+	}
+	if ((_shell->defaultButton = button) == 0)
+		_shell->defaultButton = _shell->saveDefault;
+	if (_shell->defaultButton != 0) {
+		if (w_widget_is_ok(W_WIDGET(_shell->defaultButton)) > 0) {
+			//w_button_set_default(_shell->defaultButton,W_TRUE);
+		}
+	}
+	if (save)
+		_shell->saveDefault = _shell->defaultButton;
+	if (_shell->saveDefault != 0
+			&& w_widget_is_ok(W_WIDGET(_shell->saveDefault)) <= 0)
+		_shell->saveDefault = 0;
+	return W_TRUE;
 }
 wresult _w_shell_set_default_button(w_shell *shell, w_button *button) {
-	return W_FALSE;
+	if (button != 0) {
+		if (w_widget_is_ok(W_WIDGET(button)))
+			return W_ERROR_INVALID_ARGUMENT;
+		w_shell *bshell;
+		w_widget_get_shell(W_WIDGET(button), &bshell);
+		if (bshell != shell)
+			return W_ERROR_INVALID_PARENT;
+	}
+	return _w_shell_set_default_button_0(shell, button, W_TRUE);
 }
 wresult _w_shell_set_full_screen(w_shell *shell, int fullScreen) {
-	return W_FALSE;
+	if (_W_SHELL(shell)->fullScreen == fullScreen)
+		return W_TRUE;
+	HWND handle = _W_WIDGET(shell)->handle;
+	wuint64 style = _W_WIDGET(shell)->style;
+	int stateFlags = fullScreen ? SW_SHOWMAXIMIZED : SW_RESTORE;
+	int styleFlags = GetWindowLong(handle, GWL_STYLE);
+	int mask = W_TITLE | W_CLOSE | W_MIN | W_MAX;
+	if ((style & mask) != 0) {
+		if (fullScreen) {
+			styleFlags &= ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
+		} else {
+			styleFlags |= WS_CAPTION;
+			if ((style & W_MAX) != 0)
+				styleFlags |= WS_MAXIMIZEBOX;
+			if ((style & W_MIN) != 0)
+				styleFlags |= WS_MINIMIZEBOX;
+		}
+	}
+	if (fullScreen)
+		_W_SHELL(shell)->wasMaximized = _w_shell_get_maximized(shell);
+	int visible = _w_shell_is_visible(W_CONTROL(shell));
+	SetWindowLong(handle, GWL_STYLE, styleFlags);
+	if (_W_SHELL(shell)->wasMaximized) {
+		ShowWindow(handle, SW_HIDE);
+		stateFlags = SW_SHOWMAXIMIZED;
+	}
+	if (visible)
+		ShowWindow(handle, stateFlags);
+	UpdateWindow(handle);
+	_W_SHELL(shell)->fullScreen = fullScreen;
+	return W_TRUE;
 }
 wresult _w_shell_set_images(w_shell *shell, w_image *image, size_t length) {
 	return W_FALSE;
 }
 wresult _w_shell_set_ime_input_mode(w_shell *shell, int mode) {
-	return W_FALSE;
+	if (!win_toolkit->IsDBLocale)
+		return W_TRUE;
+	HWND handle = _W_WIDGET(shell)->handle;
+	int imeOn = mode != W_NONE;
+	HIMC hIMC = ImmGetContext(handle);
+	ImmSetOpenStatus(hIMC, imeOn);
+	if (imeOn) {
+		DWORD lpfdwConversion, lpfdwSentence;
+		if (ImmGetConversionStatus(hIMC, &lpfdwConversion, &lpfdwSentence)) {
+			int newBits = 0;
+			int oldBits = IME_CMODE_NATIVE | IME_CMODE_KATAKANA;
+			if ((mode & W_PHONETIC) != 0) {
+				newBits = IME_CMODE_KATAKANA | IME_CMODE_NATIVE;
+				oldBits = 0;
+			} else {
+				if ((mode & W_NATIVE) != 0) {
+					newBits = IME_CMODE_NATIVE;
+					oldBits = IME_CMODE_KATAKANA;
+				}
+			}
+			int fullShape = (mode & W_DBCS) != 0;
+			if ((mode & W_NATIVE) != 0) {
+				HKL hkl = GetKeyboardLayout(0);
+				int langid = PRIMARYLANGID(LOWORD (hkl));
+				if (langid == LANG_JAPANESE) {
+					fullShape = TRUE;
+				}
+			}
+			if (fullShape) {
+				newBits |= IME_CMODE_FULLSHAPE;
+			} else {
+				oldBits |= IME_CMODE_FULLSHAPE;
+			}
+			if ((mode & W_ROMAN) != 0) {
+				newBits |= IME_CMODE_ROMAN;
+			} else {
+				oldBits |= IME_CMODE_ROMAN;
+			}
+			lpfdwConversion |= newBits;
+			lpfdwConversion &= ~oldBits;
+			ImmSetConversionStatus(hIMC, lpfdwConversion, lpfdwSentence);
+		}
+	}
+	ImmReleaseContext(handle, hIMC);
+	return W_TRUE;
+}
+wresult _w_shell_set_maximized_0(w_shell *shell, int maximized) {
+	_W_SHELL(shell)->swFlags = maximized ? SW_SHOWMAXIMIZED : SW_RESTORE;
+	wresult result = W_TRUE;
+	HWND handle = _W_WIDGET(shell)->handle;
+	if (!IsWindowVisible(handle))
+		return result;
+	if (maximized == IsZoomed(handle))
+		return result;
+	ShowWindow(handle, _W_SHELL(shell)->swFlags);
+	UpdateWindow(handle);
+	return result;
 }
 wresult _w_shell_set_maximized(w_shell *shell, int maximized) {
-	return W_FALSE;
+	win_toolkit->init_startup = 1;
+	return _w_shell_set_maximized_0(shell, maximized);
 }
 wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 	if (_W_SHELL(shell)->menubar == menu)
@@ -614,18 +893,78 @@ wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 	_w_control_destroy_accelerators(W_CONTROL(shell));
 	return result;
 }
+wresult _w_shell_set_minimized_0(w_shell *shell, int minimized) {
+	_W_SHELL(shell)->swFlags = minimized ? SW_SHOWMINNOACTIVE : SW_RESTORE;
+	wresult result = W_TRUE;
+	HWND handle = _W_WIDGET(shell)->handle;
+	if (!IsWindowVisible(handle))
+		return result;
+	if (minimized == IsIconic(handle))
+		return result;
+	int flags = _W_SHELL(shell)->swFlags;
+	if (flags == SW_SHOWMINNOACTIVE && handle == GetActiveWindow()) {
+		flags = SW_MINIMIZE;
+	}
+	ShowWindow(handle, flags);
+	UpdateWindow(handle);
+	return result;
+}
 wresult _w_shell_set_minimized(w_shell *shell, int minimized) {
-	return W_FALSE;
+	win_toolkit->init_startup = 1;
+	return _w_shell_set_minimized_0(shell, minimized);
 }
 wresult _w_shell_set_minimum_size(w_shell *shell, w_size *size) {
-	return W_FALSE;
+	int widthLimit = 0, heightLimit = 0;
+	HWND handle = _W_WIDGET(shell)->handle;
+	wuint64 style = _W_WIDGET(shell)->style;
+	int trim = W_TITLE | W_CLOSE | W_MIN | W_MAX;
+	if ((style & W_NO_TRIM) == 0 && (style & trim) != 0) {
+		widthLimit = GetSystemMetrics(SM_CXMINTRACK);
+		if ((style & W_RESIZE) != 0) {
+			heightLimit = GetSystemMetrics(SM_CYMINTRACK);
+		} else {
+			RECT rect;
+			int bits1 = GetWindowLong(handle, GWL_STYLE);
+			int bits2 = GetWindowLong(handle, GWL_EXSTYLE);
+			AdjustWindowRectEx(&rect, bits1, FALSE, bits2);
+			heightLimit = rect.bottom - rect.top;
+		}
+	}
+	_W_SHELL(shell)->minWidth = WMAX(widthLimit, size->width);
+	_W_SHELL(shell)->minHeight = WMAX(heightLimit, size->height);
+	w_size _sz, newsz;
+	_w_shell_get_bounds(W_CONTROL(shell), 0, &_sz);
+	newsz.width = WMAX(_sz.width, _W_SHELL(shell)->minWidth);
+	newsz.height = WMAX(_sz.height, _W_SHELL(shell)->minHeight);
+	if (_W_SHELL(shell)->minWidth <= widthLimit)
+		_W_SHELL(shell)->minWidth = W_DEFAULT;
+	if (_W_SHELL(shell)->minHeight <= heightLimit)
+		_W_SHELL(shell)->minHeight = W_DEFAULT;
+	if (newsz.width != _sz.width || newsz.height != _sz.height) {
+		W_CONTROL_GET_CLASS(shell)->set_bounds(W_CONTROL(shell), 0, &newsz);
+	}
+	return W_TRUE;
 }
 wresult _w_shell_set_modified(w_shell *shell, int modified) {
-	return W_FALSE;
+	_W_SHELL(shell)->modified = modified;
+	return W_TRUE;
 }
-wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
+wresult _w_shell_set_text(w_shell *shell, const char *text, int length,
 		int enc) {
-	return W_FALSE;
+	/* Ensure that the title appears in the task bar.*/
+	if (text == 0)
+		text = "";
+	int newlength;
+	wresult result = W_TRUE;
+	WCHAR *s;
+	_win_text_fix(text, length, enc, &s, &newlength);
+	if ((_W_WIDGET(shell)->state & STATE_FOREIGN_HANDLE) != 0) {
+		DefWindowProcW(_W_WIDGET(shell)->handle, WM_SETTEXT, 0, (LPARAM) s);
+	} else {
+		result = SetWindowTextW(_W_WIDGET(shell)->handle, s);
+	}
+	_win_text_free(text, s, newlength);
+	return result;
 }
 void _w_shell_set_tooltip_title(w_shell *shell, HWND hwndToolTip, char *text,
 		int icon) {

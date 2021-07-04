@@ -10,7 +10,6 @@
 #include "Control.h"
 #include "Menu.h"
 class WScrollable;
-typedef w_scrollbar_value WScrollBarValue;
 /**
  * Instances of this class are selectable user interface
  * objects that represent a range of positive, numeric values.

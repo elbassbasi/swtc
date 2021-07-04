@@ -215,9 +215,9 @@ wresult cw_expanditem_set_control(w_expanditem *expanditem,
 	if (control != 0) {
 		if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 			return W_ERROR_INVALID_ARGUMENT;
-		w_composite *_parent;
-		w_control_get_parent(W_CONTROL(control), &_parent);
-		if (_parent != W_COMPOSITE(parent))
+		w_widget *_parent;
+		w_widget_get_parent(W_WIDGET(control), &_parent);
+		if (_parent != parent)
 			return W_ERROR_INVALID_PARENT;
 	}
 	int index = _W_ITEM(expanditem)->index;
@@ -761,7 +761,7 @@ wresult cw_expandbar_mouseup(w_widget *widget, w_event_mouse *e) {
 		_W_ITEM(&item)->parent = widget;
 		_W_ITEM(&item)->index = focusItem;
 		_item->expanded = !_item->expanded;
-		w_widget_send_event(widget, W_EVENT(&event));
+		w_widget_post_event(widget, W_EVENT(&event), W_EVENT_SEND);
 		cw_expandbar_show_item(W_EXPANDBAR(widget), focusItem, _item);
 	}
 	return W_FALSE;
@@ -855,7 +855,7 @@ wresult cw_expandbar_keydown(w_widget *widget, w_event_key *e) {
 		_W_ITEM(&item)->parent = widget;
 		_W_ITEM(&item)->index = focusItem;
 		_item->expanded = !_item->expanded;
-		w_widget_send_event(widget, W_EVENT(&event));
+		w_widget_post_event(widget, W_EVENT(&event), W_EVENT_SEND);
 		cw_expandbar_show_item(W_EXPANDBAR(widget), focusItem, _item);
 		break;
 	case W_ARROW_UP: {
@@ -955,7 +955,7 @@ wresult cw_expandbar_post_event(w_widget *widget, w_event *e) {
 		return cw_expandbar_traverse(widget, (w_event_key*) e);
 		break;
 	}
-	return widget->clazz->parentClass->post_event(widget, e);
+	return widget->clazz->parentClass->post_event(widget, e, W_EVENT_SEND);
 }
 void cw_expandbar_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_expandbar_class *clazz) {

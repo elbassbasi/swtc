@@ -18,8 +18,12 @@ enum {	 //
 };
 typedef struct _win32_theme {
 	w_theme theme;
+	HFONT systemFont;
+	_w_cursor cursors[W_CURSOR_HAND + 1];
+	_w_image images[5];
 	void *hthemes[HTHEME_LAST];
 } _win32_theme;
+void* _win32_get_hteme(wuint id);
 #define BRUSHES_SIZE 32
 #define ID_START 108
 /* Private SWT Window Messages */
@@ -81,12 +85,9 @@ typedef struct _w_toolkit {
 	void *_BeginBufferedPaint;
 	void *_EndBufferedPaint;
 	wuchar wm_msg[WM_USER + 0x10];
-	_w_cursor cursors[W_CURSOR_HAND + 1];
-	_w_image images[5];
 	HBRUSH brushes[BRUSHES_SIZE];
 	w_taskbar taskbar;
 	w_tray tray;
-	HFONT systemFont;
 	GpFontCollection *fontCollection;
 	HPALETTE hPalette;
 	/*
@@ -133,9 +134,9 @@ typedef struct _w_toolkit {
 	char tmp[0];
 } _w_toolkit;
 extern _w_toolkit *win_toolkit;
-extern const char *WindowClass;
-extern const char *WindowShadowClass;
-extern const char *WindowOwnDCClass;
+extern WCHAR *WindowClass;
+extern WCHAR *WindowShadowClass;
+extern WCHAR *WindowOwnDCClass;
 extern w_widget_init_class win_toolkit_classes_init[_W_CLASS_LAST];
 #define _W_TOOLKIT(x) ((_w_toolkit*)x)
 #define WIN32_VERSION (win_toolkit->win32_version)
@@ -152,6 +153,7 @@ void* _w_toolkit_malloc_all(size_t *size);
 void _w_toolkit_free(void *ptr, size_t size);
 void _w_toolkit_add_shell(_w_shell *shell);
 void _w_toolkit_remove_shell(_w_shell *shell);
+void _w_toolkit_get_shells_from_parent(w_shell *shell, w_iterator *iterator);
 void _w_toolkit_init(_w_toolkit *toolkit);
 void _w_toolkit_dispose(w_disposable *disposable);
 void _w_toolkit_class_init(_w_toolkit *toolkit);

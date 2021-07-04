@@ -122,18 +122,15 @@ protected:
 protected:
 	static WResult post_event_proc(w_widget *widget, w_event *event);
 	static int exec_function(void *args);
-	bool DefaultPostEvent(WEvent *e) {
-		return w_widget_default_post_event(W_WIDGET(this), W_EVENT(e));
-	}
 	enum {
 		__DATA_USER = 0,
 		__DATA_NOTIFY = 1,
 		__DATA_LISTENER = 2,
 
-		__DATA_MASK_LISTENER = 0xFF000000,
-		__DATA_FLAGS_C_FUNCTION = 0x01000000,
-		__DATA_FLAGS_LISTENER = 0x02000000,
-		__DATA_FLAGS_SELECTION_ACTION = 0x03000000,
+		__DATA_MASK_LISTENER = 0xF000,
+		__DATA_FLAGS_C_FUNCTION = 0x1000,
+		__DATA_FLAGS_LISTENER = 0x3000,
+		__DATA_FLAGS_SELECTION_ACTION = 0x4000,
 	};
 	/**
 	 * index 0..4
@@ -188,6 +185,18 @@ public:
 	}
 	WShell* GetShell() {
 		return GetFrame();
+	}
+	/**
+	 * Returns the receiver's parent, which must be a <code>Composite</code>
+	 * or null when the receiver is a shell that was created with null or
+	 * a display for a parent.
+	 *
+	 * @return the receiver's parent
+	 */
+	WWidget* GetParentWidget() {
+		WWidget *parent;
+		w_widget_get_parent(W_WIDGET(this), (w_widget**) &parent);
+		return parent;
 	}
 	WToolkit* GetToolkit() {
 		return (WToolkit*) w_widget_get_toolkit(W_WIDGET(this));
@@ -295,14 +304,19 @@ private:
 		w_widget_init(W_WIDGET(this));
 	}
 	struct _w_widget_class *clazz;
+	w_widget_post_event_proc post_event;
+	void *handle;
+	wuint64 style;
+	wuint state0;
 	volatile int ref;
 	wuint id;
-	wuint64 style;
-	wuint state;
-	wuint state0;
-	void *handle;
+	wushort state;
+	wushort children_count;
+	WWidget *parent;
+	WWidget *next_sibling;
+	WWidget *prev_sibling;
+	WWidget *first_child;
 	WTheme *theme;
-	w_widget_post_event_proc post_event;
 	void *data[5];
 };
 

@@ -79,7 +79,7 @@ wresult _w_sash_mouseDown(w_widget *widget, _w_event_platform *e,
 	event.bounds.width = frame.width;
 	event.bounds.height = frame.height;
 
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event);
 	if (w_widget_is_ok(widget) <= 0)
 		return result;
 	if (doit) {
@@ -134,7 +134,7 @@ wresult _w_sash_mouseDragged(w_widget *widget, _w_event_platform *e,
 	event.bounds.y = newY;
 	event.bounds.width = frame.width;
 	event.bounds.height = frame.height;
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event);
 	if (w_widget_is_ok(widget) <= 0)
 		return result;
 	if (doit) {
@@ -171,7 +171,7 @@ wresult _w_sash_mouseUp(w_widget *widget, _w_event_platform *e,
 	event.bounds.width = frame.width;
 	event.bounds.height = frame.height;
 
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event);
 	if (w_widget_is_ok(widget) <= 0)
 		return result;
 	if (doit) {

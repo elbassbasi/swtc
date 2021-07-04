@@ -206,7 +206,7 @@ wresult _w_columnitem_set_width(w_columnitem *column, int width) {
 	e.event.type = W_EVENT_ITEM_RESIZE;
 	e.event.widget = tree;
 	e.column = column;
-	_w_widget_send_event(tree, (w_event*) &e);
+	_w_widget_post_event(tree, (w_event*) &e);
 	return W_TRUE;
 }
 /*
@@ -894,7 +894,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	event.gc = 0;
 	event.attr = &attr;
 	memset(&attr, 0, sizeof(attr));
-	int ret = _w_widget_send_event(widget, (w_event*) &event);
+	int ret = _w_widget_post_event(widget, (w_event*) &event);
 	if (!ret) {
 		memset(&attr, 0, sizeof(attr));
 	}
@@ -1004,7 +1004,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			event.rect = &rect;
 			event.gc = W_GRAPHICS(&gc);
 			event.detail = _list->drawState;
-			int ret = w_widget_send_event(widget, (w_event*) &event);
+			int ret = w_widget_post_event(widget, (w_event*) &event);
 			if (ret) {
 #if GTK3
 				//drawForegroundRGBA = null;
@@ -1094,7 +1094,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 					event.rect = 0;
 					event.gc = 0;
 					event.value = &value;
-					int ret = _w_widget_send_event(widget, (w_event*) &event);
+					int ret = _w_widget_post_event(widget, (w_event*) &event);
 					if (ret) {
 						text = (char*) w_value_get_string(&value, mem_tmp,
 								_size, 0);
@@ -1226,7 +1226,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			rect.x += contentX;
 			rect.width = cell_area->width;			//contentWidth;
 			event.detail = _list->drawState;		//drawState;
-			int ret = w_widget_send_event(widget, (w_event*) &event);
+			int ret = w_widget_post_event(widget, (w_event*) &event);
 			w_graphics_dispose(W_GRAPHICS(&gc));
 			//}//if (hooks (PaintItem))
 		}
@@ -1270,7 +1270,7 @@ void _w_listviewbase_renderer_get_preferred_width(w_widget *widget,
 		event.item = W_ITEM(&cell->listitem);
 		event.rect = &rect;
 		event.gc = &gc;
-		int ret = _w_widget_send_event(widget, (w_event*) &event);
+		int ret = _w_widget_post_event(widget, (w_event*) &event);
 		if (contentHeight < rect.height)
 			contentHeight = rect.height;
 #if GTK3

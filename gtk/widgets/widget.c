@@ -122,7 +122,7 @@ wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 wresult _w_widget_is_ok(w_widget *obj) {
 	return W_TRUE;
 }
-wresult _w_widget_send_event(w_widget *widget, w_event *event) {
+wresult _w_widget_post_event(w_widget *widget, w_event *event) {
 	if (widget->post_event != 0) {
 		return widget->post_event(widget, event);
 	} else {
@@ -471,7 +471,7 @@ gboolean _w_widget_send_IM_key_event(w_widget *widget, _w_event_platform *e,
 			event.detail = _w_widget_set_input_state(state);
 		}
 		event.character = c;
-		int doit = _w_widget_send_event(widget, (w_event*) &event);
+		int doit = _w_widget_post_event(widget, (w_event*) &event);
 
 		/*
 		 * It is possible (but unlikely), that application
@@ -509,7 +509,7 @@ gboolean _w_widget_send_key_event(w_widget *widget, _w_event_platform *e,
 		event.event.time = keyEvent->time;
 		if (!_w_widget_set_key_state(&event, keyEvent, unicode_length))
 			return TRUE;
-		return _w_widget_send_event(widget, (w_event*) &event);
+		return _w_widget_post_event(widget, (w_event*) &event);
 		// widget could be disposed at this point
 
 		/*
@@ -586,7 +586,7 @@ gboolean _w_widget_proc(GtkWidget *widget, _gtk_signal *signal, void *args0,
 		e.args[0] = args0;
 		e.args[1] = args1;
 		e.args[2] = args2;
-		_w_widget_send_event(cc, (w_event*) &e);
+		_w_widget_post_event(cc, (w_event*) &e);
 		return e.result;
 	}
 }

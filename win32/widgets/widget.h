@@ -164,17 +164,22 @@ typedef struct _w_event_platform {
 typedef struct _w_widget {
 	void *v_table; //used in c++ as virtual table
 	struct _w_widget_class *clazz;
-	volatile int ref;
-	wuint id;
-	wuint64 style;
-	wuint state0;
-	wuint state;
+	w_widget_post_event_proc post_event;
 	union {
 		HWND handle;
 		HMENU handleMenu;
 	};
+	wuint64 style;
+	wuint state;
+	volatile int ref;
+	wuint id;
+	wushort state0;
+	wushort children_count;
+	w_widget *parent;
+	w_widget *next_sibling;
+	w_widget *prev_sibling;
+	w_widget *first_child;
 	w_theme *theme;
-	w_widget_post_event_proc post_event;
 	void *data[5];
 } _w_widget;
 #define _W_WIDGET(x) ((_w_widget*)x)
@@ -199,13 +204,22 @@ struct _w_widget_priv {
 w_widget* _w_widget_find_control(HWND hwnd);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
-wresult _w_widget_send_event(w_widget *widget, w_event *event);
+wresult _w_widget_post_event(w_widget *widget, w_event *event, int flags);
+wresult _w_widget_get_parent(w_widget *widget, w_widget **parent);
+wresult _w_widget_get_first_child(w_widget *widget, w_widget **first_child,
+		int flags);
+wresult _w_widget_get_next_sibling(w_widget *widget, w_widget **next_sibling,
+		int filter);
+wresult _w_widget_get_prev_sibling(w_widget *widget, w_widget **prev_sibling,
+		int filter);
 int _w_translate_key(int key);
 int _w_untranslate_key(int key);
 int _w_send_key_event(w_event_key *event);
 void _w_set_input_state(w_event *event);
+int _w_set_key_state(w_event_key *event);
 wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data);
-void _w_widget_class_init(w_toolkit *toolkit, wushort classId,struct _w_widget_class *clazz);
+void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_widget_class *clazz);
 /*
  * messages
  */

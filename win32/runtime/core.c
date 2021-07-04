@@ -9,8 +9,12 @@
 #include "../widgets/toolkit.h"
 wresult w_alloc_set_text(w_alloc alloc, void *user_data, int toenc,
 		const char *text, int length, int enc) {
-	if (enc == W_ENCODING_PLATFORM || enc == W_ENCODING_UNICODE) {
-		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+	if (alloc == 0)
+		return W_FALSE;
+	if ((enc & W_ENCODING_MASK) == W_ENCODING_PLATFORM
+			|| (enc & W_ENCODING_MASK) == W_ENCODING_UNICODE) {
+		if ((toenc & W_ENCODING_MASK) == W_ENCODING_PLATFORM
+				|| (toenc & W_ENCODING_MASK) == W_ENCODING_UNICODE) {
 			if (length < 0)
 				length = lstrlenW((WCHAR*) text);
 			void *buf = 0;
@@ -31,7 +35,8 @@ wresult w_alloc_set_text(w_alloc alloc, void *user_data, int toenc,
 			return W_TRUE;
 		}
 	} else {
-		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+		if ((toenc & W_ENCODING_MASK) == W_ENCODING_PLATFORM
+				|| (toenc & W_ENCODING_MASK) == W_ENCODING_UNICODE) {
 			int l = w_utf8_to_utf16(text, length, 0, 0);
 			void *buf = 0;
 			int l2 = alloc(user_data, (l + 1) * sizeof(WCHAR), &buf);
@@ -44,7 +49,7 @@ wresult w_alloc_set_text(w_alloc alloc, void *user_data, int toenc,
 			if (length < 0)
 				length = strlen(text);
 			char *buf = 0;
-			int l2 = alloc(user_data, length + 1,(void**) &buf);
+			int l2 = alloc(user_data, length + 1, (void**) &buf);
 			if (buf == 0)
 				return W_ERROR_NO_MEMORY;
 			int l = WMIN(length, l2);
@@ -59,8 +64,10 @@ wresult w_alloc_printf(w_alloc alloc, void *user_data, int toenc, int enc,
 	va_list args2;
 	va_copy(args2, args);
 	WCHAR *_format;
-	if (enc == W_ENCODING_PLATFORM || enc == W_ENCODING_UNICODE) {
-		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+	if ((enc & W_ENCODING_MASK) == W_ENCODING_PLATFORM
+			|| (enc & W_ENCODING_MASK) == W_ENCODING_UNICODE) {
+		if ((toenc & W_ENCODING_MASK) == W_ENCODING_PLATFORM
+				|| (toenc & W_ENCODING_MASK) == W_ENCODING_UNICODE) {
 			size_t sz = vsnwprintf(0, 0, (WCHAR*) format, args2);
 			va_end(args2);
 			void *buf = 0;
@@ -92,7 +99,8 @@ wresult w_alloc_printf(w_alloc alloc, void *user_data, int toenc, int enc,
 			return W_TRUE;
 		}
 	} else {
-		if (toenc == W_ENCODING_PLATFORM || toenc == W_ENCODING_UNICODE) {
+		if ((toenc & W_ENCODING_MASK) == W_ENCODING_PLATFORM
+				|| (toenc & W_ENCODING_MASK) == W_ENCODING_UNICODE) {
 			size_t size;
 			char *s = (char*) _w_toolkit_malloc_all(&size);
 			size_t sz = vsnprintf(s, size, format, args2);
@@ -141,8 +149,8 @@ wresult _win_text_fix_0(const char *text, int text_length, int enc, int adding,
 	if (text == 0)
 		return 0;
 	WCHAR *s;
-	if ((enc & 0xFF) == W_ENCODING_UNICODE
-			|| (enc & 0xFF) == W_ENCODING_PLATFORM) {
+	if ((enc & W_ENCODING_MASK) == W_ENCODING_UNICODE
+			|| (enc & W_ENCODING_MASK) == W_ENCODING_PLATFORM) {
 		if (text_length == -1 && adding == 0) {
 			s = (WCHAR*) text;
 			*newlength = lstrlenW(s);
@@ -188,7 +196,8 @@ void _win_text_free(const char *text, WCHAR *alloc, int length) {
 wresult _win_text_copy(char **newtext, const char *text, int length, int enc) {
 	if (*newtext != 0)
 		free(*newtext);
-	if (enc == W_ENCODING_UNICODE || enc == W_ENCODING_PLATFORM) {
+	if ((enc & W_ENCODING_MASK) == W_ENCODING_UNICODE
+			|| (enc & W_ENCODING_MASK) == W_ENCODING_PLATFORM) {
 		int l = w_utf8_from_utf16((const wchar*) text, length, 0, 0);
 		*newtext = malloc(l + 1);
 		if (*newtext != 0) {
@@ -211,8 +220,8 @@ wresult _win_text_copy(char **newtext, const char *text, int length, int enc) {
 }
 wresult _win_text_set(WCHAR *text, int length, w_alloc alloc, void *user_data,
 		int enc) {
-	if ((enc & 0xFF) == W_ENCODING_UNICODE
-			|| (enc & 0xFF) == W_ENCODING_PLATFORM) {
+	if ((enc & W_ENCODING_MASK) == W_ENCODING_UNICODE
+			|| (enc & W_ENCODING_MASK) == W_ENCODING_PLATFORM) {
 		if (length < 0)
 			length = lstrlenW(text);
 		void *buf = 0;
@@ -235,8 +244,10 @@ wresult _win_text_set(WCHAR *text, int length, w_alloc alloc, void *user_data,
 }
 wresult _win_text_set_0(char *text, int length, w_alloc alloc, void *user_data,
 		int enc) {
-	if ((enc & 0xFF) == W_ENCODING_UNICODE
-			|| (enc & 0xFF) == W_ENCODING_PLATFORM) {
+	if (text == 0)
+		return W_FALSE;
+	if ((enc & W_ENCODING_MASK) == W_ENCODING_UNICODE
+			|| (enc & W_ENCODING_MASK) == W_ENCODING_PLATFORM) {
 		int l = w_utf8_to_utf16(text, length, 0, 0);
 		void *buf = 0;
 		int l1 = alloc(user_data, (l + 1) * sizeof(wchar), &buf);

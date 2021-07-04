@@ -396,9 +396,9 @@ DWORD _w_combobox_widget_style(w_control *control, _w_control_priv *priv) {
 	return bits | CBS_DROPDOWN;
 }
 
-const char* _w_combobox_window_class(w_control *control,
+WCHAR* _w_combobox_window_class(w_control *control,
 		_w_control_priv *priv) {
-	return WC_COMBOBOXEXA;
+	return WC_COMBOBOXEXW;
 }
 
 void _w_combobox_class_init(w_toolkit *toolkit, wushort classId,

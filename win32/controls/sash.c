@@ -10,13 +10,13 @@ wuint64 _w_sash_check_style(w_widget *widget, wuint64 style) {
 	style = _w_widget_check_bits(style, W_HORIZONTAL, W_VERTICAL, 0, 0, 0, 0);
 	return style;
 }
-unsigned char draw_band_bits[] = { -86, 0, 85, 0, -86, 0, 85, 0, -86, 0, 85, 0,
-		-86, 0, 85, 0 };
+wuchar draw_band_bits[] = { -86, 0, 85, 0, -86, 0, 85, 0, -86, 0, 85, 0, -86, 0,
+		85, 0 };
 void _w_sash_draw_band(w_widget *widget, w_point *pt, w_size *size) {
 	if ((_W_WIDGET(widget)->style & W_SMOOTH) != 0)
 		return;
-	w_composite *parent;
-	w_control_get_parent(W_CONTROL(widget), &parent);
+	w_widget *parent;
+	w_widget_get_parent(widget, &parent);
 	HWND hwndTrack = _W_WIDGET(parent)->handle;
 	HBITMAP stippleBitmap = CreateBitmap(8, 8, 1, 1, draw_band_bits);
 	HBRUSH stippleBrush = CreatePatternBrush(stippleBitmap);
@@ -28,7 +28,7 @@ void _w_sash_draw_band(w_widget *widget, w_point *pt, w_size *size) {
 	DeleteObject(stippleBrush);
 	DeleteObject(stippleBitmap);
 }
-const char* _w_sash_window_class(w_control *control, _w_control_priv *priv) {
+WCHAR* _w_sash_window_class(w_control *control, _w_control_priv *priv) {
 	return WindowClass;
 }
 /*
@@ -72,7 +72,7 @@ wresult _SASH_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.bounds.y = _W_SASH(widget)->last.y;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!w_widget_is_ok(W_WIDGET(widget))) {
 		e->result = 0;
 		return ret;
@@ -127,7 +127,7 @@ wresult _SASH_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.bounds.y = _W_SASH(widget)->last.y;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!w_widget_is_ok(W_WIDGET(widget))) {
 		return ret;
 	}
@@ -191,7 +191,7 @@ wresult _SASH_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 	event.bounds.y = newY;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!w_widget_is_ok(W_WIDGET(widget))) {
 		e->result = 0;
 		return ret;

@@ -29,7 +29,7 @@ wresult _w_groupbox_create_handle(w_control *control, _w_control_priv *priv) {
 	 * is to ignore the WM_CHANGEUISTATE, when sent
 	 * from CreateWindowEx().
 	 */
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_composite *parent = _W_WIDGET(control)->parent;
 	_W_WIDGET(parent)->state |= STATE_IGNORE_WM_CHANGEUISTATE;
 	wresult result = _w_composite_create_handle(control, priv);
 	_W_WIDGET(parent)->state &= ~STATE_IGNORE_WM_CHANGEUISTATE;
@@ -159,9 +159,9 @@ DWORD _w_groupbox_widget_style(w_control *control, _w_control_priv *priv) {
 	return bits | BS_GROUPBOX | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 }
 
-const char* _w_groupbox_window_class(w_control *control,
+WCHAR* _w_groupbox_window_class(w_control *control,
 		_w_control_priv *priv) {
-	return WC_BUTTONA;
+	return WC_BUTTONW;
 }
 /*
  * messages

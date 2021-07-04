@@ -18,6 +18,8 @@ struct _w_shell {
 	_w_shell *next;
 	_w_shell *prev;
 	w_menu *menubar;
+	w_button *defaultButton;
+	w_button *saveDefault;
 	_w_tooltip *tooltips;
 	HWND toolTipHandle;
 	HWND balloonTipHandle;
@@ -25,9 +27,18 @@ struct _w_shell {
 	WNDPROC windowProc;
 	WNDPROC ToolTipProc;
 	WNDPROC DialogProc;
-	char* toolTitle;
-	unsigned swFlags :4;
+	char *toolTitle;
+	unsigned fullScreen :1;
+	unsigned modified :1;
+	unsigned opened :1;
+	unsigned moved :1;
+	unsigned resized :1;
 	unsigned center :1;
+	unsigned wasMaximized :1;
+	unsigned showWithParent :1;
+	unsigned swFlags :4;
+	int minWidth;
+	int minHeight;
 };
 #define _W_SHELL(x) ((_w_shell*)x)
 /*
@@ -49,7 +60,9 @@ wresult _w_shell_menu_item_tooltip_handle(w_shell *shell, HWND *handle);
 void _w_shell_set_tooltip_title(w_shell *shell, HWND hwndToolTip, char *text,
 		int icon);
 void _w_shell_bring_totop(w_shell *shell);
-void _w_shell_class_init(w_toolkit *toolkit, wushort classId,struct _w_shell_class *clazz);
+wresult _w_shell_is_visible(w_control *control);
+void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_shell_class *clazz);
 /*
  * messages
  */

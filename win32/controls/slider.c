@@ -370,11 +370,11 @@ DWORD _w_slider_widget_extstyle(w_control *control, _w_control_priv *priv) {
 	}
 	return bits;
 }
-const char* _w_slider_window_class(w_control *control, _w_control_priv *priv) {
+WCHAR* _w_slider_window_class(w_control *control, _w_control_priv *priv) {
 	if (_W_WIDGET(control)->style & W_SCALE) {
-		return TRACKBAR_CLASS;
+		return TRACKBAR_CLASSW;
 	} else {
-		return WC_SCROLLBARA;
+		return WC_SCROLLBARW;
 	}
 }
 /*
@@ -417,7 +417,7 @@ wresult _SLIDER_WM_SCROLLCHILD(w_widget *widget, _w_event_platform *e,
 			event.event.platform_event = _EVENT_PLATFORM(e);
 			event.event.data = 0;
 			event.detail = 0;
-			_w_widget_send_event(widget, (w_event*) &event);
+			_w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
 			// widget could be disposed at this point
 		}
 		return W_FALSE;
@@ -488,7 +488,7 @@ wresult _SLIDER_WM_SCROLLCHILD(w_widget *widget, _w_event_platform *e,
 		event.event.platform_event = _EVENT_PLATFORM(e);
 		event.event.data = 0;
 		event.detail = 0;
-		_w_widget_send_event(widget, (w_event*) &event);
+		_w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
 		// the widget could be destroyed at this point
 		return W_FALSE;
 	}

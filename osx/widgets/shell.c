@@ -369,7 +369,7 @@ wresult _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	event.platform_event = _EVENT_PLATFORM(e);
 	event.widget = W_WIDGET(shell);
 	event.data = 0;
-	_w_widget_send_event(W_WIDGET(shell), &event);
+	_w_widget_post_event(W_WIDGET(shell), &event);
 	if (style & W_DISPOSE_ON_CLOSE) {
 		w_widget_dispose(W_WIDGET(shell));
 	}
@@ -478,7 +478,7 @@ wresult _w_shell_set_window_visible(w_shell *shell, int visible, int key,
 		e.time = 0;
 		e.widget = W_WIDGET(shell);
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(shell), &e);
+		_w_widget_post_event(W_WIDGET(shell), &e);
 		if (w_widget_is_ok(W_WIDGET(shell)) <= 0)
 			return W_FALSE;
 		NSView *topView = priv->top_view(W_WIDGET(shell));
@@ -524,7 +524,7 @@ wresult _w_shell_set_window_visible(w_shell *shell, int visible, int key,
 			e.time = 0;
 			e.widget = W_WIDGET(shell);
 			e.data = 0;
-			_w_widget_send_event(W_WIDGET(shell), &e);
+			_w_widget_post_event(W_WIDGET(shell), &e);
 			if (w_widget_is_ok(W_WIDGET(shell)) <= 0)
 				return W_FALSE;
 		}
@@ -535,7 +535,7 @@ wresult _w_shell_set_window_visible(w_shell *shell, int visible, int key,
 			e.time = 0;
 			e.widget = W_WIDGET(shell);
 			e.data = 0;
-			_w_widget_send_event(W_WIDGET(shell), &e);
+			_w_widget_post_event(W_WIDGET(shell), &e);
 			if (w_widget_is_ok(W_WIDGET(shell)) <= 0)
 				return W_FALSE;
 			//if (layout != null) {
@@ -549,7 +549,7 @@ wresult _w_shell_set_window_visible(w_shell *shell, int visible, int key,
 		e.time = 0;
 		e.widget = W_WIDGET(shell);
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(shell), &e);
+		_w_widget_post_event(W_WIDGET(shell), &e);
 	}
 	return W_TRUE;
 }
@@ -770,7 +770,7 @@ wresult _ns_shell_windowDidResize(w_widget *widget, _w_event_platform *e,
 	event.widget = widget;
 	event.platform_event = (w_event_platform*) e;
 	event.data = 0;
-	_w_widget_send_event(widget, &event);
+	_w_widget_post_event(widget, &event);
 	if (!w_widget_is_ok(widget))
 		return W_FALSE;
 	//if (layout != null) {

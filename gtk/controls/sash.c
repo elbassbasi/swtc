@@ -105,7 +105,7 @@ gboolean _gtk_sash_button_press_event(w_widget *widget, _w_event_platform *e,
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = ClientWidth - size.width - event.bounds.x;
 	}
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event);
 	if (w_widget_is_ok(widget) <= 0)
 		return FALSE;
 	if (doit) {
@@ -172,7 +172,7 @@ gboolean _gtk_sash_button_release_event(w_widget *widget, _w_event_platform *e,
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = ClientWidth - size.width - event.bounds.x;
 	}
-	int doit = _w_widget_send_event(widget, (w_event*) &event);
+	int doit = _w_widget_post_event(widget, (w_event*) &event);
 	if (w_widget_is_ok(widget) <= 0)
 		return FALSE;
 	if (doit) {
@@ -310,7 +310,7 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 			ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 			event.bounds.x = ClientWidth - size.width - event.bounds.x;
 		}
-		int doit = _w_widget_send_event(widget, (w_event*) &event);
+		int doit = _w_widget_post_event(widget, (w_event*) &event);
 		if (ptrGrabResult == GDK_GRAB_SUCCESS)
 			gdk_pointer_ungrab(GDK_CURRENT_TIME);
 		if (!w_widget_is_ok(W_WIDGET(widget))) {
@@ -425,7 +425,7 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = (ClientWidth - size.width) - event.bounds.x;
 	}
-	wresult doit = _w_widget_send_event(widget, (w_event*) &event);
+	wresult doit = _w_widget_post_event(widget, (w_event*) &event);
 	if (w_widget_is_ok(widget) <= 0)
 		return 0;
 	if (doit) {

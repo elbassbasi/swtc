@@ -54,28 +54,28 @@ int w_theme_hit(w_theme *theme, int mask, w_themedata *data,
 	} else
 		return -1;
 }
-w_color w_theme_get_color(w_theme *theme, wuint id) {
+wresult w_theme_get_color(w_theme *theme, wuint id, w_color *color) {
 	if (theme != 0 && theme->clazz != 0) {
-		return theme->clazz->get_color(theme, id);
+		return theme->clazz->get_color(theme, id,color);
 	} else
-		return 0;
+		return W_ERROR_NO_HANDLES;
 }
-w_font* w_theme_get_font(w_theme *theme) {
+wresult w_theme_get_font(w_theme *theme, w_font **font) {
 	if (theme != 0 && theme->clazz != 0) {
-		return theme->clazz->get_font(theme);
+		return theme->clazz->get_font(theme,font);
 	} else {
-		return 0;
+		return W_ERROR_NO_HANDLES;
 	}
 }
-w_cursor* w_theme_get_cursor(w_theme *theme, wuint id) {
+wresult w_theme_get_cursor(w_theme *theme, wuint id, w_cursor **cursor) {
 	if (theme != 0 && theme->clazz != 0) {
-		return theme->clazz->get_cursor(theme, id);
+		return theme->clazz->get_cursor(theme, id,cursor);
 	} else
-		return 0;
+		return W_ERROR_NO_HANDLES;
 }
-w_image* w_theme_get_image(w_theme *theme, wuint id) {
+wresult w_theme_get_image(w_theme *theme, wuint id, w_image **image) {
 	if (theme != 0 && theme->clazz != 0) {
-		return theme->clazz->get_image(theme, id);
+		return theme->clazz->get_image(theme, id, image);
 	} else
-		return 0;
+		return W_ERROR_NO_HANDLES;
 }

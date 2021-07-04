@@ -277,7 +277,7 @@ gboolean _gtk_slider_value_changed(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_SELECTION;
 	event.platform_event = _EVENT_PLATFORM(e);
 	event.widget = widget;
-	_w_widget_send_event(widget, &event);
+	_w_widget_post_event(widget, &event);
 	return FALSE;
 }
 _gtk_signal_info _gtk_slider_signal_lookup[3] = { //

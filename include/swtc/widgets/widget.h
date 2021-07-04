@@ -20,14 +20,19 @@ typedef wresult (*w_widget_callback)(w_widget *widget, void *item,
 struct w_widget {
 	void *v_table; //used in c++ as virtual table
 	struct _w_widget_class *clazz;
+	w_widget_post_event_proc post_event;
+	void *handle;
+	wuint64 style;
+	wuint state0;
 	volatile int ref;
 	wuint id;
-	wuint64 style;
-	wuint state;
-	wuint state0;
-	void *handle;
+	wushort state;
+	wushort children_count;
+	w_widget *parent;
+	w_widget *first_child;
+	w_widget *next_sibling;
+	w_widget *prev_sibling;
 	w_theme *theme;
-	w_widget_post_event_proc post_event;
 	void *data[5];
 };
 #define W_WIDGET(x) ((w_widget*)x)
@@ -54,9 +59,18 @@ struct _w_widget_class {
 	wresult (*init_themedata)(w_widget *widget, w_themedata *data);
 	wresult (*get_shell)(w_widget *widget, w_shell **shell);
 	wresult (*get_theme)(w_widget *widget, w_theme **theme);
-	wresult (*pre_event)(w_widget *widget, w_event *e);
-	wresult (*post_event)(w_widget *widget, w_event *e);
+	wresult (*get_parent)(w_widget *widget, w_widget **parent);
+	wresult (*get_first_child)(w_widget *widget, w_widget **first_child);
+	wresult (*get_next_sibling)(w_widget *widget, w_widget **next_sibling,
+			int filter);
+	wresult (*get_prev_sibling)(w_widget *widget, w_widget **prev_sibling,
+			int filter);
+	wresult (*post_event)(w_widget *widget, w_event *e, int flags);
 	wresult (*set_theme)(w_widget *widget, w_theme *theme);
+};
+enum {
+	W_EVENT_SEND = 0, //
+	W_EVENT_POST = 1, //
 };
 SWT_PUBLIC void w_widget_init(w_widget *widget);
 SWT_PUBLIC int w_widget_class_id(w_widget *widget);
@@ -71,17 +85,22 @@ SWT_PUBLIC w_widget* w_widget_ref_dec(w_widget *widget);
 SWT_PUBLIC wresult w_widget_get_shell(w_widget *widget, w_shell **shell);
 SWT_PUBLIC w_toolkit* w_widget_get_toolkit(w_widget *widget);
 SWT_PUBLIC wresult w_widget_get_theme(w_widget *widget, w_theme **theme);
+SWT_PUBLIC wresult w_widget_get_next_sibling(w_widget *widget,
+		w_widget **next_sibling, int filter);
+SWT_PUBLIC wresult w_widget_get_parent(w_widget *widget, w_widget **parent);
+SWT_PUBLIC wresult w_widget_get_prev_sibling(w_widget *widget,
+		w_widget **prev_sibling, int filter);
 SWT_PUBLIC w_widget_post_event_proc w_widget_get_post_event(w_widget *widget);
 SWT_PUBLIC w_widget_post_event_proc w_widget_set_post_event(w_widget *widget,
 		w_widget_post_event_proc post_event);
-SWT_PUBLIC wresult w_widget_send_event(w_widget *widget, w_event *event);
+SWT_PUBLIC wresult w_widget_post_event(w_widget *widget, w_event *event,
+		int flags);
 SWT_PUBLIC wresult w_widget_set_id(w_widget *widget, wuint id);
 SWT_PUBLIC wuint w_widget_get_id(w_widget *widget);
 SWT_PUBLIC wresult w_widget_set_theme(w_widget *widget, w_theme *theme);
 SWT_PUBLIC wuint64 w_widget_get_style(w_widget *widget);
 SWT_PUBLIC void* w_widget_get_data(w_widget *widget, wuint index);
 SWT_PUBLIC void* w_widget_set_data(w_widget *widget, wuint index, void *data);
-SWT_PUBLIC wresult w_widget_default_post_event(w_widget *widget, w_event *e);
 wresult _w_widget_create(w_widget *widget, w_toolkit *toolkit, w_widget *parent,
 		wuint64 style, wuint class_id, w_widget_post_event_proc post_event);
 w_widget* _w_widget_new(w_toolkit *toolkit, w_widget *parent, wuint64 style,

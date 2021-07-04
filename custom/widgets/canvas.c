@@ -23,7 +23,7 @@ wresult cw_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 	return result;
 }
 int wc_canvas_post_event(w_widget *widget, w_event *e) {
-	return widget->clazz->parentClass->post_event(widget, e);
+	return widget->clazz->parentClass->post_event(widget, e,W_EVENT_SEND);
 }
 void* cw_control_get_priv(w_control *c) {
 	struct _w_widget_class *clazz = c->widget.clazz;

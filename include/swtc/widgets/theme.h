@@ -134,8 +134,8 @@ typedef struct w_item_attr {
 typedef struct w_scrollbar_value w_scrollbar_value;
 typedef struct w_themedata {
 	wuchar clazz;
-	wuchar state0;
-	wushort state;
+	unsigned state :14;
+	unsigned textflags :10;
 	wuint style;
 	w_graphics *gc;
 	w_rect *bounds;
@@ -165,10 +165,10 @@ typedef struct _w_theme_class {
 	void (*dispose)(w_theme *theme);
 	const char* (*get_name)(w_theme *theme);
 	_w_themedata_class themedata;
-	w_color (*get_color)(w_theme *theme, wuint colorid);
-	w_font* (*get_font)(w_theme *theme);
-	w_cursor* (*get_cursor)(w_theme *theme, wuint id);
-	w_image* (*get_image)(w_theme *theme, wuint id);
+	wresult (*get_color)(w_theme *theme, wuint colorid, w_color *color);
+	wresult (*get_font)(w_theme *theme, w_font **font);
+	wresult (*get_cursor)(w_theme *theme, wuint id, w_cursor **cursor);
+	wresult (*get_image)(w_theme *theme, wuint id, w_image **image);
 } _w_theme_class;
 SWT_PUBLIC void w_theme_dispose(w_theme *theme);
 SWT_PUBLIC const char* w_theme_get_name(w_theme *theme);
@@ -181,10 +181,12 @@ SWT_PUBLIC void w_theme_get_bounds(w_theme *theme, int mask, int part,
 		w_themedata *data, w_rect *result);
 SWT_PUBLIC int w_theme_hit(w_theme *theme, int mask, w_themedata *data,
 		w_point *position);
-SWT_PUBLIC w_color w_theme_get_color(w_theme *theme, wuint colorid);
-SWT_PUBLIC w_font* w_theme_get_font(w_theme *theme);
-SWT_PUBLIC w_cursor* w_theme_get_cursor(w_theme *theme, wuint id);
-SWT_PUBLIC w_image* w_theme_get_image(w_theme *theme, wuint id);
+SWT_PUBLIC wresult w_theme_get_color(w_theme *theme, wuint colorid,
+		w_color *color);
+SWT_PUBLIC wresult w_theme_get_font(w_theme *theme, w_font **font);
+SWT_PUBLIC wresult w_theme_get_cursor(w_theme *theme, wuint id,
+		w_cursor **cursor);
+SWT_PUBLIC wresult w_theme_get_image(w_theme *theme, wuint id, w_image **image);
 
 #ifdef __cplusplus
 }

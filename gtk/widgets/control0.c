@@ -914,7 +914,7 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 			e.platform_event = 0;
 			e.data = 0;
 			e.widget = W_WIDGET(control);
-			_w_widget_send_event(W_WIDGET(control), &e);
+			_w_widget_post_event(W_WIDGET(control), &e);
 		}
 		result |= 1;
 	}
@@ -924,7 +924,7 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 		e.platform_event = 0;
 		e.data = 0;
 		e.widget = W_WIDGET(control);
-		_w_widget_send_event(W_WIDGET(control), &e);
+		_w_widget_post_event(W_WIDGET(control), &e);
 		result |= 2;
 	}
 	return result;
@@ -1043,7 +1043,7 @@ gboolean _w_timer_listenner(gpointer user_data) {
 	e.event.time = 0;
 	e.event.widget = W_WIDGET(timer->control);
 	e.event.data = 0;
-	_w_widget_send_event(W_WIDGET(timer->control), (w_event*) &e);
+	_w_widget_post_event(W_WIDGET(timer->control), (w_event*) &e);
 	return TRUE;
 }
 wresult _w_control_set_timer(w_control *control, wint64 ms, wushort id) {
@@ -1108,7 +1108,7 @@ gboolean _w_control_show_menu(w_control *control, int x, int y, int detail) {
 	event.location.x = x;
 	event.location.y = y;
 	event.detail = detail;
-	int ret = _w_widget_send_event(W_WIDGET(control), (w_event*) &event);
+	int ret = _w_widget_post_event(W_WIDGET(control), (w_event*) &event);
 //widget could be disposed at this point
 	if (!w_widget_is_ok(W_WIDGET(control)))
 		return FALSE;

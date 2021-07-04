@@ -7,7 +7,7 @@
  */
 #include "canvas.h"
 #include "toolkit.h"
-const char* _w_canvas_window_class(w_control *control, _w_control_priv *priv) {
+WCHAR* _w_canvas_window_class(w_control *control, _w_control_priv *priv) {
 	if (win_toolkit->useOwnDC)
 		return WindowOwnDCClass;
 	return _w_scrollable_window_class(control, priv);

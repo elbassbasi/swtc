@@ -36,7 +36,7 @@ wresult _w_button_create_handle(w_control *control, _w_control_priv *priv) {
 	 * is to ignore the WM_CHANGEUISTATE, when sent
 	 * from CreateWindowEx().
 	 */
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_composite *parent = _W_WIDGET(control)->parent;
 	_W_WIDGET(parent)->state |= STATE_IGNORE_WM_CHANGEUISTATE;
 	result = _w_control_create_handle(control, priv);
 	_W_WIDGET(parent)->state &= ~ STATE_IGNORE_WM_CHANGEUISTATE;
@@ -107,7 +107,7 @@ wresult _w_button_set_radio_selection(w_button *button, wresult value) {
 		event.type = W_EVENT_SELECTION;
 		//event.platform_event = (struct w_event_platform*) 0;
 		event.widget = W_WIDGET(button);
-		_w_widget_send_event(W_WIDGET(button), &event);
+		_w_widget_post_event(W_WIDGET(button), &event, W_EVENT_SEND);
 	}
 	return W_TRUE;
 }
@@ -187,6 +187,29 @@ wresult _w_button_get_text(w_button *button, w_alloc alloc, void *user_data,
 	s[l] = 0;
 	_win_text_set(s, l, alloc, user_data, enc);
 	_w_toolkit_free(s, length);
+	return W_TRUE;
+}
+wresult _w_button_mnemonic_hit(w_control *control, int key,
+		_w_control_priv *priv) {
+	if (_w_control_set_focus(control) <= 0)
+		return W_FALSE;
+	/*
+	 * Feature in Windows.  When a radio button gets focus,
+	 * it selects the button in WM_SETFOCUS.  Therefore, it
+	 * is not necessary to click the button or send events
+	 * because this has already happened in WM_SETFOCUS.
+	 */
+	if ((_W_WIDGET(control)->style & W_RADIO) == 0) {
+		/*
+		 * Feature in Windows.  BM_CLICK sends a fake WM_LBUTTONDOWN and
+		 * WM_LBUTTONUP in order to click the button.  This causes the
+		 * application to get unexpected mouse events.  The fix is to
+		 * ignore mouse events when they are caused by BM_CLICK.
+		 */
+		_W_WIDGET(control)->state |= STATE_BUTTON_IGNORE_MOUSE;
+		SendMessageW(_W_WIDGET(control)->handle, BM_CLICK, 0, 0);
+		_W_WIDGET(control)->state &= ~ STATE_BUTTON_IGNORE_MOUSE;
+	}
 	return W_TRUE;
 }
 wresult _w_button_set_alignment(w_button *button, int alignment) {
@@ -449,8 +472,8 @@ DWORD _w_button_widget_style(w_control *control, _w_control_priv *priv) {
 		return bits | BS_COMMANDLINK | WS_TABSTOP;
 	return bits | BS_PUSHBUTTON | WS_TABSTOP;
 }
-const char* _w_button_window_class(w_control *control, _w_control_priv *priv) {
-	return WC_BUTTONA;
+WCHAR* _w_button_window_class(w_control *control, _w_control_priv *priv) {
+	return WC_BUTTONW;
 }
 /*
  *	messages
@@ -487,11 +510,15 @@ wresult _BUTTON_WM_KILLFOCUS(w_widget *widget, _w_event_platform *e,
 
 wresult _BUTTON_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (_W_WIDGET(widget)->state & STATE_BUTTON_IGNORE_MOUSE)
+		return W_FALSE;
 	return _WIDGET_WM_LBUTTONDOWN(widget, e, priv);
 }
 
 wresult _BUTTON_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (_W_WIDGET(widget)->state & STATE_BUTTON_IGNORE_MOUSE)
+		return W_FALSE;
 	return _WIDGET_WM_LBUTTONUP(widget, e, priv);
 }
 
@@ -548,7 +575,7 @@ wresult _BUTTON_WM_COMMANDCHILD(w_widget *widget, _w_event_platform *e,
 					!_w_button_get_selection(W_BUTTON(widget)));
 		} else {
 			if ((_W_WIDGET(widget)->style & W_RADIO) != 0) {
-				w_composite *parent = _W_CONTROL(widget)->parent;
+				w_composite *parent = _W_WIDGET(widget)->parent;
 				if ((_W_WIDGET(parent)->style & W_NO_RADIO_GROUP) != 0) {
 					_w_button_set_selection(W_BUTTON(widget),
 							!_w_button_get_selection(W_BUTTON(widget)));
@@ -562,7 +589,7 @@ wresult _BUTTON_WM_COMMANDCHILD(w_widget *widget, _w_event_platform *e,
 		event.type = W_EVENT_SELECTION;
 		event.platform_event = (struct w_event_platform*) e;
 		event.widget = widget;
-		_w_widget_send_event(widget, &event);
+		_w_widget_post_event(widget, &event, W_EVENT_SEND);
 	}
 	return W_FALSE;
 }
@@ -837,6 +864,7 @@ void _w_button_class_init(w_toolkit *toolkit, wushort classId,
 		priv->create_handle = _w_button_create_handle;
 		priv->widget_style = _w_button_widget_style;
 		priv->window_class = _w_button_window_class;
+		priv->mnemonic_hit = _w_button_mnemonic_hit;
 		/*
 		 * messages
 		 */

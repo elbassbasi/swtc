@@ -669,9 +669,7 @@ public:
 	 * @return the receiver's parent
 	 */
 	WComposite* GetParent() {
-		WComposite *parent;
-		_get_parent(&parent);
-		return parent;
+		return (WComposite*) GetParentWidget();
 	}
 	/**
 	 * Returns the region that defines the shape of the control,
@@ -1391,9 +1389,6 @@ public:
 	}
 	WResult _set_menu(WMenu *menu) {
 		return w_control_set_menu(W_CONTROL(this), (w_menu*) menu);
-	}
-	WResult _get_parent(WComposite **parent) {
-		return w_control_get_parent(W_CONTROL(this), (w_composite**) parent);
 	}
 	WResult _set_parent(WComposite *parent) {
 		return w_control_set_parent(W_CONTROL(this), (w_composite*) parent);

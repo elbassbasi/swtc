@@ -9,6 +9,7 @@
 #define WIN32_CONTROLS_BUTTON_H_
 #include "../widgets/shell.h"
 #define STATE_BUTTON_GRAYED (1 << (STATE_CONTROL_END + 1))
+#define STATE_BUTTON_IGNORE_MOUSE (1 << (STATE_CONTROL_END + 2))
 #ifndef BS_COMMANDLINK
 #define BS_COMMANDLINK 0x0000000EL
 #endif

@@ -12,7 +12,10 @@
 extern "C" {
 #endif
 enum {
-	W_ENCODING_UTF8 = 0, W_ENCODING_UNICODE, W_ENCODING_PLATFORM,
+	W_ENCODING_MASK = 0xFF << 24, //
+	W_ENCODING_UTF8 = 0 << 24, //
+	W_ENCODING_UNICODE = 1 << 24, //
+	W_ENCODING_PLATFORM = 2 << 24, //
 };
 typedef struct w_utf8_char {
 	wuint char32;

@@ -55,7 +55,7 @@ struct _w_scrollable_priv {
 BOOL _SetScrollInfo(w_scrollbar *scrollbar, HWND hwnd, int flags,
 		SCROLLINFO *info, BOOL fRedraw);
 DWORD _w_scrollable_widget_extstyle(w_control *control, _w_control_priv *priv);
-const char* _w_scrollable_window_class(w_control *control,
+WCHAR* _w_scrollable_window_class(w_control *control,
 		_w_control_priv *priv);
 DWORD _w_scrollable_widget_style(w_control *control, _w_control_priv *priv);
 wresult _w_scrollable_compute_trim(w_widget *widget, w_event_compute_trim *e,

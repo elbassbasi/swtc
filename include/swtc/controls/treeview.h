@@ -32,8 +32,8 @@ struct _w_treeitem_class {
 	struct _w_listitem_class item;
 	wresult (*clear)(w_treeitem *item, int index, int all);
 	wresult (*clear_all)(w_treeitem *item, int all);
-	wresult (*for_all_item)(w_treeitem *item, w_widget_callback callback,
-			void *user_data);
+	wresult (*for_all_children)(w_treeitem *item, w_widget_callback callback,
+			void *user_data, int flags);
 	wresult (*get_expanded)(w_treeitem *item);
 	wresult (*get_item)(w_treeitem *item, int index, w_treeitem *subitem,
 			int flags);
@@ -44,12 +44,14 @@ struct _w_treeitem_class {
 	wresult (*remove_all)(w_treeitem *item);
 	wresult (*set_expanded)(w_treeitem *item, int expanded);
 	wresult (*set_has_children)(w_treeitem *item);
-	wresult (*set_item_count)(w_treeitem *item, int count);
+	wresult (*set_item_count)(w_treeitem *item, int count, void **userdata);
 };
 #define W_TREEITEM_CLASS(x) ((struct _w_treeitem_class*)x)
 #define W_TREEITEM_GET_CLASS(x) ((struct _w_treeitem_class*)W_WIDGETDATA_GET_CLASS(x))
 SWT_PUBLIC wresult w_treeitem_clear(w_treeitem *item, int index, int all);
 SWT_PUBLIC wresult w_treeitem_clear_all(w_treeitem *item, int all);
+SWT_PUBLIC wresult w_treeitem_for_all_children(w_treeitem *item,
+		w_widget_callback callback, void *user_data, int flags);
 SWT_PUBLIC wresult w_treeitem_get_bounds(w_treeitem *item, w_rect *bounds);
 SWT_PUBLIC wresult w_treeitem_get_checked(w_treeitem *item);
 SWT_PUBLIC wresult w_treeitem_get_expanded(w_treeitem *item);
@@ -83,7 +85,8 @@ SWT_PUBLIC wresult w_treeitem_set_checked(w_treeitem *item, int checked);
 SWT_PUBLIC wresult w_treeitem_set_expanded(w_treeitem *item, int expanded);
 SWT_PUBLIC wresult w_treeitem_set_has_children(w_treeitem *item);
 SWT_PUBLIC wresult w_treeitem_set_image(w_treeitem *item, int image);
-SWT_PUBLIC wresult w_treeitem_set_item_count(w_treeitem *item, int count);
+SWT_PUBLIC wresult w_treeitem_set_item_count(w_treeitem *item, int count,
+		void **userdata);
 /*
  * w_treeview
  */

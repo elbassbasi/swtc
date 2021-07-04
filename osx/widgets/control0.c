@@ -176,7 +176,7 @@ wresult _w_control_draw_widget(w_widget *widget, NSView *view,
 	e.bounds.y = rect->origin.y;
 	e.bounds.width = rect->size.width;
 	e.bounds.height = rect->size.height;
-	wresult result = _w_widget_send_event(widget, W_EVENT(&e));
+	wresult result = _w_widget_post_event(widget, W_EVENT(&e));
 	w_graphics_dispose(W_GRAPHICS(&gc));
 	return result;
 }
