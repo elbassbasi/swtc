@@ -8,6 +8,7 @@
 #define SWTPBUILD 1
 #include <swtp.h>
 #include <wchar.h>
+#include <functional>
 IDestruct::~IDestruct() {
 
 }
@@ -39,6 +40,14 @@ size_t WFileDialogSelectedFile::_alloc(void *user_data, size_t size,
 /*
  * Widget
  */
+bool IWNotify::_InvokeAction(IWNotify *notify, IWNotify::SelectionAction action,
+		WEvent &e) {
+	return (notify->*action)(e);
+}
+int IWNotify::exec_function(void *args) {
+	((IWNotify*) args)->OnNotifyExec();
+	return true;
+}
 WWidget::~WWidget() {
 	Dispose();
 }
@@ -81,27 +90,27 @@ void WWidget::SetNotify(IWNotify *notify) {
 	}
 	SetData(__DATA_NOTIFY, notify);
 }
-bool WWidget::GetSelectionAction(void **_this, SelectionAction *function) {
+bool WWidget::GetSelectionAction(IWNotify **obj,
+		IWNotify::SelectionAction *function) {
 	if ((this->state & __DATA_MASK_LISTENER) == __DATA_FLAGS_SELECTION_ACTION) {
-		*function = (SelectionAction) GetData(__DATA_LISTENER);
-		*_this = GetData(__DATA_NOTIFY);
+		*function = 0;
+		*((void**) function) = GetData(__DATA_LISTENER);
+		*obj = (IWNotify*) GetData(__DATA_NOTIFY);
 		return true;
 	} else {
 		*function = 0;
-		*_this = 0;
+		*obj = 0;
 		return false;
 	}
 }
-void WWidget::SetSelectionAction(void *_this, SelectionAction function) {
+void WWidget::SetSelectionAction(IWNotify *obj,
+		IWNotify::SelectionAction function) {
 	FreeListenerData();
-	SetData(__DATA_LISTENER, (void*) function);
-	SetData(__DATA_NOTIFY, _this);
+	IWNotify::SelectionAction *_function = &function;
+	SetData(__DATA_LISTENER, *((void**) _function));
+	SetData(__DATA_NOTIFY, obj);
 	this->state &= ~__DATA_MASK_LISTENER;
 	this->state |= __DATA_FLAGS_SELECTION_ACTION;
-}
-void WWidget::SetSelectionAction(void *_this, __SelectionAction function) {
-	SelectionAction fun = *((SelectionAction*) &function);
-	SetSelectionAction(_this, fun);
 }
 
 void WWidget::FreeListenerData() {
@@ -212,11 +221,10 @@ bool WWidget::_OnSelection(WEvent &e) {
 	if (notify != 0) {
 		return notify->OnNotifySelection(e);
 	}
-	SelectionAction action;
-	void *_this;
-	if (GetSelectionAction(&_this, &action)) {
-		if (_this != 0 && action != 0) {
-			return action(_this, e);
+	IWNotify::SelectionAction action;
+	if (GetSelectionAction(&notify, &action)) {
+		if (notify != 0 && action != 0) {
+			return IWNotify::_InvokeAction(notify, action, e);
 		}
 	}
 	return false;
@@ -288,12 +296,8 @@ WListenerBase* WListenerBase::CreateRef() {
 		this->ref = 0;
 	return this;
 }
-int WWidget::exec_function(void *args) {
-	((WWidget*) args)->OnExec();
-	return true;
-}
 
-void WWidget::OnExec() {
+void WWidget::OnNotifyExec() {
 }
 /*
  * DropTarget
@@ -440,11 +444,10 @@ bool WMenu::OnItemSelection(WMenuEvent &e) {
 	else {
 		if (this->items != 0) {
 			wushort id = e.item->GetId();
-			__SelectionAction         __action = this->items[id].action;
-			void *notify = GetData(__DATA_NOTIFY);
-			if (__action != 0 && notify != 0) {
-				SelectionAction action = *((SelectionAction*) &__action);
-				return action(notify, e);
+			IWNotify::SelectionAction action = this->items[id].action;
+			IWNotify *notify = (IWNotify*) GetData(__DATA_NOTIFY);
+			if (action != 0 && notify != 0) {
+				return IWNotify::_InvokeAction(notify, action, e);
 			}
 		}
 	}

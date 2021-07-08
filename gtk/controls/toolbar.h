@@ -13,8 +13,7 @@ typedef struct _w_toolbar {
 	w_imagelist *imagelist;
 } _w_toolbar;
 enum {
-	_W_TOOLBAR_SIGNAL_CLICKED,
-	_W_TOOLBAR_SIGNAL_CLICKED_ARROW, //
+	_W_TOOLBAR_SIGNAL_CLICKED, _W_TOOLBAR_SIGNAL_CLICKED_ARROW, //
 	_W_TOOLBAR_SIGNAL_MENU_PROXY, //
 	_W_TOOLBAR_LAST
 };
@@ -37,6 +36,7 @@ typedef struct _w_toolitem {
 wresult _w_toolitem_get_control(w_toolitem *item, w_control **control);
 void _w_toolitem_resize_handle(w_toolitem *item, int width, int height);
 void _w_toolbar_relayout(w_toolbar *toolbar);
-void _w_toolbar_class_init(struct _w_toolbar_class *clazz);
+void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_toolbar_class *clazz);
 
 #endif /* GTK_CONTROLS_TOOLBAR_H_ */

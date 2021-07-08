@@ -42,13 +42,13 @@ protected:
 	bool OnNotifySelection(WEvent &e);
 	void UpdateSize();
 public:
-    bool NewCustomShell();
-    bool NewPlatformShell();
-	bool Exit();
-	bool MessageBox();
-	bool DirectoryDialog();
-	bool ColorDialog();
-	bool FontDialog();
-	bool FileDialog();
+    bool NewCustomShell(WEvent &e);
+    bool NewPlatformShell(WEvent &e);
+	bool Exit(WEvent &e);
+	bool MessageBox(WEvent &e);
+	bool DirectoryDialog(WEvent &e);
+	bool ColorDialog(WEvent &e);
+	bool FontDialog(WEvent &e);
+	bool FileDialog(WEvent &e);
 };
 #endif /* TESTS_MAIN_MFRAME_H_ */

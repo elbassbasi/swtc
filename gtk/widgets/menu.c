@@ -187,7 +187,7 @@ wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 			gtk_menu_shell_insert(GTK_MENU_SHELL(_p), menuItem, index);
 	}
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+		W_WIDGETDATA(item)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 		_W_ITEM(item)->parent = W_WIDGET(menu);
 		_W_ITEM(item)->index = -1;
 		_W_MENUITEM(item)->widget = menuItem;
@@ -203,7 +203,7 @@ wresult _w_menuitem_insert(w_menuitem *parent, w_menuitem *item, int style,
 GtkAccelGroup* _w_menuitem_get_accel_group(w_menuitem *item) {
 	w_widget *menu = _W_ITEM(item)->parent;
 	w_shell *shell;
-	_w_menu_get_shell(W_MENU(menu), &shell);
+	w_widget_get_shell(menu, &shell);
 	return _w_shell_create_accel_group(shell);
 }
 wresult _w_menuitem_get_accelerator(w_menuitem *item) {
@@ -248,7 +248,7 @@ wresult _w_menuitem_get_item(w_menuitem *item, wuint index,
 	if (c == 0) {
 		return W_ERROR_CANNOT_GET_ITEM;
 	} else {
-		_W_WIDGETDATA(sub_item)->clazz = _W_WIDGETDATA(item)->clazz;
+		W_WIDGETDATA(sub_item)->clazz = W_WIDGETDATA(item)->clazz;
 		_W_ITEM(sub_item)->parent = _W_ITEM(item)->parent;
 		_W_ITEM(sub_item)->index = -1;
 		_W_MENUITEM(sub_item)->widget = c;
@@ -296,14 +296,14 @@ wresult _w_menuitem_iterator_next(w_iterator *_it, void *obj) {
 	_w_menuitem_iterator *it = _W_MENUITEM_ITERATOR(_it);
 	if (it->list != 0) {
 		GtkWidget *_widget = (GtkWidget*) it->list->data;
-		_W_WIDGETDATA(obj)->clazz = _W_MENU_GET_ITEM_CLASS(it->menu);
+		W_WIDGETDATA(obj)->clazz = _W_MENU_GET_ITEM_CLASS(it->menu);
 		_W_ITEM( obj)->parent = it->menu;
 		_W_ITEM(obj)->index = -1;
 		_W_MENUITEM( obj)->widget = _widget;
 		it->list = it->list->next;
 		return W_TRUE;
 	} else {
-		_W_WIDGETDATA(obj)->clazz = 0;
+		W_WIDGETDATA(obj)->clazz = 0;
 		return W_FALSE;
 	}
 }
@@ -343,7 +343,7 @@ wresult _w_menuitem_get_items(w_menuitem *item, w_iterator *items) {
 	}
 	return W_FALSE;
 }
-wresult _w_menuitem_get_id(w_menuitem *item) {
+wresult _w_menuitem_get_id(w_menuitem *item, int mask) {
 	void *id = g_object_get_qdata(G_OBJECT(_W_MENUITEM(item)->widget),
 			gtk_toolkit->quark[2]);
 	return (intptr_t) id;
@@ -365,13 +365,13 @@ wresult _w_menuitem_get_parent_item(w_menuitem *item, w_menuitem *parent) {
 	} else {
 		GtkWidget *_p = gtk_widget_get_parent(gtk_widget_get_parent(widget));
 		if (_p) {
-			_W_WIDGETDATA(parent)->clazz = _W_WIDGETDATA(item)->clazz;
+			W_WIDGETDATA(parent)->clazz = W_WIDGETDATA(item)->clazz;
 			_W_ITEM(parent)->parent = _W_ITEM(item)->parent;
 			_W_ITEM(parent)->index = -1;
 			_W_MENUITEM(parent)->widget = _p;
 			return W_TRUE;
 		} else {
-			_W_WIDGETDATA(parent)->clazz = 0;
+			W_WIDGETDATA(parent)->clazz = 0;
 			return W_FALSE;
 		}
 	}
@@ -485,7 +485,7 @@ wresult _w_menuitem_set_enabled(w_menuitem *item, int enabled) {
 	gtk_widget_set_sensitive(_W_MENUITEM(item)->widget, enabled);
 	return W_TRUE;
 }
-wresult _w_menuitem_set_id(w_menuitem *item, wushort id) {
+wresult _w_menuitem_set_id(w_menuitem *item, int mask, wushort id) {
 	GtkWidget *widget = _W_MENUITEM(item)->widget;
 	intptr_t _id = (intptr_t) g_object_get_qdata(G_OBJECT(widget),
 			gtk_toolkit->quark[2]);
@@ -563,11 +563,11 @@ wresult _w_menu_create(w_widget *widget, w_widget *parent, wuint64 style,
 		return W_ERROR_INVALID_ARGUMENT;
 	if (w_widget_class_id(parent) < _W_CLASS_CONTROL)
 		return W_ERROR_INVALID_ARGUMENT;
-	_w_widget_priv *ppriv = _w_widget_get_priv(parent);
+	_w_widget_priv *ppriv = _W_WIDGET_GET_PRIV(parent);
 	ppriv->check_open(parent, _W_CONTROL_PRIV(ppriv));
-	_W_MENU(widget)->parent = W_CONTROL(parent);
+	_W_WIDGET(widget)->parent = parent;
 	_W_WIDGET(widget)->post_event = post_event;
-	_w_widget_priv *priv = _w_widget_get_priv(widget);
+	_w_widget_priv *priv = _W_WIDGET_GET_PRIV(widget);
 	_W_WIDGET(widget)->style = priv->check_style(widget, style);
 	_W_WIDGET(widget)->state |= STATE_TAB_LIST;
 	return priv->create_widget(widget, _W_CONTROL_PRIV(priv));
@@ -577,31 +577,33 @@ wresult _w_menu_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
 	GtkWidget *vboxHandle = 0;
 	w_shell *_p;
-	w_control *parent = _W_MENU(widget)->parent;
-	w_control_get_shell(parent, &_p);
+
+	w_widget_get_shell(widget, &_p);
 	if (_p == 0)
 		return W_ERROR_INVALID_ARGUMENT;
+	w_control *parent = _W_WIDGET(widget)->parent;
+	GtkWidget *handle = 0;
 	if ((_W_WIDGET(widget)->style & W_BAR) != 0) {
 		if (w_widget_class_id(W_WIDGET(parent)) < _W_CLASS_SHELL)
 			return W_ERROR_INVALID_ARGUMENT;
-		_W_WIDGET(widget)->handle = gtk_menu_bar_new();
-		if (_W_WIDGET(widget)->handle == 0)
+		handle = gtk_menu_bar_new();
+		if (handle == 0)
 			goto _err;
 		vboxHandle = _W_SHELL_VBOX(_p);
-		gtk_container_add(GTK_CONTAINER(vboxHandle), _W_WIDGET(widget)->handle);
-		gtk_box_set_child_packing(GTK_BOX(vboxHandle),
-		_W_WIDGET(widget)->handle, FALSE,
+		gtk_container_add(GTK_CONTAINER(vboxHandle), handle);
+		gtk_box_set_child_packing(GTK_BOX(vboxHandle), handle, FALSE,
 		TRUE, 0, GTK_PACK_START);
 	} else {
 		if (w_widget_class_id(W_WIDGET(parent)) < _W_CLASS_CONTROL)
 			return W_ERROR_INVALID_ARGUMENT;
-		_W_WIDGET(widget)->handle = gtk_menu_new();
-		if (_W_WIDGET(widget)->handle == 0)
+		handle = gtk_menu_new();
+		if (handle == 0)
 			goto _err;
 	}
 	_W_MENU(widget)->x = -1;
-	g_object_set_qdata(G_OBJECT(_W_WIDGET(widget)->handle),
-			gtk_toolkit->quark[0], widget);
+	_W_MENU(widget)->id_mask = 0xFFFF;
+	g_object_set_qdata(G_OBJECT(handle), gtk_toolkit->quark[0], widget);
+	_W_WIDGET(widget)->handle = handle;
 	return W_TRUE;
 	_err: return W_ERROR_NO_HANDLES;
 }
@@ -623,24 +625,26 @@ wresult _w_menu_get_bounds(w_menu *menu, w_rect *bounds) {
 	return W_TRUE;
 }
 wresult _w_menu_get_root(w_menu *menu, w_menuitem *rootitem) {
-	_W_WIDGETDATA(rootitem)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
+	W_WIDGETDATA(rootitem)->clazz = _W_MENU_GET_ITEM_CLASS(menu);
 	_W_ITEM(rootitem)->parent = W_WIDGET(menu);
 	_W_ITEM(rootitem)->index = -1;
 	_W_MENUITEM(rootitem)->widget = _W_WIDGET(menu)->handle;
 	return W_TRUE;
 }
+wresult _w_menu_get_shell(w_widget *widget, w_shell **shell) {
+	w_control *parent = _W_WIDGET(widget)->parent;
+	return w_widget_get_shell(W_WIDGET(parent), shell);
+}
 wresult _w_menu_get_orientation(w_menu *menu) {
 	return W_FALSE;
 }
 wresult _w_menu_get_parent(w_menu *menu, w_control **parent) {
-	*parent = _W_MENU(menu)->parent;
+	*parent = _W_WIDGET(menu)->parent;
 	return W_TRUE;
 }
-wresult _w_menu_get_shell(w_menu *menu, w_shell **shell) {
-	return w_control_get_shell(_W_MENU(menu)->parent, shell);
-}
 wresult _w_menu_get_visible(w_menu *menu) {
-	return gtk_widget_get_mapped(_W_WIDGET(menu)->handle);
+	GtkWidget *handle = _W_WIDGET(menu)->handle;
+	return gtk_widget_get_mapped(handle);
 }
 void _w_menu_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_widget_hook_events(widget, priv);
@@ -674,6 +678,7 @@ wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 	w_event_menu ei;
 	if ((_W_WIDGET(menu)->style & (W_BAR | W_DROP_DOWN)) != 0)
 		return W_FALSE;
+	GtkWidget *handle = _W_WIDGET(menu)->handle;
 	if (visible) {
 		ei.event.type = W_EVENT_SHOW;
 		ei.event.platform_event = 0;
@@ -681,8 +686,8 @@ wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 		ei.event.time = 0;
 		ei.event.data = 0;
 		ei.item = 0;
-		_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei);
-		int itemcount = _w_menuitem_get_item_count_0(_W_WIDGET(menu)->handle);
+		_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
+		int itemcount = _w_menuitem_get_item_count_0(handle);
 		if (itemcount != 0) {
 			/*
 			 * Feature in GTK. ON_TOP shells will send out
@@ -691,10 +696,9 @@ wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 			 * when it is being shown in an ON_TOP shell.
 			 */
 			w_shell *shell;
-			_w_menu_get_shell(menu, &shell);
+			w_widget_get_shell(W_WIDGET(menu), &shell);
 			if ((_W_WIDGET(shell)->style & W_ON_TOP) != 0) {
-				gtk_menu_shell_set_take_focus(
-						GTK_MENU_SHELL(_W_WIDGET(menu)->handle), FALSE);
+				gtk_menu_shell_set_take_focus(GTK_MENU_SHELL(handle), FALSE);
 			}
 			GtkMenuPositionFunc func =
 					(_W_WIDGET(menu)->state & STATE_MENU_HAS_LOCATION != 0) ?
@@ -706,8 +710,8 @@ wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 			 * will fail.  The fix is to ensure that the timestamp of the last
 			 * event processed is used.
 			 */
-			gtk_menu_popup(GTK_MENU(_W_WIDGET(menu)->handle), 0, 0, func, menu,
-					0, gdk_event_get_time(gdk_event_peek()));
+			gtk_menu_popup(GTK_MENU(handle), 0, 0, func, menu, 0,
+					gdk_event_get_time(gdk_event_peek()));
 		} else {
 			ei.event.type = W_EVENT_HIDE;
 			ei.event.platform_event = 0;
@@ -715,10 +719,10 @@ wresult _w_menu_set_visible_0(w_menu *menu, int visible) {
 			ei.event.time = 0;
 			ei.event.data = 0;
 			ei.item = 0;
-			_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei);
+			_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
 		}
 	} else {
-		gtk_menu_popdown(GTK_MENU(_W_WIDGET(menu)->handle));
+		gtk_menu_popdown(GTK_MENU(handle));
 	}
 	return W_TRUE;
 }
@@ -738,7 +742,7 @@ gboolean _gtk_menu_activate(w_widget *widget, _w_event_platform *e,
 	if (gdk_pointer_is_grabbed()) {
 		gdk_pointer_ungrab(0);
 	}
-	_W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);
+	W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;
 	_W_MENUITEM(&item)->widget = e->widget;
@@ -762,7 +766,7 @@ gboolean _gtk_menu_activate(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = (w_menuitem*) &item;
-	_w_widget_post_event(widget, (w_event*) &ei);
+	_w_widget_send_event(widget, (w_event*) &ei, W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_menu_hide(w_widget *widget, _w_event_platform *e,
@@ -774,14 +778,14 @@ gboolean _gtk_menu_hide(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = 0;
-	_w_widget_post_event(widget, (w_event*) &ei);
+	_w_widget_send_event(widget, (w_event*) &ei, W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_menu_select(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	w_menuitem item;
 	w_event_menu ei;
-	_W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);
+	W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;
 	_W_MENUITEM(&item)->widget = e->widget;
@@ -791,7 +795,7 @@ gboolean _gtk_menu_select(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = (w_menuitem*) &item;
-	_w_widget_post_event(widget, (w_event*) &ei);
+	_w_widget_send_event(widget, (w_event*) &ei, W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_menu_show(w_widget *widget, _w_event_platform *e,
@@ -803,14 +807,14 @@ gboolean _gtk_menu_show(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = 0;
-	_w_widget_post_event(widget, (w_event*) &ei);
+	_w_widget_send_event(widget, (w_event*) &ei, W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_menu_show_help(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	w_menuitem item;
 	w_event_menu ei;
-	_W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);
+	W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;
 	_W_MENUITEM(&item)->widget = e->widget;
@@ -820,12 +824,16 @@ gboolean _gtk_menu_show_help(w_widget *widget, _w_event_platform *e,
 	ei.event.time = 0;
 	ei.event.data = 0;
 	ei.item = (w_menuitem*) &item;
-	_w_widget_post_event(widget, (w_event*) &ei);
+	_w_widget_send_event(widget, (w_event*) &ei, W_EVENT_SEND);
 	return FALSE;
 }
 
-void _w_menu_class_init(struct _w_menu_class *clazz) {
-	_w_widget_class_init(W_WIDGET_CLASS(clazz));
+void _w_menu_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_menu_class *clazz) {
+	if (classId == _W_CLASS_MENU) {
+		W_WIDGET_CLASS(clazz)->platformPrivate = &gtk_toolkit->class_menu_priv;
+	}
+	_w_widget_class_init(toolkit, classId, W_WIDGET_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_MENU;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_menu_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_menu);
@@ -834,6 +842,7 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	 * functions of menu
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_menu_create;
+	W_WIDGET_CLASS(clazz)->get_shell = _w_menu_get_shell;
 	clazz->get_bounds = _w_menu_get_bounds;
 	clazz->get_root = _w_menu_get_root;
 	clazz->get_orientation = _w_menu_get_orientation;
@@ -848,6 +857,7 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	 */
 	struct _w_menuitem_class *item = clazz->class_menuitem;
 	_w_item_class_init(W_ITEM_CLASS(item));
+	W_WIDGETDATA_CLASS(item)->toolkit = toolkit;
 	W_WIDGETDATA_CLASS(item)->copy = _w_menuitem_copy;
 	W_ITEM_CLASS(item)->get_data = _w_menuitem_get_data;
 	W_ITEM_CLASS(item)->get_text = _w_menuitem_get_text;
@@ -876,24 +886,30 @@ void _w_menu_class_init(struct _w_menu_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_widget_priv *priv = _W_WIDGET_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->create_handle = _w_menu_create_handle;
-	priv->hook_events = _w_menu_hook_events;
-	_gtk_signal *signal = &_W_MENU_PRIV(priv)->signal_activate;
-	signal->msg = SIGNAL_ACTIVATE;
-	signal->name = "activate";
-	signal->number_of_args = 2;
-	signal = &_W_MENU_PRIV(priv)->signal_select;
-	signal->msg = SIGNAL_SELECT;
-	signal->name = "select";
-	signal->number_of_args = 2;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_ACTIVATE] = _gtk_menu_activate;
-	signals[SIGNAL_HIDE] = _gtk_menu_hide;
-	signals[SIGNAL_SELECT] = _gtk_menu_select;
-	signals[SIGNAL_SHOW] = _gtk_menu_show;
-	signals[SIGNAL_SHOW_HELP] = _gtk_menu_show_help;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_MENU) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		_W_WIDGET_PRIV(priv)->create_handle = _w_menu_create_handle;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_menu_hook_events;
+		_gtk_signal *signal = &_W_MENU_PRIV(priv)->signal_activate;
+		signal->msg = SIGNAL_ACTIVATE;
+		signal->name = "activate";
+		signal->number_of_args = 2;
+		signal = &_W_MENU_PRIV(priv)->signal_select;
+		signal->msg = SIGNAL_SELECT;
+		signal->name = "select";
+		signal->number_of_args = 2;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_ACTIVATE] = _gtk_menu_activate;
+		signals[SIGNAL_HIDE] = _gtk_menu_hide;
+		signals[SIGNAL_SELECT] = _gtk_menu_select;
+		signals[SIGNAL_SHOW] = _gtk_menu_show;
+		signals[SIGNAL_SHOW_HELP] = _gtk_menu_show_help;
+	}
 }

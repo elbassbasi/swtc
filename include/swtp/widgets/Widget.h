@@ -29,14 +29,25 @@ public:
 };
 
 class SWTP_PUBLIC IWNotify: public IDestruct {
+protected:
+	static int exec_function(void *args);
 public:
+	typedef bool (IWNotify::*SelectionAction)(WEvent &e);
+	static bool _InvokeAction(IWNotify *notify,
+			IWNotify::SelectionAction action, WEvent &e);
 	virtual bool OnNotifySelection(WEvent &e) = 0;
 	virtual bool OnNotifyItemSelection(WEvent &e) = 0;
 	virtual bool OnNotifyItemDispose(WEvent &e) = 0;
+	virtual void OnNotifyExec() = 0;
+public:
+	void AsyncExec(w_thread_start function, void *args) {
+		w_toolkit_async_exec(0, function, args);
+	}
+	void AsyncExec() {
+		this->AsyncExec(IWNotify::exec_function, this);
+	}
 };
-typedef bool (__thiscall IWNotify::*__SelectionAction)(WEvent &e);
-typedef bool (__thiscall *SelectionAction)(void *_this, WEvent &e);
-#define W_ACTION(x) ((__SelectionAction)&x)
+#define W_ACTION(x) ((IWNotify::SelectionAction)&x)
 
 class SWTP_PUBLIC WListenerBase: public IWListener {
 protected:
@@ -113,7 +124,7 @@ protected:
 	virtual bool OnPlatformEvent(WPlatformEvent *e);
 	virtual void OnFreeMemory(WEvent &e, WWidget *widget);
 	virtual void OnDispose(WEvent &e);
-	virtual void OnExec();
+	void OnNotifyExec();
 	bool OnNotifySelection(WEvent &e);
 	bool OnNotifyItemSelection(WEvent &e);
 	bool OnNotifyItemDispose(WEvent &e);
@@ -209,13 +220,6 @@ public:
 	bool SetTheme(WTheme *theme) {
 		return w_widget_set_theme(W_WIDGET(this), (w_theme*) theme) > 0;
 	}
-	void AsyncExec(w_thread_start function, void *args) {
-		w_toolkit_async_exec(w_widget_get_toolkit(W_WIDGET(this)), function,
-				args);
-	}
-	void AsyncExec() {
-		this->AsyncExec(WWidget::exec_function, this);
-	}
 	/**
 	 * Returns the receiver's style information.
 	 * <p>
@@ -283,9 +287,9 @@ public:
 	void SetId(int id) {
 		w_widget_set_id(W_WIDGET(this), id);
 	}
-	bool GetSelectionAction(void **_this, SelectionAction *function);
-	void SetSelectionAction(void *_this, SelectionAction function);
-	void SetSelectionAction(void *_this, __SelectionAction function);
+	bool GetSelectionAction(IWNotify **obj,
+			IWNotify::SelectionAction *function);
+	void SetSelectionAction(IWNotify *obj, IWNotify::SelectionAction function);
 	IWListener* GetListener();
 	void SetListener(IWListener *listener);
 #if __cplusplus >= 201103L

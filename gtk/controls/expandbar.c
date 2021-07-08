@@ -189,7 +189,7 @@ wresult _w_expanditem_set_control(w_expanditem *expanditem,
 	if (control != 0) {
 		if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 			return W_ERROR_INVALID_ARGUMENT;
-		if (_W_CONTROL(control)->parent != W_COMPOSITE(parent))
+		if (_W_WIDGET(control)->parent != parent)
 			return W_ERROR_INVALID_PARENT;
 	}
 	if (control != 0) {
@@ -402,7 +402,7 @@ wresult _w_expandbar_insert_item(w_expandbar *expandbar, w_expanditem *item,
 	gtk_container_add(GTK_CONTAINER(_W_WIDGET(expandbar)->handle),
 			expanderHandle);
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_EXPANDBAR_GET_ITEM_CLASS(expandbar);
+		W_WIDGETDATA(item)->clazz = _W_EXPANDBAR_GET_ITEM_CLASS(expandbar);
 		_W_ITEM(item)->parent = W_WIDGET(expandbar);
 		_W_ITEM(item)->index = index;
 		_W_EXPANDITEM(item)->handle = expanderHandle;
@@ -442,8 +442,13 @@ wresult _w_expandbar_set_spacing(w_expandbar *expandbar, int spacing) {
 	return W_TRUE;
 }
 
-void _w_expandbar_class_init(struct _w_expandbar_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_expandbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_expandbar_class *clazz) {
+	if (classId == _W_CLASS_EXPANDBAR) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_expandbar_priv;
+	}
+	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_EXPANDBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_expandbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_expandbar);
@@ -463,6 +468,7 @@ void _w_expandbar_class_init(struct _w_expandbar_class *clazz) {
 	 * expanditem
 	 */
 	struct _w_expanditem_class *item = clazz->class_expanditem;
+	W_WIDGETDATA_CLASS(item)->toolkit = toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	W_ITEM_CLASS(item)->get_data = _w_expanditem_get_data;
 	W_ITEM_CLASS(item)->get_text = _w_expanditem_get_text;
@@ -479,18 +485,25 @@ void _w_expandbar_class_init(struct _w_expandbar_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_expandbar_handle_fixed;
-	priv->handle_fixed = _w_expandbar_handle_fixed;
-	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_expandbar_handle_scrolled;
-	_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_expandbar_handle_fixed;
-	_W_COMPOSITE_PRIV(priv)->add_child = _w_expandbar_add_child;
-	priv->widget.compute_size = _w_expandbar_compute_size;
-	priv->widget.check_style = _w_expandbar_check_style;
-	priv->widget.create_handle = _w_expandbar_create_handle;
-	priv->widget.hook_events = _w_expandbar_hook_events;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_EXPANDBAR) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_expandbar_handle_fixed;
+		priv->handle_fixed = _w_expandbar_handle_fixed;
+		_W_SCROLLABLE_PRIV(priv)->handle_scrolled =
+				_w_expandbar_handle_scrolled;
+		_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_expandbar_handle_fixed;
+		_W_COMPOSITE_PRIV(priv)->add_child = _w_expandbar_add_child;
+		priv->widget.compute_size = _w_expandbar_compute_size;
+		priv->widget.check_style = _w_expandbar_check_style;
+		priv->widget.create_handle = _w_expandbar_create_handle;
+		priv->widget.hook_events = _w_expandbar_hook_events;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+	}
 }

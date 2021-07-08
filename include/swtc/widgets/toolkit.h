@@ -34,7 +34,7 @@ struct _w_toolkit_class {
 	wresult (*check_widget)(w_toolkit *toolkit, w_widget *widget);
 	wresult (*check_widgetdata)(w_toolkit *toolkit, w_widgetdata *widgetdata);
 	struct _w_widget_class* (*get_class)(w_toolkit *toolkit, wushort clazz_id);
-	void (*init_class)(w_toolkit *toolkit, wushort clazz_id,
+	wresult (*init_class)(w_toolkit *toolkit, wushort clazz_id,
 			struct _w_widget_class*);
 	w_theme* (*get_theme)(w_toolkit *toolkit);
 	wresult (*async_exec)(w_toolkit *toolkit, w_thread_start function,
@@ -167,8 +167,6 @@ struct _w_toolkit_classes {
 	struct _w_shell_class class_shell;
 	struct _w_canvas_class class_canvas;
 	struct _w_ccanvas_class class_ccanvas;
-	struct _w_caret_class class_caret;
-	struct _w_ime_class class_ime;
 	struct _w_composite_class class_composite;
 	struct _w_scrollbar_class class_scrollbar;
 	struct _w_menu_class class_menu;

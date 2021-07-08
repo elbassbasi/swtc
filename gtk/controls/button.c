@@ -362,7 +362,7 @@ void _w_button_select_radio_0(_w_fixed *t, _w_event_platform *e, int next) {
 			event.type = W_EVENT_SELECTION;
 			event.platform_event = (struct w_event_platform*) e;
 			event.widget = w;
-			_w_widget_post_event(w, &event);
+			_w_widget_send_event(w, &event,W_EVENT_SEND);
 		}
 		if (next)
 			t = t->next;
@@ -632,8 +632,8 @@ gboolean _gtk_button_clicked(w_widget *widget, _w_event_platform *e,
 	}
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	if ((_W_WIDGET(widget)->style & W_RADIO) != 0) {
-		w_composite *parent;
-		w_control_get_parent(W_CONTROL(widget), &parent);
+		w_widget *parent;
+		w_widget_get_parent(W_WIDGET(widget), &parent);
 		if ((_W_WIDGET(parent)->style & W_NO_RADIO_GROUP) != 0) {
 			gboolean selected = _W_WIDGET(widget)->state & STATE_BUTTON_SELECTED;
 			_w_button_set_selection(W_BUTTON(widget), !selected);
@@ -659,11 +659,16 @@ gboolean _gtk_button_clicked(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_SELECTION;
 	event.platform_event = (struct w_event_platform*) e;
 	event.widget = widget;
-	_w_widget_post_event(widget, &event);
+	_w_widget_send_event(widget, &event,W_EVENT_SEND);
 	return FALSE;
 }
-void _w_button_class_init(struct _w_button_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_button_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_button_class *clazz) {
+	if (classId == _W_CLASS_BUTTON) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_button_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_BUTTON;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_button_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_button);
@@ -684,22 +689,27 @@ void _w_button_class_init(struct _w_button_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_widget_hp;
-	priv->handle_fixed = _w_widget_hp;
-	priv->widget.compute_size = _w_button_compute_size;
-	priv->widget.check_style = _w_button_check_style;
-	priv->widget.create_handle = _w_button_create_handle;
-	priv->widget.hook_events = _w_button_hook_events;
-	_gtk_signal *signal = &_W_BUTTON_PRIV(priv)->signal_clicked;
-	signal->name = "clicked";
-	signal->msg = SIGNAL_CLICKED;
-	signal->number_of_args = 2;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
-	signals[SIGNAL_CLICKED] = _gtk_button_clicked;
-
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_BUTTON) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_widget_hp;
+		priv->handle_fixed = _w_widget_hp;
+		priv->widget.compute_size = _w_button_compute_size;
+		priv->widget.check_style = _w_button_check_style;
+		priv->widget.create_handle = _w_button_create_handle;
+		priv->widget.hook_events = _w_button_hook_events;
+		_gtk_signal *signal = &_W_BUTTON_PRIV(priv)->signal_clicked;
+		signal->name = "clicked";
+		signal->msg = SIGNAL_CLICKED;
+		signal->number_of_args = 2;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+		signals[SIGNAL_CLICKED] = _gtk_button_clicked;
+	}
 }
 

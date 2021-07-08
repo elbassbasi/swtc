@@ -33,6 +33,7 @@ wresult _w_expanditem_get_height(w_expanditem *expanditem);
 void _w_expandbar_layout_items(w_expandbar *expandbar);
 GtkWidget* _w_expandbar_handle_scrolled(w_widget *control,
 		_w_control_priv *priv);
-void _w_expandbar_class_init(struct _w_expandbar_class *clazz);
+void _w_expandbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_expandbar_class *clazz);
 
 #endif /* GTK_CONTROLS_EXPANDBAR_H_ */

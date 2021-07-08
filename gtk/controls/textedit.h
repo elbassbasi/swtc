@@ -24,5 +24,6 @@ typedef struct _w_textedit_priv {
 #define _W_TEXTEDIT(x) ((_w_textedit*)x)
 #define _W_TEXTEDIT_PRIV(x) ((_w_textedit_priv*)x)
 
-void _w_textedit_class_init(struct _w_textedit_class *clazz);
+void _w_textedit_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_textedit_class *clazz);
 #endif /* GTK_CONTROLS_TEXTEDIT_H_ */

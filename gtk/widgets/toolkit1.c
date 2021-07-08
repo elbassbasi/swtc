@@ -6,15 +6,24 @@
  * Licence:
  */
 #include "toolkit.h"
+#include "../../custom/controls/expandbar.h"
 #define INNER_BORDER 2
 void* _w_toolkit_malloc(size_t size) {
-	if ((gtk_toolkit->tmp_length + size) < gtk_toolkit->tmp_alloc) {
-		int i = gtk_toolkit->tmp_length;
-		gtk_toolkit->tmp_length += size;
-		return &gtk_toolkit->tmp[i];
-	} else {
-		return malloc(size);
+	while (1) {
+		if (__sync_val_compare_and_swap(&gtk_toolkit->tmp_lock, 0, 1) == 0) {
+			if ((gtk_toolkit->tmp_length + size)
+					< (gtk_toolkit->tmp_alloc - gtk_toolkit->tmp_region_length)) {
+				int i = gtk_toolkit->tmp_length;
+				gtk_toolkit->tmp_length += size;
+				gtk_toolkit->tmp_lock = 0;
+				return &gtk_toolkit->tmp[i];
+			} else {
+				gtk_toolkit->tmp_lock = 0;
+				return malloc(size);
+			}
+		}
 	}
+	return 0;
 }
 void* _w_toolkit_malloc_all(size_t *size) {
 	*size = gtk_toolkit->tmp_alloc - gtk_toolkit->tmp_length;
@@ -23,6 +32,29 @@ void* _w_toolkit_malloc_all(size_t *size) {
 	return &gtk_toolkit->tmp[i];
 }
 void _w_toolkit_free(void *ptr, size_t size) {
+	wintptr diff = ptr - (void*) gtk_toolkit->tmp;
+	if (diff >= 0 && diff < gtk_toolkit->tmp_alloc) {
+		gtk_toolkit->tmp_length -= size;
+	} else
+		free(ptr);
+}
+void* _w_toolkit_region_malloc(size_t size) {
+	while (1) {
+		if (__sync_val_compare_and_swap(&gtk_toolkit->tmp_lock, 0, 1) == 0) {
+			if ((gtk_toolkit->tmp_length + size) < gtk_toolkit->tmp_alloc) {
+				int i = gtk_toolkit->tmp_length;
+				gtk_toolkit->tmp_length += size;
+				gtk_toolkit->tmp_lock = 0;
+				return &gtk_toolkit->tmp[i];
+			} else {
+				gtk_toolkit->tmp_lock = 0;
+				return malloc(size);
+			}
+		}
+	}
+	return 0;
+}
+void _w_toolkit_region_free(void *ptr, size_t size) {
 	wintptr diff = ptr - (void*) gtk_toolkit->tmp;
 	if (diff >= 0 && diff < gtk_toolkit->tmp_alloc) {
 		gtk_toolkit->tmp_length -= size;
@@ -64,7 +96,8 @@ void _w_toolkit_remove_gdk_events() {
 
 }
 void _w_toolkit_get_entry_inner_border(GtkWidget *handle, GtkBorder *border) {
-	GtkBorder *gtkborder = gtk_entry_get_inner_border(GTK_ENTRY(handle));
+	GtkBorder *gtkborder = (GtkBorder*) gtk_entry_get_inner_border(
+			GTK_ENTRY(handle));
 	if (gtkborder != 0) {
 		memcpy(border, gtkborder, sizeof(GtkBorder));
 		return;
@@ -182,200 +215,40 @@ const char *_gtk_signal_names[SIGNAL_LAST] = { //
 				[SIGNAL_DRAG_END]="drag_end", //
 				[SIGNAL_DRAG_DATA_DELETE]="drag_data_delete", //
 		};
-void _w_toolkit_widget_class_init(_w_toolkit *toolkit) {
-	/*
-	 * shell
-	 */
-	W_WIDGET_CLASS(&toolkit->class_shell)->init_class =
-			(w_widget_init_class) _w_shell_class_init;
-	W_WIDGET_CLASS(&toolkit->class_shell)->reserved[0] =
-			&toolkit->class_shell_priv;
-	toolkit->classes[_W_CLASS_SHELL] = W_WIDGET_CLASS(&toolkit->class_shell);
-	/*
-	 * canvas
-	 */
-	W_WIDGET_CLASS(&toolkit->class_canvas)->init_class =
-			(w_widget_init_class) _w_canvas_class_init;
-	W_WIDGET_CLASS(&toolkit->class_canvas)->reserved[0] =
-			&toolkit->class_canvas_priv;
-	toolkit->classes[_W_CLASS_CANVAS] = W_WIDGET_CLASS(&toolkit->class_canvas);
-	/*
-	 * composite
-	 */
-	W_WIDGET_CLASS(&toolkit->class_composite)->init_class =
-			(w_widget_init_class) _w_composite_class_init;
-	W_WIDGET_CLASS(&toolkit->class_composite)->reserved[0] =
-			&toolkit->class_composite_priv;
-	toolkit->classes[_W_CLASS_COMPOSITE] = W_WIDGET_CLASS(
-			&toolkit->class_composite);
-	/*
-	 * menu
-	 */
-	W_WIDGET_CLASS(&toolkit->class_menu)->init_class =
-			(w_widget_init_class) _w_menu_class_init;
-	W_WIDGET_CLASS(&toolkit->class_menu)->reserved[0] =
-			&toolkit->class_menu_priv;
-	W_MENU_CLASS(&toolkit->class_menu)->class_menuitem =
-			&toolkit->class_menuitem;
-	toolkit->classes[_W_CLASS_MENU] = W_WIDGET_CLASS(&toolkit->class_menu);
-	/*
-	 * treeview
-	 */
-	W_WIDGET_CLASS(&toolkit->class_tree)->init_class =
-			(w_widget_init_class) _w_treeview_class_init;
-	W_WIDGET_CLASS(&toolkit->class_tree)->reserved[0] =
-			&toolkit->class_tree_priv;
-	W_LISTVIEWBASE_CLASS(&toolkit->class_tree)->class_item = W_ITEM_CLASS(
-			&toolkit->class_treeitem);
-	W_LISTVIEWBASE_CLASS(&toolkit->class_tree)->class_column =
-			&toolkit->class_treecolumn;
-	toolkit->classes[_W_CLASS_TREEVIEW] = W_WIDGET_CLASS(&toolkit->class_tree);
-	/*
-	 * listview
-	 */
-	W_WIDGET_CLASS(&toolkit->class_listview)->init_class =
-			(w_widget_init_class) _w_listview_class_init;
-	W_WIDGET_CLASS(&toolkit->class_listview)->reserved[0] =
-			&toolkit->class_listview_priv;
-	W_LISTVIEWBASE_CLASS(&toolkit->class_listview)->class_item = W_ITEM_CLASS(
-			&toolkit->class_listitem);
-	W_LISTVIEWBASE_CLASS(&toolkit->class_listview)->class_column =
-			&toolkit->class_listcolumn;
-	toolkit->classes[_W_CLASS_LISTVIEW] = W_WIDGET_CLASS(
-			&toolkit->class_listview);
-	/*
-	 * sash
-	 */
-	W_WIDGET_CLASS(&toolkit->class_sash)->init_class =
-			(w_widget_init_class) _w_sash_class_init;
-	W_WIDGET_CLASS(&toolkit->class_sash)->reserved[0] =
-			&toolkit->class_sash_priv;
-	toolkit->classes[_W_CLASS_SASH] = W_WIDGET_CLASS(&toolkit->class_sash);
-	/*
-	 * button
-	 */
-	W_WIDGET_CLASS(&toolkit->class_button)->init_class =
-			(w_widget_init_class) _w_button_class_init;
-	W_WIDGET_CLASS(&toolkit->class_button)->reserved[0] =
-			&toolkit->class_button_priv;
-	toolkit->classes[_W_CLASS_BUTTON] = W_WIDGET_CLASS(&toolkit->class_button);
-	/*
-	 * label
-	 */
-	W_WIDGET_CLASS(&toolkit->class_label)->init_class =
-			(w_widget_init_class) _w_label_class_init;
-	W_WIDGET_CLASS(&toolkit->class_label)->reserved[0] =
-			&toolkit->class_label_priv;
-	toolkit->classes[_W_CLASS_LABEL] = W_WIDGET_CLASS(&toolkit->class_label);
-	/*
-	 * textedit
-	 */
-	W_WIDGET_CLASS(&toolkit->class_textedit)->init_class =
-			(w_widget_init_class) _w_textedit_class_init;
-	W_WIDGET_CLASS(&toolkit->class_textedit)->reserved[0] =
-			&toolkit->class_textedit_priv;
-	toolkit->classes[_W_CLASS_TEXTEDIT] = W_WIDGET_CLASS(
-			&toolkit->class_textedit);
-	/*
-	 * progressbar
-	 */
-	W_WIDGET_CLASS(&toolkit->class_progressbar)->init_class =
-			(w_widget_init_class) _w_progressbar_class_init;
-	W_WIDGET_CLASS(&toolkit->class_progressbar)->reserved[0] =
-			&toolkit->class_progressbar_priv;
-	toolkit->classes[_W_CLASS_PROGRESSBAR] = W_WIDGET_CLASS(
-			&toolkit->class_progressbar);
-	/*
-	 * groupbox
-	 */
-	W_WIDGET_CLASS(&toolkit->class_groupbox)->init_class =
-			(w_widget_init_class) _w_groupbox_class_init;
-	W_WIDGET_CLASS(&toolkit->class_groupbox)->reserved[0] =
-			&toolkit->class_groupbox_priv;
-	toolkit->classes[_W_CLASS_GROUPBOX] = W_WIDGET_CLASS(
-			&toolkit->class_groupbox);
-	/*
-	 * combobox
-	 */
-	W_WIDGET_CLASS(&toolkit->class_combobox)->init_class =
-			(w_widget_init_class) _w_combobox_class_init;
-	W_WIDGET_CLASS(&toolkit->class_combobox)->reserved[0] =
-			&toolkit->class_combobox_priv;
-	W_COMBOBOX_CLASS(&toolkit->class_combobox)->class_comboitem =
-			&toolkit->class_comboitem;
-	toolkit->classes[_W_CLASS_COMBOBOX] = W_WIDGET_CLASS(
-			&toolkit->class_combobox);
-	/*
-	 * coolbar
-	 */
-	W_WIDGET_CLASS(&toolkit->class_coolbar)->init_class =
-			(w_widget_init_class) _w_coolbar_class_init;
-	W_WIDGET_CLASS(&toolkit->class_coolbar)->reserved[0] =
-			&toolkit->class_coolbar_priv;
-	W_COOLBAR_CLASS(&toolkit->class_coolbar)->class_coolitem =
-			&toolkit->class_coolitem;
-	toolkit->classes[_W_CLASS_COOLBAR] = W_WIDGET_CLASS(
-			&toolkit->class_coolbar);
-	/*
-	 * datetime
-	 */
-	W_WIDGET_CLASS(&toolkit->class_datetime)->init_class =
-			(w_widget_init_class) _w_datetime_class_init;
-	W_WIDGET_CLASS(&toolkit->class_datetime)->reserved[0] =
-			&toolkit->class_datetime_priv;
-	toolkit->classes[_W_CLASS_DATETIME] = W_WIDGET_CLASS(
-			&toolkit->class_datetime);
-	/*
-	 * expandbar
-	 */
-	W_WIDGET_CLASS(&toolkit->class_expandbar)->init_class =
-			(w_widget_init_class) _w_expandbar_class_init;
-	W_WIDGET_CLASS(&toolkit->class_expandbar)->reserved[0] =
-			&toolkit->class_expandbar_priv;
-	W_EXPANDBAR_CLASS(&toolkit->class_expandbar)->class_expanditem =
-			&toolkit->class_expanditem;
-	toolkit->classes[_W_CLASS_EXPANDBAR] = W_WIDGET_CLASS(
-			&toolkit->class_expandbar);
-	/*
-	 * slider
-	 */
-	W_WIDGET_CLASS(&toolkit->class_slider)->init_class =
-			(w_widget_init_class) _w_slider_class_init;
-	W_WIDGET_CLASS(&toolkit->class_slider)->reserved[0] =
-			&toolkit->class_slider_priv;
-	toolkit->classes[_W_CLASS_SLIDER] = W_WIDGET_CLASS(&toolkit->class_slider);
-	/*
-	 * spinner
-	 */
-	W_WIDGET_CLASS(&toolkit->class_spinner)->init_class =
-			(w_widget_init_class) _w_spinner_class_init;
-	W_WIDGET_CLASS(&toolkit->class_spinner)->reserved[0] =
-			&toolkit->class_spinner_priv;
-	toolkit->classes[_W_CLASS_SPINNER] = W_WIDGET_CLASS(
-			&toolkit->class_spinner);
-	/*
-	 * tabview
-	 */
-	W_WIDGET_CLASS(&toolkit->class_tabview)->init_class =
-			(w_widget_init_class) _w_tabview_class_init;
-	W_WIDGET_CLASS(&toolkit->class_tabview)->reserved[0] =
-			&toolkit->class_tabview_priv;
-	W_TABVIEW_CLASS(&toolkit->class_tabview)->class_tabitem =
-			&toolkit->class_tabitem;
-	toolkit->classes[_W_CLASS_TABVIEW] = W_WIDGET_CLASS(
-			&toolkit->class_tabview);
-	/*
-	 * toolbar
-	 */
-	W_WIDGET_CLASS(&toolkit->class_toolbar)->init_class =
-			(w_widget_init_class) _w_toolbar_class_init;
-	W_WIDGET_CLASS(&toolkit->class_toolbar)->reserved[0] =
-			&toolkit->class_toolbar_priv;
-	W_TOOLBAR_CLASS(&toolkit->class_toolbar)->class_toolitem =
-			&toolkit->class_toolitem;
-	toolkit->classes[_W_CLASS_TOOLBAR] = W_WIDGET_CLASS(
-			&toolkit->class_toolbar);
-}
+w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST] = {			//
+		[_W_CLASS_SHELL] =(w_widget_init_class) _w_shell_class_init,		//
+				[_W_CLASS_CANVAS] =(w_widget_init_class) _w_canvas_class_init,//
+				//[_W_CLASS_CCANVAS] =(w_widget_init_class) _w_ccanvas_class_init,//
+				[_W_CLASS_COMPOSITE
+						] =(w_widget_init_class) _w_composite_class_init,	//
+				[_W_CLASS_MENU] =(w_widget_init_class) _w_menu_class_init,	//
+				[_W_CLASS_TREEVIEW
+						] =(w_widget_init_class) _w_treeview_class_init,	//
+				[_W_CLASS_LISTVIEW
+						] =(w_widget_init_class) _w_listview_class_init,	//
+				[_W_CLASS_SASH] =(w_widget_init_class) _w_sash_class_init,	//
+				[_W_CLASS_BUTTON] =(w_widget_init_class) _w_button_class_init,//
+				[_W_CLASS_LABEL] =(w_widget_init_class) _w_label_class_init,//
+				[_W_CLASS_TEXTEDIT
+						] =(w_widget_init_class) _w_textedit_class_init,	//
+				[_W_CLASS_PROGRESSBAR
+						] =(w_widget_init_class) _w_progressbar_class_init,	//
+				[_W_CLASS_GROUPBOX
+						] =(w_widget_init_class) _w_groupbox_class_init,	//
+				[_W_CLASS_COMBOBOX
+						] =(w_widget_init_class) _w_combobox_class_init,	//
+				[_W_CLASS_COOLBAR] =(w_widget_init_class) _w_coolbar_class_init,//
+				[_W_CLASS_DATETIME
+						] =(w_widget_init_class) _w_datetime_class_init,	//
+				[_W_CLASS_SLIDER] =(w_widget_init_class) _w_slider_class_init,//
+				[_W_CLASS_SPINNER] =(w_widget_init_class) _w_spinner_class_init,//
+				[_W_CLASS_TABVIEW] =(w_widget_init_class) _w_tabview_class_init,//
+				[_W_CLASS_TOOLBAR] =(w_widget_init_class) _w_toolbar_class_init,//
+				/*[_W_CLASS_TRAY] =(w_widget_init_class) _w_tray_class_init,	//
+				 [_W_CLASS_TOOLTIP] =(w_widget_init_class) _w_tooltip_class_init,//*/
+				[_W_CLASS_EXPANDBAR
+						] =(w_widget_init_class) _w_expandbar_class_init,	//
+		};
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];
 	gtk_init(0, 0);
@@ -409,7 +282,7 @@ void _w_toolkit_init_display(_w_toolkit *toolkit) {
 }
 void _w_toolkit_init(_w_toolkit *toolkit) {
 	_w_toolkit_class_init(toolkit);
-	_w_toolkit_widget_class_init(toolkit);
+	_w_toolkit_classes_init(&toolkit->classes);
 	_w_toolkit_init_gtk(toolkit);
 	_w_toolkit_init_display(toolkit);
 	_w_widget_init_signal_0();

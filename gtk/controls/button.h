@@ -53,6 +53,7 @@ void _w_button_get_border(GtkBorder *gtkBorder, const char *border,
 		GtkWidget *handle, int defaultBorder);
 wresult _w_button_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv);
-void _w_button_class_init(struct _w_button_class *clazz);
+void _w_button_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_button_class *clazz);
 
 #endif /* GTK_CONTROLS_BUTTON_H_ */

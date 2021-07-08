@@ -6,11 +6,31 @@
  * Licence:
  */
 #include "toolkit.h"
+#include <unistd.h>
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 _w_toolkit *gtk_toolkit = 0;
-w_toolkit* w_toolkit_get_platform(w_app *app) {
+w_app *app = 0;
+void w_app_init_thread(w_app *app) {
+	app->app->platformToolkit = W_TOOLKIT(gtk_toolkit);
+}
+w_toolkit* w_app_get_platform_toolkit(w_app *app) {
+	return app->app->platformToolkit;
+}
+wresult w_app_get_current_directory(w_app *app, w_alloc alloc, void *userdata,
+		int enc) {
+	/*if (app->currentdir == 0) {
+	 app->app->currentdir = getcwd(NULL, 0);
+	 }
+	 return app->app->currentdir;*/
+	return W_FALSE;
+}
+void w_app_create(w_app *_app, int argc, char **argv) {
+	if (app != 0) {
+		_app->app = 0;
+		return;
+	}
 	if (gtk_toolkit == 0) {
 		const int total_size = 0x10000;
 		const int toolkit_size = sizeof(_w_toolkit);
@@ -19,12 +39,19 @@ w_toolkit* w_toolkit_get_platform(w_app *app) {
 		if (gtk_toolkit == 0) {
 			fprintf(stderr, "Error : Do not initialize toolkit\n");
 			exit(EXIT_FAILURE);
-			return 0;
+			return;
 		}
 		gtk_toolkit->tmp_alloc = tmp_size;
 		_w_toolkit_init(gtk_toolkit);
+		_app->app = &gtk_toolkit->app;
 	}
-	return (w_toolkit*) gtk_toolkit;
+	app = _app;
+	_app->app->argc = argc;
+	_app->app->argv = argv;
+	w_app_init_thread(_app);
+}
+w_app* w_app_get() {
+	return app;
 }
 wresult _w_toolkit_check_widget(w_toolkit *toolkit, w_widget *widget) {
 	if (pthread_equal(pthread_self(), (pthread_t)
@@ -43,12 +70,28 @@ wresult _w_toolkit_check_widgetdata(w_toolkit *toolkit,
 		return W_ERROR_THREAD_INVALID_ACCESS;
 	}
 }
+wresult _w_toolkit_init_class(w_toolkit *toolkit, wushort clazz_id,
+		struct _w_widget_class *clazz) {
+	if (clazz_id < _W_CLASS_LAST) {
+		w_widget_init_class fun = gtk_toolkit_classes_init[clazz_id];
+		if (fun != 0) {
+			struct _w_widget_class *internalClazz =
+			_W_TOOLKIT(toolkit)->classes.classes[clazz_id];
+			if (internalClazz != 0 && internalClazz != clazz) {
+				fun(toolkit, clazz_id, internalClazz);
+			}
+			fun(toolkit, clazz_id, clazz);
+			return W_TRUE;
+		}
+	}
+	return W_FALSE;
+}
 struct _w_widget_class* _w_toolkit_get_class(w_toolkit *toolkit,
 		wushort clazz_id) {
 	if (clazz_id >= _W_CLASS_LAST)
 		return 0;
 	else
-		return _W_TOOLKIT(toolkit)->classes[clazz_id];
+		return _W_TOOLKIT(toolkit)->classes.classes[clazz_id];
 }
 w_theme* _w_toolkit_get_theme(w_toolkit *toolkit) {
 	_w_toolkit *_toolkit = _W_TOOLKIT(toolkit);
@@ -134,7 +177,7 @@ _w_shell* _w_shells_iterator_find_next(_w_shell *parent, _w_shell *current) {
 	else {
 		_w_shell *s = current->next;
 		while (s != 0) {
-			if (_W_CONTROL(s)->parent == W_COMPOSITE(parent))
+			if (_W_WIDGET(s)->parent == W_WIDGET(parent))
 				return s;
 			s = s->next;
 		}
@@ -144,7 +187,7 @@ _w_shell* _w_shells_iterator_find_next(_w_shell *parent, _w_shell *current) {
 _w_shell* _w_shells_iterator_find_first(_w_shell *parent) {
 	_w_shell *s = gtk_toolkit->shells;
 	while (s != 0) {
-		if (_W_CONTROL(s)->parent == W_COMPOSITE(parent))
+		if (_W_WIDGET(s)->parent == W_WIDGET(parent))
 			return s;
 		s = s->next;
 	}
@@ -184,7 +227,7 @@ size_t _w_shells_iterator_count(w_iterator *it) {
 			_w_shell *s = gtk_toolkit->shells;
 			size_t count = 0;
 			while (s != 0) {
-				if (_W_CONTROL(s)->parent == W_COMPOSITE(iter->parent))
+				if (_W_WIDGET(s)->parent == W_WIDGET(iter->parent))
 					count++;
 				s = s->next;
 			}
@@ -214,8 +257,10 @@ void _w_toolkit_get_shells_from_parent(w_shell *shell, w_iterator *iterator) {
 	iter->count = -1;
 }
 w_color _w_toolkit_get_system_color(w_toolkit *toolkit, wuint id) {
-	w_theme *theme = _W_TOOLKIT(toolkit)->theme;
-	return w_theme_get_color(theme, id);
+	w_theme *theme = (w_theme*) &_W_TOOLKIT(toolkit)->gtktheme;
+	w_color color;
+	w_theme_get_color(theme, id, &color);
+	return color;
 }
 wuchar cursorshapes[] = { GDK_LEFT_PTR, GDK_WATCH, GDK_CROSS, 0,
 		GDK_QUESTION_ARROW, GDK_FLEUR, GDK_SIZING, GDK_DOUBLE_ARROW, GDK_SIZING,
@@ -439,7 +484,6 @@ wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function, void *args,
 		funcs->data = args;
 		funcs->signalled = 0;
 	}
-	pthread_mutex_unlock(&_W_TOOLKIT(toolkit)->mutex);
 	if (funcs == 0) {
 		funcs = malloc(sizeof(threads_idle));
 		if (funcs == 0)
@@ -449,6 +493,7 @@ wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function, void *args,
 			funcs->data = args;
 		}
 	}
+	pthread_mutex_unlock(&_W_TOOLKIT(toolkit)->mutex);
 	GSourceFunc sourceFunc;
 	if (ms == -1) {
 		if (sync) {
@@ -492,6 +537,7 @@ void _w_toolkit_class_init(_w_toolkit *toolkit) {
 	clazz->disposable.dispose = _w_toolkit_dispose;
 	clazz->check_widget = _w_toolkit_check_widget;
 	clazz->check_widgetdata = _w_toolkit_check_widgetdata;
+	clazz->init_class = _w_toolkit_init_class;
 	clazz->get_class = _w_toolkit_get_class;
 	clazz->async_exec = _w_toolkit_async_exec;
 	clazz->beep = _w_toolkit_beep;

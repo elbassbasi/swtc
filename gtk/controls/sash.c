@@ -97,15 +97,15 @@ gboolean _gtk_sash_button_press_event(w_widget *widget, _w_event_platform *e,
 	if ((_W_WIDGET(widget)->style & W_SMOOTH) == 0) {
 		event.detail = W_DRAG;
 	}
-	w_composite *parent;
-	w_control_get_parent(W_CONTROL(widget), &parent);
+	w_widget *parent;
+	w_widget_get_parent(W_WIDGET(widget), &parent);
 	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 	int ClientWidth = 0;
 	if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = ClientWidth - size.width - event.bounds.x;
 	}
-	int doit = _w_widget_post_event(widget, (w_event*) &event);
+	int doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 	if (w_widget_is_ok(widget) <= 0)
 		return FALSE;
 	if (doit) {
@@ -164,15 +164,15 @@ gboolean _gtk_sash_button_release_event(w_widget *widget, _w_event_platform *e,
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
 	_w_sash_draw_band(widget, _last, &size);
-	w_composite *parent;
-	w_control_get_parent(W_CONTROL(widget), &parent);
+	w_widget *parent;
+	w_widget_get_parent(W_WIDGET(widget), &parent);
 	_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 	int ClientWidth = 0;
 	if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = ClientWidth - size.width - event.bounds.x;
 	}
-	int doit = _w_widget_post_event(widget, (w_event*) &event);
+	int doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 	if (w_widget_is_ok(widget) <= 0)
 		return FALSE;
 	if (doit) {
@@ -246,8 +246,8 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 			yChange = keyval == GDK_KEY_Up ? -stepSize : stepSize;
 		}
 		w_toolkit *toolkit = w_widget_get_toolkit(widget);
-		w_composite *parent;
-		w_control_get_parent(W_CONTROL(widget), &parent);
+		w_widget *parent;
+		w_widget_get_parent(W_WIDGET(widget), &parent);
 		_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 		w_point *_last = &_W_SASH(widget)->last;
 		w_point *_start = &_W_SASH(widget)->start;
@@ -310,7 +310,7 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 			ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 			event.bounds.x = ClientWidth - size.width - event.bounds.x;
 		}
-		int doit = _w_widget_post_event(widget, (w_event*) &event);
+		int doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 		if (ptrGrabResult == GDK_GRAB_SUCCESS)
 			gdk_pointer_ungrab(GDK_CURRENT_TIME);
 		if (!w_widget_is_ok(W_WIDGET(widget))) {
@@ -389,8 +389,8 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 	size.width = allocation.width;
 	size.height = allocation.height;
 	int parentBorder = 0;
-	w_composite *parent;
-	w_control_get_parent(W_CONTROL(widget), &parent);
+	w_widget *parent;
+	w_widget_get_parent(W_WIDGET(widget), &parent);
 	phandle = _W_WIDGET(parent)->handle;
 	gtk_widget_get_allocation(phandle, &allocation);
 	int parentWidth = allocation.width;
@@ -425,7 +425,7 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = (ClientWidth - size.width) - event.bounds.x;
 	}
-	wresult doit = _w_widget_post_event(widget, (w_event*) &event);
+	wresult doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 	if (w_widget_is_ok(widget) <= 0)
 		return 0;
 	if (doit) {
@@ -476,8 +476,12 @@ wresult _w_sash_compute_size(w_widget *widget, struct w_event_compute_size *e,
 		e->size->height = e->hHint + (border * 2);
 	return W_TRUE;
 }
-void _w_sash_class_init(struct _w_sash_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_sash_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_sash_class *clazz) {
+	if (classId == _W_CLASS_SASH) {
+		W_WIDGET_CLASS(clazz)->platformPrivate = &gtk_toolkit->class_sash_priv;
+	}
+	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SASH;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_sash_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_sash);
@@ -485,23 +489,29 @@ void _w_sash_class_init(struct _w_sash_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->handle_top = _w_widget_h;
-	_W_WIDGET_PRIV(priv)->create_handle = _w_sash_create_handle;
-	_W_WIDGET_PRIV(priv)->check_style = _w_sash_check_style;
-	_W_WIDGET_PRIV(priv)->hook_events = _w_sash_hook_events;
-	_W_WIDGET_PRIV(priv)->compute_size = _w_sash_compute_size;
-	priv->handle_fixed = _w_widget_h;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_sash_button_press_event;
-	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_sash_button_release_event;
-	signals[SIGNAL_DRAW] = _gtk_sash_draw;
-	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_sash_focus_in_event;
-	signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_sash_key_press_event;
-	signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_sash_motion_notify_event;
-	signals[SIGNAL_REALIZE] = _gtk_sash_realize;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SASH) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		_W_WIDGET_PRIV(priv)->handle_top = _w_widget_h;
+		_W_WIDGET_PRIV(priv)->create_handle = _w_sash_create_handle;
+		_W_WIDGET_PRIV(priv)->check_style = _w_sash_check_style;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_sash_hook_events;
+		_W_WIDGET_PRIV(priv)->compute_size = _w_sash_compute_size;
+		priv->handle_fixed = _w_widget_h;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_sash_button_press_event;
+		signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_sash_button_release_event;
+		signals[SIGNAL_DRAW] = _gtk_sash_draw;
+		signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_sash_focus_in_event;
+		signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_sash_key_press_event;
+		signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_sash_motion_notify_event;
+		signals[SIGNAL_REALIZE] = _gtk_sash_realize;
+	}
 }
 

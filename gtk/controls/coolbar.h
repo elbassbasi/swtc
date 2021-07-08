@@ -54,6 +54,7 @@ int _w_coolbar_get_width(w_coolbar *coolbar);
 wresult _w_coolbar_layout_items(w_coolbar *coolbar);
 void _w_coolbar_relayout(w_coolbar *coolbar);
 void _w_coolbar_wrap_items(w_coolbar *coolbar, int maxWidth);
-void _w_coolbar_class_init(struct _w_coolbar_class *clazz);
+void _w_coolbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_coolbar_class *clazz);
 
 #endif /* GTK_CONTROLS_COOLBAR_H_ */

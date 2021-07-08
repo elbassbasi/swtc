@@ -274,13 +274,13 @@ wresult _w_tabview_get_item(w_tabview *tabview, int index, w_tabitem *item) {
 	int count = gtk_notebook_get_n_pages(GTK_NOTEBOOK(handle));
 	if (index < count && index >= 0) {
 		if (item != 0) {
-			_W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
+			W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
 			_W_ITEM(item)->parent = W_WIDGET(tabview);
 			_W_ITEM(item)->index = index;
 		}
 		return W_TRUE;
 	} else {
-		_W_WIDGETDATA(item)->clazz = 0;
+		W_WIDGETDATA(item)->clazz = 0;
 		return W_FALSE;
 	}
 }
@@ -302,8 +302,7 @@ wresult _w_tabview_get_selection(w_tabview *tabview, w_tabitem *item) {
 }
 wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 	GtkWidget *handle = _W_WIDGET(tabview)->handle;
-	_w_tabview_priv *priv = (_w_tabview_priv*) _w_widget_get_priv(
-			W_WIDGET(tabview));
+	_w_tabview_priv *priv = (_w_tabview_priv*) _W_WIDGET_GET_PRIV(tabview);
 	GtkWidget *boxHandle, *labelHandle = 0, *pageHandle = 0, *closeHandle;
 	_w_image_widget *imageHandle = 0;
 	int i;
@@ -359,7 +358,7 @@ wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 	gtk_widget_show_all(pageHandle);
 	gtk_widget_hide(GTK_WIDGET(imageHandle));
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
+		W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(tabview);
 		_W_ITEM(item)->parent = W_WIDGET(tabview);
 		_W_ITEM(item)->index = i;
 	}
@@ -369,7 +368,7 @@ wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 	if (pageHandle)
 		gtk_widget_destroy(pageHandle);
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = 0;
+		W_WIDGETDATA(item)->clazz = 0;
 	}
 	return W_ERROR_NO_HANDLES;
 }
@@ -459,7 +458,7 @@ gboolean _gtk_tabview_switch_page(w_widget *widget, _w_event_platform *e,
 	_e.event.data = 0;
 	_e.item = W_TABITEM(&item);
 	_e.control = c;
-	_w_widget_post_event(widget, (w_event*) &_e);
+	_w_widget_send_event(widget, (w_event*) &_e,W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
@@ -486,15 +485,20 @@ gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
 	_e.event.data = 0;
 	_e.item = W_TABITEM(&item);
 	_e.control = 0;
-	_w_widget_post_event(widget, (w_event*) &_e);
+	_w_widget_send_event(widget, (w_event*) &_e,W_EVENT_SEND);
 	return FALSE;
 }
 _gtk_signal_info _gtk_tabview_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //
 		{ SIGNAL_SWITCH_PAGE, 4, "switch-page" }, //
 				{ SIGNAL_CLICKED, 2, "clicked" }, //
 		};
-void _w_tabview_class_init(struct _w_tabview_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_tabview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_tabview_class *clazz) {
+	if (classId == _W_CLASS_TABVIEW) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_tabview_priv;
+	}
+	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TABVIEW;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_tabview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_tabview);
@@ -513,6 +517,7 @@ void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	 * class item
 	 */
 	struct _w_tabitem_class *item = clazz->class_tabitem;
+	W_WIDGETDATA_CLASS(item)->toolkit = toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	item->item.widgetdata.toolkit = (w_toolkit*) gtk_toolkit;
 	item->get_bounds = _w_tabitem_get_bounds;
@@ -527,27 +532,33 @@ void _w_tabview_class_init(struct _w_tabview_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_widget_hp;
-	priv->handle_fixed = _w_widget_hp;
-	priv->handle_event = _w_widget_h;
-	priv->handle_client = _w_tabview_handle_client;
-	priv->widget.check_style = _w_tabview_check_style;
-	priv->widget.create_handle = _w_tabview_create_handle;
-	priv->widget.hook_events = _w_tabview_hook_events;
-	priv->set_bounds_0 = _w_tabview_set_bounds_0;
-	priv->widget.get_client_area = _w_tabview_get_client_area;
-	priv->widget.compute_size = _w_tabview_compute_size;
-	priv->widget.compute_trim = _w_tabview_compute_trim;
-	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_h0;
-	_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_tabview_handle_parenting;
-	_w_widget_init_signal(_W_TABVIEW_PRIV(priv)->signals,
-			_gtk_tabview_signal_lookup, 2);
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
-	signals[SIGNAL_FOCUS] = _gtk_tabview_focus;
-	signals[SIGNAL_SWITCH_PAGE] = _gtk_tabview_switch_page;
-	signals[SIGNAL_CLICKED] = _gtk_tabview_clicked;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_TABVIEW) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_widget_hp;
+		priv->handle_fixed = _w_widget_hp;
+		priv->handle_event = _w_widget_h;
+		priv->handle_client = _w_tabview_handle_client;
+		priv->widget.check_style = _w_tabview_check_style;
+		priv->widget.create_handle = _w_tabview_create_handle;
+		priv->widget.hook_events = _w_tabview_hook_events;
+		priv->set_bounds_0 = _w_tabview_set_bounds_0;
+		priv->widget.get_client_area = _w_tabview_get_client_area;
+		priv->widget.compute_size = _w_tabview_compute_size;
+		priv->widget.compute_trim = _w_tabview_compute_trim;
+		_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_h0;
+		_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_tabview_handle_parenting;
+		_w_widget_init_signal(_W_TABVIEW_PRIV(priv)->signals,
+				_gtk_tabview_signal_lookup, 2);
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+		signals[SIGNAL_FOCUS] = _gtk_tabview_focus;
+		signals[SIGNAL_SWITCH_PAGE] = _gtk_tabview_switch_page;
+		signals[SIGNAL_CLICKED] = _gtk_tabview_clicked;
+	}
 }

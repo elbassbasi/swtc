@@ -575,7 +575,7 @@ public:
 	 */
 	WString GetText() {
 		WString str;
-		w_textlayout_get_text(W_TEXTLAYOUT(this), w_alloc_string_ref, &str.ref);
+		w_textlayout_get_text(W_TEXTLAYOUT(this), w_alloc_string_ref, &str.ref,W_ENCODING_UTF8);
 		return str;
 	}
 	/**

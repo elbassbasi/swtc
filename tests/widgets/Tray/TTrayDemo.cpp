@@ -31,9 +31,9 @@ void TTrayDemo::CreateControl(WComposite *parent) {
 	tooltipText.CreateNormal(this);
 	tooltipText.SetLayoutData(WGridData(W_GRID_FILL_HORIZONTAL));
 	showtooltip.CreatePush(this, "show tooltip text");
-	showtooltip.SetAction(this, W_ACTION(OnShowTooltip));
+	showtooltip.SetAction(this, W_ACTION(TTrayDemo::OnShowTooltip));
 	show.CreatePush(this, "show");
-	show.SetAction(this, W_ACTION(OnShowTray));
+	show.SetAction(this, W_ACTION(TTrayDemo::OnShowTray));
 	show.SetLayoutData(WGridData(W_GRID_FILL_HORIZONTAL, layout.numColumns, 1));
 }
 bool TTrayDemo::OnShowTray(WEvent &e) {

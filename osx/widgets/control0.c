@@ -254,7 +254,7 @@ wresult _w_control_get_region(w_control *control, w_region *region) {
 }
 wresult _w_control_get_shell(w_control *control, w_shell **shell) {
 	w_composite *parent = _W_CONTROL(control)->parent;
-	w_control_get_shell(W_CONTROL(parent), shell);
+	w_widget_get_shell(W_WIDGET(parent), shell);
 	return W_TRUE;
 }
 wresult _w_control_get_tab(w_control *control) {

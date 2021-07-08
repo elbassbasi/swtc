@@ -71,11 +71,11 @@ wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 		return W_ERROR_INVALID_ARGUMENT;
 	if (w_widget_class_id(parent) < _W_CLASS_COMPOSITE)
 		return W_ERROR_INVALID_ARGUMENT;
-	_w_widget_priv *ppriv = _w_widget_get_priv(parent);
+	_w_widget_priv *ppriv = _W_WIDGET_GET_PRIV(parent);
 	ppriv->check_open(parent, _W_CONTROL_PRIV(ppriv));
-	_W_CONTROL(widget)->parent = W_COMPOSITE(parent);
+	_W_WIDGET(widget)->parent = parent;
 	_W_WIDGET(widget)->post_event = post_event;
-	_w_widget_priv *priv = _w_widget_get_priv(widget);
+	_w_widget_priv *priv = _W_WIDGET_GET_PRIV(widget);
 	_W_WIDGET(widget)->style = priv->check_style(widget, style);
 	_W_WIDGET(widget)->state |= STATE_TAB_LIST;
 	return priv->create_widget(widget, _W_CONTROL_PRIV(priv));
@@ -92,7 +92,7 @@ wresult _w_control_create_droptarget(w_control *control,
 }
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_DRAG_DETECT;
-	w_composite *parent = _W_CONTROL(widget)->parent;
+	w_composite *parent = _W_WIDGET(widget)->parent;
 
 	_W_WIDGET_PRIV(priv)->check_orientation(widget, W_WIDGET(parent), priv);
 	wresult ret = _w_widget_create_widget(widget, priv);
@@ -254,7 +254,7 @@ gboolean _w_control_force_focus_0(w_control *control, GtkWidget *focusHandle,
 	if (!w_widget_is_ok(W_WIDGET(control)))
 		return FALSE;
 	w_shell *shell;
-	w_control_get_shell(control, &shell);
+	w_widget_get_shell(W_WIDGET(control), &shell);
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
 	GtkWidget *handle = gtk_window_get_focus(GTK_WINDOW(shellHandle));
 	while (handle != 0) {
@@ -276,7 +276,7 @@ wresult _w_control_force_focus(w_control *control) {
 	if (gtk_toolkit->focusEvent == W_EVENT_FOCUSOUT)
 		return FALSE;
 	w_shell *shell;
-	w_control_get_shell(control, &shell);
+	w_widget_get_shell(W_WIDGET(control), &shell);
 	_w_shell_set_saved_focus(shell, control);
 	struct _w_control_class *clazz = W_CONTROL_GET_CLASS(control);
 	if (clazz->is_enabled(control) <= 0 || clazz->is_visible(control) <= 0)
@@ -331,7 +331,7 @@ wresult _w_control_get_bounds(w_control *control, w_point *location,
 	if (location != 0) {
 		location->x = allocation.x;
 		location->y = allocation.y;
-		w_control *parent = W_CONTROL(_W_CONTROL(control)->parent);
+		w_control *parent = W_CONTROL(_W_WIDGET(control)->parent);
 		if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
 			_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 			location->x = ppriv->get_client_width(parent, ppriv) - width
@@ -411,16 +411,12 @@ wresult _w_control_get_menu(w_control *control, w_menu **menu) {
 wresult _w_control_get_orientation(w_control *control) {
 	return W_FALSE;
 }
-wresult _w_control_get_parent(w_control *control, w_composite **parent) {
-	*parent = _W_CONTROL(control)->parent;
-	return W_TRUE;
-}
 wresult _w_control_get_region(w_control *control, w_region *region) {
 	return W_FALSE;
 }
-wresult _w_control_get_shell(w_control *control, w_shell **shell) {
-	w_composite *p = _W_CONTROL(control)->parent;
-	return w_control_get_shell(W_CONTROL(p), shell);
+wresult _w_control_get_shell(w_widget *control, w_shell **shell) {
+	w_composite *p = _W_WIDGET(control)->parent;
+	return w_widget_get_shell(W_WIDGET(p), shell);
 }
 wresult _w_control_get_tab(w_control *control) {
 	return W_FALSE;
@@ -569,7 +565,7 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 }
 wresult _w_control_is_enabled(w_control *control) {
 	if (W_CONTROL_GET_CLASS(control)->get_enabled(control) > 0) {
-		w_composite *parent = _W_CONTROL(control)->parent;
+		w_composite *parent = _W_WIDGET(control)->parent;
 		return W_CONTROL_GET_CLASS(parent)->is_enabled(W_CONTROL(parent));
 	}
 	return W_FALSE;
@@ -586,7 +582,7 @@ wresult _w_control_is_reparentable(w_control *control) {
 }
 wresult _w_control_is_visible(w_control *control) {
 	if (W_CONTROL_GET_CLASS(control)->get_visible(control) > 0) {
-		w_composite *parent = _W_CONTROL(control)->parent;
+		w_composite *parent = _W_WIDGET(control)->parent;
 		return W_CONTROL_GET_CLASS(parent)->is_visible(W_CONTROL(parent));
 	}
 	return W_FALSE;
@@ -761,7 +757,7 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 	GdkWindow *redrawWindow = priv->window_redraw(W_WIDGET(control), priv);
 	GdkWindow *enableWindow = priv->window_enable(W_WIDGET(control), priv);
 	int sendMove = location != 0;
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_composite *parent = _W_WIDGET(control)->parent;
 	GtkAllocation allocation;
 	gtk_widget_get_allocation(topHandle, &allocation);
 	if (location != 0) {
@@ -900,7 +896,8 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 	}
 	if (location != 0 && !sameOrigin) {
 		w_control *_control = priv->find_background_control(control, priv);
-		if (_control != 0 && _W_CONTROL(_control)->backgroundImage != 0) {
+		if (_control != 0
+				&& _W_CONTROL(_control)->backgroundImage.pixbuf != 0) {
 			if (W_CONTROL_GET_CLASS(control)->is_visible(control) > 0) {
 				w_rect tmp;
 				memset(&tmp, 0, sizeof(w_rect));
@@ -914,7 +911,7 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 			e.platform_event = 0;
 			e.data = 0;
 			e.widget = W_WIDGET(control);
-			_w_widget_post_event(W_WIDGET(control), &e);
+			_w_widget_send_event(W_WIDGET(control), &e, W_EVENT_SEND);
 		}
 		result |= 1;
 	}
@@ -924,7 +921,7 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 		e.platform_event = 0;
 		e.data = 0;
 		e.widget = W_WIDGET(control);
-		_w_widget_post_event(W_WIDGET(control), &e);
+		_w_widget_send_event(W_WIDGET(control), &e, W_EVENT_SEND);
 		result |= 2;
 	}
 	return result;
@@ -992,9 +989,9 @@ wresult _w_control_set_menu(w_control *control, w_menu *menu) {
 			return W_ERROR_MENU_NOT_POP_UP;
 		}
 		w_shell *shell1;
-		w_control_get_shell(_W_MENU(menu)->parent, &shell1);
+		w_widget_get_shell(W_WIDGET(menu), &shell1);
 		w_shell *shell2;
-		w_control_get_shell(control, &shell2);
+		w_widget_get_shell(W_WIDGET(control), &shell2);
 		if (shell1 != shell2) {
 			return W_ERROR_INVALID_PARENT;
 		}
@@ -1043,7 +1040,7 @@ gboolean _w_timer_listenner(gpointer user_data) {
 	e.event.time = 0;
 	e.event.widget = W_WIDGET(timer->control);
 	e.event.data = 0;
-	_w_widget_post_event(W_WIDGET(timer->control), (w_event*) &e);
+	_w_widget_send_event(W_WIDGET(timer->control), (w_event*) &e, W_EVENT_SEND);
 	return TRUE;
 }
 wresult _w_control_set_timer(w_control *control, wint64 ms, wushort id) {
@@ -1108,7 +1105,8 @@ gboolean _w_control_show_menu(w_control *control, int x, int y, int detail) {
 	event.location.x = x;
 	event.location.y = y;
 	event.detail = detail;
-	int ret = _w_widget_post_event(W_WIDGET(control), (w_event*) &event);
+	int ret = _w_widget_send_event(W_WIDGET(control), (w_event*) &event,
+			W_EVENT_SEND);
 //widget could be disposed at this point
 	if (!w_widget_is_ok(W_WIDGET(control)))
 		return FALSE;
@@ -1184,12 +1182,14 @@ GdkWindow* _w_control_window_paint(w_widget *control, _w_control_priv *priv) {
 GdkWindow* _w_control_window_redraw(w_widget *control, _w_control_priv *priv) {
 	return 0;
 }
-void _w_control_class_init(struct _w_control_class *clazz) {
-	_w_widget_class_init(W_WIDGET_CLASS(clazz));
+void _w_control_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_control_class *clazz) {
+	_w_widget_class_init(toolkit, classId, W_WIDGET_CLASS(clazz));
 	/*
 	 * functions
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_control_create;
+	W_WIDGET_CLASS(clazz)->get_shell = _w_control_get_shell;
 	clazz->create_dragsource = _w_control_create_dragsource;
 	clazz->create_droptarget = _w_control_create_droptarget;
 	clazz->drag_detect = _w_control_drag_detect;
@@ -1208,9 +1208,7 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	clazz->get_layout_data = _w_control_get_layout_data;
 	clazz->get_menu = _w_control_get_menu;
 	clazz->get_orientation = _w_control_get_orientation;
-	clazz->get_parent = _w_control_get_parent;
 	clazz->get_region = _w_control_get_region;
-	clazz->get_shell = _w_control_get_shell;
 	clazz->get_tab = _w_control_get_tab;
 	clazz->get_text_direction = _w_control_get_text_direction;
 	clazz->get_tooltip_text = _w_control_get_tooltip_text;
@@ -1256,77 +1254,81 @@ void _w_control_class_init(struct _w_control_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->handle_top = _w_control_handle_top;
-	_W_WIDGET_PRIV(priv)->create_widget = _w_control_create_widget;
-	_W_WIDGET_PRIV(priv)->hook_events = _w_control_hook_events;
-	priv->draw_widget = _w_control_draw_widget;
-	priv->handle_fixed = _w_widget_h;
-	priv->handle_client = _w_widget_h;
-	priv->handle_focus = _w_widget_h;
-	priv->handle_event = _w_widget_h;
-	priv->handle_enterexit = _w_control_handle_enterexit;
-	priv->handle_paint = _w_control_handle_paint;
-	priv->handle_im = _w_control_handle_im;
-	priv->handle_font = _w_widget_h;
-	priv->window_paint = _w_control_window_paint;
-	priv->window_event = _w_control_window_event;
-	priv->window_enable = _w_control_window_enable;
-	priv->window_redraw = _w_control_window_redraw;
-	priv->check_border = _w_control_check_border;
-	priv->check_buffered = _w_control_check_buffered;
-	priv->check_background = _w_control_check_background;
-	priv->check_foreground = _w_control_check_foreground;
-	priv->check_mirrored = _w_control_check_mirrored;
-	priv->check_subwindow = _w_control_check_subwindow;
-	priv->find_background_control = _w_control_find_background_control;
-	priv->get_client_width = _w_control_get_client_width;
-	priv->mark_layout = _w_control_mark_layout;
-	priv->move_children = _w_control_move_children;
-	priv->move_handle = _w_control_move_handle;
-	priv->show_widget = _w_control_show_widget;
-	priv->redraw_widget = _w_control_redraw_widget;
-	priv->resize_handle = _w_control_resize_handle;
-	priv->set_bounds_0 = _w_control_set_bounds_0;
-	priv->set_font_description = _w_control_set_font_description;
-	priv->set_parent_background = _w_control_set_parent_background;
-	priv->set_initial_bounds = _w_control_set_initial_bounds;
-	priv->set_relations = _w_control_set_relations;
-	priv->set_zorder = _w_control_set_zorder;
-	priv->update_layout = _w_control_update_layout;
-	priv->set_cursor_0 = _w_control_set_cursor_0;
-	priv->update_0 = _w_control_update_0;
-	priv->force_resize = _w_control_force_resize;
-	priv->has_focus = _w_control_has_focus;
-	priv->get_imcaret_pos = _w_control_get_imcaret_pos;
-	priv->translate_traversal = _w_control_translate_traversal;
-	priv->send_leave_notify = _w_control_send_leave_notify;
-	priv->is_focus_handle = _w_control_is_focus_handle;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_DESTROY] = _gtk_control_destroy;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_control_button_press_event;
-	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_control_button_release_event;
-	signals[SIGNAL_COMMIT] = _gtk_control_commit;
-	signals[SIGNAL_ENTER_NOTIFY_EVENT] = _gtk_control_enter_notify_event;
-	signals[SIGNAL_EVENT_AFTER] = _gtk_control_event_after;
-	signals[SIGNAL_DRAW] = _gtk_control_draw;
-	//signals[SIGNAL_EXPOSE_EVENT_INVERSE] = _gtk_control_expose_inverse;
-	signals[SIGNAL_FOCUS] = _gtk_control_focus;
-	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_control_focus_in_event;
-	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_control_focus_out_event;
-	signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_control_key_press_event;
-	signals[SIGNAL_KEY_RELEASE_EVENT] = _gtk_control_key_release_event;
-	signals[SIGNAL_LEAVE_NOTIFY_EVENT] = _gtk_control_leave_notify_event;
-	signals[SIGNAL_MNEMONIC_ACTIVATE] = _gtk_control_mnemonic_activate;
-	signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_control_motion_notify_event;
-	signals[SIGNAL_POPUP_MENU] = _gtk_control_popup_menu;
-	signals[SIGNAL_PREEDIT_CHANGED] = _gtk_control_preedit_changed;
-	signals[SIGNAL_REALIZE] = _gtk_control_realize;
-	signals[SIGNAL_SCROLL_EVENT] = _gtk_control_scroll_event;
-	signals[SIGNAL_SHOW_HELP] = _gtk_control_show_help;
-	signals[SIGNAL_STYLE_SET] = _gtk_control_style_set;
-	signals[SIGNAL_UNREALIZE] = _gtk_control_unrealize;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		_W_WIDGET_PRIV(priv)->handle_top = _w_control_handle_top;
+		_W_WIDGET_PRIV(priv)->create_widget = _w_control_create_widget;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_control_hook_events;
+		priv->draw_widget = _w_control_draw_widget;
+		priv->handle_fixed = _w_widget_h;
+		priv->handle_client = _w_widget_h;
+		priv->handle_focus = _w_widget_h;
+		priv->handle_event = _w_widget_h;
+		priv->handle_enterexit = _w_control_handle_enterexit;
+		priv->handle_paint = _w_control_handle_paint;
+		priv->handle_im = _w_control_handle_im;
+		priv->handle_font = _w_widget_h;
+		priv->window_paint = _w_control_window_paint;
+		priv->window_event = _w_control_window_event;
+		priv->window_enable = _w_control_window_enable;
+		priv->window_redraw = _w_control_window_redraw;
+		priv->check_border = _w_control_check_border;
+		priv->check_buffered = _w_control_check_buffered;
+		priv->check_background = _w_control_check_background;
+		priv->check_foreground = _w_control_check_foreground;
+		priv->check_mirrored = _w_control_check_mirrored;
+		priv->check_subwindow = _w_control_check_subwindow;
+		priv->find_background_control = _w_control_find_background_control;
+		priv->get_client_width = _w_control_get_client_width;
+		priv->mark_layout = _w_control_mark_layout;
+		priv->move_children = _w_control_move_children;
+		priv->move_handle = _w_control_move_handle;
+		priv->show_widget = _w_control_show_widget;
+		priv->redraw_widget = _w_control_redraw_widget;
+		priv->resize_handle = _w_control_resize_handle;
+		priv->set_bounds_0 = _w_control_set_bounds_0;
+		priv->set_font_description = _w_control_set_font_description;
+		priv->set_parent_background = _w_control_set_parent_background;
+		priv->set_initial_bounds = _w_control_set_initial_bounds;
+		priv->set_relations = _w_control_set_relations;
+		priv->set_zorder = _w_control_set_zorder;
+		priv->update_layout = _w_control_update_layout;
+		priv->set_cursor_0 = _w_control_set_cursor_0;
+		priv->update_0 = _w_control_update_0;
+		priv->force_resize = _w_control_force_resize;
+		priv->has_focus = _w_control_has_focus;
+		priv->get_imcaret_pos = _w_control_get_imcaret_pos;
+		priv->translate_traversal = _w_control_translate_traversal;
+		priv->send_leave_notify = _w_control_send_leave_notify;
+		priv->is_focus_handle = _w_control_is_focus_handle;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_DESTROY] = _gtk_control_destroy;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_control_button_press_event;
+		signals[SIGNAL_BUTTON_RELEASE_EVENT] =
+				_gtk_control_button_release_event;
+		signals[SIGNAL_COMMIT] = _gtk_control_commit;
+		signals[SIGNAL_ENTER_NOTIFY_EVENT] = _gtk_control_enter_notify_event;
+		signals[SIGNAL_EVENT_AFTER] = _gtk_control_event_after;
+		signals[SIGNAL_DRAW] = _gtk_control_draw;
+		//signals[SIGNAL_EXPOSE_EVENT_INVERSE] = _gtk_control_expose_inverse;
+		signals[SIGNAL_FOCUS] = _gtk_control_focus;
+		signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_control_focus_in_event;
+		signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_control_focus_out_event;
+		signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_control_key_press_event;
+		signals[SIGNAL_KEY_RELEASE_EVENT] = _gtk_control_key_release_event;
+		signals[SIGNAL_LEAVE_NOTIFY_EVENT] = _gtk_control_leave_notify_event;
+		signals[SIGNAL_MNEMONIC_ACTIVATE] = _gtk_control_mnemonic_activate;
+		signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_control_motion_notify_event;
+		signals[SIGNAL_POPUP_MENU] = _gtk_control_popup_menu;
+		signals[SIGNAL_PREEDIT_CHANGED] = _gtk_control_preedit_changed;
+		signals[SIGNAL_REALIZE] = _gtk_control_realize;
+		signals[SIGNAL_SCROLL_EVENT] = _gtk_control_scroll_event;
+		signals[SIGNAL_SHOW_HELP] = _gtk_control_show_help;
+		signals[SIGNAL_STYLE_SET] = _gtk_control_style_set;
+		signals[SIGNAL_UNREALIZE] = _gtk_control_unrealize;
+	}
 }

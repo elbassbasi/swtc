@@ -33,5 +33,6 @@ typedef struct _w_label_priv {
 #define _W_LABEL(x) ((_w_label*)x)
 #define _W_LABEL_PRIV(x) ((_w_label_priv*)x)
 
-void _w_label_class_init(struct _w_label_class *clazz);
+void _w_label_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_label_class *clazz);
 #endif /* GTK_CONTROLS_LABEL_H_ */

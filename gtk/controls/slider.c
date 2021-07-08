@@ -277,7 +277,7 @@ gboolean _gtk_slider_value_changed(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_SELECTION;
 	event.platform_event = _EVENT_PLATFORM(e);
 	event.widget = widget;
-	_w_widget_post_event(widget, &event);
+	_w_widget_send_event(widget, &event,W_EVENT_SEND);
 	return FALSE;
 }
 _gtk_signal_info _gtk_slider_signal_lookup[3] = { //
@@ -285,8 +285,13 @@ _gtk_signal_info _gtk_slider_signal_lookup[3] = { //
 				{ SIGNAL_CHANGE_VALUE, 3, "change-value" }, //
 				{ SIGNAL_VALUE_CHANGED, 2, "value-changed" }, //
 		};
-void _w_slider_class_init(struct _w_slider_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_slider_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_slider_class *clazz) {
+	if (classId == _W_CLASS_SLIDER) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_slider_priv;
+	}
+	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SLIDER;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_slider_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_slider);
@@ -307,19 +312,24 @@ void _w_slider_class_init(struct _w_slider_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_widget_hp;
-	priv->handle_fixed = _w_widget_hp;
-	priv->widget.compute_size = _w_slider_compute_size;
-	priv->widget.check_style = _w_slider_check_style;
-	priv->widget.create_handle = _w_slider_create_handle;
-	priv->widget.hook_events = _w_slider_hook_events;
-	_w_widget_init_signal(_W_SLIDER_PRIV(priv)->signals,
-			_gtk_slider_signal_lookup, 3);
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
-	signals[SIGNAL_VALUE_CHANGED] = _gtk_slider_value_changed;
-
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SLIDER) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_widget_hp;
+		priv->handle_fixed = _w_widget_hp;
+		priv->widget.compute_size = _w_slider_compute_size;
+		priv->widget.check_style = _w_slider_check_style;
+		priv->widget.create_handle = _w_slider_create_handle;
+		priv->widget.hook_events = _w_slider_hook_events;
+		_w_widget_init_signal(_W_SLIDER_PRIV(priv)->signals,
+				_gtk_slider_signal_lookup, 3);
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+		signals[SIGNAL_VALUE_CHANGED] = _gtk_slider_value_changed;
+	}
 }

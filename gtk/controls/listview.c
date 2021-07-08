@@ -343,7 +343,7 @@ wresult _w_listview_insert_item(w_listview *list, w_listitem *item, int index) {
 	gtk_list_store_set(GTK_LIST_STORE(modelHandle), handle, COLUMN_IMAGE, -1,
 			-1);
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(list);
+		W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(list);
 		_W_ITEM(item)->parent = W_WIDGET(list);
 		_W_ITEM(item)->index = -1;
 	}
@@ -415,8 +415,13 @@ void _w_listitem_class_init(struct _w_listitem_class *listitem) {
 	listitem->set_checked = _w_listitem_set_checked;
 	listitem->set_image = _w_listitem_set_image;
 }
-void _w_listview_class_init(struct _w_listview_class *clazz) {
-	_w_listviewbase_class_init(W_LISTVIEWBASE_CLASS(clazz));
+void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listview_class *clazz) {
+	if (classId == _W_CLASS_LISTVIEW) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_listview_priv;
+	}
+	_w_listviewbase_class_init(toolkit, classId,W_LISTVIEWBASE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_LISTVIEW;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_listview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_listview);
@@ -462,14 +467,21 @@ void _w_listview_class_init(struct _w_listview_class *clazz) {
 	 */
 	struct _w_listitem_class *listitem = W_LISTITEM_CLASS(
 			clazz->base.class_item);
+	W_WIDGETDATA_CLASS(listitem)->toolkit = toolkit;
 	_w_listitem_class_init(listitem);
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_TOGGLED] = _gtk_treeview_toggled;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_LISTVIEW) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_TOGGLED] = _gtk_treeview_toggled;
+	}
 }

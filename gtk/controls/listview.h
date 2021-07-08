@@ -58,8 +58,7 @@ typedef struct _w_listview {
  * private
  */
 enum {
-	_W_LISTVIEW_SIGNAL_TOGGLED,
-	_W_LISTVIEW_SIGNAL_CHANGED, //
+	_W_LISTVIEW_SIGNAL_TOGGLED, _W_LISTVIEW_SIGNAL_CHANGED, //
 	_W_LISTVIEW_SIGNAL_ROW_HAS_CHILD_TOGGLED, //
 	_W_LISTVIEW_SIGNAL_ROW_INSERTED, //
 	_W_LISTVIEW_SIGNAL_ROW_DELETED, //
@@ -84,14 +83,15 @@ typedef struct _w_listviewbase_priv {
 	_gtk_signal signals[_W_LISTVIEW_LAST];
 } _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
-#define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_w_widget_get_priv(W_WIDGET(x)))
-void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz);
+#define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_W_WIDGET_GET_PRIV(x))
+void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,struct _w_listviewbase_class *clazz);
 typedef struct _w_listview_priv {
 	_w_listviewbase_priv tablebase;
 } _w_listview_priv;
 #define _W_LISTVIEW_PRIV(x) ((_w_listview_priv*)x)
 void _w_listitem_class_init(struct _w_listitem_class *listitem);
-void _w_listview_class_init(struct _w_listview_class *clazz);
+void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listview_class *clazz);
 /*
  * cell renderer
  */

@@ -46,14 +46,14 @@ void _gtk_theme_init_widget(_gtk_theme *theme) {
 		gtk_widget_realize(handles[i]);
 	}
 }
-typedef void (*_gtk_theme_part_id)(w_theme *theme, w_themedata *data, int *ids,
-		int part);
-typedef void (*_gtk_theme_draw_background)(w_theme *theme, w_themedata *data,
-		w_graphics *gc, w_rect *bounds, wuint clazz);
-typedef struct _gtk_theme_clazz_info {
-	_gtk_theme_part_id partId;
-	_gtk_theme_draw_background draw_background;
-} _gtk_theme_clazz_info;
+typedef struct _gtk_theme_info {
+	int flags;
+	int state;
+	GtkWidget *handle;
+
+} _gtk_theme_info;
+typedef void (*_gtk_theme_part_id)(w_theme *theme, int mask, w_themedata *data,
+		_gtk_theme_info *info);
 void _gtk_theme_transfer_clipping(w_graphics *gc, GtkStyleContext *style) {
 }
 void _gtk_render_box(GtkStyleContext *style, cairo_t *window, int x, int y,
@@ -255,7 +255,7 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		w_graphics *gc, w_rect *bounds, wuint clazz) {
 	_gtk_theme *gtktheme = (_gtk_theme*) theme;
 	int ids[3];
-	_gtk_themedata_button_part_id(theme, data, ids, W_THEME_WIDGET_WHOLE);
+	_gtk_themedata_button_part_id(theme, data, ids, W_THEME_PART_WHOLE);
 	GtkStateFlags state = ids[0];
 	cairo_t *drawable = _W_GRAPHICS(gc)->cairo;
 	if ((data->style & (W_RADIO | W_CHECK)) != 0) {
@@ -416,10 +416,12 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 		}
 
 		int shadow_type = GTK_SHADOW_OUT;
-		if ((data->state & (W_THEME_STATE_SELECTED | W_THEME_STATE_PRESSED)) != 0)
+		if ((data->state & (W_THEME_STATE_SELECTED | W_THEME_STATE_PRESSED))
+				!= 0)
 			shadow_type = GTK_SHADOW_IN;
 		if (relief != GTK_RELIEF_NONE
-				|| ((data->state & (W_THEME_STATE_PRESSED | W_THEME_STATE_HOT)) != 0)) {
+				|| ((data->state & (W_THEME_STATE_PRESSED | W_THEME_STATE_HOT))
+						!= 0)) {
 			_gtk_render_box(gtkStyle, drawable, x, y, width, height);
 		}
 
@@ -451,7 +453,8 @@ void _gtk_theme_button_draw_background(w_theme *theme, w_themedata *data,
 				height += 2 * (focus_line_width + focus_padding);
 			}
 
-			if ((data->state & W_THEME_STATE_PRESSED) != 0 && displace_focus != 0) {
+			if ((data->state & W_THEME_STATE_PRESSED) != 0
+					&& displace_focus != 0) {
 				x += child_displacement_x;
 				y += child_displacement_y;
 			}
@@ -498,8 +501,10 @@ void _gtk_theme_progressbar_draw_background(w_theme *theme, w_themedata *data,
 		x += thickness.x;
 		width -= thickness.x * 2;
 		height -= thickness.y * 2;
-		height *= data->range.selection
-				/ (float) WMAX(1, (data->range.maximum - data->range.minimum));
+		height *=
+				data->range->selection
+						/ (float) WMAX(1,
+								(data->range->maximum - data->range->minimum));
 		y += bounds->height - thickness.y - height;
 	} else {
 		/*gtk_orientable_set_orientation(GTK_ORIENTABLE(progressHandle),
@@ -509,8 +514,8 @@ void _gtk_theme_progressbar_draw_background(w_theme *theme, w_themedata *data,
 		y += thickness.y;
 		width -= thickness.x * 2;
 		height -= thickness.y * 2;
-		width *= data->range.selection
-				/ (float) WMAX(1, data->range.maximum - data->range.minimum);
+		width *= data->range->selection
+				/ (float) WMAX(1, data->range->maximum - data->range->minimum);
 	}
 	gtk_style_context_save(context);
 	gtk_style_context_add_class(context, GTK_STYLE_CLASS_PROGRESSBAR);
@@ -527,17 +532,17 @@ void _gtk_theme_tabfolder_draw_background(w_theme *theme, w_themedata *data,
 	_gtk_theme_transfer_clipping(gc, context);
 	int x = bounds->x, y = bounds->y, width = bounds->width, height =
 			bounds->height;
-	height -= data->tab.tabsHeight;
-	int gap_x = data->tab.selectedX, gap_width = data->tab.selectedWidth;
-	GtkPositionType gap_side = GTK_POS_TOP;
-	if ((data->style & W_BOTTOM) != 0) {
-		gap_side = GTK_POS_BOTTOM;
-	} else {
-		y += data->tab.tabsHeight;
-	}
-	gtk_render_frame_gap(context, _W_GRAPHICS(gc)->cairo, x, y, width, height,
-			gap_side, gap_x, gap_width);
-	/*	if (tabsArea != null) {
+	/*height -= data->tab.tabsHeight;
+	 int gap_x = data->tab.selectedX, gap_width = data->tab.selectedWidth;
+	 GtkPositionType gap_side = GTK_POS_TOP;
+	 if ((data->style & W_BOTTOM) != 0) {
+	 gap_side = GTK_POS_BOTTOM;
+	 } else {
+	 y += data->tab.tabsHeight;
+	 }
+	 gtk_render_frame_gap(context, _W_GRAPHICS(gc)->cairo, x, y, width, height,
+	 gap_side, gap_x, gap_width);
+	 if (tabsArea != null) {
 	 tabsArea.x = bounds.x;
 	 tabsArea.y = bounds.y;
 	 tabsArea.width = bounds.width;
@@ -611,50 +616,6 @@ void _gtk_theme_tabitem_draw_background(w_theme *theme, w_themedata *data,
 		 clientArea.height = bounds.height - 2 * borderY;*/
 	}
 }
-_gtk_theme_clazz_info __gtk_theme_clazz_info[] = { { }, //_W_THEME_CLASS_UNKNOWN =0,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_MENU,
-		{ _gtk_themedata_part_id, _gtk_theme_button_draw_background }, //_W_THEME_CLASS_BUTTON,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_LABEL,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_LINK,
-		{ _gtk_themedata_part_id, _gtk_theme_progressbar_draw_background }, //_W_THEME_CLASS_PROGRESSBAR,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_SASH,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_SCALE,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_SLIDER,
-		{ _gtk_themedata_part_id, }, // _W_THEME_CLASS_SCROLLBAR,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_TEXT,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_LIST,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_COMPOSITE,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_BROWSER,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_TREE,
-		{ _gtk_themedata_part_id, _gtk_theme_tabfolder_draw_background }, //_W_THEME_CLASS_TABFOLDER,
-		{ _gtk_themedata_part_id, _gtk_theme_tabitem_draw_background }, //_W_THEME_CLASS_TABITEM,
-		{ _gtk_themedata_part_id, _gtk_theme_combo_draw_background }, //_W_THEME_CLASS_COMBO,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_COOLBAR,
-		{ _gtk_themedata_part_id, }, //_W_THEME_CLASS_DATETIME,
-		{ _gtk_themedata_part_id, }, // _W_THEME_CLASS_EXPANDBAR,
-		{ _gtk_themedata_part_id, }, // _W_THEME_CLASS_GROUP,
-		{ _gtk_themedata_part_id, }, // _W_THEME_CLASS_SPINNER,
-		{ _gtk_themedata_part_id, }, // _W_THEME_CLASS_TABLE,
-		{ _gtk_themedata_part_id, }, // _W_THEME_CLASS_TOOLBAR,
-		{ _gtk_themedata_part_id, }, // _W_THEME_CLASS_TOOLITEM,
-		};
-void _gtk_theme_dispose(w_theme *theme) {
-}
-const char* _gtk_theme_get_name(w_theme *theme) {
-	return "gtk";
-}
-void _gtk_theme_compute_trim(w_theme *theme, w_themedata *data, w_graphics *gc,
-		w_rect *result) {
-}
-void _gtk_theme_draw_background_0(w_theme *theme, w_themedata *data,
-		w_graphics *gc, w_rect *bounds) {
-	wuint id = w_theme_internal_class_id(data->clazz);
-	_gtk_theme_draw_background draw_background =
-			__gtk_theme_clazz_info[id].draw_background;
-	if (draw_background != 0) {
-		draw_background(theme, data, gc, bounds, id);
-	}
-}
 void _gtk_theme_draw_focus(w_theme *theme, w_themedata *data, w_graphics *gc,
 		w_rect *bounds) {
 }
@@ -665,9 +626,9 @@ void _gtk_theme_draw_image(w_theme *theme, w_themedata *data, w_graphics *gc,
 	w_rect rect;
 	int ids[3];
 	w_image_get_size(image, &rect.sz);
-	wuint id = w_theme_internal_class_id(data->clazz);
-	_gtk_theme_part_id part_id = __gtk_theme_clazz_info[id].partId;
-	part_id(theme, data, ids, W_THEME_WIDGET_WHOLE);
+	wuint id = data->clazz;
+	_gtk_theme_part_id part_id = 0; // __gtk_theme_clazz_info[id].partId;
+	//part_id(theme, data, ids, W_THEME_PART_WHOLE);
 	GtkStateType state_type = ids[0];
 	if (state_type == GTK_STATE_NORMAL) {
 		rect.x = 0;
@@ -747,9 +708,6 @@ void _gtk_theme_draw_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 	g_object_unref(layout);
 	_gtk_text_free(text, t, newlength);
 }
-void _gtk_theme_get_bounds(w_theme *theme, w_themedata *data, int part,
-		w_rect *bounds, w_rect *result) {
-}
 int _gtk_theme_get_selection(w_theme *theme, w_themedata *data, w_point *offset,
 		w_rect *bounds) {
 	return 0;
@@ -787,25 +745,196 @@ void _gtk_theme_measure_text(w_theme *theme, w_themedata *data, w_graphics *gc,
 	result->height = height;
 	_gtk_text_free(text, t, newlength);
 }
-w_color _gtk_theme_get_color(w_theme *theme, wuint colorid) {
-	return 0;
+/* button */
+void _gtk_themedata_button_compute_trim(w_theme *theme, int mask,
+		w_themedata *data, w_rect *result) {
 }
-w_font* _gtk_theme_get_font(w_theme *theme) {
-	return 0;
+void _gtk_themedata_button_draw(w_theme *theme, int mask, w_themedata *data) {
 }
-w_cursor* _gtk_theme_get_cursor(w_theme *theme, wuint id) {
-	return 0;
+void _gtk_themedata_button_measure(w_theme *theme, int mask, w_themedata *data,
+		w_size *result) {
 }
-w_image* _gtk_theme_get_image(w_theme *theme, wuint id) {
-	return 0;
+void _gtk_themedata_button_get_bounds(w_theme *theme, int mask, int part,
+		w_themedata *data, w_rect *result) {
 }
-_w_theme_class _gtk_theme_clazz = { _gtk_theme_dispose, _gtk_theme_get_name,
-		_gtk_theme_compute_trim, _gtk_theme_draw_background_0,
-		_gtk_theme_draw_focus, _gtk_theme_draw_image, _gtk_theme_draw_text,
-		_gtk_theme_get_bounds, _gtk_theme_get_selection,
-		_gtk_theme_hit_background, _gtk_theme_measure_text,
-		_gtk_theme_get_color, _gtk_theme_get_font, _gtk_theme_get_cursor,
-		_gtk_theme_get_image };
+int _gtk_themedata_button_hit(w_theme *theme, int mask, w_themedata *data,
+		w_point *position) {
+}
+/* expandbar */
+void _gtk_themedata_expandbar_compute_trim(w_theme *theme, int mask,
+		w_themedata *data, w_rect *result) {
+}
+void _gtk_themedata_expandbar_draw(w_theme *theme, int mask,
+		w_themedata *data) {
+}
+void _gtk_themedata_expandbar_measure(w_theme *theme, int mask,
+		w_themedata *data, w_size *result) {
+}
+void _gtk_themedata_expandbar_get_bounds(w_theme *theme, int mask, int part,
+		w_themedata *data, w_rect *result) {
+}
+int _gtk_themedata_expandbar_hit(w_theme *theme, int mask, w_themedata *data,
+		w_point *position) {
+}
+/* expanditem */
+void _gtk_themedata_expanditem_compute_trim(w_theme *theme, int mask,
+		w_themedata *data, w_rect *result) {
+}
+void _gtk_themedata_expanditem_draw(w_theme *theme, int mask,
+		w_themedata *data) {
+}
+void _gtk_themedata_expanditem_measure(w_theme *theme, int mask,
+		w_themedata *data, w_size *result) {
+}
+void _gtk_themedata_expanditem_get_bounds(w_theme *theme, int mask, int part,
+		w_themedata *data, w_rect *result) {
+}
+int _gtk_themedata_expanditem_hit(w_theme *theme, int mask, w_themedata *data,
+		w_point *position) {
+}
+_w_themedata_class _gtk_themedata_fun[W_THEME_CLASS_LAST] = {
+		[W_THEME_CLASS_UNKNOWN] = { }, //
+		[W_THEME_CLASS_MENU] = { }, //
+		[W_THEME_CLASS_MENUITEM] = { }, //
+		[W_THEME_CLASS_BUTTON] = { _gtk_themedata_button_compute_trim,
+				_gtk_themedata_button_draw, _gtk_themedata_button_measure,
+				_gtk_themedata_button_get_bounds, _gtk_themedata_button_hit }, //
+		[W_THEME_CLASS_LABEL] = { }, //
+		[W_THEME_CLASS_PROGRESSBAR] = { }, //
+		[W_THEME_CLASS_SASH] = { }, //
+		[W_THEME_CLASS_SLIDER] = { }, //
+		[W_THEME_CLASS_SCROLLBAR] = { }, //
+		[W_THEME_CLASS_TEXTEDIT] = { }, //
+		[W_THEME_CLASS_COMPOSITE] = { }, //
+		[W_THEME_CLASS_WEBVIEW] = { }, //
+		[W_THEME_CLASS_TREEVIEW] = { }, //
+		[W_THEME_CLASS_TREEITEM] = { }, //
+		[W_THEME_CLASS_COLUMNITEM] = { }, //
+		[W_THEME_CLASS_TABVIEW] = { }, //
+		[W_THEME_CLASS_TABITEM] = { }, //
+		[W_THEME_CLASS_COMBOBOX] = { }, //
+		[W_THEME_CLASS_COOLBAR] = { }, //
+		[W_THEME_CLASS_COOLITEM] = { }, //
+		[W_THEME_CLASS_DATETIME] = { }, //
+		[W_THEME_CLASS_EXPANDBAR] = { _gtk_themedata_expandbar_compute_trim,
+				_gtk_themedata_expandbar_draw, _gtk_themedata_expandbar_measure,
+				_gtk_themedata_expandbar_get_bounds,
+				_gtk_themedata_expandbar_hit }, //
+		[W_THEME_CLASS_EXPANDITEM] = { _gtk_themedata_expanditem_compute_trim,
+				_gtk_themedata_expanditem_draw,
+				_gtk_themedata_expanditem_measure,
+				_gtk_themedata_expanditem_get_bounds,
+				_gtk_themedata_expanditem_hit }, //
+		[W_THEME_CLASS_GROUPBOX] = { }, //
+		[W_THEME_CLASS_SPINNER] = { }, //
+		[W_THEME_CLASS_LISTVIEW] = { }, //
+		[W_THEME_CLASS_LISTITEM] = { }, //
+		[W_THEME_CLASS_TOOLBAR] = { }, //
+		[W_THEME_CLASS_TOOLITEM] = { }, //
+		};
+_gtk_theme_part_id _gtk_themedata_part_fun[W_THEME_CLASS_LAST] = {
+		[W_THEME_CLASS_UNKNOWN] = 0, //
+		[W_THEME_CLASS_MENU] = 0, //
+		[W_THEME_CLASS_MENUITEM] = 0, //
+		[W_THEME_CLASS_BUTTON] = 0, //
+		[W_THEME_CLASS_LABEL] = 0, //
+		[W_THEME_CLASS_PROGRESSBAR] = 0, //
+		[W_THEME_CLASS_SASH] = 0, //
+		[W_THEME_CLASS_SLIDER] = 0, //
+		[W_THEME_CLASS_SCROLLBAR] = 0, //
+		[W_THEME_CLASS_TEXTEDIT] = 0, //
+		[W_THEME_CLASS_COMPOSITE] = 0, //
+		[W_THEME_CLASS_WEBVIEW] = 0, //
+		[W_THEME_CLASS_TREEVIEW] = 0, //
+		[W_THEME_CLASS_TREEITEM] = 0, //
+		[W_THEME_CLASS_COLUMNITEM] = 0, //
+		[W_THEME_CLASS_TABVIEW] = 0, //
+		[W_THEME_CLASS_TABITEM] = 0, //
+		[W_THEME_CLASS_COMBOBOX] = 0, //
+		[W_THEME_CLASS_COOLBAR] = 0, //
+		[W_THEME_CLASS_COOLITEM] = 0, //
+		[W_THEME_CLASS_DATETIME] = 0, //
+		[W_THEME_CLASS_EXPANDBAR] = 0, //
+		[W_THEME_CLASS_EXPANDITEM] = 0, //
+		[W_THEME_CLASS_GROUPBOX] = 0, //
+		[W_THEME_CLASS_SPINNER] = 0, //
+		[W_THEME_CLASS_LISTVIEW] = 0, //
+		[W_THEME_CLASS_LISTITEM] = 0, //
+		[W_THEME_CLASS_TOOLBAR] = 0, //
+		[W_THEME_CLASS_TOOLITEM] = 0, //
+		};
+void _gtk_theme_dispose(w_theme *theme) {
+}
+const char* _gtk_theme_get_name(w_theme *theme) {
+	return "gtk";
+}
+void _gtk_theme_compute_trim(w_theme *theme, int mask, w_themedata *data,
+		w_rect *result) {
+}
+void _gtk_theme_draw(w_theme *theme, int mask, w_themedata *data) {
+	if (data->clazz < W_THEME_CLASS_LAST
+			&& _gtk_themedata_fun[data->clazz].draw != 0) {
+		_gtk_themedata_fun[data->clazz].draw(theme, mask, data);
+	}
+}
+void _gtk_theme_measure(w_theme *theme, int mask, w_themedata *data,
+		w_size *result) {
+	if (data->clazz < W_THEME_CLASS_LAST
+			&& _gtk_themedata_fun[data->clazz].measure != 0) {
+		_gtk_themedata_fun[data->clazz].measure(theme, mask, data, result);
+	}
+}
+void _gtk_theme_get_bounds(w_theme *theme, int mask, int part,
+		w_themedata *data, w_rect *result) {
+	if (data->clazz < W_THEME_CLASS_LAST
+			&& _gtk_themedata_fun[data->clazz].get_bounds) {
+		_gtk_themedata_fun[data->clazz].get_bounds(theme, mask, part, data,
+				result);
+	}
+}
+int _gtk_theme_hit(w_theme *theme, int mask, w_themedata *data,
+		w_point *position) {
+	if (data->clazz < W_THEME_CLASS_LAST
+			&& _gtk_themedata_fun[data->clazz].hit != 0) {
+		return _gtk_themedata_fun[data->clazz].hit(theme, mask, data, position);
+	}
+	return W_THEME_PART_NOWHERE;
+}
+wresult _gtk_theme_get_color(w_theme *theme, wuint colorid, w_color *color) {
+	*color = 0x00000000;
+	return W_FALSE;
+}
+wresult _gtk_theme_get_font(w_theme *theme, w_font **font) {
+	_gtk_theme *t = (_gtk_theme*) theme;
+	return W_TRUE;
+}
+wresult _gtk_theme_get_cursor(w_theme *theme, wuint id, w_cursor **cursor) {
+	_gtk_theme *t = (_gtk_theme*) theme;
+	if (id <= W_CURSOR_HAND) {
+		//*cursor = (w_cursor*) &t->cursors[id];
+		return W_TRUE;
+	} else {
+		*cursor = 0;
+		return W_FALSE;
+	}
+}
+wresult _gtk_theme_get_image(w_theme *theme, wuint id, w_image **image) {
+	_gtk_theme *t = (_gtk_theme*) theme;
+	*image = 0;
+	return W_FALSE;
+}
+_w_theme_class _gtk_theme_clazz = { //
+		_gtk_theme_dispose, //
+				_gtk_theme_get_name, //
+				{ _gtk_theme_compute_trim, //
+						_gtk_theme_draw, //
+						_gtk_theme_measure, //
+						_gtk_theme_get_bounds, //
+						_gtk_theme_hit }, //
+				_gtk_theme_get_color, //
+				_gtk_theme_get_font, //
+				_gtk_theme_get_cursor, //
+				_gtk_theme_get_image };
 void _w_theme_init() {
 	_gtk_theme_init_widget(&gtk_toolkit->gtktheme);
 	gtk_toolkit->gtktheme.theme.clazz = &_gtk_theme_clazz;

@@ -231,7 +231,7 @@ public:
 	wuint GetPriority() {
 		return w_thread_get_priority((w_thread*) this);
 	}
-	WThreadID GetID(){
+	WThreadID GetID() {
 		return this->id;
 	}
 	/**
@@ -378,7 +378,7 @@ public:
 		w_thread_cleanup_pop(execute);
 	}
 	static void Pop() {
-		Pop(1);
+		Pop(0);
 	}
 private:
 	void (*routine)(void*);

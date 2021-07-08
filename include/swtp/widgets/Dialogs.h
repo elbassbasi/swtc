@@ -7,7 +7,7 @@
 
 #ifndef SWTP_WIDGETS_DIALOGS_H_
 #define SWTP_WIDGETS_DIALOGS_H_
-#include <swtp/widgets/Frame.h>
+#include "Frame.h"
 /**
  * Show message box
  * <p>

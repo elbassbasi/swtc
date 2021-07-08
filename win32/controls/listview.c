@@ -176,7 +176,7 @@ wresult _w_listitem_get_attr_0(w_listitem *item, int index, int mask,
 		event.item = item;
 		event.column = W_COLUMNITEM(&column);
 		event.textattr = attr;
-		result = _w_widget_post_event(parent, W_EVENT(&event), W_EVENT_SEND);
+		result = _w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 	} else {
 		lItem.tvItem.mask = TVIF_PARAM | TVIF_STATE;
 		if (SendMessageW(handle, msg_get, 0, (LPARAM) &lItem)) {
@@ -331,7 +331,7 @@ wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
 		event.item = item;
 		event.column = W_COLUMNITEM(&column);
 		event.textattr = attr;
-		result = _w_widget_post_event(parent, W_EVENT(&event), W_EVENT_SEND);
+		result = _w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 	} else {
 		lItem.tvItem.mask = TVIF_PARAM | TVIF_STATE;
 		if (SendMessageW(handle, msg_get, 0, (LPARAM) &lItem)) {

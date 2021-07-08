@@ -112,8 +112,8 @@ wresult _w_listviewbase_show_selection(w_listviewbase *list) {
 wresult _w_listviewbase_sort(w_listviewbase *list) {
 	return W_FALSE;
 }
-void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,struct _w_listviewbase_class *clazz) {
+	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
 	clazz->clear_all = _w_listviewbase_clear_all;
 	clazz->deselect_all = _w_listviewbase_deselect_all;
 	clazz->get_column = _w_listviewbase_get_column;

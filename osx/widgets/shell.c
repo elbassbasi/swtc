@@ -615,7 +615,7 @@ wresult _w_shell_set_bounds(w_control *shell, w_point *location, w_size *size) {
 		y = screenHeight - (frame.y + frame.height);
 		NSRect parentRect;
 		w_shell *__shell;
-		w_control_get_shell((w_control*) _W_CONTROL(shell)->parent, &__shell);
+		w_widget_get_shell((w_widget*) _W_CONTROL(shell)->parent, &__shell);
 		NSWindow_frame(_W_SHELL(__shell)->window, &parentRect);
 		frame.width = width;
 		frame.height = height;

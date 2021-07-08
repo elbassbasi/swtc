@@ -97,9 +97,9 @@ wresult _w_coolitem_set_control(w_coolitem *coolitem, w_control *control) {
 	if (control != 0) {
 		if (w_widget_is_ok(W_WIDGET(control)))
 			return W_ERROR_INVALID_ARGUMENT;
-		w_composite *parent;
-		w_control_get_parent(control, &parent);
-		if (parent != (w_composite*) coolbar)
+		w_widget *parent;
+		w_widget_get_parent(W_WIDGET(control), &parent);
+		if (parent != coolbar)
 			return W_ERROR_INVALID_PARENT;
 	}
 	_item->control = control;
@@ -409,7 +409,7 @@ void _w_coolbar_fix_rectangle(w_coolbar *coolbar, w_rect *result,
 wresult _w_coolbar_get_item(w_coolbar *coolbar, int index, w_coolitem *item) {
 	_w_coolitem_handles *_items = _W_COOLBAR(coolbar)->items;
 	if (index >= 0 && _items != 0 && index < _items->count) {
-		_W_WIDGETDATA(item)->clazz = _W_COOLBAR_GET_ITEM_CLASS(coolbar);
+		W_WIDGETDATA(item)->clazz = _W_COOLBAR_GET_ITEM_CLASS(coolbar);
 		_W_ITEM(item)->parent = W_WIDGET(coolbar);
 		_W_ITEM(item)->index = index;
 		_W_COOLITEM(item)->handle = &_items->items[index];
@@ -478,7 +478,7 @@ wresult _w_coolbar_insert_item(w_coolbar *coolbar, w_coolitem *item, int style,
 	_item->requestedWidth = MINIMUM_WIDTH;
 	_w_coolbar_layout_items(coolbar);
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_COOLBAR_GET_ITEM_CLASS(coolbar);
+		W_WIDGETDATA(item)->clazz = _W_COOLBAR_GET_ITEM_CLASS(coolbar);
 		_W_ITEM(item)->parent = W_WIDGET(coolbar);
 		_W_ITEM(item)->index = index;
 		_W_COOLITEM(item)->handle = _item;
@@ -662,8 +662,13 @@ void _w_coolbar_wrap_items(w_coolbar *coolbar, int maxWidth) {
 	}
 }
 
-void _w_coolbar_class_init(struct _w_coolbar_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_coolbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_coolbar_class *clazz) {
+	if (classId == _W_CLASS_COOLBAR) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_coolbar_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_COOLBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_coolbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_coolbar);
@@ -681,6 +686,7 @@ void _w_coolbar_class_init(struct _w_coolbar_class *clazz) {
 	 * item
 	 */
 	struct _w_coolitem_class *item = clazz->class_coolitem;
+	W_WIDGETDATA_CLASS(item)->toolkit = toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	item->compute_size = _w_coolitem_compute_size;
 	item->get_bounds = _w_coolitem_get_bounds;
@@ -700,10 +706,15 @@ void _w_coolbar_class_init(struct _w_coolbar_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.compute_size = _w_coolbar_compute_size;
-	priv->widget.check_style = _w_coolbar_check_style;
-	priv->widget.create_handle = _w_coolbar_create_handle;
-	priv->draw_widget = _w_coolbar_draw_widget;
-
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_COOLBAR) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.compute_size = _w_coolbar_compute_size;
+		priv->widget.check_style = _w_coolbar_check_style;
+		priv->widget.create_handle = _w_coolbar_create_handle;
+		priv->draw_widget = _w_coolbar_draw_widget;
+	}
 }

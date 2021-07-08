@@ -24,7 +24,7 @@ void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	event.platform_event = (w_event_platform*) e;
 	event.widget = W_WIDGET(shell);
 	event.data = 0;
-	_w_widget_post_event(W_WIDGET(shell), &event);
+	_w_widget_send_event(W_WIDGET(shell), &event,W_EVENT_SEND);
 	if (style & W_DISPOSE_ON_CLOSE) {
 		w_widget_dispose(W_WIDGET(shell));
 	}
@@ -44,7 +44,7 @@ wuint64 _w_shell_check_style(w_widget *widget, wuint64 style) {
 	int mask = W_SYSTEM_MODAL | W_APPLICATION_MODAL | W_PRIMARY_MODAL;
 	if ((style & W_SHEET) != 0) {
 		style &= ~W_SHEET;
-		w_composite *parent = _W_CONTROL(widget)->parent;
+		w_composite *parent = _W_WIDGET(widget)->parent;
 		style |= parent == 0 ? W_FRAME_TRIM : W_DIALOG_TRIM;
 		if ((style & mask) == 0) {
 			style |= parent == 0 ? W_APPLICATION_MODAL : W_PRIMARY_MODAL;
@@ -68,7 +68,7 @@ wresult _w_shell_create_embedded(w_widget *widget, w_widget *parent,
 		if (w_widget_class_id(parent) != _W_CLASS_SHELL)
 			return W_ERROR_INVALID_ARGUMENT;
 	}
-	_W_CONTROL(widget)->parent = W_COMPOSITE(parent);
+	_W_WIDGET(widget)->parent = W_COMPOSITE(parent);
 	_W_SHELL(widget)->center = parent != 0 && (style & W_SHEET) != 0;
 	_W_WIDGET(widget)->post_event = post_event;
 	_W_WIDGET(widget)->style = _w_shell_check_style(widget, style);
@@ -80,7 +80,7 @@ wresult _w_shell_create_embedded(w_widget *widget, w_widget *parent,
 			_W_WIDGET(widget)->state |= STATE_FOREIGN_HANDLE;
 		}
 	}
-	_w_widget_priv *priv = _w_widget_get_priv(widget);
+	_w_widget_priv *priv = _W_WIDGET_GET_PRIV(widget);
 	wresult result = priv->create_widget(widget, _W_CONTROL_PRIV(priv));
 	if (result > 0) {
 		_w_toolkit_add_shell(_W_SHELL(widget));
@@ -132,7 +132,7 @@ wresult _w_shell_create_handle(w_widget *widget, _w_control_priv *priv) {
 		shellHandle = GTK_WINDOW(gtk_window_new(type));
 		if (shellHandle == 0)
 			goto _err;
-		w_composite *parent = _W_CONTROL(widget)->parent;
+		w_composite *parent = _W_WIDGET(widget)->parent;
 		if (parent != 0) {
 			ppriv = _W_WIDGET_GET_PRIV(parent);
 			GtkWindow *pwindow = (GtkWindow*) ppriv->handle_top(
@@ -266,7 +266,7 @@ void _w_shell_force_resize_0(w_control *control, int width, int height,
 		gtk_widget_translate_coordinates(vboxHandle, shellHandle, 0, 0, &dest_x,
 				&dest_y);
 		if (dest_x != -1 && dest_y != -1) {
-			w_composite *parent = _W_CONTROL(control)->parent;
+			w_composite *parent = _W_WIDGET(control)->parent;
 			wuint64 style = w_widget_get_style(W_WIDGET(parent));
 			if (!(parent != 0 && (style & W_ON_TOP) != 0)) {
 				allocation.x += dest_x;
@@ -369,7 +369,7 @@ int _w_shell_get_resize_mode(w_shell *shell, double x, double y) {
 	}
 	return mode;
 }
-wresult _w_shell_get_shell(w_control *control, w_shell **shell) {
+wresult _w_shell_get_shell(w_widget *control, w_shell **shell) {
 	*shell = W_SHELL(control);
 	return W_TRUE;
 }
@@ -422,7 +422,7 @@ wresult _w_shell_is_visible(w_control *shell) {
 }
 wresult _w_shell_open(w_shell *shell) {
 	//_w_shell_bring_totop(shell, W_FALSE);
-	w_composite *parent = _W_CONTROL(shell)->parent;
+	w_composite *parent = _W_WIDGET(shell)->parent;
 	if (w_widget_class_id(W_WIDGET(parent)) == _W_CLASS_SHELL
 			&& !w_control_is_visible(W_CONTROL(parent))) {
 		w_shell_open(W_SHELL(parent));
@@ -460,7 +460,7 @@ void _w_shell_resize_bounds(w_control *control, int width, int height,
 		_e.time = 0;
 		_e.platform_event = 0;
 		_e.data = 0;
-		_w_widget_post_event(W_WIDGET(control), &_e);
+		_w_widget_send_event(W_WIDGET(control), &_e,W_EVENT_SEND);
 		if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 			return;
 		priv->mark_layout(control, 0, priv);
@@ -473,7 +473,7 @@ wresult _w_shell_set_active(w_shell *shell) {
 w_control* _w_shell_path_next(w_shell *shell, w_control *control) {
 	if (control == W_CONTROL(shell))
 		return 0;
-	return (w_control*) _W_CONTROL(control)->parent;
+	return (w_control*) _W_WIDGET(control)->parent;
 }
 void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 		int type) {
@@ -517,7 +517,7 @@ void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 			e.platform_event = 0;
 			e.widget = W_WIDGET(deactivate);
 			e.data = 0;
-			_w_widget_post_event(W_WIDGET(deactivate), &e);
+			_w_widget_send_event(W_WIDGET(deactivate), &e,W_EVENT_SEND);
 		}
 		deactivate = _w_shell_path_next(shell, deactivate);
 	}
@@ -530,7 +530,7 @@ void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 			e.widget = W_WIDGET(activate);
 			e.data = 0;
 			//e.detail = type;
-			_w_widget_post_event(W_WIDGET(activate), &e);
+			_w_widget_send_event(W_WIDGET(activate), &e,W_EVENT_SEND);
 		}
 	}
 }
@@ -575,7 +575,7 @@ wresult _w_shell_set_bounds_0(w_control *control, w_point *location,
 			event.time = 0;
 			event.platform_event = 0;
 			event.data = 0;
-			_w_widget_post_event(W_WIDGET(control), &event);
+			_w_widget_send_event(W_WIDGET(control), &event,W_EVENT_SEND);
 			if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 				return 0;
 			result |= 1;
@@ -629,7 +629,7 @@ wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 			return W_ERROR_INVALID_ARGUMENT;
 		if ((_W_WIDGET(menu)->style & W_BAR) == 0)
 			return W_ERROR_MENU_NOT_BAR;
-		if (_W_MENU(menu)->parent != W_CONTROL(shell))
+		if (_W_WIDGET(menu)->parent != W_CONTROL(shell))
 			return W_ERROR_INVALID_PARENT;
 	}
 	if (_W_SHELL(shell)->menubar != 0) {
@@ -672,7 +672,7 @@ wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
 }
 wresult _w_shell_set_visible(w_control *control, int visible) {
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(control);
-	w_composite *parent = _W_CONTROL(control)->parent;
+	w_composite *parent = _W_WIDGET(control)->parent;
 	w_event e;
 	int mask = W_PRIMARY_MODAL | W_APPLICATION_MODAL | W_SYSTEM_MODAL;
 	if ((_W_WIDGET(control)->style & mask) != 0) {
@@ -690,7 +690,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		 */
 		if (parent != 0) {
 			w_shell *shell;
-			w_control_get_shell(W_CONTROL(parent), &shell);
+			w_widget_get_shell(W_WIDGET(parent), &shell);
 			if (_W_SHELL(shell)->fullScreen)
 				gtk_window_set_type_hint(GTK_WINDOW(shellHandle),
 						GDK_WINDOW_TYPE_HINT_DIALOG);
@@ -711,7 +711,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		e.widget = W_WIDGET(control);
 		e.platform_event = 0;
 		e.data = 0;
-		_w_widget_post_event(W_WIDGET(control), &e);
+		_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
 		if (!w_widget_is_ok(W_WIDGET(control)))
 			return W_FALSE;
 
@@ -741,7 +741,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		int iconic = W_FALSE;
 		w_shell *shell;
 		if (parent != 0) {
-			w_control_get_shell(W_CONTROL(parent), &shell);
+			w_widget_get_shell(W_WIDGET(parent), &shell);
 		} else
 			shell = 0;
 		do {
@@ -788,7 +788,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_post_event(W_WIDGET(control), &e);
+			_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
 			if (!w_widget_is_ok(W_WIDGET(control)))
 				return W_FALSE;
 		}
@@ -811,13 +811,13 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_post_event(W_WIDGET(control), &e);
+			_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
 			e.type = W_EVENT_LAYOUTDETECT;
 			e.widget = W_WIDGET(control);
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_post_event(W_WIDGET(control), &e);
+			_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
 		}
 	} else {
 		//_w_shell_fix_active_shell(W_SHELL(control));
@@ -826,7 +826,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		e.widget = W_WIDGET(control);
 		e.platform_event = 0;
 		e.data = 0;
-		_w_widget_post_event(W_WIDGET(control), &e);
+		_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
 	}
 	return W_TRUE;
 }
@@ -919,7 +919,7 @@ gboolean _gtk_shell_configure_event(w_widget *widget, _w_event_platform *e,
 		event.platform_event = (w_event_platform*) e;
 		event.time = 0;
 		event.data = 0;
-		w_widget_post_event(widget, &event);
+		w_widget_post_event(widget, &event,W_EVENT_SEND);
 		// widget could be disposed at this point
 	}
 	return FALSE;
@@ -996,7 +996,7 @@ gboolean _gtk_shell_focus_in_event(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.time = 0;
 	event.data = 0;
-	w_widget_post_event(widget, &event);
+	w_widget_post_event(widget, &event,W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_shell_focus_out_event(w_widget *widget, _w_event_platform *e,
@@ -1011,7 +1011,7 @@ gboolean _gtk_shell_focus_out_event(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.time = 0;
 	event.data = 0;
-	w_widget_post_event(widget, &event);
+	w_widget_post_event(widget, &event,W_EVENT_SEND);
 	_w_shell_set_active_control(W_SHELL(widget), 0);
 	if (gtk_toolkit->activeShell == W_SHELL(widget)
 			&& !_W_SHELL(widget)->ignoreFocusOut) {
@@ -1269,8 +1269,12 @@ gboolean _gtk_shell_window_state_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	return W_FALSE;
 }
-void _w_shell_class_init(struct _w_shell_class *clazz) {
-	_w_canvas_class_init(W_CANVAS_CLASS(clazz));
+void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_shell_class *clazz) {
+	if (classId == _W_CLASS_SHELL) {
+		W_WIDGET_CLASS(clazz)->platformPrivate = &gtk_toolkit->class_shell_priv;
+	}
+	_w_canvas_class_init(toolkit, classId,W_CANVAS_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SHELL;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_shell_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_shell);
@@ -1279,7 +1283,7 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	 * functions
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_shell_create;
-	W_CONTROL_CLASS(clazz)->get_shell = _w_shell_get_shell;
+	W_WIDGET_CLASS(clazz)->get_shell = _w_shell_get_shell;
 	W_CONTROL_CLASS(clazz)->is_enabled = _w_shell_is_enabled;
 	W_CONTROL_CLASS(clazz)->is_visible = _w_shell_is_visible;
 	W_CONTROL_CLASS(clazz)->set_visible = _w_shell_set_visible;
@@ -1314,37 +1318,43 @@ void _w_shell_class_init(struct _w_shell_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hppp;
-	_W_WIDGET_PRIV(priv)->create_handle = _w_shell_create_handle;
-	_W_WIDGET_PRIV(priv)->check_style = _w_shell_check_style;
-	_W_WIDGET_PRIV(priv)->hook_events = _w_shell_hook_events;
-	priv->set_bounds_0 = _w_shell_set_bounds_0;
-	priv->show_widget = _w_shell_show_widget;
-	_W_COMPOSITE_PRIV(priv)->find_deferred_control =
-			_w_shell_find_deferred_control;
-	_gtk_signal *signal = &_W_SHELL_PRIV(priv)->move_focus;
-	signal->msg = SIGNAL_MOVE_FOCUS;
-	signal->name = "move-focus";
-	signal->number_of_args = 3;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_DESTROY] = _gtk_shell_destroy;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_shell_button_press_event;
-	signals[SIGNAL_CONFIGURE_EVENT] = _gtk_shell_configure_event;
-	signals[SIGNAL_DELETE_EVENT] = _gtk_shell_delete_event;
-	signals[SIGNAL_ENTER_NOTIFY_EVENT] = _gtk_shell_enter_notify_event;
-	signals[SIGNAL_DRAW] = _gtk_shell_draw;
-	signals[SIGNAL_FOCUS] = _gtk_shell_focus;
-	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_shell_focus_in_event;
-	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_shell_focus_out_event;
-	signals[SIGNAL_LEAVE_NOTIFY_EVENT] = _gtk_shell_leave_notify_event;
-	signals[SIGNAL_MOVE_FOCUS] = _gtk_shell_move_focus;
-	signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_shell_motion_notify_event;
-	signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_shell_key_press_event;
-	signals[SIGNAL_SIZE_ALLOCATE] = _gtk_shell_size_allocate;
-	signals[SIGNAL_REALIZE] = _gtk_shell_realize;
-	signals[SIGNAL_WINDOW_STATE_EVENT] = _gtk_shell_window_state_event;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SHELL) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hppp;
+		_W_WIDGET_PRIV(priv)->create_handle = _w_shell_create_handle;
+		_W_WIDGET_PRIV(priv)->check_style = _w_shell_check_style;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_shell_hook_events;
+		priv->set_bounds_0 = _w_shell_set_bounds_0;
+		priv->show_widget = _w_shell_show_widget;
+		_W_COMPOSITE_PRIV(priv)->find_deferred_control =
+				_w_shell_find_deferred_control;
+		_gtk_signal *signal = &_W_SHELL_PRIV(priv)->move_focus;
+		signal->msg = SIGNAL_MOVE_FOCUS;
+		signal->name = "move-focus";
+		signal->number_of_args = 3;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_DESTROY] = _gtk_shell_destroy;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_shell_button_press_event;
+		signals[SIGNAL_CONFIGURE_EVENT] = _gtk_shell_configure_event;
+		signals[SIGNAL_DELETE_EVENT] = _gtk_shell_delete_event;
+		signals[SIGNAL_ENTER_NOTIFY_EVENT] = _gtk_shell_enter_notify_event;
+		signals[SIGNAL_DRAW] = _gtk_shell_draw;
+		signals[SIGNAL_FOCUS] = _gtk_shell_focus;
+		signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_shell_focus_in_event;
+		signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_shell_focus_out_event;
+		signals[SIGNAL_LEAVE_NOTIFY_EVENT] = _gtk_shell_leave_notify_event;
+		signals[SIGNAL_MOVE_FOCUS] = _gtk_shell_move_focus;
+		signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_shell_motion_notify_event;
+		signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_shell_key_press_event;
+		signals[SIGNAL_SIZE_ALLOCATE] = _gtk_shell_size_allocate;
+		signals[SIGNAL_REALIZE] = _gtk_shell_realize;
+		signals[SIGNAL_WINDOW_STATE_EVENT] = _gtk_shell_window_state_event;
+	}
 }

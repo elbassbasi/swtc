@@ -37,7 +37,7 @@ struct _w_composite_priv {
 	wresult (*has_border)(w_composite *composite, _w_control_priv *priv);
 };
 #define _W_COMPOSITE_PRIV(x) ((_w_composite_priv*)x)
-#define _W_COMPOSITE_GET_PRIV(x) ((_w_composite_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_COMPOSITE_GET_PRIV(x) ((_w_composite_priv*)_W_WIDGET_GET_PRIV(x))
 /*
  * functions
  */
@@ -74,7 +74,8 @@ gboolean _gtk_composite_realize(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 gboolean _gtk_composite_scroll_child(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
-void _w_composite_class_init(struct _w_composite_class *clazz);
+void _w_composite_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_composite_class *clazz);
 /*
  * messages
  */

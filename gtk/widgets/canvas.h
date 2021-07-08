@@ -52,7 +52,7 @@ struct _w_canvas_priv {
 	_w_composite_priv composite;
 };
 #define _W_CANVAS_PRIV(x) ((_w_canvas_priv*)x)
-#define _W_CANVAS_GET_PRIV(x) ((_w_canvas_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_CANVAS_GET_PRIV(x) ((_w_canvas_priv*)_W_WIDGET_GET_PRIV(x))
 /*
  * functions
  */
@@ -88,7 +88,7 @@ wresult _w_ime_get_caret_offset(w_ime *ime);
 wresult _w_ime_get_commit_count(w_ime *ime);
 wresult _w_ime_get_composition_offset(w_ime *ime);
 wresult _w_ime_get_ranges(w_ime *ime, w_iterator *ranges);
-wresult _w_ime_get_text(w_ime *ime, w_alloc text, void *user_data);
+wresult _w_ime_get_text(w_ime *ime, w_alloc text, void *user_data, int enc);
 wresult _w_ime_get_wide_caret(w_ime *ime);
 wresult _w_ime_copy(w_widgetdata *from, w_widgetdata *to);
 wresult _w_ime_equals(w_widgetdata *obj1, w_widgetdata *obj2);
@@ -136,7 +136,8 @@ gboolean _gtk_canvas_focus_out_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 gboolean _gtk_canvas_preedit_changed(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
-void _w_canvas_class_init(struct _w_canvas_class *clazz);
+void _w_canvas_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_canvas_class *clazz);
 /*
  * messages
  */

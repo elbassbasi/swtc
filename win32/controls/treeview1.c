@@ -362,10 +362,10 @@ wresult _TREEVIEW_WM_CHAR(w_widget *widget, _w_event_platform *e,
 			_W_ITEM(&item)->parent = widget;
 			_W_ITEM(&item)->index = -1;
 			_W_TREEITEM(&item)->htreeitem = hItem;
-			_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+			_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 			if ((_W_WIDGET(widget)->style & W_CHECK) != 0) {
 				event.detail = W_CHECK;
-				_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+				_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 			}
 		}
 		e->result = 0;
@@ -394,7 +394,7 @@ wresult _TREEVIEW_WM_CHAR(w_widget *widget, _w_event_platform *e,
 			_W_TREEITEM(&item)->htreeitem = hItem;
 			event.item = W_LISTITEM(&item);
 		}
-		_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+		_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 		e->result = 0;
 		return W_TRUE;
 	}
@@ -584,7 +584,7 @@ wresult _TREEVIEW_WM_KEYDOWN(w_widget *widget, _w_event_platform *e,
 				_W_ITEM(&item)->parent = widget;
 				_W_ITEM(&item)->index = -1;
 				_W_TREEITEM(&item)->htreeitem = hNewItem;
-				_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+				_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 				return W_TRUE;
 			}
 		}
@@ -763,7 +763,7 @@ wresult _TREEVIEW_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 				mouseevent.x = GET_X_LPARAM(e->lparam);
 				mouseevent.y = GET_Y_LPARAM(e->lparam);
 				_w_set_input_state((w_event*) &mouseevent);
-				_w_widget_post_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
+				_w_widget_send_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
 				mouseevent.event.type = W_EVENT_MOUSEDOUBLECLICK;
 				mouseevent.event.time = 0;
 				mouseevent.event.platform_event = (w_event_platform*) e;
@@ -775,7 +775,7 @@ wresult _TREEVIEW_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 				mouseevent.x = GET_X_LPARAM(e->lparam);
 				mouseevent.y = GET_Y_LPARAM(e->lparam);
 				_w_set_input_state((w_event*) &mouseevent);
-				result = _w_widget_post_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
+				result = _w_widget_send_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
 				if (!result) {
 					if (!win_toolkit->captureChanged
 							&& w_widget_is_ok(widget) > 0) {
@@ -815,7 +815,7 @@ wresult _TREEVIEW_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 				_W_ITEM(&item)->parent = widget;
 				_W_ITEM(&item)->index = -1;
 				_W_TREEITEM(&item)->htreeitem = tvItem.hItem;
-				_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+				_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 				e->result = 0;
 				return W_TRUE;
 			}
@@ -847,7 +847,7 @@ wresult _TREEVIEW_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 			_W_ITEM(&item)->parent = widget;
 			_W_ITEM(&item)->index = -1;
 			_W_TREEITEM(&item)->htreeitem = lpht.hItem;
-			_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+			_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 		}
 	}
 	return result;
@@ -884,7 +884,7 @@ wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		mouseevent.x = GET_X_LPARAM(e->lparam);
 		mouseevent.y = GET_Y_LPARAM(e->lparam);
 		_w_set_input_state((w_event*) &mouseevent);
-		result = _w_widget_post_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
+		result = _w_widget_send_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
 		if (result) {
 			if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
 				if (GetCapture() != handle)
@@ -1004,7 +1004,7 @@ wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 			_W_ITEM(&item)->parent = widget;
 			_W_ITEM(&item)->index = -1;
 			_W_TREEITEM(&item)->htreeitem = lpht.hItem;
-			_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+			_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 		}
 		return result;
 	}
@@ -1024,7 +1024,7 @@ wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 			mouseevent.x = GET_X_LPARAM(e->lparam);
 			mouseevent.y = GET_Y_LPARAM(e->lparam);
 			_w_set_input_state((w_event*) &mouseevent);
-			result = _w_widget_post_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
+			result = _w_widget_send_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
 			if (result) {
 				if (!win_toolkit->captureChanged
 						&& w_widget_is_ok(widget) > 0) {
@@ -1062,7 +1062,7 @@ wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 			_W_ITEM(&item)->parent = widget;
 			_W_ITEM(&item)->index = -1;
 			_W_TREEITEM(&item)->htreeitem = tvItem.hItem;
-			_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+			_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 			e->result = 0;
 			return W_TRUE;
 		}
@@ -1107,7 +1107,7 @@ wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 			mouseevent.x = GET_X_LPARAM(e->lparam);
 			mouseevent.y = GET_Y_LPARAM(e->lparam);
 			_w_set_input_state((w_event*) &mouseevent);
-			result = _w_widget_post_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
+			result = _w_widget_send_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
 			if (result) {
 				if (!win_toolkit->captureChanged
 						&& w_widget_is_ok(widget) > 0) {
@@ -1201,7 +1201,7 @@ wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	mouseevent.x = GET_X_LPARAM(e->lparam);
 	mouseevent.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &mouseevent);
-	result = _w_widget_post_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
+	result = _w_widget_send_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
 	if (result) {
 		if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
 			if (GetCapture() != handle)
@@ -1376,7 +1376,7 @@ wresult _TREEVIEW_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		_W_ITEM(&item)->parent = widget;
 		_W_ITEM(&item)->index = -1;
 		_W_TREEITEM(&item)->htreeitem = tvItem.hItem;
-		_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+		_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 	}
 	_W_TREEVIEW(widget)->gestureCompleted = FALSE;
 
@@ -1495,7 +1495,7 @@ wresult _TREEVIEW_WM_RBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	mouseevent.x = GET_X_LPARAM(e->lparam);
 	mouseevent.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &mouseevent);
-	result = _w_widget_post_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
+	result = _w_widget_send_event(widget, (w_event*) &mouseevent,W_EVENT_SEND);
 	if (!result) {
 		if (!win_toolkit->captureChanged && w_widget_is_ok(widget) > 0) {
 			if (GetCapture() != handle)
@@ -1620,7 +1620,7 @@ wresult _TREEVIEW_WM_PAINT(w_widget *widget, _w_event_platform *e,
 					event.bounds.width = ps.rcPaint.right - ps.rcPaint.left;
 					event.bounds.height = ps.rcPaint.bottom - ps.rcPaint.top;
 					event.gc = W_GRAPHICS(&gc);
-					_w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
+					_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 				}
 			}
 			if (hooksPaint) {
@@ -3452,7 +3452,7 @@ wresult _TREEVIEW_WM_NOTIFY_SELCHANGED(w_widget *widget, _w_event_platform *e,
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;
 	_W_TREEITEM(&item)->htreeitem = (HTREEITEM) treeView->itemNew.hItem;
-	_w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 	return W_FALSE;
 }
 wresult _TREEVIEW_WM_NOTIFY_ITEMEXPANDED(w_widget *widget, _w_event_platform *e,
@@ -3486,7 +3486,7 @@ wresult _TREEVIEW_WM_NOTIFY_ITEMEXPANDING(w_widget *widget,
 		 */
 		if ((treeView->itemNew.state & TVIS_EXPANDED) == 0) {
 			event.event.type = W_EVENT_ITEM_EXPAND;
-			_w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
+			_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 			/**
 			 * if tree item has no children remove + image
 			 */
@@ -3503,7 +3503,7 @@ wresult _TREEVIEW_WM_NOTIFY_ITEMEXPANDING(w_widget *widget,
 		break;
 	case TVE_COLLAPSE:
 		event.event.type = W_EVENT_ITEM_COLLAPSE;
-		_w_widget_post_event(widget, (w_event*) &event,W_EVENT_SEND);
+		_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 		break;
 	}
 	return W_FALSE;
@@ -3665,7 +3665,7 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 						event.event.widget = widget;
 						event.event.platform_event = _EVENT_PLATFORM(e);
 						event.column = W_COLUMNITEM(&column);
-						_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+						_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 					}
 				}
 				_w_toolkit_free(order, columnCount * sizeof(int));
@@ -3744,7 +3744,7 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 					event.event.widget = widget;
 					event.event.platform_event = _EVENT_PLATFORM(e);
 					event.column = W_COLUMNITEM(&column);
-					_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+					_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 					if (w_widget_is_ok(widget) < 0) {
 						e->result = 0;
 						return W_TRUE;
@@ -3765,7 +3765,7 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 							event.event.widget = widget;
 							event.event.platform_event = _EVENT_PLATFORM(e);
 							event.column = W_COLUMNITEM(&column);
-							_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+							_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 						}
 						if (nextColumn == phdn->iItem)
 							moved = W_TRUE;
@@ -3786,7 +3786,7 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 			event.event.widget = widget;
 			event.event.platform_event = _EVENT_PLATFORM(e);
 			event.column = W_COLUMNITEM(&column);
-			_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+			_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 		}
 		break;
 	}
@@ -3799,7 +3799,7 @@ wresult _TREEVIEW_WM_NOTIFY_HEADER(w_widget *widget, _w_event_platform *e,
 			event.event.widget = widget;
 			event.event.platform_event = _EVENT_PLATFORM(e);
 			event.column = W_COLUMNITEM(&column);
-			_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+			_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 		}
 		break;
 	}

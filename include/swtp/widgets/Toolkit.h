@@ -7,7 +7,7 @@
 
 #ifndef SWTP_WIDGETS_TOOLKIT_H_
 #define SWTP_WIDGETS_TOOLKIT_H_
-#include <swtp/widgets/Frame.h>
+#include "Frame.h"
 /**
  * Instances of this class are responsible for managing the
  * connection between SWT and the underlying operating

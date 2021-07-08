@@ -8,7 +8,6 @@
 		${CURRENT_DIR}/custom.c
 		${CURRENT_DIR}/dnd0.c
 		${CURRENT_DIR}/dnd1.c
-		${CURRENT_DIR}/item.c
 		${CURRENT_DIR}/menu.c
 		${CURRENT_DIR}/messagebox.c
 		${CURRENT_DIR}/scrollable.c

@@ -143,7 +143,7 @@ void _w_combobox_clear_text(w_combobox *combo) {
 				e.time = 0;
 				e.widget = W_WIDGET(combo);
 				e.data = 0;
-				_w_widget_post_event(W_WIDGET(combo), &e);
+				_w_widget_send_event(W_WIDGET(combo), &e,W_EVENT_SEND);
 			}
 			g_free(ptr);
 		}
@@ -285,7 +285,7 @@ wresult _w_combobox_get_item(w_combobox *combo, int index, w_comboitem *item) {
 	GtkTreeModel *model = gtk_combo_box_get_model(GTK_COMBO_BOX(handle));
 	GtkTreeIter *iter = &_W_COMBOITEM(item)->iter;
 	if (gtk_tree_model_iter_nth_child(model, iter, NULL, index)) {
-		_W_WIDGETDATA(item)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(combo);
+		W_WIDGETDATA(item)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(combo);
 		_W_ITEM(item)->parent = W_WIDGET(combo);
 		_W_ITEM(item)->index = index;
 		return W_TRUE;
@@ -422,7 +422,7 @@ wresult _w_combobox_insert_item(w_combobox *combo, w_comboitem *item,
 	gtk_list_store_set(GTK_LIST_STORE(model), iter, COLUMN_IMAGE, -1, -1);
 #endif
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(combo);
+		W_WIDGETDATA(item)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(combo);
 		_W_ITEM(item)->parent = W_WIDGET(combo);
 		_W_ITEM(item)->index = index;
 	}
@@ -495,7 +495,7 @@ wresult _w_combobox_select(w_combobox *combo, int index) {
 		e.time = 0;
 		e.widget = W_WIDGET(combo);
 		e.data = 0;
-		_w_widget_post_event(W_WIDGET(combo), &e);
+		_w_widget_send_event(W_WIDGET(combo), &e,W_EVENT_SEND);
 	}
 	return W_TRUE;
 }
@@ -583,7 +583,7 @@ wresult _w_combobox_set_text(w_combobox *combo, const char *string, int length,
 	e.time = 0;
 	e.widget = W_WIDGET(combo);
 	e.data = 0;
-	_w_widget_post_event(W_WIDGET(combo), &e);
+	_w_widget_send_event(W_WIDGET(combo), &e,W_EVENT_SEND);
 	return W_TRUE;
 }
 wresult _w_combobox_set_text_limit(w_combobox *combo, int limit) {
@@ -609,11 +609,11 @@ void _w_combobox_cell_layout_data_func(GtkCellLayout *cell_layout,
 	/*
 	 * tree column
 	 */
-	_W_WIDGETDATA(&c->column)->clazz = 0;
+	W_WIDGETDATA(&c->column)->clazz = 0;
 	/*
 	 * tree item
 	 */
-	_W_WIDGETDATA(&c->treeitem)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(data);
+	W_WIDGETDATA(&c->treeitem)->clazz = _W_COMBOBOX_GET_ITEM_CLASS(data);
 	_W_ITEM(&c->treeitem)->parent = W_WIDGET(data);
 	_W_ITEM(&c->treeitem)->index = -1;
 	memcpy(&_W_COMBOITEM(&c->treeitem)->iter, iter, sizeof(GtkTreeIter));
@@ -660,8 +660,13 @@ void _w_combobox_renderer_get_preferred_width(w_widget *widget,
 			natural_size);
 }
 #endif
-void _w_combobox_class_init(struct _w_combobox_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_combobox_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_combobox_class *clazz) {
+	if (classId == _W_CLASS_COMBOBOX) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_combobox_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_COMBOBOX;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_combobox_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_combobox);
@@ -704,6 +709,7 @@ void _w_combobox_class_init(struct _w_combobox_class *clazz) {
 	 * combo item
 	 */
 	struct _w_comboitem_class *item = W_COMBOITEM_CLASS(clazz->class_comboitem);
+	W_WIDGETDATA_CLASS(item)->toolkit = toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	W_ITEM_CLASS(item)->get_data = _w_comboitem_get_data;
 	W_ITEM_CLASS(item)->get_text = _w_comboitem_get_text;
@@ -714,20 +720,26 @@ void _w_combobox_class_init(struct _w_combobox_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_widget_hp;
-	priv->handle_fixed = _w_widget_hp;
-	priv->widget.compute_size = _w_combobox_compute_size;
-	priv->widget.check_style = _w_combobox_check_style;
-	priv->widget.create_handle = _w_combobox_create_handle;
-	priv->widget.hook_events = _w_combobox_hook_events;
-	_W_COMBOBOX_PRIV(priv)->renderer_render = _w_combobox_renderer_render;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_COMBOBOX) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_widget_hp;
+		priv->handle_fixed = _w_widget_hp;
+		priv->widget.compute_size = _w_combobox_compute_size;
+		priv->widget.check_style = _w_combobox_check_style;
+		priv->widget.create_handle = _w_combobox_create_handle;
+		priv->widget.hook_events = _w_combobox_hook_events;
+		_W_COMBOBOX_PRIV(priv)->renderer_render = _w_combobox_renderer_render;
 #if GTK3
-	_W_COMBOBOX_PRIV(priv)->renderer_get_preferred_width =
-			_w_combobox_renderer_get_preferred_width;
+		_W_COMBOBOX_PRIV(priv)->renderer_get_preferred_width =
+				_w_combobox_renderer_get_preferred_width;
 #endif
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+	}
 }

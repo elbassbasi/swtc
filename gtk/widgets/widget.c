@@ -28,13 +28,6 @@ GdkWindow* _gdk_window_get_device_position(GdkWindow *window, gint *x, gint *y,
 		return gdk_window_get_pointer(window, x, y, mask);
 #endif
 }
-_w_widget_priv* _w_widget_get_priv(w_widget *widget) {
-	struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(widget);
-	while (clazz->toolkit != W_TOOLKIT(gtk_toolkit)) {
-		clazz = clazz->next_class;
-	}
-	return _W_WIDGET_PRIV(clazz->reserved[0]);
-}
 void _w_widget_set_control(void *handle, w_widget *widget) {
 	g_object_set_qdata(G_OBJECT(handle), gtk_toolkit->quark[SWT_GQUARK_WIDGET],
 			widget);
@@ -69,11 +62,11 @@ void _w_widget_check_orientation(w_widget *widget, w_widget *parent,
 		_w_control_priv *priv) {
 	_W_WIDGET(widget)->style &= ~W_MIRRORED;
 	if ((_W_WIDGET(widget)->style & (W_LEFT_TO_RIGHT | W_RIGHT_TO_LEFT)) == 0) {
-		if (_W_CONTROL(widget)->parent != 0) {
-			if ((_W_WIDGET(_W_CONTROL(widget)->parent)->style & W_LEFT_TO_RIGHT)
+		if (_W_WIDGET(widget)->parent != 0) {
+			if ((_W_WIDGET(_W_WIDGET(widget)->parent)->style & W_LEFT_TO_RIGHT)
 					!= 0)
 				_W_WIDGET(widget)->style |= W_LEFT_TO_RIGHT;
-			if ((_W_WIDGET(_W_CONTROL(widget)->parent)->style & W_RIGHT_TO_LEFT)
+			if ((_W_WIDGET(_W_WIDGET(widget)->parent)->style & W_RIGHT_TO_LEFT)
 					!= 0)
 				_W_WIDGET(widget)->style |= W_RIGHT_TO_LEFT;
 		}
@@ -121,13 +114,6 @@ wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 }
 wresult _w_widget_is_ok(w_widget *obj) {
 	return W_TRUE;
-}
-wresult _w_widget_post_event(w_widget *widget, w_event *event) {
-	if (widget->post_event != 0) {
-		return widget->post_event(widget, event);
-	} else {
-		return w_widget_default_post_event(widget, event);
-	}
 }
 wresult _w_widget_get_theme(w_widget *widget, w_theme **theme) {
 	if (_W_WIDGET(widget)->theme != 0) {
@@ -471,7 +457,8 @@ gboolean _w_widget_send_IM_key_event(w_widget *widget, _w_event_platform *e,
 			event.detail = _w_widget_set_input_state(state);
 		}
 		event.character = c;
-		int doit = _w_widget_post_event(widget, (w_event*) &event);
+		int doit = _w_widget_send_event(widget, (w_event*) &event,
+				W_EVENT_SEND);
 
 		/*
 		 * It is possible (but unlikely), that application
@@ -509,7 +496,7 @@ gboolean _w_widget_send_key_event(w_widget *widget, _w_event_platform *e,
 		event.event.time = keyEvent->time;
 		if (!_w_widget_set_key_state(&event, keyEvent, unicode_length))
 			return TRUE;
-		return _w_widget_post_event(widget, (w_event*) &event);
+		return _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 		// widget could be disposed at this point
 
 		/*
@@ -527,7 +514,13 @@ gboolean _w_widget_send_key_event(w_widget *widget, _w_event_platform *e,
 /*
  * signals
  */
-wresult _w_widget_post_event(w_widget *widget, w_event *ee) {
+wresult _w_widget_send_event(w_widget *widget, w_event *ee, int flags) {
+	return W_WIDGET_GET_CLASS(widget)->post_event(widget, ee, flags);
+}
+wresult _w_widget_post_event(w_widget *widget, w_event *ee, int flags) {
+	if (widget->post_event != 0) {
+		widget->post_event(widget, ee);
+	}
 	_w_widget_priv *priv;
 	switch (ee->type) {
 	case W_EVENT_PLATFORM: {
@@ -556,11 +549,13 @@ wresult _w_widget_post_event(w_widget *widget, w_event *ee) {
 		w_layout *layout;
 		w_layout_fill filllayout;
 		w_composite_get_layout(W_COMPOSITE(widget), &layout);
-		if (layout == 0) {
-			w_layout_fill_init(&filllayout, W_VERTICAL);
-			layout = (w_layout*) &filllayout;
+		/*if (layout == 0) {
+		 w_layout_fill_init(&filllayout, W_VERTICAL);
+		 layout = (w_layout*) &filllayout;
+		 }*/
+		if (layout != 0) {
+			w_layout_do_layout(layout, W_COMPOSITE(widget), W_FALSE);
 		}
-		w_layout_do_layout(layout, W_COMPOSITE(widget), W_FALSE);
 		return W_TRUE;
 	}
 		break;
@@ -586,7 +581,7 @@ gboolean _w_widget_proc(GtkWidget *widget, _gtk_signal *signal, void *args0,
 		e.args[0] = args0;
 		e.args[1] = args1;
 		e.args[2] = args2;
-		_w_widget_post_event(cc, (w_event*) &e);
+		_w_widget_send_event(cc, (w_event*) &e, W_EVENT_SEND);
 		return e.result;
 	}
 }
@@ -738,36 +733,53 @@ void _w_widget_set_font_description(w_widget *control, GtkWidget *widget,
 #if GTK2
 #endif
 }
-void _w_widget_class_init(struct _w_widget_class *clazz) {
+wresult _w_widget_get_shell(w_widget *widget, w_shell **shell) {
+	*shell = 0;
+	return W_FALSE;
+}
+wresult _w_widget_get_parent(w_widget *control, w_widget **parent) {
+	*parent = _W_WIDGET(control)->parent;
+	return W_TRUE;
+}
+void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_widget_class *clazz) {
 	clazz->is_ok = _w_widget_is_ok;
 	clazz->dispose = _w_widget_dispose;
 	clazz->post_event = _w_widget_post_event;
 	clazz->toolkit = W_TOOLKIT(gtk_toolkit);
 	clazz->get_theme = _w_widget_get_theme;
 	clazz->set_theme = _w_widget_set_theme;
+	clazz->get_parent = _w_widget_get_parent;
+	clazz->toolkit = toolkit;
+	/*
+	 * public function
+	 */
+	clazz->get_shell = _w_widget_get_shell;
 	/*
 	 * private
 	 */
-	_w_widget_priv *priv = _W_WIDGET_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	if (priv != 0) {
-		priv->check_open = _w_widget_check_open;
-		priv->check_orientation = _w_widget_check_orientation;
-		priv->check_style = _w_widget_check_style;
-		priv->create_handle = _w_widget_create_handle;
-		priv->create_widget = _w_widget_create_widget;
-		priv->set_orientation = _w_widget_set_orientation;
-		priv->hook_events = _w_widget_hook_events;
-		priv->send_key_event = _w_widget_send_key_event;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (priv != 0 && _W_WIDGET_PRIV(priv)->init == 0) {
+		_W_WIDGET_PRIV(priv)->check_open = _w_widget_check_open;
+		_W_WIDGET_PRIV(priv)->check_orientation = _w_widget_check_orientation;
+		_W_WIDGET_PRIV(priv)->check_style = _w_widget_check_style;
+		_W_WIDGET_PRIV(priv)->create_handle = _w_widget_create_handle;
+		_W_WIDGET_PRIV(priv)->create_widget = _w_widget_create_widget;
+		_W_WIDGET_PRIV(priv)->set_orientation = _w_widget_set_orientation;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_widget_hook_events;
+		_W_WIDGET_PRIV(priv)->send_key_event = _w_widget_send_key_event;
 		/*
 		 * signals
 		 */
 		for (int i = 0; i < SIGNAL_LAST; i++) {
-			priv->signals[i] = _gtk_signal_null;
+			_W_WIDGET_PRIV(priv)->signals[i] = _gtk_signal_null;
 		}
-		priv->compute_size = (__compute_size ) _gtk_signal_null;
-		priv->get_client_area = (__get_client_area) _gtk_signal_null;
-		priv->compute_trim = (__compute_trim) _gtk_signal_null;
-		priv->signals[SIGNAL_EXPOSE_EVENT] = _gtk_widget_expose;
-		priv->signals[SIGNAL_EXPOSE_EVENT_INVERSE] = _gtk_widget_expose_inverse;
+		_W_WIDGET_PRIV(priv)->compute_size = (__compute_size ) _gtk_signal_null;
+		_W_WIDGET_PRIV(priv)->get_client_area = (__get_client_area) _gtk_signal_null;
+		_W_WIDGET_PRIV(priv)->compute_trim = (__compute_trim) _gtk_signal_null;
+		_W_WIDGET_PRIV(priv)->signals[SIGNAL_EXPOSE_EVENT] = _gtk_widget_expose;
+		_W_WIDGET_PRIV(priv)->signals[SIGNAL_EXPOSE_EVENT_INVERSE] =
+				_gtk_widget_expose_inverse;
 	}
 }

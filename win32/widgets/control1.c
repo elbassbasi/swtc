@@ -82,7 +82,7 @@ LRESULT CALLBACK _w_control_window_proc(HWND hWnd, UINT message, WPARAM wParam,
 		e.wparam = wParam;
 		e.lparam = lParam;
 		e.result = 0;
-		_w_widget_post_event(widget, (w_event*) &e, W_EVENT_SEND);
+		_w_widget_send_event(widget, (w_event*) &e, W_EVENT_SEND);
 		return e.result;
 	} else {
 		return DefWindowProcW(hWnd, message, wParam, lParam);
@@ -234,7 +234,7 @@ wresult _CONTROL_WM_SIZE(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.type = W_EVENT_RESIZE;
 	event.widget = widget;
-	_w_widget_post_event(widget, &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, &event, W_EVENT_SEND);
 	//}
 	return W_FALSE;
 }
@@ -259,7 +259,7 @@ wresult _CONTROL_WM_TIMER(w_widget *widget, _w_event_platform *e,
 		event.event.type = W_EVENT_TIMER;
 		event.event.widget = widget;
 		event.id = e->wparam - 0x200;
-		_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+		_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 	return W_FALSE;
 }

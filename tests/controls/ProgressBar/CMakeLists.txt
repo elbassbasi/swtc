@@ -3,6 +3,7 @@
 		${src_controls}
 		${CURRENT_DIR}/TProgressBars.cpp 
 		${CURRENT_DIR}/TProgressBarDemo.cpp
+		${CURRENT_DIR}/TProgressBarThread.cpp
 		PARENT_SCOPE
 	)
 	

@@ -331,7 +331,7 @@ wresult _COMPOSITE_WM_PAINT(w_widget *widget, _w_event_platform *e,
 			event.bounds.width = width;
 			event.bounds.height = height;
 			event.gc = W_GRAPHICS(&gc);
-			_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+			_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 			/* if (data.focusDrawn && !isDisposed())
 			 updateUIState();*/
 			w_graphics_dispose(W_GRAPHICS(&gc));
@@ -435,7 +435,7 @@ wresult _COMPOSITE_WM_PAINT(w_widget *widget, _w_event_platform *e,
 						event.bounds.width = rect.right - rect.left;
 						event.bounds.height = rect.bottom - rect.top;
 						event.gc = W_GRAPHICS(&gc);
-						_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+						_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 					}
 					_w_toolkit_free(lpRgnData, nBytes);
 				}
@@ -454,7 +454,7 @@ wresult _COMPOSITE_WM_PAINT(w_widget *widget, _w_event_platform *e,
 				event.bounds.width = width;
 				event.bounds.height = height;
 				event.gc = W_GRAPHICS(&gc);
-				_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+				_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 			}
 			// widget could be disposed at this point
 			if ((_W_WIDGET(widget)->style & (W_DOUBLE_BUFFERED | W_TRANSPARENT))
@@ -517,7 +517,7 @@ wresult _COMPOSITE_WM_SIZE(w_widget *widget, _w_event_platform *e,
 		_e.platform_event = _EVENT_PLATFORM(e);
 		_e.widget = widget;
 		_e.data = 0;
-		_w_widget_post_event(widget, &_e, W_EVENT_SEND);
+		_w_widget_send_event(widget, &_e, W_EVENT_SEND);
 	}
 	/* Damage the widget to cause a repaint */
 	if (IsWindowVisible(_W_WIDGET(widget)->handle)) {

@@ -23,6 +23,7 @@ typedef struct _w_slider_priv {
 #define _W_SLIDER(x) ((_w_slider*)x)
 #define _W_SLIDER_PRIV(x) ((_w_slider_priv*)x)
 
-void _w_slider_class_init(struct _w_slider_class *clazz);
+void _w_slider_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_slider_class *clazz);
 
 #endif /* GTK_CONTROLS_SLIDER_H_ */

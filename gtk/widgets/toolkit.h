@@ -49,9 +49,16 @@ typedef struct threads_idle {
 	wuint signalled;
 } threads_idle;
 extern const char *_gtk_signal_names[SIGNAL_LAST];
+typedef struct _w_mem_region {
+	wushort size;
+	wushort flags;
+	wuint prev_index;
+	char data[0];
+} _w_mem_region;
 typedef struct _w_toolkit {
 	w_toolkit toolkit;
 	int version;
+	_w_app app;
 	_w_cursor cursors[W_CURSOR_HAND + 1];
 	_w_image images[5];
 	GQuark quark[SWT_GQUARK_LAST];
@@ -105,135 +112,50 @@ typedef struct _w_toolkit {
 	//theme
 	_gtk_theme gtktheme;
 	w_theme *theme;
-	PangoFontDescription* system_font;
+	PangoFontDescription *system_font;
 	/*
 	 * classes
 	 */
-	struct _w_widget_class *classes[_W_CLASS_LAST];
 	struct _w_toolkit_class class_toolkit;
-	/*
-	 * shell
-	 */
-	struct _w_shell_class class_shell;
-	_w_shell_priv class_shell_priv;
-	/*
-	 * canvas
-	 */
-	struct _w_canvas_class class_canvas;
-	_w_canvas_priv class_canvas_priv;
+	struct _w_toolkit_classes classes;
 	struct _w_caret_class class_caret;
 	struct _w_ime_class class_ime;
-	/*
-	 * composite
-	 */
-	struct _w_composite_class class_composite;
+	_w_shell_priv class_shell_priv;
+	_w_canvas_priv class_canvas_priv;
+	_w_ccanvas_priv class_ccanvas_priv;
 	_w_composite_priv class_composite_priv;
-	struct _w_scrollbar_class class_scrollbar;
-	/*
-	 * menu
-	 */
-	struct _w_menu_class class_menu;
 	_w_menu_priv class_menu_priv;
-	struct _w_menuitem_class class_menuitem;
-	/*
-	 * treeview
-	 */
-	struct _w_treeview_class class_tree;
-	_w_treeview_priv class_tree_priv;
-	struct _w_treeitem_class class_treeitem;
-	struct _w_columnitem_class class_treecolumn;
-	/*
-	 * listview
-	 */
-	struct _w_listview_class class_listview;
+	_w_treeview_priv class_treeview_priv;
 	_w_listview_priv class_listview_priv;
-	struct _w_listitem_class class_listitem;
-	struct _w_columnitem_class class_listcolumn;
-	/*
-	 * sash
-	 */
-	struct _w_sash_class class_sash;
 	_w_sash_priv class_sash_priv;
-	/*
-	 * button
-	 */
-	struct _w_button_class class_button;
 	_w_button_priv class_button_priv;
-	/*
-	 * label
-	 */
-	struct _w_label_class class_label;
 	_w_label_priv class_label_priv;
-	/*
-	 * textedit
-	 */
-	struct _w_textedit_class class_textedit;
 	_w_textedit_priv class_textedit_priv;
-	/*
-	 * progressbar
-	 */
-	struct _w_progressbar_class class_progressbar;
 	_w_progressbar_priv class_progressbar_priv;
-	/*
-	 * groupbox
-	 */
-	struct _w_groupbox_class class_groupbox;
 	_w_groupbox_priv class_groupbox_priv;
-	/*
-	 * combobox
-	 */
-	struct _w_combobox_class class_combobox;
 	_w_combobox_priv class_combobox_priv;
-	struct _w_combobox_class class_comboitem;
-	/*
-	 * coolbar
-	 */
-	struct _w_coolbar_class class_coolbar;
 	_w_coolbar_priv class_coolbar_priv;
-	struct _w_coolitem_class class_coolitem;
-	/*
-	 * datetime
-	 */
-	struct _w_datetime_class class_datetime;
 	_w_datetime_priv class_datetime_priv;
-	/*
-	 * expandbar
-	 */
-	struct _w_expandbar_class class_expandbar;
-	_w_expandbar_priv class_expandbar_priv;
-	struct _w_expanditem_class class_expanditem;
-	/*
-	 * slider
-	 */
-	struct _w_slider_class class_slider;
 	_w_slider_priv class_slider_priv;
-	/*
-	 * spinner
-	 */
-	struct _w_spinner_class class_spinner;
 	_w_spinner_priv class_spinner_priv;
-	/*
-	 * tabview
-	 */
-	struct _w_tabview_class class_tabview;
 	_w_tabview_priv class_tabview_priv;
-	struct _w_tabitem_class class_tabitem;
-	/*
-	 * toolbar
-	 */
-	struct _w_toolbar_class class_toolbar;
 	_w_toolbar_priv class_toolbar_priv;
-	struct _w_toolitem_class class_toolitem;
+	_w_expandbar_priv class_expandbar_priv;
+	//_w_tray_priv class_tray_priv;
+	//_w_tooltip_priv class_tooltip_priv;
 	/*
 	 * internal memory
 	 */
-	size_t tmp_alloc;
-	size_t tmp_length;
+	int tmp_alloc;
+	int tmp_region_length;
+	int tmp_lock;
+	int tmp_length;
 	char tmp[0];
 } _w_toolkit;
 #define _W_TOOLKIT(x) ((_w_toolkit*)x)
 #define GTK_VERSION (gtk_toolkit->version)
 extern _w_toolkit *gtk_toolkit;
+extern w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST];
 typedef struct _w_shells_iterator {
 	w_basic_iterator base;
 	_w_shell *parent;

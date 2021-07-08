@@ -302,8 +302,9 @@ wresult _w_ime_get_ranges(w_ime *ime, w_iterator *ranges) {
 	else
 		return W_FALSE;
 }
-wresult _w_ime_get_text(w_ime *ime, w_alloc text, void *user_data) {
-	return w_alloc_set_text(text, user_data, _W_IME(ime)->text, -1);
+wresult _w_ime_get_text(w_ime *ime, w_alloc text, void *user_data, int enc) {
+	return w_alloc_set_text(text, user_data, enc, _W_IME(ime)->text, -1,
+			W_ENCODING_UTF8);
 }
 wresult _w_ime_get_wide_caret(w_ime *ime) {
 	return W_FALSE;
@@ -465,7 +466,7 @@ wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 	w_control *control = priv->find_background_control(W_CONTROL(canvas), priv);
 	if (control == 0)
 		control = W_CONTROL(canvas);
-	if (_W_CONTROL(control)->backgroundImage != 0) {
+	if (_W_CONTROL(control)->backgroundImage.pixbuf != 0) {
 		priv->redraw_widget(W_CONTROL(canvas), &rect, 0, priv);
 		tmp.x = dest.x;
 		tmp.y = dest.y;
@@ -685,7 +686,7 @@ gboolean _gtk_ime_commit(w_widget *widget, _w_event_platform *e,
 			event.range.end = _W_IME(ime)->startOffset + length;
 			event.text = _W_IME(ime)->text = textPtr;
 			_W_IME(ime)->commitCount = length;
-			doit = w_widget_post_event(widget, (w_event*) &event);
+			doit = w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 			_W_IME(ime)->text = "";
 			_W_IME(ime)->startOffset = -1;
 			_W_IME(ime)->commitCount = 0;
@@ -743,7 +744,7 @@ gboolean _gtk_ime_preedit_changed(w_widget *widget, _w_event_platform *e,
 			event.range.start = 0;
 			event.range.end = 0;
 			event.text = 0;
-			w_widget_post_event(widget, (w_event*) &event);
+			w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 			_W_IME(ime)->startOffset = event.range.start;
 			end = event.range.end;
 		}
@@ -758,7 +759,7 @@ gboolean _gtk_ime_preedit_changed(w_widget *widget, _w_event_platform *e,
 		event.range.start = _W_IME(ime)->startOffset;
 		event.range.end = end;
 		event.text = chars;
-		w_widget_post_event(widget, (w_event*) &event);
+		w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 	return 1;
 }
@@ -821,8 +822,13 @@ gboolean _gtk_canvas_preedit_changed(w_widget *widget, _w_event_platform *e,
 	}
 	return _gtk_control_preedit_changed(widget, e, priv);
 }
-void _w_canvas_class_init(struct _w_canvas_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_canvas_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_canvas_class *clazz) {
+	if (classId == _W_CLASS_CANVAS) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_canvas_priv;
+	}
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_CANVAS;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_canvas_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_canvas);
@@ -858,7 +864,6 @@ void _w_canvas_class_init(struct _w_canvas_class *clazz) {
 		caret->set_font = _w_caret_set_font;
 		caret->set_image = _w_caret_set_image;
 		caret->set_visible = _w_caret_set_visible;
-
 	}
 	/*
 	 * IME class
@@ -882,15 +887,21 @@ void _w_canvas_class_init(struct _w_canvas_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_canvas_button_press_event;
-	signals[SIGNAL_COMMIT] = _gtk_canvas_commit;
-	signals[SIGNAL_DRAW] = _gtk_canvas_draw;
-	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_canvas_focus_in_event;
-	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_canvas_focus_out_event;
-	signals[SIGNAL_PREEDIT_CHANGED] = _gtk_canvas_preedit_changed;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_CANVAS) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_canvas_button_press_event;
+		signals[SIGNAL_COMMIT] = _gtk_canvas_commit;
+		signals[SIGNAL_DRAW] = _gtk_canvas_draw;
+		signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_canvas_focus_in_event;
+		signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_canvas_focus_out_event;
+		signals[SIGNAL_PREEDIT_CHANGED] = _gtk_canvas_preedit_changed;
+	}
 }

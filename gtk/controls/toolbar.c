@@ -154,7 +154,7 @@ wresult _w_toolitem_get_control(w_toolitem *item, w_control **control) {
 		event.event.type = W_EVENT_ITEM_GET_CONTROL;
 		event.event.widget = parent;
 		event.item = item;
-		_w_widget_post_event(parent, W_EVENT(&event));
+		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
 		*control = event.control;
 		return W_TRUE;
 	} else {
@@ -182,7 +182,7 @@ wresult _w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 		event.event.type = W_EVENT_ITEM_GET_CONTROL;
 		event.event.widget = parent;
 		event.item = item;
-		_w_widget_post_event(parent, W_EVENT(&event));
+		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
 		*menu = event.menu;
 		return W_TRUE;
 	} else {
@@ -281,7 +281,7 @@ wresult _w_toolitem_set_control(w_toolitem *item, w_control *control) {
 		event.event.widget = parent;
 		event.item = item;
 		event.control = control;
-		_w_widget_post_event(parent, W_EVENT(&event));
+		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
 		_w_toolbar_relayout(W_TOOLBAR(parent));
 		return W_TRUE;
 	}
@@ -327,7 +327,7 @@ wresult _w_toolitem_set_menu(w_toolitem *item, w_menu *menu) {
 		event.event.widget = parent;
 		event.item = item;
 		event.menu = menu;
-		_w_widget_post_event(parent, W_EVENT(&event));
+		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
 		GtkWidget *hmenu = _W_WIDGET(menu)->handle;
 		gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(toolitem), hmenu);
 		return W_TRUE;
@@ -451,7 +451,7 @@ wresult _w_toolbar_get_item(w_toolbar *toolbar, int index, w_toolitem *item) {
 	GtkToolbar *handle = GTK_TOOLBAR(_W_WIDGET(toolbar)->handle);
 	GtkToolItem *toolitem = gtk_toolbar_get_nth_item(handle, index);
 	if (toolitem != 0) {
-		_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
+		W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
 		_W_ITEM(&item)->parent = W_WIDGET(toolbar);
 		_W_ITEM(&item)->index = index;
 		_W_TOOLITEM(&item)->toolItem = toolitem;
@@ -579,7 +579,7 @@ wresult _w_toolbar_insert_item(w_toolbar *toolbar, w_toolitem *item, int style,
 			GTK_TOOL_ITEM(handle), index);
 	_w_toolbar_relayout(toolbar);
 	if (item != 0) {
-		_W_WIDGETDATA(item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
+		W_WIDGETDATA(item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
 		_W_ITEM(item)->parent = W_WIDGET(toolbar);
 		_W_ITEM(item)->index = _index;
 		_W_TOOLITEM(item)->toolItem = GTK_TOOL_ITEM(handle);
@@ -594,7 +594,7 @@ void _w_toolbar_relayout(w_toolbar *toolbar) {
 	int length = gtk_toolbar_get_n_items(handle);
 	gboolean hasText = FALSE, hasImage = FALSE;
 	w_toolitem item;
-	_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
+	W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(toolbar);
 	_W_ITEM(&item)->parent = W_WIDGET(toolbar);
 	for (int i = 0; i < length; i++) {
 		GtkToolItem *toolitem = gtk_toolbar_get_nth_item(handle, i);
@@ -728,11 +728,11 @@ void _gtk_toolbar_send_selection(GtkWidget *widget,
 	event.event.widget = st->parent;
 	event.event.platform_event = _EVENT_PLATFORM(st->e);
 	event.item = W_TOOLITEM(&item);
-	_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(st->parent);
+	W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(st->parent);
 	_W_ITEM(&item)->parent = st->parent;
 	_W_ITEM(&item)->index = -1;
 	_W_TOOLITEM(&item)->toolItem = GTK_TOOL_ITEM(st->lastSelected);
-	_w_widget_post_event(st->parent, W_EVENT(&event));
+	_w_widget_send_event(st->parent, W_EVENT(&event),W_EVENT_SEND);
 }
 void _gtk_toolbar_select_radio_callback(GtkWidget *widget, gpointer data) {
 	struct _gtk_toolbar_select_radio_struct *st =
@@ -776,7 +776,7 @@ gboolean _gtk_toolbar_clicked(w_widget *widget, _w_event_platform *e,
 	event.event.widget = widget;
 	event.event.platform_event = _EVENT_PLATFORM(e);
 	event.item = W_TOOLITEM(&item);
-	_W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(widget);
+	W_WIDGETDATA(&item)->clazz = _W_TOOLBAR_GET_ITEM_CLASS(widget);
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;
 	_W_TOOLITEM(&item)->toolItem = GTK_TOOL_ITEM(e->widget);
@@ -840,7 +840,7 @@ gboolean _gtk_toolbar_clicked(w_widget *widget, _w_event_platform *e,
 			}
 		}
 	}
-	_w_widget_post_event(widget, W_EVENT(&event));
+	_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 	return FALSE;
 }
 
@@ -904,8 +904,13 @@ _gtk_signal_info _gtk_toolbar_signal_lookup[_W_TOOLBAR_LAST] = { //
 				{ SIGNAL_CLICKED, 2, "clicked" }, //
 				{ SIGNAL_CREATE_MENU_PROXY, 2, "create-menu-proxy" }, //
 		};
-void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_toolbar_class *clazz) {
+	if (classId == _W_CLASS_TOOLBAR) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_toolbar_priv;
+	}
+	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TOOLBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_toolbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_toolbar);
@@ -925,6 +930,7 @@ void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
 	 *
 	 */
 	struct _w_toolitem_class *item = clazz->class_toolitem;
+	W_WIDGETDATA_CLASS(item)->toolkit = toolkit;
 	_w_item_class_init(W_ITEM_CLASS(item));
 	W_ITEM_CLASS(item)->get_data = _w_toolitem_get_data;
 	W_ITEM_CLASS(item)->get_text = _w_toolitem_get_text;
@@ -951,32 +957,38 @@ void _w_toolbar_class_init(struct _w_toolbar_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_widget_hp;
-	priv->handle_fixed = _w_widget_hp;
-	priv->handle_event = _w_widget_hp;
-	priv->handle_enterexit = _w_widget_h;
-	priv->widget.compute_size = _w_toolbar_compute_size;
-	priv->widget.check_style = _w_toolbar_check_style;
-	priv->widget.create_handle = _w_toolbar_create_handle;
-	priv->widget.hook_events = _w_toolbar_hook_events;
-	priv->set_bounds_0 = _w_toolbar_set_bounds_0;
-	_w_widget_init_signal(_W_TOOLBAR_PRIV(priv)->signals,
-			_gtk_toolbar_signal_lookup, _W_TOOLBAR_LAST);
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_toolbar_button_press_event;
-	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_toolbar_button_release_event;
-	signals[SIGNAL_CLICKED] = _gtk_toolbar_clicked;
-	signals[SIGNAL_CREATE_MENU_PROXY] = _gtk_toolbar_create_menu_proxy;
-	signals[SIGNAL_ENTER_NOTIFY_EVENT] = _gtk_toolbar_enter_notify_event;
-	signals[SIGNAL_EVENT_AFTER] = _gtk_toolbar_event_after;
-	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_toolbar_focus_in_event;
-	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_toolbar_focus_out_event;
-	signals[SIGNAL_LEAVE_NOTIFY_EVENT] = _gtk_toolbar_leave_notify_event;
-	signals[SIGNAL_MAP] = _gtk_toolbar_map;
-	signals[SIGNAL_MNEMONIC_ACTIVATE] = _gtk_toolbar_mnemonic_activate;
-
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_TOOLBAR) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_widget_hp;
+		priv->handle_fixed = _w_widget_hp;
+		priv->handle_event = _w_widget_hp;
+		priv->handle_enterexit = _w_widget_h;
+		priv->widget.compute_size = _w_toolbar_compute_size;
+		priv->widget.check_style = _w_toolbar_check_style;
+		priv->widget.create_handle = _w_toolbar_create_handle;
+		priv->widget.hook_events = _w_toolbar_hook_events;
+		priv->set_bounds_0 = _w_toolbar_set_bounds_0;
+		_w_widget_init_signal(_W_TOOLBAR_PRIV(priv)->signals,
+				_gtk_toolbar_signal_lookup, _W_TOOLBAR_LAST);
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_toolbar_button_press_event;
+		signals[SIGNAL_BUTTON_RELEASE_EVENT] =
+				_gtk_toolbar_button_release_event;
+		signals[SIGNAL_CLICKED] = _gtk_toolbar_clicked;
+		signals[SIGNAL_CREATE_MENU_PROXY] = _gtk_toolbar_create_menu_proxy;
+		signals[SIGNAL_ENTER_NOTIFY_EVENT] = _gtk_toolbar_enter_notify_event;
+		signals[SIGNAL_EVENT_AFTER] = _gtk_toolbar_event_after;
+		signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_toolbar_focus_in_event;
+		signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_toolbar_focus_out_event;
+		signals[SIGNAL_LEAVE_NOTIFY_EVENT] = _gtk_toolbar_leave_notify_event;
+		signals[SIGNAL_MAP] = _gtk_toolbar_map;
+		signals[SIGNAL_MNEMONIC_ACTIVATE] = _gtk_toolbar_mnemonic_activate;
+	}
 }

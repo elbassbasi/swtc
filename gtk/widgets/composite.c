@@ -219,7 +219,7 @@ w_composite* _w_composite_find_deferred_control(w_control *composite,
 	if ( _W_COMPOSITE(composite)->layoutCount > 0) {
 		return W_COMPOSITE(composite);
 	} else {
-		w_composite *parent = _W_CONTROL(composite)->parent;
+		w_widget *parent = _W_WIDGET(composite)->parent;
 		_w_control_priv *ppriv = _W_CONTROL_GET_PRIV(parent);
 		return _W_COMPOSITE_PRIV(ppriv)->find_deferred_control(
 				W_CONTROL(parent), ppriv);
@@ -256,9 +256,11 @@ GtkWidget* _w_composite_handle_parenting(w_widget *control,
 }
 GtkWidget* _w_composite_handle_scrolled(w_widget *control,
 		_w_control_priv *priv) {
-	int scrolled = (_W_WIDGET(control)->style & (W_HSCROLL | W_VSCROLL)) != 0;
-	if (scrolled || (_W_WIDGET(control)->style & W_BORDER) != 0) {
-		return gtk_widget_get_parent(_W_WIDGET(control)->handle);
+	wuint64 style = _W_WIDGET(control)->style;
+	int scrolled = (style & (W_HSCROLL | W_VSCROLL)) != 0;
+	if (scrolled || (style & W_BORDER) != 0) {
+		GtkWidget *handle = _W_WIDGET(control)->handle;
+		return gtk_widget_get_parent(handle);
 	} else
 		return 0;
 }
@@ -423,8 +425,8 @@ wresult _w_composite_has_border(w_composite *composite, _w_control_priv *priv) {
 void _w_composite_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_scrollable_hook_events(widget, priv);
 	if ((_W_WIDGET(widget)->state & STATE_CANVAS) != 0) {
-		gtk_widget_add_events(_W_WIDGET(widget)->handle,
-				GDK_POINTER_MOTION_HINT_MASK);
+		GtkWidget *handle = _W_WIDGET(widget)->handle;
+		gtk_widget_add_events(handle, GDK_POINTER_MOTION_HINT_MASK);
 		GtkWidget *scrolledHandle =
 		_W_SCROLLABLE_PRIV(priv)->handle_scrolled(widget, priv);
 		if (scrolledHandle != 0) {
@@ -504,7 +506,7 @@ void _w_composite_update_layout(w_control *control, int flags,
 		_e.platform_event = 0;
 		_e.widget = W_WIDGET(control);
 		_e.data = 0;
-		_w_widget_post_event(W_WIDGET(control), &_e);
+		_w_widget_send_event(W_WIDGET(control), &_e, W_EVENT_SEND);
 	}
 	if (flags & W_ALL) {
 		_W_WIDGET(control)->state &= ~STATE_LAYOUT_CHILD;
@@ -648,8 +650,13 @@ gboolean _gtk_composite_style_set(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
-void _w_composite_class_init(struct _w_composite_class *clazz) {
-	_w_scrollable_class_init(W_SCROLLABLE_CLASS(clazz));
+void _w_composite_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_composite_class *clazz) {
+	if (classId == _W_CLASS_COMPOSITE) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_composite_priv;
+	}
+	_w_scrollable_class_init(toolkit, classId, W_SCROLLABLE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_COMPOSITE;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_composite_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_composite);
@@ -670,33 +677,41 @@ void _w_composite_class_init(struct _w_composite_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->create_handle = _w_composite_create_handle;
-	_W_WIDGET_PRIV(priv)->get_client_area = _w_composite_get_client_area;
-	_W_WIDGET_PRIV(priv)->hook_events = _w_composite_hook_events;
-	_W_WIDGET_PRIV(priv)->handle_top = _w_composite_handle_fixed;
-	_W_WIDGET_PRIV(priv)->compute_size = _w_composite_compute_size;
-	priv->handle_fixed = _w_composite_handle_fixed;
-	priv->mark_layout = _w_composite_mark_layout;
-	priv->update_layout = _w_composite_update_layout;
-	priv->set_bounds_0 = _w_composite_set_bounds_0;
-	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_composite_handle_scrolled;
-	_W_COMPOSITE_PRIV(priv)->add_child = _w_composite_add_child;
-	_W_COMPOSITE_PRIV(priv)->has_border = _w_composite_has_border;
-	_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_composite_handle_parenting;
-	_W_COMPOSITE_PRIV(priv)->find_deferred_control =
-			_w_composite_find_deferred_control;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_composite_button_press_event;
-	signals[SIGNAL_DRAW] = _gtk_composite_draw;
-	signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_composite_key_press_event;
-	signals[SIGNAL_FOCUS] = _gtk_composite_focus;
-	signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_composite_focus_in_event;
-	signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_composite_focus_out_event;
-	signals[SIGNAL_MAP] = _gtk_composite_map;
-	signals[SIGNAL_REALIZE] = _gtk_composite_realize;
-	signals[SIGNAL_SCROLL_CHILD] = _gtk_composite_scroll_child;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_COMPOSITE) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		_W_WIDGET_PRIV(priv)->create_handle = _w_composite_create_handle;
+		_W_WIDGET_PRIV(priv)->get_client_area = _w_composite_get_client_area;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_composite_hook_events;
+		_W_WIDGET_PRIV(priv)->handle_top = _w_composite_handle_fixed;
+		_W_WIDGET_PRIV(priv)->compute_size = _w_composite_compute_size;
+		priv->handle_fixed = _w_composite_handle_fixed;
+		priv->mark_layout = _w_composite_mark_layout;
+		priv->update_layout = _w_composite_update_layout;
+		priv->set_bounds_0 = _w_composite_set_bounds_0;
+		_W_SCROLLABLE_PRIV(priv)->handle_scrolled =
+				_w_composite_handle_scrolled;
+		_W_COMPOSITE_PRIV(priv)->add_child = _w_composite_add_child;
+		_W_COMPOSITE_PRIV(priv)->has_border = _w_composite_has_border;
+		_W_COMPOSITE_PRIV(priv)->handle_parenting =
+				_w_composite_handle_parenting;
+		_W_COMPOSITE_PRIV(priv)->find_deferred_control =
+				_w_composite_find_deferred_control;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_composite_button_press_event;
+		signals[SIGNAL_DRAW] = _gtk_composite_draw;
+		signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_composite_key_press_event;
+		signals[SIGNAL_FOCUS] = _gtk_composite_focus;
+		signals[SIGNAL_FOCUS_IN_EVENT] = _gtk_composite_focus_in_event;
+		signals[SIGNAL_FOCUS_OUT_EVENT] = _gtk_composite_focus_out_event;
+		signals[SIGNAL_MAP] = _gtk_composite_map;
+		signals[SIGNAL_REALIZE] = _gtk_composite_realize;
+		signals[SIGNAL_SCROLL_CHILD] = _gtk_composite_scroll_child;
+	}
 }

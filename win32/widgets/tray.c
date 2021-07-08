@@ -155,7 +155,7 @@ wresult _w_trayitem_set_visible(w_trayitem *trayitem, int visible) {
 		e.time = 0;
 		e.data = 0;
 		e.platform_event = 0;
-		_w_widget_post_event(W_WIDGET(trayitem), &e, W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(trayitem), &e, W_EVENT_SEND);
 		if (w_widget_is_ok(W_WIDGET(trayitem)) < 0)
 			return W_FALSE;
 	}
@@ -186,7 +186,7 @@ wresult _w_trayitem_set_visible(w_trayitem *trayitem, int visible) {
 		e.time = 0;
 		e.data = 0;
 		e.platform_event = 0;
-		_w_widget_post_event(W_WIDGET(trayitem), &e, W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(trayitem), &e, W_EVENT_SEND);
 	}
 	return W_TRUE;
 }

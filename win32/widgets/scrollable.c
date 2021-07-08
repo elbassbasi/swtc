@@ -748,7 +748,7 @@ wresult _SCROLLABLE_WM_SCROLL(w_widget *widget, _w_event_platform *e,
 		event.detail = W_PAGE_UP;
 		break;
 	}
-	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return W_TRUE;
 }
 

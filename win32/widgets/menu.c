@@ -552,7 +552,7 @@ wresult _w_menuitem_remove(w_menuitem *item) {
 	ei.event.platform_event = 0;
 	ei.event.widget = menu;
 	ei.item = item;
-	_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
+	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
 	W_WIDGETDATA(item)->clazz = 0;
 	if (DeleteMenu(hMenu, index, MF_BYPOSITION)) {
 		return W_TRUE;
@@ -1046,7 +1046,7 @@ wresult _MENU_WM_MENUCOMMAND(w_widget *widget, _w_event_platform *e,
 	_W_ITEM(&item)->parent = W_WIDGET(menu);
 	_W_ITEM(&item)->index = index;
 	_W_MENUITEM(&item)->menu = hMenu;
-	_w_widget_post_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
+	_w_widget_send_event(W_WIDGET(menu), (w_event*) &ei, W_EVENT_SEND);
 	e->result = FALSE;
 	return W_TRUE;
 }
@@ -1116,7 +1116,7 @@ wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 					ei.event.platform_event = _EVENT_PLATFORM(e);
 					ei.event.widget = W_WIDGET(menu);
 					ei.item = (w_menuitem*) &item;
-					_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+					_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei),
 							W_EVENT_SEND);
 				}
 			}
@@ -1149,7 +1149,7 @@ wresult _MENU_WM_INITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 				ei.event.platform_event = _EVENT_PLATFORM(e);
 				ei.event.widget = W_WIDGET(_menu);
 				ei.item = (w_menuitem*) &item;
-				_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+				_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei),
 						W_EVENT_SEND);
 			}
 		}
@@ -1173,7 +1173,7 @@ wresult _MENU_WM_UNINITMENUPOPUP(w_widget *widget, _w_event_platform *e,
 				ei.event.platform_event = _EVENT_PLATFORM(e);
 				ei.event.widget = W_WIDGET(_menu);
 				ei.item = (w_menuitem*) &item;
-				_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+				_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei),
 						W_EVENT_SEND);
 			}
 		}
@@ -1238,7 +1238,7 @@ wresult _MENU_WM_MENUSELECT(w_widget *widget, _w_event_platform *e,
 					ei.event.platform_event = _EVENT_PLATFORM(e);
 					ei.event.widget = W_WIDGET(_menu);
 					ei.item = (w_menuitem*) &item;
-					_w_widget_post_event(W_WIDGET(_menu), W_EVENT(&ei),
+					_w_widget_send_event(W_WIDGET(_menu), W_EVENT(&ei),
 							W_EVENT_SEND);
 				}
 				if (w_widget_is_ok(W_WIDGET(_menu)) <= 0)

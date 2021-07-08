@@ -467,7 +467,7 @@ wresult _w_spinner_set_selection_0(w_spinner *spinner, int value, int setPos,
 		e.platform_event = 0;
 		e.time = 0;
 		e.data = 0;
-		_w_widget_post_event(W_WIDGET(spinner), &e, W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(spinner), &e, W_EVENT_SEND);
 	}
 	return result;
 }
@@ -635,7 +635,7 @@ wresult _SPINNER_WM_CHAR(w_widget *widget, _w_event_platform *e,
 		ee.platform_event = 0;
 		ee.time = 0;
 		ee.data = 0;
-		_w_widget_post_event(widget, &ee, W_EVENT_SEND);
+		_w_widget_send_event(widget, &ee, W_EVENT_SEND);
 		e->result = 0;
 		return W_TRUE;
 		break;
@@ -872,7 +872,7 @@ wresult _SPINNER_WM_SCROLLCHILD(w_widget *widget, _w_event_platform *e,
 		ee.platform_event = 0;
 		ee.time = 0;
 		ee.data = 0;
-		_w_widget_post_event(widget, &ee, W_EVENT_SEND);
+		_w_widget_send_event(widget, &ee, W_EVENT_SEND);
 		break;
 	}
 	return W_FALSE;

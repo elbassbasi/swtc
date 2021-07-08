@@ -540,7 +540,7 @@ wresult _w_scrollable_get_horizontal_bar(w_scrollable *scrollable,
 		_W_SCROLLABLE_PRIV(priv)->handle_scrolled(W_WIDGET(scrollable), priv);
 		if (scrolledHandle != 0) {
 			_W_SCROLLBAR(scrollbar)->widgetdata.clazz = W_WIDGETDATA_CLASS(
-					&gtk_toolkit->class_scrollbar);
+					&gtk_toolkit->classes.class_scrollbar);
 			_W_SCROLLBAR(scrollbar)->parent = scrollable;
 			_W_SCROLLBAR(scrollbar)->scrolledHandle = scrolledHandle;
 			_W_SCROLLBAR(scrollbar)->style = W_HSCROLL;
@@ -568,7 +568,7 @@ wresult _w_scrollable_get_vertical_bar(w_scrollable *scrollable,
 		_W_SCROLLABLE_PRIV(priv)->handle_scrolled(W_WIDGET(scrollable), priv);
 		if (scrolledHandle != 0) {
 			_W_SCROLLBAR(scrollbar)->widgetdata.clazz = W_WIDGETDATA_CLASS(
-					&gtk_toolkit->class_scrollbar);
+					&gtk_toolkit->classes.class_scrollbar);
 			_W_SCROLLBAR(scrollbar)->parent = scrollable;
 			_W_SCROLLBAR(scrollbar)->scrolledHandle = scrolledHandle;
 			_W_SCROLLBAR(scrollbar)->style = W_VSCROLL;
@@ -727,8 +727,8 @@ gboolean _gtk_scrollbar_value_changed(w_widget *widget, _w_event_platform *e,
 	event.scrollbar = W_SCROLLBAR(&scrollbar);
 	scrollbar.parent = W_SCROLLABLE(widget);
 	scrollbar.widgetdata.clazz = W_WIDGETDATA_CLASS(
-			&gtk_toolkit->class_scrollbar);
-	_w_widget_post_event(widget, (w_event*) &event);
+			&gtk_toolkit->classes.class_scrollbar);
+	_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 	_W_SCROLLABLE_PRIV(priv)->update_scrollbar_value(W_SCROLLABLE(widget),
 			style, priv);
 #if GTK3
@@ -768,7 +768,7 @@ gboolean _gtk_scrollbar_event_after(w_widget *widget, _w_event_platform *e,
 			_W_SCROLLBAR(&scrollbar)->scrolledHandle = scrolledHandle;
 			_W_SCROLLBAR(&scrollbar)->parent = W_SCROLLABLE(widget);
 			_W_SCROLLBAR(&scrollbar)->widgetdata.clazz = W_WIDGETDATA_CLASS(
-					&gtk_toolkit->class_scrollbar);
+					&gtk_toolkit->classes.class_scrollbar);
 			event.event.widget = widget;
 			event.event.time = 0;
 			event.event.data = 0;
@@ -776,7 +776,7 @@ gboolean _gtk_scrollbar_event_after(w_widget *widget, _w_event_platform *e,
 			event.scrollbar = &scrollbar;
 			if (!dragSent) {
 				event.detail = W_DRAG;
-				_w_widget_post_event(widget, (w_event*) &event);
+				_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 			}
 			if (style & W_VSCROLL) {
 				event.event.type = W_EVENT_VSCROLL;
@@ -789,7 +789,7 @@ gboolean _gtk_scrollbar_event_after(w_widget *widget, _w_event_platform *e,
 			event.event.platform_event = (w_event_platform*) e;
 			event.scrollbar = &scrollbar;
 			event.detail = 0;
-			_w_widget_post_event(widget, (w_event*) &event);
+			_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
 		}
 		if (style & W_VSCROLL) {
 			_W_SCROLLABLE(widget)->vdetail = GTK_SCROLL_NONE;
@@ -933,8 +933,9 @@ gboolean _gtk_scrollable_scroll_event(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
-void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_scrollable_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_scrollable_class *clazz) {
+	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
 	/*
 	 * scrollable class
 	 */
@@ -945,9 +946,9 @@ void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
 	/*
 	 * scrollbar class
 	 */
-	clazz->class_scrollbar = &gtk_toolkit->class_scrollbar;
-	if (gtk_toolkit->class_scrollbar.get_values == 0) {
-		struct _w_scrollbar_class *scrollbar = &gtk_toolkit->class_scrollbar;
+	clazz->class_scrollbar = &gtk_toolkit->classes.class_scrollbar;
+	if (gtk_toolkit->classes.class_scrollbar.get_values == 0) {
+		struct _w_scrollbar_class *scrollbar = &gtk_toolkit->classes.class_scrollbar;
 		scrollbar->widgetdata.toolkit = (w_toolkit*) gtk_toolkit;
 		scrollbar->widgetdata.is_ok = _w_widgetdata_is_ok;
 		scrollbar->widgetdata.close = _w_widgetdata_close;
@@ -980,22 +981,25 @@ void _w_scrollable_class_init(struct _w_scrollable_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->get_client_area = _w_scrollable_get_client_area;
-	_W_WIDGET_PRIV(priv)->compute_trim = _w_scrollable_compute_trim;
-	_W_WIDGET_PRIV(priv)->hook_events = _w_scrollable_hook_events;
-	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_h0;
-	_W_SCROLLABLE_PRIV(priv)->apply_theme_background =
-			_w_scrollable_apply_theme_background;
-	_W_SCROLLABLE_PRIV(priv)->update_scrollbar_value =
-			_w_scrollable_update_scrollbar_value;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_scrollable_button_press_event;
-	signals[SIGNAL_CHANGE_VALUE] = _gtk_scrollable_change_value;
-	signals[SIGNAL_VALUE_CHANGED] = _gtk_scrollable_value_changed;
-	signals[SIGNAL_EVENT_AFTER] = _gtk_scrollable_event_after;
-	signals[SIGNAL_SCROLL_EVENT] = _gtk_scrollable_scroll_event;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		_W_WIDGET_PRIV(priv)->get_client_area = _w_scrollable_get_client_area;
+		_W_WIDGET_PRIV(priv)->compute_trim = _w_scrollable_compute_trim;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_scrollable_hook_events;
+		_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_h0;
+		_W_SCROLLABLE_PRIV(priv)->apply_theme_background =
+				_w_scrollable_apply_theme_background;
+		_W_SCROLLABLE_PRIV(priv)->update_scrollbar_value =
+				_w_scrollable_update_scrollbar_value;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_scrollable_button_press_event;
+		signals[SIGNAL_CHANGE_VALUE] = _gtk_scrollable_change_value;
+		signals[SIGNAL_VALUE_CHANGED] = _gtk_scrollable_value_changed;
+		signals[SIGNAL_EVENT_AFTER] = _gtk_scrollable_event_after;
+		signals[SIGNAL_SCROLL_EVENT] = _gtk_scrollable_scroll_event;
+	}
 }

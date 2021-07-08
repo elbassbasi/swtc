@@ -897,7 +897,7 @@ struct WMenuItems {
 	int accelerator;
 	int image;
 	const char *name;
-	__SelectionAction action;
+	IWNotify::SelectionAction action;
 };
 class SWTP_PUBLIC WMenu: public WMenuBase {
 public:

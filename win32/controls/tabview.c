@@ -360,7 +360,7 @@ wresult _w_tabview_set_selection_0(w_tabview *tabview, int index,
 			_e.event.platform_event = 0;
 			_e.event.data = 0;
 			_e.item = W_TABITEM(&item);
-			return _w_widget_post_event(W_WIDGET(tabview), (w_event*) &_e,W_EVENT_SEND);
+			return _w_widget_send_event(W_WIDGET(tabview), (w_event*) &_e,W_EVENT_SEND);
 		}
 	}
 	return W_TRUE;
@@ -462,7 +462,7 @@ wresult _TABVIEW_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 			_e.event.platform_event = _EVENT_PLATFORM(e);
 			_e.event.data = 0;
 			_e.item = &item;
-			return _w_widget_post_event(widget, (w_event*) &_e,W_EVENT_SEND);
+			return _w_widget_send_event(widget, (w_event*) &_e,W_EVENT_SEND);
 		}
 	}
 	}
@@ -498,7 +498,7 @@ wresult _TABVIEW_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 				_e.event.data = 0;
 				_e.item = W_TABITEM(&item);
 				_e.control = 0;
-				_w_widget_post_event(widget, (w_event*) &_e,W_EVENT_SEND);
+				_w_widget_send_event(widget, (w_event*) &_e,W_EVENT_SEND);
 			}
 		}
 	}

@@ -103,8 +103,13 @@ wresult _w_progressbar_compute_size(w_widget *widget, w_event_compute_size *e,
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	return _w_control_compute_native_size(widget, handle, e, priv);
 }
-void _w_progressbar_class_init(struct _w_progressbar_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_progressbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_progressbar_class *clazz) {
+	if (classId == _W_CLASS_PROGRESSBAR) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_progressbar_priv;
+	}
+	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_PROGRESSBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_progressbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_progressbar);
@@ -121,15 +126,21 @@ void _w_progressbar_class_init(struct _w_progressbar_class *clazz) {
 	/*
 	 * priv
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->handle_fixed = _w_widget_hp;
-	priv->widget.handle_top = _w_widget_hp;
-	priv->widget.create_handle = _w_progressbar_create_handle;
-	priv->widget.compute_size = _w_progressbar_compute_size;
-	/*
-	 * signal
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
-	signals[SIGNAL_REALIZE] = _gtk_progressbar_realize;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_PROGRESSBAR) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->handle_fixed = _w_widget_hp;
+		priv->widget.handle_top = _w_widget_hp;
+		priv->widget.create_handle = _w_progressbar_create_handle;
+		priv->widget.compute_size = _w_progressbar_compute_size;
+		/*
+		 * signal
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+		signals[SIGNAL_REALIZE] = _gtk_progressbar_realize;
+	}
 }
 

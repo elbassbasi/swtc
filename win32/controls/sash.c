@@ -72,7 +72,7 @@ wresult _SASH_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.bounds.y = _W_SASH(widget)->last.y;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
-	int doit = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	int doit = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!w_widget_is_ok(W_WIDGET(widget))) {
 		e->result = 0;
 		return ret;
@@ -127,7 +127,7 @@ wresult _SASH_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.bounds.y = _W_SASH(widget)->last.y;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
-	int doit = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	int doit = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!w_widget_is_ok(W_WIDGET(widget))) {
 		return ret;
 	}
@@ -191,7 +191,7 @@ wresult _SASH_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 	event.bounds.y = newY;
 	event.bounds.width = size.width;
 	event.bounds.height = size.height;
-	int doit = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	int doit = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!w_widget_is_ok(W_WIDGET(widget))) {
 		e->result = 0;
 		return ret;

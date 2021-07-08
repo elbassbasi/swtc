@@ -1,4 +1,3 @@
-
 /*
  * Name:        thread.c
  * Author:      Azeddine EL Bassbasi
@@ -75,7 +74,7 @@ void* _w_start_routine(void *_thread) {
 		pthread_cleanup_pop(0);
 	return (void*) ((intptr_t) ret);
 }
-wresult w_thread_create(w_thread *thread,size_t stackSize) {
+wresult w_thread_create(w_thread *thread, size_t stackSize) {
 	w_thread_dispose(thread);
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -156,6 +155,6 @@ size_t w_thread_get_cpu_count() {
 	return number_of_processors;
 }
 wresult w_thread_set_concurrency(int level) {
-	int rc = pthread_setconcurrency( level );
+	int rc = pthread_setconcurrency(level);
 	return W_TRUE;
 }

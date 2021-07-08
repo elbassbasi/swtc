@@ -434,7 +434,7 @@ wresult _DATETIME_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 		event.platform_event = _EVENT_PLATFORM(e);
 		event.time = 0;
 		event.data = 0;
-		_w_widget_post_event(widget, &event, W_EVENT_SEND);
+		_w_widget_send_event(widget, &event, W_EVENT_SEND);
 		break;
 	}
 	case DTN_DATETIMECHANGE: {
@@ -449,7 +449,7 @@ wresult _DATETIME_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 			event.platform_event = _EVENT_PLATFORM(e);
 			event.time = 0;
 			event.data = 0;
-			_w_widget_post_event(widget, &event, W_EVENT_SEND);
+			_w_widget_send_event(widget, &event, W_EVENT_SEND);
 			if ((_W_WIDGET(widget)->style & W_TIME) == 0) {
 				memcpy(&_W_DATETIME(widget)->lastSystemTime, &systime,
 						sizeof(SYSTEMTIME));
@@ -480,7 +480,7 @@ wresult _DATETIME_WM_CHAR(w_widget *widget, _w_event_platform *e,
 		event.platform_event = _EVENT_PLATFORM(e);
 		event.time = 0;
 		event.data = 0;
-		_w_widget_post_event(widget, &event, W_EVENT_SEND);
+		_w_widget_send_event(widget, &event, W_EVENT_SEND);
 		e->result = 0;
 		return W_TRUE;
 		break;
@@ -541,7 +541,7 @@ wresult _DATETIME_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 		event.platform_event = _EVENT_PLATFORM(e);
 		event.time = 0;
 		event.data = 0;
-		_w_widget_post_event(widget, &event, W_EVENT_SEND);
+		_w_widget_send_event(widget, &event, W_EVENT_SEND);
 	}
 	_W_WIDGET(widget)->state &= ~STATE_DATETIME_DOUBLECLICK;
 	return result;

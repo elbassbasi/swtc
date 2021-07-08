@@ -1,7 +1,6 @@
 	set(CURRENT_DIR gtk/runtime)
 	set(src_gtk 
 		${src_gtk}
-		${CURRENT_DIR}/app.c
 		${CURRENT_DIR}/atomic.c
 		${CURRENT_DIR}/condition.c
 		${CURRENT_DIR}/core.c

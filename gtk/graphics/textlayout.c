@@ -634,14 +634,15 @@ int w_textlayout_get_tabs(w_textlayout *textlayout, int *tabs, int count) {
 	return result;
 }
 wresult w_textlayout_get_text(w_textlayout *textlayout, w_alloc text,
-		void *user_data) {
+		void *user_data, int enc) {
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
 
 		PangoLayout *layout = _layout->layout;
 		const char *_text = pango_layout_get_text(layout);
-		return w_alloc_set_text(text, user_data, _text, -1);
+		return w_alloc_set_text(text, user_data, enc, _text, -1,
+				W_ENCODING_UTF8);
 	}
 	return result;
 }

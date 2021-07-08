@@ -641,7 +641,7 @@ wresult _COOLBAR_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 			event.location.x = lpnm->rc.left;
 			event.location.y = lpnm->rc.bottom;
 		}
-		_w_widget_post_event(widget, W_EVENT(&event),W_EVENT_SEND);
+		_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
 		break;
 	}
 	case NM_CUSTOMDRAW: {

@@ -31,6 +31,7 @@ typedef struct _w_datetime_priv {
 GtkWidget* _w_datetime_get_entry(w_widget *widget);
 void _w_datetime_get_formatted_string(w_widget *widget, char *text);
 void _w_datetime_update_control(w_datetime *datetime);
-void _w_datetime_class_init(struct _w_datetime_class *clazz);
+void _w_datetime_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_datetime_class *clazz);
 
 #endif /* GTK_CONTROLS_DATETIME_H_ */

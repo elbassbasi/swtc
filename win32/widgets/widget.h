@@ -204,7 +204,7 @@ struct _w_widget_priv {
 w_widget* _w_widget_find_control(HWND hwnd);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
-wresult _w_widget_post_event(w_widget *widget, w_event *event, int flags);
+wresult _w_widget_send_event(w_widget *widget, w_event *event, int flags);
 wresult _w_widget_get_parent(w_widget *widget, w_widget **parent);
 wresult _w_widget_get_first_child(w_widget *widget, w_widget **first_child,
 		int flags);

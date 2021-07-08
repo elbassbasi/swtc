@@ -164,7 +164,7 @@ void _w_spinner_hook_events(w_widget *widget, _w_control_priv *priv) {
 	GtkIMContext *imContext = 0;	//imContext();
 	if (imContext != 0) {
 		_w_widget_connect((GtkWidget*) imContext, &signals[SIGNAL_COMMIT],
-				FALSE);
+		FALSE);
 		int id = g_signal_lookup("commit", gtk_im_context_get_type());
 		GSignalMatchType mask = G_SIGNAL_MATCH_DATA | G_SIGNAL_MATCH_ID;
 		g_signal_handlers_block_matched(imContext, mask, id, 0, 0, 0, handle);
@@ -412,8 +412,13 @@ wresult _w_spinner_set_values(w_spinner *spinner, w_spinner_value *value) {
 			(void*) SIGNAL_VALUE_CHANGED);
 	return W_TRUE;
 }
-void _w_spinner_class_init(struct _w_spinner_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_spinner_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_spinner_class *clazz) {
+	if (classId == _W_CLASS_SPINNER) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_spinner_priv;
+	}
+	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SPINNER;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_spinner_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_spinner);
@@ -444,17 +449,23 @@ void _w_spinner_class_init(struct _w_spinner_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_widget_hp;
-	priv->handle_fixed = _w_widget_hp;
-	priv->widget.compute_size = _w_spinner_compute_size;
-	priv->widget.compute_trim = _w_spinner_compute_trim;
-	priv->widget.check_style = _w_spinner_check_style;
-	priv->widget.create_handle = _w_spinner_create_handle;
-	priv->widget.hook_events = _w_spinner_hook_events;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = priv->widget.signals;
-	signals[SIGNAL_CLICKED] = _gtk_button_clicked;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_SPINNER) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_widget_hp;
+		priv->handle_fixed = _w_widget_hp;
+		priv->widget.compute_size = _w_spinner_compute_size;
+		priv->widget.compute_trim = _w_spinner_compute_trim;
+		priv->widget.check_style = _w_spinner_check_style;
+		priv->widget.create_handle = _w_spinner_create_handle;
+		priv->widget.hook_events = _w_spinner_hook_events;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = priv->widget.signals;
+		signals[SIGNAL_CLICKED] = _gtk_button_clicked;
+	}
 }

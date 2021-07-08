@@ -8,7 +8,6 @@
 #ifndef GTK_WIDGETS_MENU_H_
 #define GTK_WIDGETS_MENU_H_
 #include "widget.h"
-#include "item.h"
 #define STATE_MENU_HAS_LOCATION (1 << (STATE_CONTROL_END + 1))
 /*
  * menu
@@ -16,11 +15,9 @@
 typedef struct _w_menu _w_menu;
 struct _w_menu {
 	_w_widget widget;
-	_w_menu *next;
-	_w_menu *prev;
-	w_control *parent;
 	int x;
 	int y;
+	wushort id_mask;
 };
 #define _W_MENU(x) ((_w_menu*)x)
 #define _W_MENU_GET_ITEM_CLASS(menu) (W_WIDGETDATA_CLASS(W_MENU_GET_CLASS(menu)->class_menuitem))
@@ -42,10 +39,11 @@ struct _w_menu_priv {
 	_gtk_signal signal_select;
 };
 #define _W_MENU_PRIV(x) ((_w_menu_priv*)x)
-#define _W_MENU_GET_PRIV(x) ((_w_menu_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_MENU_GET_PRIV(x) ((_w_menu_priv*)_W_WIDGET_GET_PRIV(x))
 /*
  * functions
  */
-wresult _w_menu_get_shell(w_menu *menu, w_shell **shell);
-void _w_menu_class_init(struct _w_menu_class *clazz);
+wresult _w_menu_get_shell(w_widget *widget, w_shell **shell);
+void _w_menu_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_menu_class *clazz);
 #endif /* GTK_WIDGETS_MENU_H_ */

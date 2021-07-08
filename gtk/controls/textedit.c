@@ -876,7 +876,7 @@ wresult _w_textedit_set_text(w_textedit *text, const char *string,
 		e.platform_event = 0;
 		e.time = 0;
 		e.data = 0;
-		_w_widget_post_event(W_WIDGET(text), &e);
+		_w_widget_send_event(W_WIDGET(text), &e,W_EVENT_SEND);
 		if ((_W_WIDGET(text)->style & W_SEARCH) != 0) {
 			if ((_W_WIDGET(text)->style & W_ICON_CANCEL) != 0) {
 				gtk_entry_set_icon_sensitive(GTK_ENTRY(handle),
@@ -939,8 +939,13 @@ wresult _w_textedit_show_selection(w_textedit *text) {
 	gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(handle), mark, 0, TRUE, 0, 0);
 	return W_TRUE;
 }
-void _w_textedit_class_init(struct _w_textedit_class *clazz) {
-	_w_scrollable_class_init(W_SCROLLABLE_CLASS(clazz));
+void _w_textedit_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_textedit_class *clazz) {
+	if (classId == _W_CLASS_TEXTEDIT) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_textedit_priv;
+	}
+	_w_scrollable_class_init(toolkit, classId,W_SCROLLABLE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TEXTEDIT;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_textedit_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_textedit);
@@ -990,14 +995,20 @@ void _w_textedit_class_init(struct _w_textedit_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->handle_fixed = _w_textedit_handle_fixed;
-	priv->widget.create_handle = _w_textedit_create_handle;
-	priv->widget.check_style = _w_textedit_check_style;
-	priv->widget.handle_top = _w_textedit_handle_fixed;
-	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_textedit_handle_scrolled;
-	_W_SCROLLABLE_PRIV(priv)->apply_theme_background =
-			_w_textedit_apply_theme_background;
-	priv->widget.compute_size = _w_textedit_compute_size;
-	priv->widget.compute_trim = _w_textedit_compute_trim;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_TEXTEDIT) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->handle_fixed = _w_textedit_handle_fixed;
+		priv->widget.create_handle = _w_textedit_create_handle;
+		priv->widget.check_style = _w_textedit_check_style;
+		priv->widget.handle_top = _w_textedit_handle_fixed;
+		_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_textedit_handle_scrolled;
+		_W_SCROLLABLE_PRIV(priv)->apply_theme_background =
+				_w_textedit_apply_theme_background;
+		priv->widget.compute_size = _w_textedit_compute_size;
+		priv->widget.compute_trim = _w_textedit_compute_trim;
+	}
 }

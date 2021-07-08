@@ -120,7 +120,7 @@ wresult _w_toolitem_get_control(w_toolitem *item, w_control **control) {
 			event.event.widget = parent;
 			event.item = item;
 			event.control = 0;
-			_w_widget_post_event(parent, W_EVENT(&event), W_EVENT_SEND);
+			_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 			*control = event.control;
 			result = W_TRUE;
 		}
@@ -178,7 +178,7 @@ wresult _w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 			event.event.widget = parent;
 			event.item = item;
 			event.menu = 0;
-			_w_widget_post_event(parent, W_EVENT(&event), W_EVENT_SEND);
+			_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 			*menu = event.menu;
 		}
 	}
@@ -261,7 +261,7 @@ wresult _w_toolitem_set_control(w_toolitem *item, w_control *control) {
 			event.event.widget = parent;
 			event.item = item;
 			event.control = control;
-			_w_widget_post_event(parent, W_EVENT(&event), W_EVENT_SEND);
+			_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 			result = W_TRUE;
 			/*
 			 * Feature in Windows.  When a tool bar wraps, tool items
@@ -378,7 +378,7 @@ wresult _w_toolitem_set_menu(w_toolitem *item, w_menu *menu) {
 			event.event.widget = parent;
 			event.item = item;
 			event.menu = menu;
-			_w_widget_post_event(parent, W_EVENT(&event), W_EVENT_SEND);
+			_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 		}
 	}
 	return result;
@@ -1057,7 +1057,7 @@ wresult _TOOLBAR_WM_COMMANDCHILD(w_widget *widget, _w_event_platform *e,
 		event.location.x = rect.left;
 		event.location.y = rect.bottom;
 		event.item = W_TOOLITEM(&item);
-		_w_widget_post_event(widget, W_EVENT(&event), W_EVENT_SEND);
+		_w_widget_send_event(widget, W_EVENT(&event), W_EVENT_SEND);
 	}
 	return W_FALSE;
 }
@@ -1091,12 +1091,12 @@ wresult _TOOLBAR_WM_NOTIFYCHILD(w_widget *widget, _w_event_platform *e,
 			event.location.x = rect.left;
 			event.location.y = rect.bottom;
 			event.item = W_TOOLITEM(&item);
-			wresult result = _w_widget_post_event(widget, W_EVENT(&event),
+			wresult result = _w_widget_send_event(widget, W_EVENT(&event),
 					W_EVENT_SEND);
 			if (result == W_FALSE) {
 				event.event.type = W_EVENT_ITEM_GET_MENU;
 				event.menu = 0;
-				wresult result = _w_widget_post_event(widget, W_EVENT(&event),
+				wresult result = _w_widget_send_event(widget, W_EVENT(&event),
 						W_EVENT_SEND);
 				if (result && event.menu) {
 					w_point loc;

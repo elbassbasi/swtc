@@ -108,7 +108,7 @@ wresult _w_widget_get_prev_sibling(w_widget *widget, w_widget **prev_sibling,
 	*prev_sibling = _W_WIDGET(widget)->prev_sibling;
 	return W_TRUE;
 }
-wresult _w_widget_post_event(w_widget *widget, w_event *event, int flags) {
+wresult _w_widget_send_event(w_widget *widget, w_event *event, int flags) {
 	return W_WIDGET_GET_CLASS(widget)->post_event(widget, event, flags);
 }
 int _w_numpad_key(int key) {
@@ -452,7 +452,7 @@ int _w_set_key_state(w_event_key *event) {
 int _w_send_key_event(w_event_key *event) {
 	if (!_w_set_key_state(event))
 		return W_TRUE;
-	return _w_widget_post_event(event->event.widget, (w_event*) event,
+	return _w_widget_send_event(event->event.widget, (w_event*) event,
 			W_EVENT_SEND);
 }
 int _w_widget_show_menu(w_widget *widget, int x, int y, int detail) {
@@ -469,7 +469,7 @@ int _w_widget_show_menu(w_widget *widget, int x, int y, int detail) {
 	if (event.detail == W_MENU_KEYBOARD) {
 		//updateMenuLocation(event);
 	}
-	_w_widget_post_event(widget, W_EVENT(&event), W_EVENT_SEND);
+	_w_widget_send_event(widget, W_EVENT(&event), W_EVENT_SEND);
 	// widget could be disposed at this point
 	if (w_widget_is_ok(widget) <= 0)
 		return W_FALSE;
@@ -895,7 +895,7 @@ wresult _WIDGET_WM_KILLFOCUS(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_FOCUSOUT;
 	event.widget = widget;
 	event.platform_event = (struct w_event_platform*) e;
-	_w_widget_post_event(widget, &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, &event, W_EVENT_SEND);
 // widget could be disposed at this point
 
 	/*
@@ -917,7 +917,7 @@ wresult _WIDGET_WM_SETFOCUS(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_FOCUSIN;
 	event.widget = widget;
 	event.platform_event = (struct w_event_platform*) e;
-	_w_widget_post_event(widget, &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, &event, W_EVENT_SEND);
 	// widget could be disposed at this point
 
 	/*
@@ -1121,7 +1121,7 @@ wresult _WIDGET_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 				event.x = GET_X_LPARAM(e->lparam);
 				event.y = GET_Y_LPARAM(e->lparam);
 				_w_set_input_state((w_event*) &event);
-				_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+				_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 			} else {
 				lpEventTrack.dwFlags = TME_HOVER;
 				TrackMouseEvent(&lpEventTrack);
@@ -1141,7 +1141,7 @@ wresult _WIDGET_WM_MOUSEMOVE(w_widget *widget, _w_event_platform *e,
 		event.x = GET_X_LPARAM(e->lparam);
 		event.y = GET_Y_LPARAM(e->lparam);
 		_w_set_input_state((w_event*) &event);
-		result = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+		result = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 #endif
 	win_toolkit->captureChanged = W_FALSE;
@@ -1175,7 +1175,7 @@ wresult _WIDGET_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1187,7 +1187,7 @@ wresult _WIDGET_WM_LBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1283,7 +1283,7 @@ wresult _WIDGET_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	dispatch = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	dispatch = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!dispatch && !consume) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1308,7 +1308,7 @@ wresult _WIDGET_WM_LBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 		event.x = GET_X_LPARAM(e->lparam);
 		event.y = GET_Y_LPARAM(e->lparam);
 		_w_set_input_state((w_event*) &event);
-		_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+		_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	} else {
 		if (detect) {
 			/*
@@ -1352,7 +1352,7 @@ wresult _WIDGET_WM_LBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult result = _w_widget_post_event(widget, (w_event*) &event,
+	wresult result = _w_widget_send_event(widget, (w_event*) &event,
 			W_EVENT_SEND);
 	if (!result) {
 		priv->widget.call_window_proc(widget, e, priv);
@@ -1402,7 +1402,7 @@ wresult _WIDGET_WM_MBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1414,7 +1414,7 @@ wresult _WIDGET_WM_MBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1441,7 +1441,7 @@ wresult _WIDGET_WM_MBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1467,7 +1467,7 @@ wresult _WIDGET_WM_MBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1502,7 +1502,7 @@ wresult _WIDGET_WM_MOUSEHOVER(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (ret) {
 		e->result = 0;
 		return W_TRUE;
@@ -1527,7 +1527,7 @@ wresult _WIDGET_WM_MOUSELEAVE(w_widget *widget, _w_event_platform *e,
 	event.x = pt.x;
 	event.y = pt.y;
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (ret) {
 		e->result = 0;
 		return W_TRUE;
@@ -1565,7 +1565,7 @@ wresult _WIDGET_WM_MOUSEWHEEL(w_widget *widget, _w_event_platform *e,
 	event.x = pt.x;
 	event.y = pt.y;
 	_w_set_input_state((w_event*) &event);
-	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return W_TRUE;
 }
 wresult _WIDGET_WM_MOUSEHWHEEL(w_widget *widget, _w_event_platform *e,
@@ -1592,7 +1592,7 @@ wresult _WIDGET_WM_MOUSEHWHEEL(w_widget *widget, _w_event_platform *e,
 	event.x = pt.x;
 	event.y = pt.y;
 	_w_set_input_state((w_event*) &event);
-	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return W_TRUE;
 }
 wresult _WIDGET_WM_RBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
@@ -1623,7 +1623,7 @@ wresult _WIDGET_WM_RBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1635,7 +1635,7 @@ wresult _WIDGET_WM_RBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1662,7 +1662,7 @@ wresult _WIDGET_WM_RBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1688,7 +1688,7 @@ wresult _WIDGET_WM_RBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1740,7 +1740,7 @@ wresult _WIDGET_WM_XBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	_w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	event.event.type = W_EVENT_MOUSEDOUBLECLICK;
 	event.event.time = 0;
 	event.event.platform_event = (w_event_platform*) e;
@@ -1752,7 +1752,7 @@ wresult _WIDGET_WM_XBUTTONDBLCLK(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1781,7 +1781,7 @@ wresult _WIDGET_WM_XBUTTONDOWN(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1808,7 +1808,7 @@ wresult _WIDGET_WM_XBUTTONUP(w_widget *widget, _w_event_platform *e,
 	event.x = GET_X_LPARAM(e->lparam);
 	event.y = GET_Y_LPARAM(e->lparam);
 	_w_set_input_state((w_event*) &event);
-	wresult ret = _w_widget_post_event(widget, (w_event*) &event, W_EVENT_SEND);
+	wresult ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		priv->widget.call_window_proc(widget, e, priv);
 	} else {
@@ -1856,7 +1856,7 @@ wresult _WIDGET_WM_PAINT(w_widget *widget, _w_event_platform *e,
 		event.bounds.width = rect.right - rect.left;
 		event.bounds.height = rect.bottom - rect.top;
 		event.gc = &gc;
-		result = _w_widget_post_event(widget, W_EVENT(&event), W_EVENT_SEND);
+		result = _w_widget_send_event(widget, W_EVENT(&event), W_EVENT_SEND);
 	}
 	w_graphics_dispose(&gc);
 	ShowCaret(e->hwnd);

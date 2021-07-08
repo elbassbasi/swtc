@@ -37,14 +37,19 @@ typedef struct _w_event_platform {
 typedef struct _w_widget {
 	void *v_table; //used in c++ as virtual table
 	struct _w_widget_class *clazz;
+	w_widget_post_event_proc post_event;
+	GtkWidget *handle;
+	wuint64 style;
+	wuint state;
 	volatile int ref;
 	wuint id;
-	wuint64 style;
-	wuint state0;
-	wuint state;
-	GtkWidget *handle;
+	wushort state0;
+	wushort children_count;
+	w_widget *parent;
+	w_widget *first_child;
+	w_widget *next_sibling;
+	w_widget *prev_sibling;
 	w_theme *theme;
-	w_widget_post_event_proc post_event;
 	void *data[5];
 } _w_widget;
 #define _W_WIDGET(x) ((_w_widget*)x)
@@ -67,6 +72,7 @@ typedef wresult (*__get_client_area)(w_widget *widget, w_event_client_area *e,
 typedef wresult (*__compute_trim)(w_widget *widget, w_event_compute_trim *e,
 		_w_control_priv *priv);
 struct _w_widget_priv {
+	unsigned init :1;
 	_gtk_signal_fn signals[SIGNAL_LAST];
 	__compute_size compute_size;
 	__get_client_area get_client_area;
@@ -85,7 +91,7 @@ struct _w_widget_priv {
 			_w_control_priv *priv);
 };
 #define _W_WIDGET_PRIV(x) ((_w_widget_priv*)x)
-#define _W_WIDGET_GET_PRIV(x) ((_w_widget_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_WIDGET_GET_PRIV(x) ((_w_widget_priv*)W_WIDGET_GET_CLASS(x)->platformPrivate)
 /*
  * find
  */
@@ -112,7 +118,6 @@ void _w_widget_get_handles(GtkWidget *handle, _w_widget_handles *handles);
  */
 GdkWindow* _gdk_window_get_device_position(GdkWindow *window, gint *x, gint *y,
 		GdkModifierType *mask);
-_w_widget_priv* _w_widget_get_priv(w_widget *widget);
 void _w_widget_set_control(void *handle, w_widget *widget);
 w_widget* _w_widget_find_control(void *handle);
 GtkWidget* _w_widget_h0(w_widget *widget, _w_control_priv *priv);
@@ -129,7 +134,7 @@ void _w_widget_set_orientation(w_widget *widget, int create,
 void _w_widget_hook_events(w_widget *widget, _w_control_priv *priv);
 wuint64 _w_widget_check_bits(wuint64 style, int int0, int int1, int int2,
 		int int3, int int4, int int5);
-wresult _w_widget_post_event(w_widget *widget, w_event *event);
+wresult _w_widget_send_event(w_widget *widget, w_event *event,int flags);
 gboolean _w_widget_send_IM_key_event(w_widget *widget, _w_event_platform *e,
 		int type, GdkEventKey *keyEvent, const char *chars, int length);
 void _w_widget_init_signal_0();
@@ -141,5 +146,6 @@ int _w_translate_key(int key);
 int _w_untranslate_key(int key);
 void _w_widget_set_font_description(w_widget *control, GtkWidget *widget,
 		PangoFontDescription *font, _w_control_priv *priv);
-void _w_widget_class_init(struct _w_widget_class *clazz);
+void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_widget_class *clazz);
 #endif /* GTK_WIDGETS_WIDGET_H_ */

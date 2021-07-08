@@ -61,7 +61,7 @@ struct _w_shell_priv {
 	_gtk_signal move_focus;
 };
 #define _W_SHELL_PRIV(x) ((_w_shell_priv*)x)
-#define _W_SHELL_GET_PRIV(x) ((_w_shell_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_SHELL_GET_PRIV(x) ((_w_shell_priv*)_W_WIDGET_GET_PRIV(x))
 /*
  * functions
  */
@@ -73,7 +73,8 @@ void _w_shell_destroy_accel_group(w_shell *shell);
 void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 		int type);
 void _w_shell_set_saved_focus(w_shell *shell, w_control *control);
-void _w_shell_class_init(struct _w_shell_class *clazz);
+void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_shell_class *clazz);
 /*
  * signals
  */

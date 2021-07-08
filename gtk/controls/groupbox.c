@@ -164,8 +164,13 @@ wresult _w_groupbox_compute_trim(w_widget *widget, w_event_compute_trim *e,
 	e->result->height = e->rect->height + clientX + clientY;
 	return TRUE;
 }
-void _w_groupbox_class_init(struct _w_groupbox_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_groupbox_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_groupbox_class *clazz) {
+	if (classId == _W_CLASS_GROUPBOX) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_groupbox_priv;
+	}
+	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_GROUPBOX;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_groupbox_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_groupbox);
@@ -178,15 +183,21 @@ void _w_groupbox_class_init(struct _w_groupbox_class *clazz) {
 	/*
 	 * priv
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hpp;
-	_W_WIDGET_PRIV(priv)->check_style = _w_groupbox_check_style;
-	priv->handle_fixed = _w_widget_hpp;
-	priv->handle_client = _w_widget_h;
-	_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_widget_h;
-	_W_WIDGET_PRIV(priv)->create_handle = _w_groupbox_create_handle;
-	_W_WIDGET_PRIV(priv)->get_client_area = _w_groupbox_get_client_area;
-	_W_WIDGET_PRIV(priv)->compute_trim = _w_groupbox_compute_trim;
-	_W_WIDGET_PRIV(priv)->compute_size = _w_groupbox_compute_size;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_GROUPBOX) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hpp;
+		_W_WIDGET_PRIV(priv)->check_style = _w_groupbox_check_style;
+		priv->handle_fixed = _w_widget_hpp;
+		priv->handle_client = _w_widget_h;
+		_W_COMPOSITE_PRIV(priv)->handle_parenting = _w_widget_h;
+		_W_WIDGET_PRIV(priv)->create_handle = _w_groupbox_create_handle;
+		_W_WIDGET_PRIV(priv)->get_client_area = _w_groupbox_get_client_area;
+		_W_WIDGET_PRIV(priv)->compute_trim = _w_groupbox_compute_trim;
+		_W_WIDGET_PRIV(priv)->compute_size = _w_groupbox_compute_size;
+	}
 }
 

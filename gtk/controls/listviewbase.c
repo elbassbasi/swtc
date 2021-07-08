@@ -206,7 +206,7 @@ wresult _w_columnitem_set_width(w_columnitem *column, int width) {
 	e.event.type = W_EVENT_ITEM_RESIZE;
 	e.event.widget = tree;
 	e.column = column;
-	_w_widget_post_event(tree, (w_event*) &e);
+	_w_widget_send_event(tree, (w_event*) &e, W_EVENT_SEND);
 	return W_TRUE;
 }
 /*
@@ -307,14 +307,14 @@ void _w_tree_cell_data(GtkTreeViewColumn *tree_column, GtkCellRenderer *cell,
 	/*
 	 * tree column
 	 */
-	_W_WIDGETDATA(&c->column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(data);
+	W_WIDGETDATA(&c->column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(data);
 	_W_ITEM(&c->column)->parent = W_WIDGET(data);
 	_W_ITEM(&c->column)->index = -1;
 	_W_COLUMNITEM(&c->column)->column = tree_column;
 	/*
 	 * tree item
 	 */
-	_W_WIDGETDATA(&c->treeitem)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(data);
+	W_WIDGETDATA(&c->treeitem)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(data);
 	_W_ITEM(&c->treeitem)->parent = W_WIDGET(data);
 	_W_ITEM(&c->treeitem)->index = -1;
 	memcpy(&_W_TREEITEM(&c->treeitem)->iter, iter, sizeof(GtkTreeIter));
@@ -419,7 +419,7 @@ wresult _w_listviewbase_insert_column_0(w_listviewbase *list, int index,
 	gtk_tree_view_insert_column(GTK_TREE_VIEW(_handle), columnHandle, index);
 	_w_widget_set_control(columnHandle, (w_widget*) ((long) 0));
 	if (column != 0) {
-		_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+		W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
 		_W_ITEM(column)->parent = W_WIDGET(list);
 		_W_ITEM(column)->index = index;
 		_W_COLUMNITEM(column)->column = columnHandle;
@@ -445,7 +445,7 @@ wresult _w_listviewbase_clear_all(w_listviewbase *list) {
 	} else {
 		callback = _w_listview_clear_all_callback;
 	}
-	return w_listviewbase_for_all_item(list, callback, 0);
+	return w_listviewbase_for_all_item(list, callback, 0, 0);
 }
 wresult _w_listviewbase_deselect_all(w_listviewbase *list) {
 	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
@@ -464,7 +464,7 @@ wresult _w_listviewbase_for_all_column(w_listviewbase *list,
 		w_widget_callback callback, void *user_data) {
 	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
 	w_columnitem column;
-	_W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+	W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
 	_W_ITEM(&column)->parent = W_WIDGET(list);
 	int n = gtk_tree_view_get_n_columns(handle);
 	for (int i = 0; i < n; i++) {
@@ -480,7 +480,7 @@ wresult _w_listviewbase_get_column(w_listviewbase *list, int index,
 	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
 	GtkTreeViewColumn *columnHandle = gtk_tree_view_get_column(handle, index);
 	if (columnHandle != 0) {
-		_W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
+		W_WIDGETDATA(column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
 		_W_ITEM(column)->parent = W_WIDGET(list);
 		_W_ITEM(column)->index = index;
 		_W_COLUMNITEM(column)->column = columnHandle;
@@ -702,8 +702,9 @@ _gtk_signal_info _gtk_listview_signal_lookup[_W_LISTVIEW_LAST] = { //
 				{ SIGNAL_EXPAND_COLLAPSE_CURSOR_ROW, 5,
 						"expand-collapse-cursor-row" }, //
 		};
-void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
-	_w_composite_class_init(W_COMPOSITE_CLASS(clazz));
+void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listviewbase_class *clazz) {
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	clazz->clear_all = _w_listviewbase_clear_all;
 	clazz->deselect_all = _w_listviewbase_deselect_all;
 	clazz->for_all_column = _w_listviewbase_for_all_column;
@@ -740,6 +741,7 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	struct _w_columnitem_class *columnitem = W_COLUMNITEM_CLASS(
 			clazz->class_column);
 	_w_item_class_init(W_ITEM_CLASS(columnitem));
+	W_WIDGETDATA_CLASS(columnitem)->toolkit = toolkit;
 	W_ITEM_CLASS(columnitem)->get_data = _w_columnitem_get_data;
 	W_ITEM_CLASS(columnitem)->get_text = _w_columnitem_get_text;
 	W_ITEM_CLASS(columnitem)->set_data = _w_columnitem_set_data;
@@ -761,22 +763,25 @@ void _w_listviewbase_class_init(struct _w_listviewbase_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	_W_WIDGET_PRIV(priv)->create_handle = _w_listviewbase_create_handle;
-	_W_WIDGET_PRIV(priv)->check_style = _w_listviewbase_check_style;
-	_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hpp;
-	_W_WIDGET_PRIV(priv)->hook_events = _w_listviewbase_hook_events;
-	priv->handle_fixed = _w_widget_hpp;
-	priv->set_bounds_0 = _w_listviewbase_set_bounds_0;
-	_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_hp;
-	_W_LISTVIEWBASE_PRIV(priv)->renderer_render =
-			_w_listviewbase_renderer_render;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		_W_WIDGET_PRIV(priv)->create_handle = _w_listviewbase_create_handle;
+		_W_WIDGET_PRIV(priv)->check_style = _w_listviewbase_check_style;
+		_W_WIDGET_PRIV(priv)->handle_top = _w_widget_hpp;
+		_W_WIDGET_PRIV(priv)->hook_events = _w_listviewbase_hook_events;
+		priv->handle_fixed = _w_widget_hpp;
+		priv->set_bounds_0 = _w_listviewbase_set_bounds_0;
+		_W_SCROLLABLE_PRIV(priv)->handle_scrolled = _w_widget_hp;
+		_W_LISTVIEWBASE_PRIV(priv)->renderer_render =
+				_w_listviewbase_renderer_render;
 #if GTK3
-	_W_LISTVIEWBASE_PRIV(priv)->renderer_get_preferred_width =
-			_w_listviewbase_renderer_get_preferred_width;
+		_W_LISTVIEWBASE_PRIV(priv)->renderer_get_preferred_width =
+				_w_listviewbase_renderer_get_preferred_width;
 #endif
-	_w_widget_init_signal(_W_LISTVIEWBASE_PRIV(priv)->signals,
-			_gtk_listview_signal_lookup, _W_LISTVIEW_LAST);
+		_w_widget_init_signal(_W_LISTVIEWBASE_PRIV(priv)->signals,
+				_gtk_listview_signal_lookup, _W_LISTVIEW_LAST);
+	}
 }
 /*
  * cell renderer
@@ -811,8 +816,8 @@ void _w_cell_renderer_ClassInit(struct _w_cell_renderer_class *klass) {
 #endif
 }
 void _w_cell_renderer_init(_w_cell_renderer *cell) {
-	_W_WIDGETDATA(&cell->column)->clazz = 0;
-	_W_WIDGETDATA(&cell->treeitem)->clazz = 0;
+	W_WIDGETDATA(&cell->column)->clazz = 0;
+	W_WIDGETDATA(&cell->treeitem)->clazz = 0;
 }
 GType _w_registre_renderer_class(const char *name, GType parent) {
 	GTypeInfo renderer_info = { sizeof(_w_cell_renderer_class),
@@ -892,9 +897,9 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	event.item = W_ITEM(item);
 	event.rect = 0;
 	event.gc = 0;
-	event.attr = &attr;
+	event.textattr = &attr;
 	memset(&attr, 0, sizeof(attr));
-	int ret = _w_widget_post_event(widget, (w_event*) &event);
+	int ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		memset(&attr, 0, sizeof(attr));
 	}
@@ -938,7 +943,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 #endif
 			if ((_list->drawState & W_SELECTED) == 0) {
 				if ((_W_WIDGET(widget)->state & STATE_PARENT_BACKGROUND) != 0
-						|| _W_CONTROL(widget)->backgroundImage != 0) {
+						|| _W_CONTROL(widget)->backgroundImage.pixbuf != 0) {
 					w_control *control = priv->find_background_control(
 							W_CONTROL(widget), priv);
 					if (control != 0) {
@@ -1004,7 +1009,8 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			event.rect = &rect;
 			event.gc = W_GRAPHICS(&gc);
 			event.detail = _list->drawState;
-			int ret = w_widget_post_event(widget, (w_event*) &event);
+			int ret = w_widget_post_event(widget, (w_event*) &event,
+					W_EVENT_SEND);
 			if (ret) {
 #if GTK3
 				//drawForegroundRGBA = null;
@@ -1045,7 +1051,6 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 #endif
 		if (GTK_IS_CELL_RENDERER_TEXT(cell)) {
 			text = 0;
-			w_value value;
 			GdkRGBA rgba;
 			if (attr.background != 0) {
 				g_object_set(cell, "background-set", TRUE, NULL);
@@ -1080,30 +1085,18 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			}
 			if (text == 0) {
 				memset(&event, 0, sizeof(event));
-				w_value_init(&value);
-				size_t _size;
-				char *mem_tmp = _w_toolkit_malloc_all(&_size);
-				if (mem_tmp != 0) {
-					mem_tmp[0] = 0;
-					w_value_set_string(&value, mem_tmp, _size,
-							W_VALUE_USER_MEMORY);
-					event.event.type = W_EVENT_ITEM_GET_VALUE;
-					event.event.widget = widget;
-					event.column = W_COLUMNITEM(column);
-					event.item = W_ITEM(item);
-					event.rect = 0;
-					event.gc = 0;
-					event.value = &value;
-					int ret = _w_widget_post_event(widget, (w_event*) &event);
-					if (ret) {
-						text = (char*) w_value_get_string(&value, mem_tmp,
-								_size, 0);
-					}
-				}
+				event.event.type = W_EVENT_ITEM_GET_TEXT;
+				event.event.widget = widget;
+				event.column = W_COLUMNITEM(column);
+				event.item = W_ITEM(item);
+				event.rect = 0;
+				event.gc = 0;
+				event.textattr = &attr;
+				int ret = _w_widget_send_event(widget, (w_event*) &event,
+						W_EVENT_SEND);
 				if (text == 0)
 					text = "";
 				g_object_set(cell, "text", text, NULL);
-				_w_toolkit_free(mem_tmp, _size);
 			} else {
 				g_object_set(cell, "text", text, NULL);
 			}
@@ -1226,7 +1219,8 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			rect.x += contentX;
 			rect.width = cell_area->width;			//contentWidth;
 			event.detail = _list->drawState;		//drawState;
-			int ret = w_widget_post_event(widget, (w_event*) &event);
+			int ret = w_widget_post_event(widget, (w_event*) &event,
+					W_EVENT_SEND);
 			w_graphics_dispose(W_GRAPHICS(&gc));
 			//}//if (hooks (PaintItem))
 		}
@@ -1270,7 +1264,7 @@ void _w_listviewbase_renderer_get_preferred_width(w_widget *widget,
 		event.item = W_ITEM(&cell->listitem);
 		event.rect = &rect;
 		event.gc = &gc;
-		int ret = _w_widget_post_event(widget, (w_event*) &event);
+		int ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 		if (contentHeight < rect.height)
 			contentHeight = rect.height;
 #if GTK3

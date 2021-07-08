@@ -7,7 +7,7 @@
  */
 #ifndef GTK_WIDGETS_CONTROL_H_
 #define GTK_WIDGETS_CONTROL_H_
-#include "item.h"
+#include "widget.h"
 /*
  * states
  */
@@ -61,12 +61,11 @@ typedef struct _w_control_timer {
 } _w_control_timer;
 typedef struct _w_control {
 	_w_widget widget;
-	w_composite *parent;
 	w_menu *menu;
 	w_cursor *cursor;
 	PangoFontDescription *font;
 	_w_control_timer timer;
-	GdkPixbuf *backgroundImage;
+	_w_image backgroundImage;
 	w_dragsource *dragsource;
 	w_droptarget *droptarget;
 	char *tooltiptext;
@@ -80,7 +79,7 @@ typedef struct _w_control {
  * private
  */
 #define _W_CONTROL_PRIV(x) ((_w_control_priv*)x)
-#define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)_w_widget_get_priv(W_WIDGET(x)))
+#define _W_CONTROL_GET_PRIV(x) ((_w_control_priv*)W_WIDGET_GET_CLASS(x)->platformPrivate)
 struct _w_control_priv {
 	_w_widget_priv widget;
 	/*
@@ -154,6 +153,9 @@ struct _w_control_priv {
 	gboolean (*is_focus_handle)(w_control *control, GtkWidget *widget,
 			_w_control_priv *priv);
 };
+typedef struct _w_ccanvas_priv {
+	_w_control_priv control;
+} _w_ccanvas_priv;
 /*
  * functions
  */
@@ -200,7 +202,7 @@ wresult _w_control_get_menu(w_control *control, w_menu **menu);
 wresult _w_control_get_orientation(w_control *control);
 wresult _w_control_get_parent(w_control *control, w_composite **parent);
 wresult _w_control_get_region(w_control *control, w_region *region);
-wresult _w_control_get_shell(w_control *control, w_shell **shell);
+wresult _w_control_get_shell(w_widget *control, w_shell **shell);
 wresult _w_control_get_tab(w_control *control);
 wresult _w_control_get_text_direction(w_control *control);
 void _w_control_get_thickness(GtkWidget *widget, w_point *thickness);
@@ -276,7 +278,8 @@ GdkWindow* _w_control_window_enable(w_widget *control, _w_control_priv *priv);
 GdkWindow* _w_control_window_event(w_widget *control, _w_control_priv *priv);
 GdkWindow* _w_control_window_paint(w_widget *control, _w_control_priv *priv);
 GdkWindow* _w_control_window_redraw(w_widget *control, _w_control_priv *priv);
-void _w_control_class_init(struct _w_control_class *clazz);
+void _w_control_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_control_class *clazz);
 /*
  * signals
  */

@@ -72,7 +72,8 @@ gboolean _gtk_treeview_test_expand_row(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 gboolean _gtk_treeview_toggled(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
-void _w_treeview_class_init(struct _w_treeview_class *clazz);
+void _w_treeview_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_treeview_class *clazz);
 /*
  * messages
  */

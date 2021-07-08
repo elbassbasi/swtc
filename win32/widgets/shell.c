@@ -481,7 +481,7 @@ void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	event.platform_event = (w_event_platform*) e;
 	event.widget = W_WIDGET(shell);
 	event.data = 0;
-	_w_widget_post_event(W_WIDGET(shell), &event, W_EVENT_SEND);
+	_w_widget_send_event(W_WIDGET(shell), &event, W_EVENT_SEND);
 	if (style & W_DISPOSE_ON_CLOSE) {
 		w_widget_dispose(W_WIDGET(shell));
 	}

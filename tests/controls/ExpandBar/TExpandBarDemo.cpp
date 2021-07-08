@@ -30,7 +30,7 @@ void TExpandBarDemo::CreateControl(WComposite *parent) {
 	WFontData fontData;
 	font->GetFontData(fontData);
 	fontData.SetBold();
-	fontData.SetHeight(fontData.GetHeight() - 4);
+	fontData.SetHeight(fontData.GetHeight() + 4);
 	this->boldFont.Create(fontData);
 	this->SetFont(boldFont);
 	MFrame *frame = (MFrame*) GetFrame();

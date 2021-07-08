@@ -184,7 +184,7 @@ SWT_PUBLIC wresult w_textlayout_get_style(w_textlayout *textlayout, int offset,
 SWT_PUBLIC int w_textlayout_get_tabs(w_textlayout *textlayout, int *tabs,
 		int count);
 SWT_PUBLIC wresult w_textlayout_get_text(w_textlayout *textlayout, w_alloc text,
-		void *user_data);
+		void *user_data, int enc);
 SWT_PUBLIC int w_textlayout_get_text_direction(w_textlayout *textlayout);
 SWT_PUBLIC int w_textlayout_get_width(w_textlayout *textlayout);
 SWT_PUBLIC int w_textlayout_get_wrap_indent(w_textlayout *textlayout);

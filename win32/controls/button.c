@@ -107,7 +107,7 @@ wresult _w_button_set_radio_selection(w_button *button, wresult value) {
 		event.type = W_EVENT_SELECTION;
 		//event.platform_event = (struct w_event_platform*) 0;
 		event.widget = W_WIDGET(button);
-		_w_widget_post_event(W_WIDGET(button), &event, W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(button), &event, W_EVENT_SEND);
 	}
 	return W_TRUE;
 }
@@ -589,7 +589,7 @@ wresult _BUTTON_WM_COMMANDCHILD(w_widget *widget, _w_event_platform *e,
 		event.type = W_EVENT_SELECTION;
 		event.platform_event = (struct w_event_platform*) e;
 		event.widget = widget;
-		_w_widget_post_event(widget, &event, W_EVENT_SEND);
+		_w_widget_send_event(widget, &event, W_EVENT_SEND);
 	}
 	return W_FALSE;
 }

@@ -7,6 +7,7 @@
 
 #include "TProgressBars.h"
 #include "TProgressBarDemo.h"
+#include "TProgressBarThread.h"
 
 void TProgressBars::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "ProgressBar", new TProgressBars());
@@ -14,5 +15,6 @@ void TProgressBars::Registre(WTreeItem &parent) {
 
 bool TProgressBars::Expand(WTreeItem &item) {
 	TProgressBarDemo::Registre(item);
+	TProgressBarThread::Registre(item);
 	return true;
 }

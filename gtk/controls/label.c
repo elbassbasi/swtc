@@ -793,8 +793,12 @@ gboolean _gtk_label_motion_notify_event(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
-void _w_label_class_init(struct _w_label_class *clazz) {
-	_w_control_class_init(W_CONTROL_CLASS(clazz));
+void _w_label_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_label_class *clazz) {
+	if (classId == _W_CLASS_LABEL) {
+		W_WIDGET_CLASS(clazz)->platformPrivate = &gtk_toolkit->class_label_priv;
+	}
+	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_LABEL;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_label_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_label);
@@ -809,24 +813,30 @@ void _w_label_class_init(struct _w_label_class *clazz) {
 	/*
 	 * private
 	 */
-	_w_control_priv *priv = _W_CONTROL_PRIV(W_WIDGET_CLASS(clazz)->reserved[0]);
-	priv->widget.handle_top = _w_label_fixed_handle;
-	priv->handle_fixed = _w_label_fixed_handle;
-	priv->handle_event = _w_label_fixed_handle;
-	priv->widget.check_style = _w_label_check_style;
-	priv->widget.create_handle = _w_label_create_handle;
-	priv->widget.compute_size = _w_label_compute_size;
-	priv->draw_widget = _w_label_draw_widget;
-	priv->set_bounds_0 = _w_label_set_bounds_0;
-	/*
-	 * signals
-	 */
-	_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
-	signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_label_button_press_event;
-	signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_label_button_release_event;
-	signals[SIGNAL_EVENT_AFTER] = _gtk_label_event_after;
-	signals[SIGNAL_DRAW] = _gtk_label_draw;
-	signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_label_key_press_event;
-	signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_label_motion_notify_event;
+	_w_control_priv *priv = _W_CONTROL_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_LABEL) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		priv->widget.handle_top = _w_label_fixed_handle;
+		priv->handle_fixed = _w_label_fixed_handle;
+		priv->handle_event = _w_label_fixed_handle;
+		priv->widget.check_style = _w_label_check_style;
+		priv->widget.create_handle = _w_label_create_handle;
+		priv->widget.compute_size = _w_label_compute_size;
+		priv->draw_widget = _w_label_draw_widget;
+		priv->set_bounds_0 = _w_label_set_bounds_0;
+		/*
+		 * signals
+		 */
+		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_label_button_press_event;
+		signals[SIGNAL_BUTTON_RELEASE_EVENT] = _gtk_label_button_release_event;
+		signals[SIGNAL_EVENT_AFTER] = _gtk_label_event_after;
+		signals[SIGNAL_DRAW] = _gtk_label_draw;
+		signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_label_key_press_event;
+		signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_label_motion_notify_event;
+	}
 }
 

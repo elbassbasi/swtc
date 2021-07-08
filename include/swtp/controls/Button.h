@@ -185,10 +185,7 @@ public:
 	bool SetAlignment(int alignment) {
 		return _WReturnBool(_set_alignment(alignment));
 	}
-	void SetAction(void *obj, SelectionAction action) {
-		SetSelectionAction(obj, action);
-	}
-	void SetAction(void *obj, __SelectionAction action) {
+	void SetAction(IWNotify *obj, IWNotify::SelectionAction action) {
 		SetSelectionAction(obj, action);
 	}
 	/**

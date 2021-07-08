@@ -20,9 +20,7 @@ typedef struct _w_spinner_priv {
 #define _W_SPINNER(x) ((_w_spinner*)x)
 #define _W_SPINNER_PRIV(x) ((_w_spinner_priv*)x)
 
-
-void _w_spinner_class_init(struct _w_spinner_class *clazz);
-
-
+void _w_spinner_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_spinner_class *clazz);
 
 #endif /* GTK_CONTROLS_SPINNER_H_ */

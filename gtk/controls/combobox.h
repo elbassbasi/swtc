@@ -42,5 +42,6 @@ typedef struct _w_comboitem {
 void _w_combobox_cell_layout_data_func(GtkCellLayout *cell_layout,
 		GtkCellRenderer *cell, GtkTreeModel *tree_model, GtkTreeIter *iter,
 		gpointer data);
-void _w_combobox_class_init(struct _w_combobox_class *clazz);
+void _w_combobox_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_combobox_class *clazz);
 #endif /* GTK_CONTROLS_COMBOBOX_H_ */

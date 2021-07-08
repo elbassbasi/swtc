@@ -1068,7 +1068,7 @@ wresult _w_control_traverse_0(w_control *control, w_event_key *event,
 	 * event.  If this happens, return true to stop further
 	 * event processing.
 	 */
-	_w_widget_post_event(W_WIDGET(control), W_EVENT(event), W_EVENT_SEND);
+	_w_widget_send_event(W_WIDGET(control), W_EVENT(event), W_EVENT_SEND);
 	if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 		return W_TRUE;
 	if (!event->doit)
