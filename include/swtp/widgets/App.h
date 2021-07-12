@@ -63,6 +63,15 @@ public:
 	WToolkit* SetDefaultToolkit(WToolkit *toolkit) {
 		return (WToolkit*) w_app_set_default_toolkit(this, W_TOOLKIT(toolkit));
 	}
+	WToolkit* GetCustomToolkit() {
+		return (WToolkit*) w_app_get_custom_toolkit(this);
+	}
+	WToolkit* SetCustomToolkit(WToolkit *toolkit) {
+		return (WToolkit*) w_app_set_custom_toolkit(this, W_TOOLKIT(toolkit));
+	}
+	WTheme* CreateTheme(const char *name) {
+		return (WTheme*)w_app_create_theme(this, name);
+	}
 	int Run() {
 		return GetDefaultToolkit()->Run();
 	}

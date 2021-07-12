@@ -775,10 +775,10 @@ wresult w_graphics_draw_text(w_graphics *gc, const char *text, size_t length,
 		int width = rect->width;
 		int height = rect->height;
 		if (width >= 0) {
-			pango_layout_set_width(_gc->layout, width);
+			pango_layout_set_width(_gc->layout, width * PANGO_SCALE);
 		}
 		if (height >= 0) {
-			pango_layout_set_height(_gc->layout, height);
+			pango_layout_set_height(_gc->layout, height * PANGO_SCALE);
 		}
 		pango_layout_get_pixel_size(_gc->layout, &stringWidth, &stringHeight);
 		if (width >= 0) {
@@ -1347,12 +1347,12 @@ wresult w_graphics_get_font_metrics(w_graphics *gc, w_fontmetrics *fm) {
 	PangoFontMetrics *metrics = pango_context_get_metrics(context, font, lang);
 	int ascent = pango_font_metrics_get_ascent(metrics);
 	int descent = pango_font_metrics_get_descent(metrics);
-	int ascentInPoints = ascent;
+	int ascentInPoints = PANGO_PIXELS(ascent);
 	_W_FONTMETRICS(fm)->ascentInPoints = ascentInPoints;
-	int heightInPoints = ascent + descent;
+	int heightInPoints = PANGO_PIXELS(ascent + descent);
 	_W_FONTMETRICS(fm)->descentInPoints = heightInPoints - ascentInPoints;
-	_W_FONTMETRICS(fm)->averageCharWidthInPoints =
-			pango_font_metrics_get_approximate_char_width(metrics);
+	_W_FONTMETRICS(fm)->averageCharWidthInPoints = PANGO_PIXELS(
+			pango_font_metrics_get_approximate_char_width(metrics));
 	pango_font_metrics_unref(metrics);
 	return W_TRUE;
 }

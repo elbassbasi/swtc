@@ -128,6 +128,11 @@ wresult _w_widget_set_theme(w_widget *widget, w_theme *theme) {
 	_W_WIDGET(widget)->theme = theme;
 	return W_TRUE;
 }
+wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data) {
+	w_themedata_init(data, 0, 0);
+	data->style = w_widget_get_style(widget);
+	return W_TRUE;
+}
 int _w_widget_set_input_state(int state) {
 	int statemask = 0;
 	if ((state & GDK_MOD1_MASK) != 0)
@@ -749,6 +754,7 @@ void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
 	clazz->toolkit = W_TOOLKIT(gtk_toolkit);
 	clazz->get_theme = _w_widget_get_theme;
 	clazz->set_theme = _w_widget_set_theme;
+	clazz->init_themedata = _w_widget_init_themedata;
 	clazz->get_parent = _w_widget_get_parent;
 	clazz->toolkit = toolkit;
 	/*

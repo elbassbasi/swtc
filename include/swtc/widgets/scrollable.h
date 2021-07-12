@@ -20,14 +20,6 @@ typedef struct w_scrollbar {
 	void *handle[6];
 } w_scrollbar;
 #define W_SCROLLBAR(x) ((w_scrollbar*)x)
-struct w_scrollbar_value {
-	int selection;
-	int minimum;
-	int maximum;
-	int thumb;
-	int increment;
-	int pageIncrement;
-};
 #define W_SCROLLABLE(x) ((w_scrollable*)x)
 typedef struct w_event_compute_trim {
 	w_event event;

@@ -23,7 +23,7 @@ wresult cw_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 	return result;
 }
 int wc_canvas_post_event(w_widget *widget, w_event *e) {
-	return widget->clazz->parentClass->post_event(widget, e,W_EVENT_SEND);
+	return widget->clazz->parentClass->post_event(widget, e, W_EVENT_SEND);
 }
 void* cw_control_get_priv(w_control *c) {
 	struct _w_widget_class *clazz = c->widget.clazz;
@@ -51,11 +51,15 @@ void* cw_control_alloc_priv(w_control *c, size_t size) {
 void cw_ccanvas_init_class(w_toolkit *toolkit, wushort classId,
 		struct _w_widget_class *clazz) {
 	w_toolkit *platformToolkit = w_app_get_platform_toolkit(w_app_get());
-	struct _w_widget_class *canvasclass = w_toolkit_get_class(platformToolkit,
+	struct _w_widget_class *ccanvasclass = w_toolkit_get_class(platformToolkit,
 			_W_CLASS_CCANVAS);
-	w_toolkit_init_class(platformToolkit, _W_CLASS_CCANVAS,
-			W_WIDGET_CLASS(clazz));
-	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_CCANVAS;
+	if (ccanvasclass->class_id == 0) {
+		w_toolkit_init_class(platformToolkit, _W_CLASS_CCANVAS, ccanvasclass);
+	}
+	W_TOOLKIT_GET_CLASS(platformToolkit)->init_class(toolkit, _W_CLASS_CCANVAS,
+			clazz);
+	W_WIDGET_CLASS(clazz)->class_id = classId;
+	W_WIDGET_CLASS(clazz)->parentClass = ccanvasclass;
 }
 void cw_ccanvas_init_class_priv(w_toolkit *toolkit, wushort classId,
 		struct _w_widget_class *clazz, size_t sizeof_priv) {
@@ -86,17 +90,22 @@ void cw_canvas_init_class(w_toolkit *toolkit, wushort classId,
 void cw_composite_init_class(w_toolkit *toolkit, wushort classId,
 		struct _w_composite_class *clazz) {
 	w_toolkit *platformToolkit = w_app_get_platform_toolkit(w_app_get());
-	struct _w_widget_class *compositeclass = w_toolkit_get_class(platformToolkit,
-			_W_CLASS_COMPOSITE);
-	w_toolkit_init_class(platformToolkit, _W_CLASS_COMPOSITE,
-			W_WIDGET_CLASS(clazz));
+	struct _w_widget_class *compositeclass = w_toolkit_get_class(
+			platformToolkit, _W_CLASS_COMPOSITE);
+	if (compositeclass->class_id == 0) {
+		w_toolkit_init_class(platformToolkit, _W_CLASS_COMPOSITE,
+				compositeclass);
+	}
+	W_TOOLKIT_GET_CLASS(platformToolkit)->init_class(toolkit,
+			_W_CLASS_COMPOSITE, clazz);
 	W_WIDGET_CLASS(clazz)->parentClass = compositeclass;
-	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_COMPOSITE;
+	W_WIDGET_CLASS(clazz)->class_id = classId;
 }
 void cw_composite_init_class_priv(w_toolkit *toolkit, wushort classId,
 		struct _w_composite_class *clazz, size_t priv_size) {
 	struct _w_widget_class *next = W_WIDGET_CLASS(clazz)->parentClass;
-	if ((next->object_used_size + priv_size) < W_WIDGET_CLASS(clazz)->object_total_size) {
+	if ((next->object_used_size + priv_size)
+			< W_WIDGET_CLASS(clazz)->object_total_size) {
 		CW_CLASS_RESERVED(clazz)->state |= CW_USED_INTERNAL_MEMORY;
 		W_WIDGET_CLASS(clazz)->object_used_size += priv_size;
 	} else {

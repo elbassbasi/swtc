@@ -156,6 +156,7 @@ void cw_expanditem_init_themedata(w_widget *expandbar, cw_expanditem *_item,
 	data->clazz = W_THEME_CLASS_EXPANDITEM;
 	data->state = 0;
 	data->imagelist = priv->imagelist;
+	data->headerHeight = priv->band_height;
 	if (_item != 0) {
 		data->attr.text = _item->text;
 		data->attr.image = _item->image - 1;
@@ -197,9 +198,9 @@ void cw_expanditem_redraw(w_expandbar *expandbar, cw_expanditem *_item,
 int cw_expanditem_get_preferred_width(w_expandbar *expandbar,
 		cw_expanditem *_item, w_graphics *gc, int imageWidth) {
 	w_theme *theme;
+	w_themedata data;
 	w_size size;
 	w_widget_get_theme(W_WIDGET(expandbar), &theme);
-	w_themedata data;
 	cw_expanditem_init_themedata(W_WIDGET(expandbar), _item, &data, gc, 0);
 	w_theme_measure(theme, W_THEME_MASK_ALL, &data, &size);
 	return size.width;
@@ -543,8 +544,6 @@ void cw_expandbar_show_focus(w_expandbar *expandbar, int up) {
 						WMIN(priv->yCurrentScroll, priv->yCurrentScroll));
 			}
 		}
-		/*ScrollWindowEx(handle, 0, updateY, NULL, NULL, 0, NULL,
-		 SW_SCROLLCHILDREN | SW_INVALIDATE);*/
 		cw_expanditem *_item;
 		int itemCount = w_array_get_count(_items, (void**) &_item);
 		for (int i = 0; i < itemCount; i++) {
@@ -656,7 +655,7 @@ void cw_expandbar_draw_item(w_widget *widget, cw_expanditem *_item,
 	rect.x = _item->rect.x;
 	rect.y = _item->rect.y;
 	rect.width = clipRect->width;
-	rect.height = headerHeight;
+	rect.height = _item->rect.height;
 	w_themedata data;
 	cw_expanditem_init_themedata(widget, _item, &data, gc, &rect);
 	if (drawFocus) {
@@ -910,52 +909,56 @@ wresult cw_expandbar_traverse(w_widget *widget, w_event_key *e) {
 	cw_expandbar_priv *priv = cw_control_get_priv(W_CONTROL(widget));
 	return W_FALSE;
 }
-wresult cw_expandbar_post_event(w_widget *widget, w_event *e) {
+wresult cw_expandbar_post_event(w_widget *widget, w_event *e, int flags) {
+	wresult result = W_FALSE;
 	switch (e->type) {
 	case W_EVENT_PAINT:
-		return cw_expandbar_paint(widget, (w_event_paint*) e);
+		result = cw_expandbar_paint(widget, (w_event_paint*) e);
 		break;
 	case W_EVENT_NOTIFYCHANGE:
-		return cw_expandbar_notifychange(widget, (w_event_notifychange*) e);
+		result = cw_expandbar_notifychange(widget, (w_event_notifychange*) e);
 		break;
 	case W_EVENT_COMPUTE_SIZE:
-		return cw_expandbar_compute_size(widget, (w_event_compute_size*) e);
+		result = cw_expandbar_compute_size(widget, (w_event_compute_size*) e);
 		break;
 	case W_EVENT_KEYDOWN:
-		return cw_expandbar_keydown(widget, (w_event_key*) e);
+		result = cw_expandbar_keydown(widget, (w_event_key*) e);
 		break;
 	case W_EVENT_FOCUSIN:
-		return cw_expandbar_focusin(widget, e);
+		result = cw_expandbar_focusin(widget, e);
 		break;
 	case W_EVENT_FOCUSOUT:
-		return cw_expandbar_focusout(widget, e);
+		result = cw_expandbar_focusout(widget, e);
 		break;
 	case W_EVENT_MOUSEDOWN:
-		return cw_expandbar_mousedown(widget, (w_event_mouse*) e);
+		result = cw_expandbar_mousedown(widget, (w_event_mouse*) e);
 		break;
 	case W_EVENT_MOUSEUP:
-		return cw_expandbar_mouseup(widget, (w_event_mouse*) e);
+		result = cw_expandbar_mouseup(widget, (w_event_mouse*) e);
 		break;
 	case W_EVENT_MOUSEEXIT:
-		return cw_expandbar_mouseexit(widget, (w_event_mouse*) e);
+		result = cw_expandbar_mouseexit(widget, (w_event_mouse*) e);
 		break;
 	case W_EVENT_MOUSEMOVE:
-		return cw_expandbar_mousemove(widget, (w_event_mouse*) e);
+		result = cw_expandbar_mousemove(widget, (w_event_mouse*) e);
 		break;
 	case W_EVENT_MOUSEWHEEL:
-		return cw_expandbar_mousewhell(widget, (w_event_mouse*) e);
+		result = cw_expandbar_mousewhell(widget, (w_event_mouse*) e);
 		break;
 	case W_EVENT_RESIZE:
-		return cw_expandbar_resize(widget, e);
+		result = cw_expandbar_resize(widget, e);
 		break;
 	case W_EVENT_VSCROLL:
-		return cw_expandbar_vscroll(widget, (w_event_scrollbar*) e);
+		result = cw_expandbar_vscroll(widget, (w_event_scrollbar*) e);
 		break;
 	case W_EVENT_TRAVERSE:
-		return cw_expandbar_traverse(widget, (w_event_key*) e);
+		result = cw_expandbar_traverse(widget, (w_event_key*) e);
 		break;
 	}
-	return widget->clazz->parentClass->post_event(widget, e, W_EVENT_SEND);
+	if (result == W_FALSE) {
+		return widget->clazz->parentClass->post_event(widget, e, W_EVENT_SEND);
+	} else
+		return result;
 }
 void cw_expandbar_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_expandbar_class *clazz) {

@@ -5,7 +5,7 @@
  *      Author: Azeddine
  */
 #include "button.h"
-wresult cw_button_create(w_widget *widget, w_widget *parent, int style,
+wresult cw_button_create(w_widget *widget, w_widget *parent, wuint64 style,
 		w_widget_post_event_proc post_event) {
 	wresult result = cw_control_create(widget, parent, style, post_event,
 			sizeof(struct cw_button_priv));
@@ -22,8 +22,11 @@ void cw_button_draw(w_widget *widget, w_graphics *gc) {
 	r.y = 0;
 	w_theme *theme;
 	w_widget_get_theme(widget, &theme);
+	w_widget_get_theme(widget, &theme);
 	w_themedata data;
-	w_themedata_init(&data, gc, &r);
+	w_widget_init_themedata(widget, &data);
+	data.gc = gc;
+	data.bounds = &r;
 	data.clazz = W_THEME_CLASS_BUTTON;
 	data.clientArea = 0;
 	data.state = priv->state;
@@ -66,9 +69,11 @@ wresult cw_button_compute_size(w_widget *widget, w_event_compute_size *e) {
 	w_graphics gc;
 	w_graphics_init(&gc);
 	w_control_get_graphics(W_CONTROL(widget), &gc);
-	w_theme *theme = w_toolkit_get_theme(w_widget_get_toolkit(widget));
+	w_theme *theme;
+	w_widget_get_theme(widget, &theme);
 	w_themedata data;
-	w_themedata_init(&data, &gc, 0);
+	w_widget_init_themedata(widget, &data);
+	data.gc = &gc;
 	w_size result;
 	data.clazz = W_THEME_CLASS_BUTTON;
 	data.clientArea = 0;
@@ -88,7 +93,7 @@ wresult cw_button_compute_size(w_widget *widget, w_event_compute_size *e) {
 		e->size->height = e->hHint;
 	return W_TRUE;
 }
-wresult cw_button_post_event(w_widget *widget, w_event *e) {
+wresult cw_button_post_event(w_widget *widget, w_event *e, int flags) {
 	switch (e->type) {
 	case W_EVENT_PAINT:
 		return cw_button_paint(widget, (w_event_paint*) e);
@@ -103,9 +108,9 @@ wresult cw_button_post_event(w_widget *widget, w_event *e) {
 		return cw_button_compute_size(widget, (w_event_compute_size*) e);
 		break;
 	}
-	return widget->clazz->parentClass->post_event(widget, e,W_EVENT_SEND);
+	return widget->clazz->parentClass->post_event(widget, e, W_EVENT_SEND);
 }
-int cw_button_get_alignment(w_button *button) {
+wresult cw_button_get_alignment(w_button *button) {
 	return 0;
 }
 wresult cw_button_get_grayed(w_button *button) {
@@ -157,7 +162,8 @@ wresult cw_button_set_selection(w_button *button, int selected) {
 	}
 	return W_TRUE;
 }
-wresult cw_button_set_text(w_button *button, const char *string) {
+wresult cw_button_set_text(w_button *button, const char *string, int length,
+		int enc) {
 	cw_button_priv *priv = cw_control_get_priv(W_CONTROL(button));
 	if (priv->text != 0) {
 		free(priv->text);
@@ -173,7 +179,6 @@ void cw_button_init_class(w_toolkit *toolkit, wushort classId,
 	clazz->create = cw_button_create;
 	clazz->post_event = cw_button_post_event;
 
-	W_BUTTON_CLASS(clazz)->get_alignment = cw_button_get_alignment;
 	W_BUTTON_CLASS(clazz)->get_alignment = cw_button_get_alignment;
 	W_BUTTON_CLASS(clazz)->get_grayed = cw_button_get_grayed;
 	W_BUTTON_CLASS(clazz)->get_image = cw_button_get_image;

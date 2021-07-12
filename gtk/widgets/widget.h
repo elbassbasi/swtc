@@ -146,6 +146,7 @@ int _w_translate_key(int key);
 int _w_untranslate_key(int key);
 void _w_widget_set_font_description(w_widget *control, GtkWidget *widget,
 		PangoFontDescription *font, _w_control_priv *priv);
+wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data);
 void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_widget_class *clazz);
 #endif /* GTK_WIDGETS_WIDGET_H_ */

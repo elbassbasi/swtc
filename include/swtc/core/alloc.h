@@ -37,14 +37,40 @@ typedef void (*w_array_free_element)(w_array *array, void *element, int index);
 SWT_PUBLIC int w_array_get_count(w_array *array, void **firstElement);
 SWT_PUBLIC void* w_array_get(w_array *array, int index, int element_size);
 SWT_PUBLIC void* w_array_set(w_array **array, int index, int element_size);
-SWT_PUBLIC int w_array_alloc(w_array **array, int newalloc,
-		int element_size);
+SWT_PUBLIC int w_array_alloc(w_array **array, int newalloc, int element_size);
 SWT_PUBLIC void* w_array_add(w_array **array, int index, int element_size,
 		int *newIndex);
 SWT_PUBLIC void w_array_remove(w_array *array, int index, int element_size,
 		w_array_free_element free_element);
 SWT_PUBLIC void w_array_free(w_array *array, int element_size,
 		w_array_free_element free_element);
+/*
+ * link
+ */
+typedef struct w_link_0 {
+	void *next;
+	void *prev;
+} w_link_0;
+SWT_PUBLIC void w_link_linkfirst_0(w_link_0 *e, void *e_p, void **first);
+SWT_PUBLIC void w_link_linklast_0(w_link_0 *e, void *e_p, void **first);
+SWT_PUBLIC void w_link_linkbefore_0(w_link_0 *e, void *e_p, void *succ,
+		void **first);
+SWT_PUBLIC void w_link_linkafter_0(w_link_0 *e, void *e_p, void *succ,
+		void **first);
+SWT_PUBLIC void w_link_unlink_0(w_link_0 *e, void *e_p, void **first);
+SWT_PUBLIC void w_link_replace_0(w_link_0 *x, void *x_p, void *e, void **first);
+
+typedef struct w_link w_link;
+struct w_link {
+	w_link *next;
+	w_link *prev;
+};
+SWT_PUBLIC void w_link_linkfirst(w_link *e, w_link **first);
+SWT_PUBLIC void w_link_linklast(w_link *e, w_link **first);
+SWT_PUBLIC void w_link_linkbefore(w_link *e, w_link *succ, w_link **first);
+SWT_PUBLIC void w_link_linkafter(w_link *e, w_link *succ, w_link **first);
+SWT_PUBLIC void w_link_unlink(w_link *e, w_link **first);
+SWT_PUBLIC void w_link_replace(w_link *x, w_link *e, w_link **first);
 
 #ifdef __cplusplus
 }

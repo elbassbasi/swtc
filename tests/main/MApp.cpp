@@ -14,8 +14,7 @@ int main(int args, char *argv[]) {
 const char *images[] = { "fldr", "file", "add", "save", "delete", "help" };
 MApp::MApp(int args, char *argv[]) :
 		WApp(args, argv) {
-	this->custom = 0;
-	this->w_toolkit_custom_create_theme = 0;
+	this->theme = 0;
 }
 MApp::~MApp() {
 
@@ -48,7 +47,8 @@ WImage* MApp::GetImage16(int index) {
 		int l = strlen(_path);
 		char *path = (char*) malloc(_path.GetLength() + 30);
 		if (path != 0) {
-			sprintf(path, "%s/images/%s.png", _path.GetCharsNotNull(), images[index]);
+			sprintf(path, "%s/images/%s.png", _path.GetCharsNotNull(),
+					images[index]);
 			this->image16[index].Create(path);
 		}
 		free(path);
@@ -64,54 +64,18 @@ WImage* MApp::GetImage32(int index) {
 		int l = strlen(_path);
 		char *path = (char*) malloc(_path.GetLength() + 30);
 		if (path != 0) {
-			sprintf(path, "%s/images/%s@2x.png", _path.GetCharsNotNull(), images[index]);
+			sprintf(path, "%s/images/%s@2x.png", _path.GetCharsNotNull(),
+					images[index]);
 			this->image32[index].Create(path);
 		}
 	}
 	return &this->image32[index];
 }
-typedef w_toolkit* (*_w_toolkit_get_custom)();
-void MApp::LoadCustomToolkit() {
-	char path[0x500], *last, sp = '/';
-	WString exe_path = GetExecutablePath();
-	sprintf(path, "%s%clibcswt%s", exe_path.GetCharsNotNull(), sp, w_module_default_extension());
-	w_module *module = w_module_load(path);
-	if (module != 0) {
-		_w_toolkit_get_custom __w_toolkit_get_custom =
-				(_w_toolkit_get_custom) w_module_get_symbol(module,
-						"w_toolkit_get_custom");
-		w_toolkit_custom_create_theme =
-				(_w_toolkit_custom_create_theme) w_module_get_symbol(module,
-						"w_toolkit_custom_create_theme");
-		if (__w_toolkit_get_custom != 0) {
-			this->custom = (WToolkit*) __w_toolkit_get_custom();
-		}
-	}
-}
-WToolkit* MApp::GetCustomToolkit() {
-	if (this->custom == 0) {
-		LoadCustomToolkit();
-
-	}
-	return this->custom;
-}
-WTheme* MApp::SetCustomTheme(WTheme *theme) {
-	WTheme *last = 0;
-	if (custom != 0) {
-		last = custom->GetTheme();
-		custom->SetTheme(theme);
-	}
-	return last;
-}
-WTheme* MApp::CreateCustomTheme(const char *name) {
-	return (WTheme*) w_toolkit_custom_create_theme(name);
-}
-
 WFrame* MApp::NewCustomShell() {
 	MFrame *shell = new MFrame();
 	WToolkit *custom = MApp::Get()->GetCustomToolkit();
-	if (custom != 0) {
-		WTheme *theme = MApp::Get()->CreateCustomTheme("Metal");
+	if (custom != 0 && this->theme == 0) {
+		this->theme = MApp::Get()->CreateTheme("metal");
 		custom->SetTheme(theme);
 	}
 	shell->Create(custom);

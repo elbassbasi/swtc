@@ -24,7 +24,7 @@ void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	event.platform_event = (w_event_platform*) e;
 	event.widget = W_WIDGET(shell);
 	event.data = 0;
-	_w_widget_send_event(W_WIDGET(shell), &event,W_EVENT_SEND);
+	_w_widget_send_event(W_WIDGET(shell), &event, W_EVENT_SEND);
 	if (style & W_DISPOSE_ON_CLOSE) {
 		w_widget_dispose(W_WIDGET(shell));
 	}
@@ -460,7 +460,7 @@ void _w_shell_resize_bounds(w_control *control, int width, int height,
 		_e.time = 0;
 		_e.platform_event = 0;
 		_e.data = 0;
-		_w_widget_send_event(W_WIDGET(control), &_e,W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(control), &_e, W_EVENT_SEND);
 		if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 			return;
 		priv->mark_layout(control, 0, priv);
@@ -517,7 +517,7 @@ void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 			e.platform_event = 0;
 			e.widget = W_WIDGET(deactivate);
 			e.data = 0;
-			_w_widget_send_event(W_WIDGET(deactivate), &e,W_EVENT_SEND);
+			_w_widget_send_event(W_WIDGET(deactivate), &e, W_EVENT_SEND);
 		}
 		deactivate = _w_shell_path_next(shell, deactivate);
 	}
@@ -530,7 +530,7 @@ void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 			e.widget = W_WIDGET(activate);
 			e.data = 0;
 			//e.detail = type;
-			_w_widget_send_event(W_WIDGET(activate), &e,W_EVENT_SEND);
+			_w_widget_send_event(W_WIDGET(activate), &e, W_EVENT_SEND);
 		}
 	}
 }
@@ -575,7 +575,7 @@ wresult _w_shell_set_bounds_0(w_control *control, w_point *location,
 			event.time = 0;
 			event.platform_event = 0;
 			event.data = 0;
-			_w_widget_send_event(W_WIDGET(control), &event,W_EVENT_SEND);
+			_w_widget_send_event(W_WIDGET(control), &event, W_EVENT_SEND);
 			if (w_widget_is_ok(W_WIDGET(control)) <= 0)
 				return 0;
 			result |= 1;
@@ -668,7 +668,36 @@ void _w_shell_set_saved_focus(w_shell *shell, w_control *control) {
 }
 wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
 		int enc) {
-	return W_FALSE;
+	if (string == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	int newlength;
+	int mnemonic;
+	char *s = _gtk_text_fix(string, length,
+			enc | _GTK_TEXT_FIX_REQUIRED_NULL | _GTK_TEXT_FIX_CALCUL_LENGTH,
+			&newlength, &mnemonic);
+	if (s == 0)
+		return W_ERROR_NO_MEMORY;
+	char *ss = s;
+	char tmp[10];
+	/*
+	 * GTK bug 82013.  For some reason, if the title string
+	 * is less than 7 bytes long and is not terminated by
+	 * a space, some window managers occasionally draw
+	 * garbage after the last character in  the title.
+	 * The fix is to pad the title.
+	 */
+	if (newlength < 6) {
+		memcpy(tmp, s, newlength);
+		for (int i = newlength; i <= 6; i++) {
+			tmp[i] = ' ';
+		}
+		tmp[7] = 0;
+		ss = tmp;
+	}
+	gtk_window_set_title(GTK_WINDOW(shellHandle), ss);
+	_gtk_text_free(string, s, newlength);
+	return W_TRUE;
 }
 wresult _w_shell_set_visible(w_control *control, int visible) {
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(control);
@@ -711,7 +740,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		e.widget = W_WIDGET(control);
 		e.platform_event = 0;
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(control), &e, W_EVENT_SEND);
 		if (!w_widget_is_ok(W_WIDGET(control)))
 			return W_FALSE;
 
@@ -788,7 +817,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
+			_w_widget_send_event(W_WIDGET(control), &e, W_EVENT_SEND);
 			if (!w_widget_is_ok(W_WIDGET(control)))
 				return W_FALSE;
 		}
@@ -811,13 +840,13 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
+			_w_widget_send_event(W_WIDGET(control), &e, W_EVENT_SEND);
 			e.type = W_EVENT_LAYOUTDETECT;
 			e.widget = W_WIDGET(control);
 			e.platform_event = 0;
 			e.data = 0;
 			e.time = 0;
-			_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
+			_w_widget_send_event(W_WIDGET(control), &e, W_EVENT_SEND);
 		}
 	} else {
 		//_w_shell_fix_active_shell(W_SHELL(control));
@@ -826,7 +855,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		e.widget = W_WIDGET(control);
 		e.platform_event = 0;
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(control), &e,W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(control), &e, W_EVENT_SEND);
 	}
 	return W_TRUE;
 }
@@ -919,7 +948,7 @@ gboolean _gtk_shell_configure_event(w_widget *widget, _w_event_platform *e,
 		event.platform_event = (w_event_platform*) e;
 		event.time = 0;
 		event.data = 0;
-		w_widget_post_event(widget, &event,W_EVENT_SEND);
+		w_widget_post_event(widget, &event, W_EVENT_SEND);
 		// widget could be disposed at this point
 	}
 	return FALSE;
@@ -996,7 +1025,7 @@ gboolean _gtk_shell_focus_in_event(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.time = 0;
 	event.data = 0;
-	w_widget_post_event(widget, &event,W_EVENT_SEND);
+	w_widget_post_event(widget, &event, W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_shell_focus_out_event(w_widget *widget, _w_event_platform *e,
@@ -1011,7 +1040,7 @@ gboolean _gtk_shell_focus_out_event(w_widget *widget, _w_event_platform *e,
 	event.platform_event = (w_event_platform*) e;
 	event.time = 0;
 	event.data = 0;
-	w_widget_post_event(widget, &event,W_EVENT_SEND);
+	w_widget_post_event(widget, &event, W_EVENT_SEND);
 	_w_shell_set_active_control(W_SHELL(widget), 0);
 	if (gtk_toolkit->activeShell == W_SHELL(widget)
 			&& !_W_SHELL(widget)->ignoreFocusOut) {
@@ -1274,7 +1303,7 @@ void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 	if (classId == _W_CLASS_SHELL) {
 		W_WIDGET_CLASS(clazz)->platformPrivate = &gtk_toolkit->class_shell_priv;
 	}
-	_w_canvas_class_init(toolkit, classId,W_CANVAS_CLASS(clazz));
+	_w_canvas_class_init(toolkit, classId, W_CANVAS_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SHELL;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_shell_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_shell);

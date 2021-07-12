@@ -502,9 +502,9 @@ void _gtk_theme_progressbar_draw_background(w_theme *theme, w_themedata *data,
 		width -= thickness.x * 2;
 		height -= thickness.y * 2;
 		height *=
-				data->range->selection
+				data->range.selection
 						/ (float) WMAX(1,
-								(data->range->maximum - data->range->minimum));
+								(data->range.maximum - data->range.minimum));
 		y += bounds->height - thickness.y - height;
 	} else {
 		/*gtk_orientable_set_orientation(GTK_ORIENTABLE(progressHandle),
@@ -514,8 +514,8 @@ void _gtk_theme_progressbar_draw_background(w_theme *theme, w_themedata *data,
 		y += thickness.y;
 		width -= thickness.x * 2;
 		height -= thickness.y * 2;
-		width *= data->range->selection
-				/ (float) WMAX(1, data->range->maximum - data->range->minimum);
+		width *= data->range.selection
+				/ (float) WMAX(1, data->range.maximum - data->range.minimum);
 	}
 	gtk_style_context_save(context);
 	gtk_style_context_add_class(context, GTK_STYLE_CLASS_PROGRESSBAR);
@@ -906,6 +906,8 @@ wresult _gtk_theme_get_color(w_theme *theme, wuint colorid, w_color *color) {
 }
 wresult _gtk_theme_get_font(w_theme *theme, w_font **font) {
 	_gtk_theme *t = (_gtk_theme*) theme;
+	w_toolkit *toolkit = w_app_get_platform_toolkit(w_app_get());
+	*font = w_toolkit_get_system_font(toolkit);
 	return W_TRUE;
 }
 wresult _gtk_theme_get_cursor(w_theme *theme, wuint id, w_cursor **cursor) {

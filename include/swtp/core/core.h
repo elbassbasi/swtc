@@ -11,4 +11,5 @@
 #include "Iterator.h"
 #include "Value.h"
 #include "IStream.h"
+#include "Link.h"
 #endif /* SWTP_CORE_CORE_H_ */

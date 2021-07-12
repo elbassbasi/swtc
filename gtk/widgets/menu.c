@@ -346,7 +346,11 @@ wresult _w_menuitem_get_items(w_menuitem *item, w_iterator *items) {
 wresult _w_menuitem_get_id(w_menuitem *item, int mask) {
 	void *id = g_object_get_qdata(G_OBJECT(_W_MENUITEM(item)->widget),
 			gtk_toolkit->quark[2]);
-	return (intptr_t) id;
+	if (mask == 0) {
+		w_widget *menu = _W_ITEM(item)->parent;
+		mask = _W_MENU(menu)->id_mask & 0xFFFF;
+	}
+	return ((intptr_t) id) & mask;
 }
 wresult _w_menuitem_get_image(w_menuitem *item, w_image *image) {
 	_w_widget_handles handles;
@@ -487,9 +491,13 @@ wresult _w_menuitem_set_enabled(w_menuitem *item, int enabled) {
 }
 wresult _w_menuitem_set_id(w_menuitem *item, int mask, wushort id) {
 	GtkWidget *widget = _W_MENUITEM(item)->widget;
+	if (mask == 0) {
+		w_widget *menu = _W_ITEM(item)->parent;
+		mask = _W_MENU(menu)->id_mask & 0xFFFF;
+	}
 	intptr_t _id = (intptr_t) g_object_get_qdata(G_OBJECT(widget),
 			gtk_toolkit->quark[2]);
-	_id |= (id & 0xFFFF);
+	_id |= (id & mask);
 	g_object_set_qdata(G_OBJECT(widget), gtk_toolkit->quark[2], (void*) _id);
 	return W_TRUE;
 }

@@ -360,10 +360,11 @@ wresult _w_control_get_enabled(w_control *control) {
 }
 wresult _w_control_get_font(w_control *control, w_font **font) {
 	if (_W_CONTROL(control)->font != 0) {
-		*font = _W_CONTROL(control)->font;
+		*font = (w_font*) _W_CONTROL(control)->font;
 	} else {
-		w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
-		*font = _w_toolkit_get_system_font(toolkit);
+		w_theme *theme;
+		w_widget_get_theme(W_WIDGET(control), &theme);
+		w_theme_get_font(theme, font);
 	}
 	return W_TRUE;
 }
@@ -462,6 +463,13 @@ wresult _w_control_get_touch_enabled(w_control *control) {
 }
 wresult _w_control_get_visible(w_control *control) {
 	return (_W_WIDGET(control)->state & STATE_HIDDEN) == 0;
+}
+wresult _w_control_init_themedata(w_widget *widget, w_themedata *data) {
+	_w_widget_init_themedata(widget, data);
+	data->attr.font = _W_CONTROL(widget)->font;
+	data->attr.background = _W_CONTROL(widget)->background;
+	data->attr.foreground = _W_CONTROL(widget)->foreground;
+	return W_TRUE;
 }
 GtkWidget* _w_control_handle_enterexit(w_widget *control,
 		_w_control_priv *priv) {
@@ -1190,6 +1198,7 @@ void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 	 */
 	W_WIDGET_CLASS(clazz)->create = _w_control_create;
 	W_WIDGET_CLASS(clazz)->get_shell = _w_control_get_shell;
+	W_WIDGET_CLASS(clazz)->init_themedata = _w_control_init_themedata;
 	clazz->create_dragsource = _w_control_create_dragsource;
 	clazz->create_droptarget = _w_control_create_droptarget;
 	clazz->drag_detect = _w_control_drag_detect;
@@ -1330,5 +1339,38 @@ void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 		signals[SIGNAL_SHOW_HELP] = _gtk_control_show_help;
 		signals[SIGNAL_STYLE_SET] = _gtk_control_style_set;
 		signals[SIGNAL_UNREALIZE] = _gtk_control_unrealize;
+	}
+}
+wresult _w_ccanvas_create_handle(w_widget *widget, int index,
+		_w_widget_priv *priv) {
+	GtkWidget *fixedHandle;
+	fixedHandle = _w_fixed_new();
+	if (fixedHandle == 0)
+		return W_ERROR_NO_HANDLES;
+	g_object_set_qdata(G_OBJECT(fixedHandle), gtk_toolkit->quark[0], widget);
+	_W_WIDGET(widget)->handle = fixedHandle;
+	gtk_widget_show_all(fixedHandle);
+	return W_TRUE;
+}
+void _w_ccanvas_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_ccanvas_class *clazz) {
+	if (classId == _W_CLASS_CCANVAS) {
+		W_WIDGET_CLASS(clazz)->platformPrivate =
+				&gtk_toolkit->class_ccanvas_priv;
+	}
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
+	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_CCANVAS;
+	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_ccanvas_class);
+	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_control);
+	W_WIDGET_CLASS(clazz)->object_used_size = sizeof(_w_control);
+	_w_widget_priv *priv = _W_WIDGET_PRIV(
+			W_WIDGET_CLASS(clazz)->platformPrivate);
+	if (_W_WIDGET_PRIV(priv)->init == 0) {
+		if (classId == _W_CLASS_CCANVAS) {
+			_W_WIDGET_PRIV(priv)->init = 1;
+		}
+		_W_WIDGET_PRIV(priv)->handle_top = _w_widget_h;
+		_W_WIDGET_PRIV(priv)->create_handle = _w_ccanvas_create_handle;
+		_W_CONTROL_PRIV(priv)->handle_fixed = _w_widget_h;
 	}
 }

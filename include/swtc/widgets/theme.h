@@ -131,7 +131,14 @@ typedef struct w_item_attr {
 		};
 	};
 } w_item_attr;
-typedef struct w_scrollbar_value w_scrollbar_value;
+typedef struct w_scrollbar_value {
+	int selection;
+	int minimum;
+	int maximum;
+	int thumb;
+	int increment;
+	int pageIncrement;
+} w_scrollbar_value;
 typedef struct w_themedata {
 	wuchar clazz;
 	unsigned state :14;
@@ -146,7 +153,8 @@ typedef struct w_themedata {
 	};
 	w_item_attr attr;
 	union {
-		w_scrollbar_value *range;
+		w_scrollbar_value range;
+		int headerHeight;
 	};
 } w_themedata;
 SWT_PUBLIC void w_themedata_init(w_themedata *data, w_graphics *gc,

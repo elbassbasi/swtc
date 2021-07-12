@@ -218,7 +218,7 @@ const char *_gtk_signal_names[SIGNAL_LAST] = { //
 w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST] = {			//
 		[_W_CLASS_SHELL] =(w_widget_init_class) _w_shell_class_init,		//
 				[_W_CLASS_CANVAS] =(w_widget_init_class) _w_canvas_class_init,//
-				//[_W_CLASS_CCANVAS] =(w_widget_init_class) _w_ccanvas_class_init,//
+				[_W_CLASS_CCANVAS] =(w_widget_init_class) _w_ccanvas_class_init,//
 				[_W_CLASS_COMPOSITE
 						] =(w_widget_init_class) _w_composite_class_init,	//
 				[_W_CLASS_MENU] =(w_widget_init_class) _w_menu_class_init,	//

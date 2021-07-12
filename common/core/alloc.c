@@ -144,3 +144,140 @@ void w_array_free(w_array *array, int element_size,
 	}
 	free(array);
 }
+/*
+ * link
+ */
+void w_link_linkfirst_0(w_link_0 *e, void *e_p, void **first) {
+	const int diff = (wintptr) e - (wintptr) e_p;
+	void *f = *first;
+	e->next = f;
+	e->prev = 0;
+	*first = e_p;
+	if (f == 0) {
+		e->prev = e_p;
+	} else {
+		w_link_0 *_f = (w_link_0*) (f + diff);
+		_f->prev = e_p;
+	}
+}
+void w_link_linkfirst(w_link *e, w_link **first) {
+	w_link_linkfirst_0((w_link_0*) e, e, (void**) first);
+}
+void w_link_linklast_0(w_link_0 *e, void *e_p, void **first) {
+	const wintptr diff = (wintptr) e - (wintptr) e_p;
+	if (*first == 0) {
+		*first = e_p;
+		e->next = 0;
+		e->prev = e_p;
+	} else {
+		w_link_0 *_f = (w_link_0*) (*first + diff);
+		void *l = _f->prev;
+		w_link_0 *_l = (w_link_0*) (l + diff);
+		e->next = 0;
+		e->prev = l;
+		_l->next = e_p;
+		_f->prev = e_p;
+	}
+}
+void w_link_linklast(w_link *e, w_link **first) {
+	w_link_linklast_0((w_link_0*) e, e, (void**) first);
+}
+void w_link_linkbefore_0(w_link_0 *e, void *e_p, void *succ, void **first) {
+	const int diff = (wintptr) e - (wintptr) e_p;
+	w_link_0 *_succ = (w_link_0*) (succ + diff);
+	void *pred = _succ->prev;
+	e->next = succ;
+	e->prev = pred;
+	_succ->prev = e_p;
+	if (pred == 0) {
+		if (first != 0)
+			*first = e_p;
+	} else {
+		w_link_0 *_pred = (w_link_0*) (pred + diff);
+		_pred->next = e_p;
+	}
+}
+void w_link_linkbefore(w_link *e, w_link *succ, w_link **first) {
+	w_link_linkbefore_0((w_link_0*) e, e, succ, (void**) first);
+}
+void w_link_linkafter_0(w_link_0 *e, void *e_p, void *succ, void **first) {
+	const int diff = (wintptr) e - (wintptr) e_p;
+	w_link_0 *_succ = (w_link_0*) (succ + diff);
+	void *next = _succ->next;
+	e->next = next;
+	e->prev = succ;
+	_succ->next = e;
+	if (next == 0) {
+		if (first != 0) {
+			if (*first == 0) {
+				*first = e_p;
+				e->prev = e_p;
+			} else {
+				w_link_0 *_first = (w_link_0*) (*first + diff);
+				_first->prev = e_p;
+			}
+		}
+	} else {
+		w_link_0 *_next = (w_link_0*) (next + diff);
+		_next->prev = e_p;
+	}
+}
+void w_link_linkafter(w_link *e, w_link *succ, w_link **first) {
+	w_link_linkafter_0((w_link_0*) e, e, succ, (void**) first);
+}
+void w_link_unlink_0(w_link_0 *x, void *x_p, void **first) {
+	const int diff = (wintptr) x - (wintptr) x_p;
+	void *next = x->next;
+	void *prev = x->prev;
+	if (prev == 0) {
+		if (first != 0)
+			first = next;
+	} else {
+		w_link_0 *_prev = (w_link_0*) (prev + diff);
+		_prev->next = next;
+		x->prev = 0;
+	}
+	if (next == 0) {
+		if (first != 0) {
+			if (*first == 0) {
+				/* */
+			} else {
+				w_link_0 *_first = (w_link_0*) (*first + diff);
+				_first->prev = prev;
+			}
+		}
+	} else {
+		w_link_0 *_next = (w_link_0*) (next + diff);
+		_next->prev = prev;
+		x->next = 0;
+	}
+}
+void w_link_unlink(w_link *e, w_link **first) {
+	w_link_unlink_0((w_link_0*) e, e, (void**) first);
+}
+void w_link_replace_0(w_link_0 *x, void *x_p, void *e, void **first) {
+	const int diff = (wintptr) x - (wintptr) x_p;
+	w_link_0 *_e = (w_link_0*) (e + diff);
+	_e->next = x->next;
+	_e->prev = x->prev;
+	if (_e->next != 0) {
+		w_link_0 *_next = (w_link_0*) (_e->next + diff);
+		_next->prev = e;
+	} else {
+		if (*first != 0) {
+			w_link_0 *_first = (w_link_0*) (*first + diff);
+			_first->prev = e;
+		}
+	}
+	if (_e->prev != 0) {
+		w_link_0 *_prev = (w_link_0*) (_e->prev + diff);
+		_prev->next = e;
+	} else {
+		if (*first != 0) {
+			*first = e;
+		}
+	}
+}
+void w_link_replace(w_link *x, w_link *e, w_link **first) {
+	w_link_replace_0((w_link_0*) x, x, e, (void**) first);
+}

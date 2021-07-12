@@ -389,8 +389,8 @@ wresult w_app_get_executable_path(w_app *app, w_alloc alloc, void *userdata,
 		}
 		i++;
 	}
-	return w_alloc_set_text(alloc, userdata, enc, app->app->argv[0],
-			last_index, W_ENCODING_UTF8);
+	return w_alloc_set_text(alloc, userdata, enc, app->app->argv[0], last_index,
+			W_ENCODING_UTF8);
 }
 w_toolkit* w_app_get_default_toolkit(w_app *app) {
 	if (app->app->defaultToolkit != 0)
@@ -406,6 +406,53 @@ w_toolkit* w_app_set_default_toolkit(w_app *app, w_toolkit *toolkit) {
 		app->app->defaultToolkit = toolkit;
 	}
 	return last;
+}
+w_toolkit* w_toolkit_get_custom();
+wresult w_toolkit_registre_themes();
+w_toolkit* w_app_get_custom_toolkit(w_app *app) {
+	if (app->app->customToolkit == 0) {
+		app->app->customToolkit = w_toolkit_get_custom();
+	}
+	return app->app->customToolkit;
+}
+w_toolkit* w_app_set_custom_toolkit(w_app *app, w_toolkit *toolkit) {
+	w_toolkit *last = app->app->customToolkit;
+	app->app->customToolkit = toolkit;
+	return last;
+}
+w_toolkit* w_app_load_toolkit(w_app *app, const char *module,
+		const char *function) {
+	return 0;
+}
+wresult w_app_load_themes(w_app *app, const char *module,
+		const char *function) {
+
+}
+wresult w_app_registre_theme(w_app *app, const char *name,
+		themes_creates_function create) {
+	int newIndex;
+	themes_function_create *fn = w_array_add(&w_app_get()->app->themes, -1,
+			sizeof(themes_function_create), &newIndex);
+	if (fn != 0) {
+		fn->name = strdup(name);
+		fn->create = create;
+		return W_TRUE;
+	}
+	return W_FALSE;
+}
+w_theme* w_app_create_theme(w_app *app, const char *name) {
+	if (w_app_get()->app->themes == 0) {
+		w_toolkit_registre_themes();
+	}
+	themes_function_create *fns;
+	int count = w_array_get_count(w_app_get()->app->themes, (void**) &fns);
+	for (int i = 0; i < count; i++) {
+		if (!strcmp(fns[i].name, name)) {
+			return fns[i].create(&fns[i]);
+		}
+
+	}
+	return 0;
 }
 /**
  *

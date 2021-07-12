@@ -75,11 +75,6 @@ wresult _w_toolkit_init_class(w_toolkit *toolkit, wushort clazz_id,
 	if (clazz_id < _W_CLASS_LAST) {
 		w_widget_init_class fun = gtk_toolkit_classes_init[clazz_id];
 		if (fun != 0) {
-			struct _w_widget_class *internalClazz =
-			_W_TOOLKIT(toolkit)->classes.classes[clazz_id];
-			if (internalClazz != 0 && internalClazz != clazz) {
-				fun(toolkit, clazz_id, internalClazz);
-			}
 			fun(toolkit, clazz_id, clazz);
 			return W_TRUE;
 		}

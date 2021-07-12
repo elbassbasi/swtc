@@ -317,9 +317,8 @@ private:
 	wushort state;
 	wushort children_count;
 	WWidget *parent;
-	WWidget *next_sibling;
-	WWidget *prev_sibling;
 	WWidget *first_child;
+	WLink<WWidget> sibling;
 	WTheme *theme;
 	void *data[5];
 };
