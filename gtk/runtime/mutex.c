@@ -1,4 +1,3 @@
-
 /*
  * Name:        mutex.c
  * Author:      Azeddine EL Bassbasi
@@ -13,6 +12,9 @@
 #include <errno.h>
 #include <time.h>
 #include <sys/time.h>
+#include <linux/futex.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 typedef struct _w_mutex {
 	pthread_mutex_t mutex;
 	unsigned isok :1;
@@ -72,7 +74,7 @@ wresult w_mutex_lock(w_mutex *mutex) {
 #define  NSEC_IN_MSEC  1000000
 #define  NSEC_IN_USEC  1000
 #define NSEC_IN_SEC   (MSEC_IN_SEC * NSEC_IN_MSEC)
-wresult w_mutex_lock_timeout(w_mutex *mutex, unsigned long ms) {
+wresult w_mutex_lock_timeout(w_mutex *mutex, wuint64 ms) {
 	if (_W_MUTEX(mutex)->isok != 0) {
 		struct timespec ts;
 		time_t seconds = ms / MSEC_IN_SEC;
@@ -100,4 +102,86 @@ wresult w_mutex_unlock(w_mutex *mutex) {
 		return _w_mutex_result(pthread_mutex_unlock(&_W_MUTEX(mutex)->mutex));
 	} else
 		return W_ERROR_NO_HANDLES;
+}
+
+/*
+ *  futex
+ */
+wresult w_futex_wait(w_futex *futex, int value) {
+	wresult result = syscall(SYS_futex, futex, (size_t) FUTEX_WAIT,
+			(size_t) value, NULL, 0, 0);
+	return result;
+}
+wresult w_futex_wait_timeout(w_futex *futex, int value, wuint64 timeout) {
+	struct timespec _timeout;
+	time_t seconds = timeout / MSEC_IN_SEC;
+	long nanoseconds = (timeout % MSEC_IN_SEC) * NSEC_IN_MSEC;
+	_timeout.tv_sec = time(NULL);
+	_timeout.tv_sec += seconds;
+	_timeout.tv_nsec += nanoseconds;
+	if (_timeout.tv_nsec > NSEC_IN_SEC) {
+		_timeout.tv_sec += 1;
+		_timeout.tv_nsec -= NSEC_IN_SEC;
+	}
+	wresult result = syscall(SYS_futex, futex, (size_t) FUTEX_WAIT,
+			(size_t) value, &_timeout, 0, 0);
+	return result;
+}
+wresult w_futex_wake_all(w_futex *futex) {
+	wresult result = syscall(SYS_futex, futex, (size_t) FUTEX_WAKE,
+			(size_t) INT32_MAX,
+			NULL, 0, 0);
+	return result;
+}
+wresult w_futex_wake_single(w_futex *futex) {
+	wresult result = syscall(SYS_futex, futex, (size_t) FUTEX_WAKE, (size_t) 1,
+	NULL, 0, 0);
+	return result;
+}
+/*
+ * 0 unlocked
+ * 1 locked, no waiters
+ * 2 locked, one or more waiters
+ */
+wresult w_futex_lock(w_futex *futex) {
+	int c;
+	if ((c = atomic_cmpxchg32(&futex->val, 0, 1)) != 0) {
+		do {
+			if (c == 2 || atomic_cmpxchg32(&futex->val, 1, 2) != 0) {
+				syscall(SYS_futex, futex, (size_t) FUTEX_WAIT, (size_t) 2,
+				NULL, 0, 0);
+			}
+		} while ((c = atomic_cmpxchg32(&futex->val, 0, 2)) != 0);
+	}
+	/*if ((c = atomic_cmpxchg32(&futex->val, 0, 1)) != 0) {
+	 if (c != 2)
+	 c = xchg(&futex->val, 2);
+	 while (c != 0) {
+	 syscall(SYS_futex, futex, (size_t) FUTEX_WAIT, (size_t) 0,
+	 NULL, &compareAddress, 0);
+	 c = xchg(val, 2);
+	 }
+	 }*/
+	return W_TRUE;
+}
+wresult w_futex_unlock(w_futex *futex) {
+	if (atomic_sub32(&futex->val, 1) != 1) {
+		futex->val = 0;
+		syscall(SYS_futex, futex, (size_t) FUTEX_WAKE, (size_t) 1, NULL, 0, 0);
+	}
+	return W_TRUE;
+}
+wresult w_futexlock_lock(w_futexlock *futex) {
+	int c;
+	w_threadid threadId = pthread_self();
+	if (pthread_equal(threadId, futex->owner) == 0) {
+		w_futex_lock((w_futex*) futex);
+		futex->owner = threadId;
+	}
+	return W_TRUE;
+}
+wresult w_futexlock_unlock(w_futexlock *futex) {
+	futex->owner = 0;
+	w_futex_unlock((w_futex*) futex);
+	return W_TRUE;
 }

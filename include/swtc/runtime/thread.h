@@ -12,8 +12,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef int (*w_thread_start)(void *args);
-typedef wintptr w_threadid;
+typedef int (*w_thread_start)(void *userdata, void *args);
 
 typedef struct w_thread_cleanup {
 	void (*routine)(void*);
@@ -25,6 +24,7 @@ typedef struct w_thread_cleanup {
 typedef struct w_thread {
 	void *vtbl;      //used in c++
 	w_thread_start start_proc;
+	void *user_data;
 	void *args;
 	w_threadid id;
 	w_thread_cleanup *cleanup;
@@ -34,7 +34,7 @@ SWT_PUBLIC void w_thread_init(w_thread *thread);
 SWT_PUBLIC wresult w_thread_equal(w_thread *thread1, w_thread *thread2);
 SWT_PUBLIC wresult w_threadid_equal(w_threadid thread1, w_threadid thread2);
 SWT_PUBLIC void w_thread_dispose(w_thread *thread);
-SWT_PUBLIC wresult w_thread_create(w_thread *thread,size_t stackSize);
+SWT_PUBLIC wresult w_thread_create(w_thread *thread, size_t stackSize);
 SWT_PUBLIC wresult w_thread_cancel(w_thread *thread);
 SWT_PUBLIC wresult w_thread_join(w_thread *thread);
 SWT_PUBLIC wresult w_thread_join_timeout(w_thread *thread, size_t ms);

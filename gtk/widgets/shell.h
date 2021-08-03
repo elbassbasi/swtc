@@ -32,8 +32,7 @@
 typedef struct _w_shell _w_shell;
 struct _w_shell {
 	_w_canvas canvas;
-	_w_shell *next;
-	_w_shell *prev;
+	w_link_0 shells_link;
 	w_menu *menubar;
 	GtkAccelGroup *accelGroup;
 	GtkWindowGroup *group;

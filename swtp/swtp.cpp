@@ -44,8 +44,8 @@ bool IWNotify::_InvokeAction(IWNotify *notify, IWNotify::SelectionAction action,
 		WEvent &e) {
 	return (notify->*action)(e);
 }
-int IWNotify::exec_function(void *args) {
-	((IWNotify*) args)->OnNotifyExec();
+int IWNotify::exec_function(void *user_data, void *args) {
+	((IWNotify*) user_data)->OnNotifyExec(args);
 	return true;
 }
 WWidget::~WWidget() {
@@ -297,7 +297,7 @@ WListenerBase* WListenerBase::CreateRef() {
 	return this;
 }
 
-void WWidget::OnNotifyExec() {
+void WWidget::OnNotifyExec(void *args) {
 }
 /*
  * DropTarget
@@ -1505,11 +1505,11 @@ WThread::WThread() {
 WThread::~WThread() {
 	this->Dispose();
 }
-void WThread::Run() {
+void WThread::Run(void *args) {
 }
-int WThread::w_thread_runnable_start(void *args) {
-	IWRunnable *runnable = (IWRunnable*) args;
-	runnable->Run();
+int WThread::w_thread_runnable_start(void *userdata, void *args) {
+	IWRunnable *runnable = (IWRunnable*) userdata;
+	runnable->Run(args);
 	return 0;
 }
 #if __cplusplus >= 201103L
@@ -1522,14 +1522,14 @@ public:
 	WRunnableLambda(WRunnable &function) {
 		this->function = function;
 	}
-	void Run() {
-		this->function();
+	void Run(void *args) {
+		this->function(args);
 		delete this;
 	}
 };
-bool WThread::Create(WRunnable &run) {
+bool WThread::Create(WRunnable &run, void *args) {
 	WRunnableLambda *lambda = new WRunnableLambda(run);
-	return Create(lambda);
+	return Create(lambda, args);
 }
 #endif
 /*

@@ -10,7 +10,6 @@
 #define GTK_CONTROLS_CONTROLS_H_
 #include "button.h"
 #include "combobox.h"
-#include "coolbar.h"
 #include "datetime.h"
 #include "expandbar.h"
 #include "groupbox.h"

@@ -7,6 +7,9 @@
  */
 #include "toolkit.h"
 #include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -32,16 +35,26 @@ void w_app_create(w_app *_app, int argc, char **argv) {
 		return;
 	}
 	if (gtk_toolkit == 0) {
-		const int total_size = 0x10000;
 		const int toolkit_size = sizeof(_w_toolkit);
-		const int tmp_size = total_size - toolkit_size;
-		gtk_toolkit = calloc(1, total_size);
-		if (gtk_toolkit == 0) {
-			fprintf(stderr, "Error : Do not initialize toolkit\n");
+		int page_size = sysconf(_SC_PAGE_SIZE);
+		int total_size = (toolkit_size & ~(page_size - 1)) + 5 * page_size;
+		const int tmp_total = total_size - toolkit_size;
+		gtk_toolkit = mmap(NULL, total_size, PROT_READ | PROT_WRITE,
+		MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+		if (gtk_toolkit == MAP_FAILED || gtk_toolkit == 0) {
+			fprintf(stderr, "Error : Do not initialize application\n");
 			exit(EXIT_FAILURE);
 			return;
 		}
-		gtk_toolkit->tmp_alloc = tmp_size;
+		gtk_toolkit->total_size = total_size;
+		gtk_toolkit->tmp_reserved = page_size;
+		gtk_toolkit->tmpaddr_sz_bits = (tmp_total - gtk_toolkit->tmp_reserved)
+				/ _PAGES_SIZE;
+		gtk_toolkit->tmpaddr_sz = gtk_toolkit->tmpaddr_sz_bits / 64;
+		if (gtk_toolkit->tmpaddr_sz_bits % 64 != 0)
+			gtk_toolkit->tmpaddr_sz++;
+		gtk_toolkit->tmp_total = tmp_total
+				- gtk_toolkit->tmpaddr_sz * sizeof(wuint64);
 		_w_toolkit_init(gtk_toolkit);
 		_app->app = &gtk_toolkit->app;
 	}
@@ -52,6 +65,10 @@ void w_app_create(w_app *_app, int argc, char **argv) {
 }
 w_app* w_app_get() {
 	return app;
+}
+void w_app_dispose(w_app *app) {
+	w_app_dispose_all();
+	munmap(gtk_toolkit, gtk_toolkit->total_size);
 }
 wresult _w_toolkit_check_widget(w_toolkit *toolkit, w_widget *widget) {
 	if (pthread_equal(pthread_self(), (pthread_t)
@@ -166,90 +183,23 @@ size_t _w_toolkit_get_icon_sizes(w_toolkit *toolkit, w_size *sizes,
 	}
 	return 2;
 }
-_w_shell* _w_shells_iterator_find_next(_w_shell *parent, _w_shell *current) {
-	if (parent == 0)
-		return current->next;
-	else {
-		_w_shell *s = current->next;
-		while (s != 0) {
-			if (_W_WIDGET(s)->parent == W_WIDGET(parent))
-				return s;
-			s = s->next;
+void _w_toolkit_get_shells(w_toolkit *toolkit, w_iterator *shells) {
+	w_iterator_link_create(shells, &_W_SHELL(gtk_toolkit->shells)->shells_link,
+			gtk_toolkit->shells, gtk_toolkit->shells_count, 0, 0);
+}
+wresult w_iterator_filter_shell_parent(void *userdata, void *in, void *out) {
+	if (_W_WIDGET(in)->parent == W_WIDGET(userdata)) {
+		if (out != 0) {
+			*((w_shell**) out) = (w_shell*) in;
 		}
-		return 0;
-	}
-}
-_w_shell* _w_shells_iterator_find_first(_w_shell *parent) {
-	_w_shell *s = gtk_toolkit->shells;
-	while (s != 0) {
-		if (_W_WIDGET(s)->parent == W_WIDGET(parent))
-			return s;
-		s = s->next;
-	}
-	return 0;
-}
-wresult _w_shells_iterator_next(w_iterator *it, void *obj) {
-	_w_shells_iterator *iter = (_w_shells_iterator*) it;
-	if (iter->current != 0) {
-		*((_w_shell**) obj) = iter->current;
-		iter->current = _w_shells_iterator_find_next(iter->parent,
-				iter->current);
 		return W_TRUE;
 	} else {
 		return W_FALSE;
 	}
 }
-wresult _w_shells_iterator_reset(w_iterator *it) {
-	_w_shells_iterator *iter = (_w_shells_iterator*) it;
-	if (iter->parent == 0)
-		iter->current = gtk_toolkit->shells;
-	else
-		iter->current = _w_shells_iterator_find_first(iter->parent);
-	return W_TRUE;
-}
-wresult _w_shells_iterator_close(w_iterator *it) {
-	return W_TRUE;
-}
-wresult _w_shells_iterator_remove(w_iterator *it) {
-	return W_ERROR_NOT_IMPLEMENTED;
-}
-size_t _w_shells_iterator_count(w_iterator *it) {
-	_w_shells_iterator *iter = (_w_shells_iterator*) it;
-	if (iter->parent == 0)
-		return gtk_toolkit->shells_count;
-	else {
-		if (iter->count == -1) {
-			_w_shell *s = gtk_toolkit->shells;
-			size_t count = 0;
-			while (s != 0) {
-				if (_W_WIDGET(s)->parent == W_WIDGET(iter->parent))
-					count++;
-				s = s->next;
-			}
-			iter->count = count;
-		}
-		return iter->count;
-	}
-}
-_w_iterator_class _w_shells_iterator_class = { //
-		_w_shells_iterator_close, //
-				_w_shells_iterator_next, //
-				_w_shells_iterator_reset, //
-				_w_shells_iterator_remove, //
-				_w_shells_iterator_count };
-void _w_toolkit_get_shells(w_toolkit *toolkit, w_iterator *shells) {
-	_w_shells_iterator *iter = (_w_shells_iterator*) shells;
-	iter->base.clazz = &_w_shells_iterator_class;
-	iter->current = gtk_toolkit->shells;
-	iter->parent = 0;
-	iter->count = -1;
-}
 void _w_toolkit_get_shells_from_parent(w_shell *shell, w_iterator *iterator) {
-	_w_shells_iterator *iter = (_w_shells_iterator*) iterator;
-	iter->base.clazz = &_w_shells_iterator_class;
-	iter->current = _w_shells_iterator_find_first(iter->parent);
-	iter->parent = _W_SHELL(shell);
-	iter->count = -1;
+	w_iterator_link_create(iterator, &_W_SHELL(gtk_toolkit->shells)->shells_link,
+			gtk_toolkit->shells, -1, w_iterator_filter_shell_parent, shell);
 }
 w_color _w_toolkit_get_system_color(w_toolkit *toolkit, wuint id) {
 	w_theme *theme = (w_theme*) &_W_TOOLKIT(toolkit)->gtktheme;
@@ -436,59 +386,34 @@ int _w_toolkit_run(w_toolkit *toolkit) {
 }
 gboolean _w_toolkit_async_exec_GSourceFunc(gpointer user_data) {
 	threads_idle *funcs = (threads_idle*) user_data;
-	funcs->func(funcs->data);
-	if (funcs >= &gtk_toolkit->threads_idle[0]
-			&& funcs < &gtk_toolkit->threads_idle[THREAD_IDLE_COUNT]) {
-		funcs->func = 0;
-	} else {
-		free(funcs);
-	}
+	funcs->func(funcs->user_data, funcs->args);
+	_w_toolkit_delete_pages(funcs, sizeof(threads_idle));
 	return FALSE;
 }
 gboolean _w_toolkit_sync_exec_GSourceFunc(gpointer user_data) {
 	threads_idle *funcs = (threads_idle*) user_data;
-	funcs->func(funcs->data);
-	if (funcs >= &gtk_toolkit->threads_idle[0]
-			&& funcs < &gtk_toolkit->threads_idle[THREAD_IDLE_COUNT]) {
-		funcs->func = 0;
-	} else {
-		free(funcs);
-	}
-	funcs->signalled = 1;
+	funcs->func(funcs->user_data, funcs->args);
+	funcs->signalled[0] = 1;
+	_w_toolkit_delete_pages(funcs, sizeof(threads_idle));
 	pthread_cond_broadcast(&gtk_toolkit->condition);
 	return FALSE;
 }
-wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function, void *args,
-		int sync, wuint ms) {
+wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function,
+		void *user_data, void *args, int sync, wuint ms) {
 	pthread_t thread = pthread_self();
 	if (pthread_equal(thread, _W_TOOLKIT(toolkit)->thread.id) && ms != -1) {
-		function(args);
+		function(user_data, args);
 		return TRUE;
 	}
-	threads_idle *funcs = 0;
-	threads_idle *threads_idle = &gtk_toolkit->threads_idle[0];
-	pthread_mutex_lock(&_W_TOOLKIT(toolkit)->mutex);
-	for (int i = 0; i < THREAD_IDLE_COUNT; i++) {
-		if (threads_idle[i].func == 0) {
-			funcs = &threads_idle[i];
-			break;
-		}
-	}
-	if (funcs != 0) {
-		funcs->func = function;
-		funcs->data = args;
-		funcs->signalled = 0;
-	}
-	if (funcs == 0) {
-		funcs = malloc(sizeof(threads_idle));
-		if (funcs == 0)
-			return TRUE;
-		else {
-			funcs->func = function;
-			funcs->data = args;
-		}
-	}
-	pthread_mutex_unlock(&_W_TOOLKIT(toolkit)->mutex);
+	threads_idle *funcs = (threads_idle*) _w_toolkit_new_pages(
+			sizeof(threads_idle));
+	if (funcs == 0)
+		return W_ERROR_NO_MEMORY;
+	volatile wuint signalled = 0;
+	funcs->func = function;
+	funcs->user_data = user_data;
+	funcs->args = args;
+	funcs->signalled = &signalled;
 	GSourceFunc sourceFunc;
 	if (ms == -1) {
 		if (sync) {
@@ -496,12 +421,12 @@ wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function, void *args,
 		} else {
 			sourceFunc = _w_toolkit_async_exec_GSourceFunc;
 		}
-		gdk_threads_add_idle(_w_toolkit_async_exec_GSourceFunc, funcs);
+		gdk_threads_add_idle(sourceFunc, funcs);
 	} else {
 		g_timeout_add(ms, _w_toolkit_async_exec_GSourceFunc, funcs);
 	}
 	if (sync) {
-		while (funcs->signalled != 0) {
+		while (signalled != 0) {
 			pthread_cond_wait(&gtk_toolkit->condition,
 					&gtk_toolkit->condition_mutex);
 		}
@@ -509,16 +434,17 @@ wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function, void *args,
 	return TRUE;
 }
 wresult _w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args) {
-	return _w_toolkit_exec(toolkit, function, args, W_FALSE, -1);
+		void *user_data, void *args) {
+	return _w_toolkit_exec(toolkit, function, user_data, args, W_FALSE, -1);
 }
 wresult _w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args) {
-	return _w_toolkit_exec(toolkit, function, args, W_TRUE, -1);
+		void *user_data, void *args) {
+	return _w_toolkit_exec(toolkit, function, user_data, args, W_TRUE, -1);
 }
 wresult _w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *args) {
-	return _w_toolkit_exec(toolkit, function, args, W_FALSE, milliseconds);
+		w_thread_start function, void *user_data, void *args) {
+	return _w_toolkit_exec(toolkit, function, user_data, args, W_FALSE,
+			milliseconds);
 }
 wresult _w_toolkit_update(w_toolkit *toolkit) {
 	return W_TRUE;

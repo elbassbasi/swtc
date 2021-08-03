@@ -97,10 +97,10 @@ w_theme* w_toolkit_custom_get_theme(w_toolkit *toolkit) {
 	}
 }
 wresult w_toolkit_custom_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args) {
+		void *user_data, void *args) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
 	return W_TOOLKIT_GET_CLASS(systoolkit)->async_exec(systoolkit, function,
-			args);
+			user_data, args);
 }
 wresult w_toolkit_custom_beep(w_toolkit *toolkit) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
@@ -248,16 +248,16 @@ int w_toolkit_custom_run(w_toolkit *toolkit) {
 	return W_TOOLKIT_GET_CLASS(systoolkit)->run(systoolkit);
 }
 wresult w_toolkit_custom_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args) {
+		void *user_data, void *args) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
 	return W_TOOLKIT_GET_CLASS(systoolkit)->sync_exec(systoolkit, function,
-			args);
+			user_data, args);
 }
 wresult w_toolkit_custom_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *args) {
+		w_thread_start function, void *user_data, void *args) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
 	return W_TOOLKIT_GET_CLASS(systoolkit)->timer_exec(systoolkit, milliseconds,
-			function, args);
+			function, user_data, args);
 }
 wresult w_toolkit_custom_update(w_toolkit *toolkit) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;

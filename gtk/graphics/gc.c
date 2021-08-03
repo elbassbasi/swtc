@@ -1107,7 +1107,7 @@ int w_graphics_get_advance_width(w_graphics *gc, int ch) {
 	if (result > 0) {
 		w_size size;
 		char s[10];
-		int len = w_utf8_from_unichar(ch, s);
+		int len = w_utf8_add_unichar(s, sizeof(s), ch);
 		w_graphics_text_extent(gc, s, len, &size, 0, W_ENCODING_UTF8);
 		return size.width;
 	}
@@ -1160,7 +1160,7 @@ int w_graphics_get_char_width(w_graphics *gc, int ch) {
 	if (result > 0) {
 		w_size size;
 		char s[10];
-		int len = w_utf8_from_unichar(ch, s);
+		int len = w_utf8_add_unichar(s, sizeof(s), ch);
 		w_graphics_text_extent(gc, s, len, &size, 0, W_ENCODING_UTF8);
 		return size.width;
 	}

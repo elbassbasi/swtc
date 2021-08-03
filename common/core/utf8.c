@@ -9,41 +9,6 @@
 /*
  * utf8
  */
-
-#define UTF8_COMPUTE(Char, Mask, Len)					      \
-  if (Char < 128)							      \
-    {									      \
-      Len = 1;								      \
-      Mask = 0x7f;							      \
-    }									      \
-  else if ((Char & 0xe0) == 0xc0)					      \
-    {									      \
-      Len = 2;								      \
-      Mask = 0x1f;							      \
-    }									      \
-  else if ((Char & 0xf0) == 0xe0)					      \
-    {									      \
-      Len = 3;								      \
-      Mask = 0x0f;							      \
-    }									      \
-  else if ((Char & 0xf8) == 0xf0)					      \
-    {									      \
-      Len = 4;								      \
-      Mask = 0x07;							      \
-    }									      \
-  else if ((Char & 0xfc) == 0xf8)					      \
-    {									      \
-      Len = 5;								      \
-      Mask = 0x03;							      \
-    }									      \
-  else if ((Char & 0xfe) == 0xfc)					      \
-    {									      \
-      Len = 6;								      \
-      Mask = 0x01;							      \
-    }									      \
-  else									      \
-    Len = 1;
-
 #define UTF8_LENGTH(Char)              \
   ((Char) < 0x80 ? 1 :                 \
    ((Char) < 0x800 ? 2 :               \
@@ -51,26 +16,13 @@
      ((Char) < 0x200000 ? 4 :          \
       ((Char) < 0x4000000 ? 5 : 6)))))
 
-#define UTF8_GET(Result, Chars, Count, Mask, Len)			      \
-  (Result) = (Chars)[0] & (Mask);					      \
-  for ((Count) = 1; (Count) < (Len); ++(Count))				      \
-    {									      \
-      if (((Chars)[(Count)] & 0xc0) != 0x80)				      \
-	{								      \
-	  (Result) = -1;						      \
-	  break;							      \
-	}								      \
-      (Result) <<= 6;							      \
-      (Result) |= ((Chars)[(Count)] & 0x3f);				      \
-    }
-
 #define UNICODE_VALID(Char)                   \
     ((Char) < 0x110000 &&                     \
      (((Char) & 0xFFFFF800) != 0xD800))
 
 #define CONT_BYTE_FAST(p) ((unsigned char)*p++ & 0x3f)
 
-const char w_utf8_skip_data[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+wuchar w_utf8_skip_data[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -78,41 +30,83 @@ const char w_utf8_skip_data[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-		2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
-		3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6,
-		1, 1 };
-void w_utf8_iter_init(w_utf8_iter *iter, const char *p) {
-	iter->p = p;
-	iter->flags = 0;
-}
-wunichar w_utf8_iter_next_utf32(w_utf8_iter *iter) {
-	/*int i, mask = 0, len;
-	 int result;
-	 unsigned char c = (unsigned char) *p;
-	 UTF8_COMPUTE(c, mask, len);
-	 UTF8_GET(result, p, i, mask, len);
-	 return result;*/
-}
-wchar w_utf8_iter_next_utf16(w_utf8_iter *iter) {
-
-}
-wunichar w_utf8_get_unichar(const char *p) {
-	int i, mask = 0, len;
-	int result;
+		1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+		2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 1, 1 };
+wuchar w_utf8_mask[256] = { 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f,
+		0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f,
+		0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f,
+		0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f,
+		0x0f, 0x0f, 0x0f, 0x0f, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
+		0x03, 0x03, 0x03, 0x03, 0x01, 0x01, 0x00, 0x00 };
+wuchar w_utf8_bits_first[32] = { 0, 0, 0, 0, 0, 0, 0, 0xc0, 0xc0, 0xc0, 0xc0,
+		0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf8, 0xf8,
+		0xf8, 0xf8, 0xf8, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc };
+wuchar w_utf8_bits_length[32] = { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3,
+		3, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6 };
+wunichar w_utf8_get_unichar(const char *p, wintptr max_len) {
+	if (max_len <= 0)
+		return 0;
+	int i, mask, len;
 	unsigned char c = (unsigned char) *p;
-	UTF8_COMPUTE(c, mask, len);
-	UTF8_GET(result, p, i, mask, len);
+	len = WMIN((size_t )w_utf8_skip_data[c], max_len);
+	mask = w_utf8_mask[c];
+	wunichar result = p[0] & mask;
+	for (int i = 1; i < len; i++) {
+		if ((p[i] & 0xc0) != 0x80) {
+			result = -1;
+			break;
+		}
+		result <<= 6;
+		result |= (p[i] & 0x3f);
+	}
 	return result;
 }
-wunichar w_utf8_get_next_char(const char *p, const char **next) {
-	int i, mask = 0, len;
-	int result;
-	unsigned char c = (unsigned char) *p;
-	UTF8_COMPUTE(c, mask, len);
-	UTF8_GET(result, p, i, mask, len);
-	*next = p + len;
-	return result;
+wunichar w_utf16_get_unichar(const wchar_t *p, wintptr max_len) {
+	if (max_len <= 0)
+		return 0;
+	wchar_t ch0 = p[0];
+	if (ch0 < 0xD800) // [0x0000‥0xD7FF]
+		return ch0;
+	if (ch0 < 0xDC00) { // [0xD800‥0xDBFF] [0xDC00‥0xDFFF]
+		if (max_len <= 1)
+			return 0;
+		wchar_t ch1 = p[1];
+		if (ch1 >> 10 != 0x37) {
+			return -1;
+		}
+		return (ch0 << 10) + ch1 - 0x35FDC00;
+	}
+	if (ch0 < 0xE000)
+		return -1;
+	// [0xE000‥0xFFFF]
+	return ch0;
+}
+const wchar_t*
+w_utf16_next(const wchar_t *p) {
+	wchar_t ch0 = p[0];
+	if (ch0 < 0xD800) // [0x0000‥0xD7FF]
+		return p + 1;
+	if (ch0 < 0xDC00) { // [0xD800‥0xDBFF] [0xDC00‥0xDFFF]
+		return p + 2;
+	}
+	return p + 1;
 }
 const char*
 w_utf8_find_prev(const char *str, const char *p) {
@@ -212,7 +206,7 @@ int w_utf8_pointer_to_offset(const char *str, const char *pos) {
 	return offset;
 }
 char*
-w_utf8_strncpy(char *dest, const char *src, int n) {
+w_utf8_strncpy(char *dest, const char *src, size_t n) {
 	const char *s = src;
 	while (n && *s) {
 		s = w_utf8_next(s);
@@ -222,10 +216,41 @@ w_utf8_strncpy(char *dest, const char *src, int n) {
 	dest[s - src] = 0;
 	return dest;
 }
-int w_utf8_from_unichar(int c, char *outbuf) {
-	int len = 0;
-	int first;
-	int i;
+size_t w_utf8_unichar_length(wunichar c) {
+#if defined(__GNUC__) || defined(_MSC_VER)
+	int _i;
+	if (c == 0) {
+		_i = 0;
+	} else {
+#ifdef __GNUC__
+		_i = __builtin_ctz(c);
+#else
+		_BitScanForward(&_i,c);
+#endif
+	}
+	return w_utf8_bits_length[_i];
+#else
+	return UTF8_LENGTH(c);
+#endif
+}
+size_t w_utf8_add_unichar(char *outbuf, size_t sz, wunichar c) {
+	int len, first;
+#if defined(__GNUC__) || defined(_MSC_VER)
+	int _i;
+	if (c == 0) {
+		_i = 0;
+	} else {
+#ifdef __GNUC__
+		_i = __builtin_ctz(c);
+#else
+		_BitScanForward(&_i,c);
+#endif
+	}
+	len = w_utf8_bits_length[_i];
+	if (sz == 0)
+		return len;
+	first = w_utf8_bits_first[_i];
+#else
 	if (c < 0x80) {
 		first = 0;
 		len = 1;
@@ -245,14 +270,23 @@ int w_utf8_from_unichar(int c, char *outbuf) {
 		first = 0xfc;
 		len = 6;
 	}
-	if (outbuf) {
+#endif
+	if (sz >= len) {
+		int i;
 		for (i = len - 1; i > 0; --i) {
 			outbuf[i] = (c & 0x3f) | 0x80;
 			c >>= 6;
 		}
 		outbuf[0] = c | first;
+	} else {
+		int i;
+		for (i = len - 1; i > 0; --i) {
+			if (i < sz)
+				outbuf[i] = (c & 0x3f) | 0x80;
+			c >>= 6;
+		}
+		outbuf[0] = c | first;
 	}
-
 	return len;
 }
 char*
@@ -261,155 +295,76 @@ w_utf8_strchr(const char *p, int c) {
 		return strchr(p, c);
 	} else {
 		char ch[10];
-		int charlen = w_utf8_from_unichar(c, ch);
+		int charlen = w_utf8_add_unichar(ch, sizeof(ch), c);
 		ch[charlen] = '\0';
 		return strstr(p, ch);
 	}
 }
 
-int w_utf8_from_ucs4(const wuint *str, int len, char *result, int n) {
-	int result_length;
-	char *p;
-	int i;
+int w_utf8_from_ucs4(const wunichar *str, size_t len, char *result, size_t n) {
+	size_t i = 0;
 	if (result == 0) {
-		result_length = 0;
-		for (i = 0; len < 0 || i < len; i++) {
-			if (!str[i])
+		int _n = 0;
+		while (1) {
+			wunichar c = str[i];
+			if (c == 0 || i >= len)
 				break;
-
-			result_length += UTF8_LENGTH(str[i]);
+			_n += w_utf8_unichar_length(c);
+			i++;
 		}
-		return result_length;
-	}
-
-	p = result;
-
-	i = 0;
-	while (p < result + n) {
-		p += w_utf8_from_unichar(str[i++], p);
-	}
-
-	*p = '\0';
-
-	return (int) (p - result);
-
-}
-int w_utf8_to_ucs4(const char *str, int len, wunichar *result, int n) {
-	/*	gunichar *result = NULL;
-	 gint n_chars, i;
-	 const gchar *in;
-
-	 in = str;
-	 n_chars = 0;
-	 while ((len < 0 || str + len - in > 0) && *in) {
-	 gunichar wc = g_utf8_get_char_extended(in,
-	 len < 0 ? 6 : str + len - in);
-	 if (wc & 0x80000000) {
-	 if (wc == (gunichar) - 2) {
-	 if (items_read)
-	 break;
-	 else
-	 g_set_error_literal(error, G_CONVERT_ERROR,
-	 G_CONVERT_ERROR_PARTIAL_INPUT,
-	 _("Partial character sequence at end of input"));
-	 } else
-	 g_set_error_literal(error, G_CONVERT_ERROR,
-	 G_CONVERT_ERROR_ILLEGAL_SEQUENCE,
-	 _("Invalid byte sequence in conversion input"));
-
-	 goto err_out;
-	 }
-
-	 n_chars++;
-
-	 in = g_utf8_next_char(in);
-	 }
-
-	 result = try_malloc_n(n_chars + 1, sizeof(gunichar), error);
-	 if (result == NULL)
-	 goto err_out;
-
-	 in = str;
-	 for (i = 0; i < n_chars; i++) {
-	 result[i] = g_utf8_get_char(in);
-	 in = g_utf8_next_char(in);
-	 }
-	 result[i] = 0;
-
-	 if (items_written)
-	 *items_written = n_chars;
-
-	 err_out: if (items_read)
-	 *items_read = in - str;
-
-	 return result;
-	 */
-}
-wunichar w_utf8_get_char_extended(const char *p, int max_len) {
-	int i, len;
-	wunichar min_code;
-	wunichar wc = (wuchar) *p;
-
-	const wunichar partial_sequence = (wunichar) -2;
-	const wunichar malformed_sequence = (wunichar) -1;
-
-	if (wc < 0x80) {
-		return wc;
-	} else if (wc < 0xc0) {
-		return malformed_sequence;
-	} else if (wc < 0xe0) {
-		len = 2;
-		wc &= 0x1f;
-		min_code = 1 << 7;
-	} else if (wc < 0xf0) {
-		len = 3;
-		wc &= 0x0f;
-		min_code = 1 << 11;
-	} else if (wc < 0xf8) {
-		len = 4;
-		wc &= 0x07;
-		min_code = 1 << 16;
-	} else if (wc < 0xfc) {
-		len = 5;
-		wc &= 0x03;
-		min_code = 1 << 21;
-	} else if (wc < 0xfe) {
-		len = 6;
-		wc &= 0x01;
-		min_code = 1 << 26;
+		return _n;
 	} else {
-		return malformed_sequence;
-	}
-
-	if (max_len >= 0 && len > max_len) {
-		for (i = 1; i < max_len; i++) {
-			if ((((wuchar*) p)[i] & 0xc0) != 0x80)
-				return malformed_sequence;
+		int _n = 0;
+		while (1) {
+			wunichar c = str[i];
+			if (c == 0 || i >= len)
+				break;
+			_n += w_utf8_add_unichar(&result[_n], n - _n, c);
+			i++;
 		}
-		return partial_sequence;
-	}
-
-	for (i = 1; i < len; ++i) {
-		wunichar ch = ((wuchar*) p)[i];
-
-		if ((ch & 0xc0) != 0x80) {
-			if (ch)
-				return malformed_sequence;
-			else
-				return partial_sequence;
+		if (_n < n) {
+			result[_n] = 0;
 		}
-
-		wc <<= 6;
-		wc |= (ch & 0x3f);
+		return _n;
 	}
 
-	if (wc < min_code)
-		return malformed_sequence;
-
-	return wc;
+}
+int w_utf8_to_ucs4(const char *str, size_t len, wunichar *result, size_t n) {
+	const char *s = str, *end = str + len;
+	size_t i = 0, l;
+	wunichar wc;
+	if (result == 0) {
+		while (1) {
+			l = len >= 0 ? end - s : 6;
+			wc = w_utf8_get_unichar(s, l);
+			if (wc == 0)
+				break;
+			if (wc < 0x10000) {
+				i += 1;
+			} else {
+				i += 2;
+			}
+			s = w_utf8_next(s);
+		}
+		return i;
+	} else {
+		while (1) {
+			l = len >= 0 ? end - s : 6;
+			wc = w_utf8_get_unichar(s, l);
+			if (wc == 0)
+				break;
+			result[i++] = wc;
+			if (i >= n)
+				break;
+			s = w_utf8_next(s);
+		}
+		if (n > i)
+			result[i] = 0;
+		return i;
+	}
 }
 #define SURROGATE_VALUE(h,l) (((h) - 0xd800) * 0x400 + (l) - 0xdc00 + 0x10000)
-int w_utf8_from_utf16(const wchar *str, int len, char *result, int n) {
+int w_utf8_from_utf16(const wchar *str, size_t len, char *result, size_t n) {
 	/* This function and g_utf16_to_ucs4 are almost exactly identical -
 	 * The lines that differ are marked.
 	 */
@@ -452,8 +407,9 @@ int w_utf8_from_utf16(const wchar *str, int len, char *result, int n) {
 
 	high_surrogate = 0;
 	out = result;
+	const char *end = result + n;
 	in = str;
-	while (out < result + n) {
+	while (out < end) {
 		wchar c = *in;
 		wunichar wc;
 
@@ -469,58 +425,57 @@ int w_utf8_from_utf16(const wchar *str, int len, char *result, int n) {
 			wc = c;
 
 		/********** DIFFERENT for UTF8/UCS4 **********/
-		out += w_utf8_from_unichar(wc, out);
+		out += w_utf8_add_unichar(out, end - out, wc);
 
 		next2: in++;
 	}
 
 	/********** DIFFERENT for UTF8/UCS4 **********/
-	*out = '\0';
+	result[n - 1] = '\0';
 
 	return (int) (in - str);
 }
-int w_utf8_to_utf16(const char *str, int len, wchar *result, int n) {
-	int n16;
-	const char *in;
-	int i, m;
-	in = str;
-	n16 = 0;
+int w_utf8_to_utf16(const char *str, size_t len, wchar *result, size_t n) {
+	const char *s = str, *end = str + len;
+	int i = 0, l;
+	wunichar wc;
 	if (result == 0) {
-		while ((len < 0 || (m = str + len - in) > 0) && *in) {
-			wunichar wc = w_utf8_get_char_extended(in, len < 0 ? 6 : m);
+		while (1) {
+			l = len >= 0 ? end - s : 6;
+			wc = w_utf8_get_unichar(s, l);
+			if (wc == 0)
+				break;
 			if (wc < 0x10000) {
-				n16 += 1;
+				i += 1;
 			} else {
-				n16 += 2;
+				i += 2;
 			}
-			in = w_utf8_next(in);
+			s = w_utf8_next(s);
 		}
-		return n16;
-	}
-	in = str;
-	for (i = 0; i < n;) {
-		wunichar wc;
-		if (len < 0) {
-			if (*in == 0)
+		return i;
+	} else {
+		int _n = n - 1;
+		while (1) {
+			l = len >= 0 ? end - s : 6;
+			wc = w_utf8_get_unichar(s, l);
+			if (wc == 0)
 				break;
-			wc = w_utf8_get_char_extended(in, 6);
-		} else {
-			m = str + len - in;
-			if (m < 0)
-				break;
-			wc = w_utf8_get_char_extended(in, m);
+			if (wc < 0x10000) {
+				if (i >= n)
+					break;
+				result[i++] = wc;
+			} else {
+				if (i >= _n)
+					break;
+				result[i++] = (wc - 0x10000) / 0x400 + 0xd800;
+				result[i++] = (wc - 0x10000) % 0x400 + 0xdc00;
+			}
+			s = w_utf8_next(s);
 		}
-		if (wc < 0x10000) {
-			result[i++] = wc;
-		} else {
-			result[i++] = (wc - 0x10000) / 0x400 + 0xd800;
-			result[i++] = (wc - 0x10000) % 0x400 + 0xdc00;
-		}
-		in = w_utf8_next(in);
+		if (n > i)
+			result[i] = 0;
+		return i;
 	}
-	if (n > i)
-		result[i] = 0;
-	return i;
 }
 char*
 w_strndup(const char *s, size_t n) {

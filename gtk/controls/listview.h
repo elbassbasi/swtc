@@ -23,6 +23,7 @@ extern GType gtk_store_types[COLUMN_COUNT];
 #define COLUMN_INFO_CHECK (1 << 1)
 #define COLUMN_INFO_GRAYED (1 << 2)
 #define COLUMN_INFO_HAS_CHILDREN (1 << 3)
+#define COLUMN_INFO_IS_ARRAY (1 << 4)
 /*
  * treeitem
  */

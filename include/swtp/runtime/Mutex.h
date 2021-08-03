@@ -67,21 +67,57 @@ public:
 	}
 };
 
-typedef WCriticalSection WLock;
+class WFutex {
+public:
+	volatile int val;
+	WResult Wait(int value) {
+		return w_futex_wait((w_futex*) this, value);
+	}
+	WResult WaitTimeout(int value, wuint64 timeout) {
+		return w_futex_wait_timeout((w_futex*) this, value, timeout);
+	}
+	WResult WakeAll() {
+		return w_futex_wake_all((w_futex*) this);
+	}
+	WResult WakeSingle() {
+		return w_futex_wake_single((w_futex*) this);
+	}
+public:
+	WResult Lock() {
+		return w_futex_lock((w_futex*) this);
+	}
+	WResult UnLock() {
+		return w_futex_unlock((w_futex*) this);
+	}
+};
+class WFutexLock {
+public:
+	volatile int val;
+	w_threadid owner;
+public:
+	WResult Lock() {
+		return w_futexlock_lock((w_futexlock*) this);
+	}
+	WResult UnLock() {
+		return w_futexlock_unlock((w_futexlock*) this);
+	}
+};
+
+typedef WFutexLock WLock;
 
 class WLocker {
 public:
-	WMutexBase *mutex;
-	WLocker(WMutexBase &mutex) {
-		this->mutex = &mutex;
-		this->mutex->Lock();
+	WLock *m_lock;
+	WLocker(WLock &mutex) {
+		this->m_lock = &mutex;
+		this->m_lock->Lock();
 	}
-	WLocker(WMutexBase *mutex) {
-		this->mutex = mutex;
-		this->mutex->Lock();
+	WLocker(WLock *mutex) {
+		this->m_lock = mutex;
+		this->m_lock->Lock();
 	}
 	~WLocker() {
-		mutex->UnLock();
+		m_lock->UnLock();
 	}
 };
 

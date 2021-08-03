@@ -7,7 +7,7 @@
  */
 #ifndef SWTC_CORE_ITERATOR_H_
 #define SWTC_CORE_ITERATOR_H_
-#include "defs.h"
+#include "alloc.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,11 +33,11 @@ SWT_PUBLIC wresult w_iterator_reset(w_iterator *it);
 SWT_PUBLIC wresult w_iterator_close(w_iterator *it);
 SWT_PUBLIC wresult w_iterator_remove(w_iterator *it);
 SWT_PUBLIC size_t w_iterator_get_count(w_iterator *it);
-typedef wresult (*w_iterator_array_filter)(void *userdata, void *obj);
+typedef wresult (*w_iterator_filter)(void *userdata, void *in, void *out);
 typedef struct w_iterator_array {
 	w_basic_iterator base;
 	char *array;
-	w_iterator_array_filter filter;
+	w_iterator_filter filter;
 	void *user_data;
 	wuint i;
 	wuint type_size;
@@ -46,8 +46,19 @@ typedef struct w_iterator_array {
 } w_iterator_array;
 
 SWT_PUBLIC wresult w_iterator_array_create(w_iterator *it, void *array,
-		size_t length, size_t type_size, w_iterator_array_filter filter,
+		size_t length, size_t type_size, w_iterator_filter filter,
 		void *user_data);
+typedef struct w_iterator_link {
+	w_basic_iterator base;
+	void *first;
+	void *current;
+	w_iterator_filter filter;
+	void *user_data;
+	wuint diff;
+	wuint count;
+} w_iterator_link;
+SWT_PUBLIC wresult w_iterator_link_create(w_iterator *it, w_link_0 *first,
+		void *firstObj, wuint count, w_iterator_filter filter, void *user_data);
 #ifdef __cplusplus
 }
 #endif

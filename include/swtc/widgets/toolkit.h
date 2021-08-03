@@ -38,7 +38,7 @@ struct _w_toolkit_class {
 			struct _w_widget_class*);
 	w_theme* (*get_theme)(w_toolkit *toolkit);
 	wresult (*async_exec)(w_toolkit *toolkit, w_thread_start function,
-			void *args);
+			void *user_data, void *args);
 	wresult (*beep)(w_toolkit *toolkit);
 	w_shell* (*get_active_shell)(w_toolkit *toolkit);
 	w_menu* (*get_menubar)(w_toolkit *toolkit);
@@ -77,9 +77,9 @@ struct _w_toolkit_class {
 	int (*run)(w_toolkit *toolkit);
 	wresult (*read)(w_toolkit *toolkit);
 	wresult (*sync_exec)(w_toolkit *toolkit, w_thread_start function,
-			void *args);
+			void *user_data, void *args);
 	wresult (*timer_exec)(w_toolkit *toolkit, wuint milliseconds,
-			w_thread_start function, void *args);
+			w_thread_start function, void *user_data, void *args);
 	wresult (*update)(w_toolkit *toolkit);
 	wresult (*wake)(w_toolkit *toolkit);
 	/**
@@ -107,7 +107,7 @@ SWT_PUBLIC struct _w_widget_class* w_toolkit_get_class(w_toolkit *toolkit,
 SWT_PUBLIC void w_toolkit_init_class(w_toolkit *toolkit, wushort clazz_id,
 		struct _w_widget_class*);
 SWT_PUBLIC wresult w_toolkit_async_exec(w_toolkit *toolkit,
-		w_thread_start function, void *args);
+		w_thread_start function, void *user_data, void *args);
 SWT_PUBLIC wresult w_toolkit_beep(w_toolkit *toolkit);
 SWT_PUBLIC w_shell* w_toolkit_get_active_shell(w_toolkit *toolkit);
 SWT_PUBLIC w_menu* w_toolkit_get_menubar(w_toolkit *toolkit);
@@ -150,9 +150,9 @@ SWT_PUBLIC wresult w_toolkit_set_cursor_location(w_toolkit *toolkit,
 SWT_PUBLIC int w_toolkit_run(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_sleep(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_sync_exec(w_toolkit *toolkit,
-		w_thread_start function, void *args);
+		w_thread_start function, void *user_data, void *args);
 SWT_PUBLIC wresult w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *args);
+		w_thread_start function, void *user_data, void *args);
 SWT_PUBLIC wresult w_toolkit_update(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_wake(w_toolkit *toolkit);
 SWT_PUBLIC w_theme* w_toolkit_get_theme(w_toolkit *toolkit);

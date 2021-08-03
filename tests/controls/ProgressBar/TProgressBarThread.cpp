@@ -31,7 +31,7 @@ void TProgressBarThread::CreateControl(WComposite *parent) {
 	start.SetLayoutData(WGridData(WGridData::FILL_HORIZONTAL));
 	start.SetAction(this, W_ACTION(TProgressBarThread::OnStart));
 }
-void TProgressBarThread::OnNotifyExec() {
+void TProgressBarThread::OnNotifyExec(void* args) {
 	char txt[30];
 	if (this->selection <= this->maximum) {
 		progress.SetSelection(selection);
@@ -40,23 +40,20 @@ void TProgressBarThread::OnNotifyExec() {
 	}
 }
 
+void TProgressBarThread::Run(void *args) {
+	while (this->selection <= this->maximum) {
+		this->selection++;
+		this->AsyncExec(0);
+		WThread::Sleep(100);
+	}
+}
+
 bool TProgressBarThread::OnStart(WEvent &e) {
 	if (!this->is_started) {
 		for (int i = 0; i < thread_length; i++) {
-			threads[i].Create(TProgressBarThread::my_thread_start, this);
+			threads[i].Create(this,0);
 		}
 		start.SetEnabled(false);
 	}
 	return true;
-}
-int TProgressBarThread::my_thread_start(void *args) {
-	reinterpret_cast<TProgressBarThread*>(args)->ThreadStart();
-	return 1;
-}
-void TProgressBarThread::ThreadStart() {
-	while (this->selection <= this->maximum) {
-		this->selection++;
-		this->AsyncExec();
-		WThread::Sleep(100);
-	}
 }

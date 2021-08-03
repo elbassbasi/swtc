@@ -18,6 +18,21 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef intptr_t wintptr;
+typedef unsigned char wuchar;
+typedef wchar_t wchar;
+typedef wchar_t wwchar;
+typedef unsigned int wunichar;
+typedef short wshort;
+typedef unsigned short wushort;
+typedef int wint;
+typedef unsigned int wuint;
+typedef long long int wint64;
+typedef unsigned long long int wuint64;
+typedef wintptr wresult;
+/*
+ * DLL_EXPORT
+ */
 #if defined _WIN32 || defined _WIN64 || defined __CYGWIN__
     #ifdef __GNUC__
       #define DLL_EXPORT __attribute__ ((dllexport))
@@ -45,20 +60,26 @@ extern "C" {
 //#define SWT_PUBLIC DLL_IMPORT
 #define SWT_PUBLIC
 #endif
-typedef intptr_t wintptr;
-typedef unsigned char wuchar;
-typedef wchar_t wchar;
-typedef wchar_t wwchar;
-typedef unsigned int wunichar;
-typedef short wshort;
-typedef unsigned short wushort;
-typedef int wint;
-typedef unsigned int wuint;
-typedef long long int wint64;
-typedef unsigned long long int wuint64;
-typedef wintptr wresult;
+/*
+ * MIN and MAX
+ */
 #define WMIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define WMAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+/*
+ * ctz and clz
+ */
+#ifdef __GNUC__
+#define clz32(result,value) result = __builtin_clz(value)
+#define ctz32(result,value) result = __builtin_ctz(value)
+#define clz64(result,value) result = __builtin_clz(value)
+#define ctz64(result,value) result = __builtin_ctz(value)
+#elif _MSC_VER
+#define clz32(result,value) _BitScanReverse(&result,value)
+#define ctz32(result,value) _BitScanForward(&result,value)
+#define clz64(result,value) _BitScanReverse64(&result,value)
+#define ctz64(result,value) _BitScanForward64(&result,value)
+#else
+#endif
 #ifdef __cplusplus
 }
 #endif

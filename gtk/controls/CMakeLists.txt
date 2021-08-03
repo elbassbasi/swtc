@@ -3,7 +3,6 @@
 		${src_gtk}
 		${CURRENT_DIR}/button.c
 		${CURRENT_DIR}/combobox.c
-		${CURRENT_DIR}/coolbar.c
 		${CURRENT_DIR}/datetime.c
 		${CURRENT_DIR}/expandbar.c
 		${CURRENT_DIR}/groupbox.c

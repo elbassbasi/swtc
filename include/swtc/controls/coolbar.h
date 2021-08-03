@@ -108,6 +108,7 @@ SWT_PUBLIC wresult w_coolitem_set_wrap_indice(w_coolitem *coolitem,
 #define W_COOLBAR_GET_CLASS(x) ((struct _w_coolbar_class*)W_WIDGET_GET_CLASS(x))
 #define W_COOLITEM_CLASS(x) ((struct _w_coolitem_class*)x)
 #define W_COOLITEM_GET_CLASS(x) ((struct _w_coolitem_class*)W_WIDGETDATA_GET_CLASS(x))
+#define W_COOLBAR_GET_ITEM_CLASS(coolbar) (W_WIDGETDATA_CLASS(W_COOLBAR_GET_CLASS(coolbar)->class_coolitem))
 
 #ifdef __cplusplus
 }

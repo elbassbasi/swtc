@@ -44,7 +44,7 @@ wuint64 _w_shell_check_style(w_widget *widget, wuint64 style) {
 	int mask = W_SYSTEM_MODAL | W_APPLICATION_MODAL | W_PRIMARY_MODAL;
 	if ((style & W_SHEET) != 0) {
 		style &= ~W_SHEET;
-		w_composite *parent = _W_WIDGET(widget)->parent;
+		w_widget *parent = _W_WIDGET(widget)->parent;
 		style |= parent == 0 ? W_FRAME_TRIM : W_DIALOG_TRIM;
 		if ((style & mask) == 0) {
 			style |= parent == 0 ? W_APPLICATION_MODAL : W_PRIMARY_MODAL;
@@ -68,7 +68,7 @@ wresult _w_shell_create_embedded(w_widget *widget, w_widget *parent,
 		if (w_widget_class_id(parent) != _W_CLASS_SHELL)
 			return W_ERROR_INVALID_ARGUMENT;
 	}
-	_W_WIDGET(widget)->parent = W_COMPOSITE(parent);
+	_W_WIDGET(widget)->parent = W_WIDGET(parent);
 	_W_SHELL(widget)->center = parent != 0 && (style & W_SHEET) != 0;
 	_W_WIDGET(widget)->post_event = post_event;
 	_W_WIDGET(widget)->style = _w_shell_check_style(widget, style);
@@ -132,7 +132,7 @@ wresult _w_shell_create_handle(w_widget *widget, _w_control_priv *priv) {
 		shellHandle = GTK_WINDOW(gtk_window_new(type));
 		if (shellHandle == 0)
 			goto _err;
-		w_composite *parent = _W_WIDGET(widget)->parent;
+		w_widget *parent = _W_WIDGET(widget)->parent;
 		if (parent != 0) {
 			ppriv = _W_WIDGET_GET_PRIV(parent);
 			GtkWindow *pwindow = (GtkWindow*) ppriv->handle_top(
@@ -266,7 +266,7 @@ void _w_shell_force_resize_0(w_control *control, int width, int height,
 		gtk_widget_translate_coordinates(vboxHandle, shellHandle, 0, 0, &dest_x,
 				&dest_y);
 		if (dest_x != -1 && dest_y != -1) {
-			w_composite *parent = _W_WIDGET(control)->parent;
+			w_widget *parent = _W_WIDGET(control)->parent;
 			wuint64 style = w_widget_get_style(W_WIDGET(parent));
 			if (!(parent != 0 && (style & W_ON_TOP) != 0)) {
 				allocation.x += dest_x;
@@ -422,7 +422,7 @@ wresult _w_shell_is_visible(w_control *shell) {
 }
 wresult _w_shell_open(w_shell *shell) {
 	//_w_shell_bring_totop(shell, W_FALSE);
-	w_composite *parent = _W_WIDGET(shell)->parent;
+	w_widget *parent = _W_WIDGET(shell)->parent;
 	if (w_widget_class_id(W_WIDGET(parent)) == _W_CLASS_SHELL
 			&& !w_control_is_visible(W_CONTROL(parent))) {
 		w_shell_open(W_SHELL(parent));
@@ -629,7 +629,7 @@ wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 			return W_ERROR_INVALID_ARGUMENT;
 		if ((_W_WIDGET(menu)->style & W_BAR) == 0)
 			return W_ERROR_MENU_NOT_BAR;
-		if (_W_WIDGET(menu)->parent != W_CONTROL(shell))
+		if (_W_WIDGET(menu)->parent != W_WIDGET(shell))
 			return W_ERROR_INVALID_PARENT;
 	}
 	if (_W_SHELL(shell)->menubar != 0) {
@@ -701,7 +701,7 @@ wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
 }
 wresult _w_shell_set_visible(w_control *control, int visible) {
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(control);
-	w_composite *parent = _W_WIDGET(control)->parent;
+	w_widget *parent = _W_WIDGET(control)->parent;
 	w_event e;
 	int mask = W_PRIMARY_MODAL | W_APPLICATION_MODAL | W_SYSTEM_MODAL;
 	if ((_W_WIDGET(control)->style & mask) != 0) {

@@ -11,10 +11,10 @@
 class SWTP_PUBLIC IWRunnable {
 public:
 	virtual ~IWRunnable();
-	virtual void Run()=0;
+	virtual void Run(void *args)=0;
 };
 #if __cplusplus >= 201103L
-typedef std::function<int()> WRunnable;
+typedef std::function<int(void *args)> WRunnable;
 #endif
 typedef w_threadid WThreadID;
 class WThreadClean;
@@ -204,18 +204,24 @@ protected:
 		w_thread_dispose((w_thread*) this);
 	}
 public:
-	bool Create(w_thread_start function, void *args, size_t stackSize = 0) {
+	bool Create(w_thread_start function, void *userdata, void *args,
+			size_t stackSize) {
 		this->start_proc = function;
 		this->args = args;
+		this->user_data = userdata;
 		return w_thread_create((w_thread*) this, stackSize) > 0;
 	}
-	bool Create(IWRunnable *runnable, size_t stackSize = 0) {
-		return Create(WThread::w_thread_runnable_start, runnable, stackSize);
+	bool Create(IWRunnable *runnable, void *args, size_t stackSize) {
+		return Create(WThread::w_thread_runnable_start, runnable, args,
+				stackSize);
+	}
+	bool Create(IWRunnable *runnable, void *args) {
+		return Create(runnable, args, 0);
 	}
 #if __cplusplus >= 201103L
-	bool Create(WRunnable &run);
+	bool Create(WRunnable &run, void *args);
 	void operator <<=(WRunnable &run) {
-		Create(run);
+		Create(run, 0);
 	}
 #endif
 	bool Cancel() {
@@ -299,7 +305,7 @@ public:
 	void Start() {
 
 	}
-	void Run();
+	void Run(void *args);
 	/**
 	 * Causes the currently executing thread to sleep (temporarily cease
 	 * execution) for the specified number of milliseconds, subject to
@@ -346,15 +352,30 @@ public:
 	static void Yield() {
 		w_thread_yield();
 	}
-	static int w_thread_runnable_start(void *args);
+	static int w_thread_runnable_start(void *userdata, void *args);
 private:
 	w_thread_start start_proc;
+	void *user_data;
 	void *args;
 	WThreadID id;
 	WThreadClean *cleanup;
 	void *reserved[2];
 };
+template<typename T, int n>
+class SWTP_PUBLIC WThreadM: public WThread {
+public:
+	using WThread::Create;
+	T mem[n];
+	WThreadM() {
 
+	}
+	bool Create(IWRunnable *runnable, size_t stackSize) {
+		return WThread::Create(runnable, mem, stackSize);
+	}
+	bool Create(IWRunnable *runnable) {
+		return WThread::Create(runnable, mem);
+	}
+};
 class SWT_PUBLIC WThreadClean {
 private:
 	void Init() {

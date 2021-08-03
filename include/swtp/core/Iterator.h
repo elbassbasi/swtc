@@ -44,7 +44,7 @@ private:
 	}
 public:
 	static bool CreateFromArray(WIterator<T> &it, T *array, size_t length,
-			w_iterator_array_filter filter, void *user_data) {
+			w_iterator_filter filter, void *user_data) {
 		return w_iterator_array_create(&it.iterator, array, length, sizeof(T),
 				filter, user_data);
 	}

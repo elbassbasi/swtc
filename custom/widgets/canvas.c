@@ -97,7 +97,7 @@ void cw_composite_init_class(w_toolkit *toolkit, wushort classId,
 				compositeclass);
 	}
 	W_TOOLKIT_GET_CLASS(platformToolkit)->init_class(toolkit,
-			_W_CLASS_COMPOSITE, clazz);
+			_W_CLASS_COMPOSITE, (struct _w_widget_class*) clazz);
 	W_WIDGET_CLASS(clazz)->parentClass = compositeclass;
 	W_WIDGET_CLASS(clazz)->class_id = classId;
 }

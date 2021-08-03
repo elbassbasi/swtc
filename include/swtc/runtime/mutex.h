@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef wintptr w_threadid;
 typedef struct w_mutex {
 	union {
 		void *handle[14];
@@ -36,9 +37,35 @@ SWT_PUBLIC wresult w_mutex_create(w_mutex *mutex, w_mutex_type type);
 SWT_PUBLIC wresult w_mutex_isok(w_mutex *mutex);
 SWT_PUBLIC void w_mutex_dispose(w_mutex *mutex);
 SWT_PUBLIC wresult w_mutex_lock(w_mutex *mutex);
-SWT_PUBLIC wresult w_mutex_lock_timeout(w_mutex *mutex, size_t ms);
+SWT_PUBLIC wresult w_mutex_lock_timeout(w_mutex *mutex, wuint64 ms);
 SWT_PUBLIC wresult w_mutex_try_lock(w_mutex *mutex);
 SWT_PUBLIC wresult w_mutex_unlock(w_mutex *mutex);
+
+typedef struct w_futex {
+	volatile int val;
+} w_futex;
+SWT_PUBLIC wresult w_futex_wait(w_futex *futex, int value);
+SWT_PUBLIC wresult w_futex_wait_timeout(w_futex *futex, int value,
+		wuint64 timeout);
+SWT_PUBLIC wresult w_futex_wake_all(w_futex *futex);
+SWT_PUBLIC wresult w_futex_wake_single(w_futex *futex);
+/*
+ * this function is not recursive
+ * 0 unlocked
+ * 1 locked, no waiters
+ * 2 locked, one or more waiters
+ */
+wresult w_futex_lock(w_futex *futex);
+wresult w_futex_unlock(w_futex *futex);
+/*
+ * recursive futex
+ */
+typedef struct w_futexlock {
+	volatile int val;
+	w_threadid owner;
+} w_futexlock;
+SWT_PUBLIC wresult w_futexlock_lock(w_futexlock *futex);
+SWT_PUBLIC wresult w_futexlock_unlock(w_futexlock *futex);
 
 #ifdef __cplusplus
 }

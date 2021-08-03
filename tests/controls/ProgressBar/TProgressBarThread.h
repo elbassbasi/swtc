@@ -8,17 +8,16 @@
 #ifndef TESTS_CONTROLS_PROGRESSBAR_TPROGRESSBARTHREAD_H_
 #define TESTS_CONTROLS_PROGRESSBAR_TPROGRESSBARTHREAD_H_
 #include "TProgressBars.h"
-class TProgressBarThread: public CompositeTreeItem {
+class TProgressBarThread: public CompositeTreeItem, public IWRunnable {
 public:
 	static const int thread_length = 1;
 	static void Registre(WTreeItem &parent);
-	static int my_thread_start(void *args);
 	TProgressBarThread();
 	~TProgressBarThread();
 	void CreateControl(WComposite *parent);
-	void OnNotifyExec();
+	void OnNotifyExec(void *args);
 	bool OnStart(WEvent &e);
-	void ThreadStart();
+	void Run(void *args);
 	unsigned is_started :1;
 	int selection;
 	int maximum;

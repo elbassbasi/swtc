@@ -64,6 +64,41 @@ wresult _w_listitem_set_text(w_item *item, const char *text, int length,
 	_gtk_text_free(text, s, newlength);
 	return W_TRUE;
 }
+wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
+		w_item_attr *attr) {
+	w_widget *parent = _W_ITEM(item)->parent;
+	wresult result ;
+	if (mask & W_ITEM_ATTR_MASK_FONT) {
+		attr->font = 0;
+	}
+	if (mask & W_ITEM_ATTR_MASK_BACKGROUND) {
+		attr->background = 0;
+	}
+	if (mask & W_ITEM_ATTR_MASK_FORGROUND) {
+		attr->foreground = 0;
+	}
+	if (_W_WIDGET(parent)->style & W_VIRTUAL) {
+		if (index == 0) {
+
+		}
+		w_event_list event;
+		_w_item column;
+		W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(parent);
+		_W_ITEM(&column)->parent = parent;
+		_W_ITEM(&column)->index = index;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_GET_TEXT;
+		event.event.widget = parent;
+		event.event.platform_event = 0;
+		event.detail = mask;
+		event.item = item;
+		event.column = W_COLUMNITEM(&column);
+		event.textattr = attr;
+		result = _w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
+	} else {
+	}
+	return result;
+}
 wresult _w_listitem_get_bounds(w_listitem *item, w_rect *bounds) {
 	w_widget *tree = _W_ITEM(item)->parent;
 	GtkTreeView *parentHandle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
@@ -214,6 +249,18 @@ wresult _w_listitem_get_image(w_listitem *item) {
 			&image, -1);
 	return image;
 }
+wresult _w_listitem_get_text_0(w_listitem *item, int index, w_alloc alloc,
+		void *user_data, int enc) {
+	w_item_attr attr;
+	attr.alloc = alloc;
+	attr.user_data = user_data;
+	attr.enc = enc;
+	return _w_listitem_get_attr(item, index, W_ITEM_ATTR_MASK_TEXT, &attr);
+}
+wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
+		w_item_attr *attr) {
+
+}
 wresult _w_listitem_set_checked(w_listitem *item, int checked) {
 	w_widget *tree = _W_ITEM(item)->parent;
 	GtkWidget *handle = _W_WIDGET(tree)->handle;
@@ -268,6 +315,10 @@ wresult _w_listitem_set_image(w_listitem *item, int image) {
 				&_W_TREEITEM(item)->iter, COLUMN_IMAGE, image, -1);
 	}
 	return W_TRUE;
+}
+wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
+		int length, int enc) {
+
 }
 /*
  * listview
@@ -408,12 +459,18 @@ void _w_listitem_class_init(struct _w_listitem_class *listitem) {
 	W_ITEM_CLASS(listitem)->get_text = _w_listitem_get_text;
 	W_ITEM_CLASS(listitem)->set_data = _w_listitem_set_data;
 	W_ITEM_CLASS(listitem)->set_text = _w_listitem_set_text;
+	listitem->get_attr = _w_listitem_get_attr;
 	listitem->get_bounds = _w_listitem_get_bounds;
 	listitem->get_bounds_index = _w_listitem_get_bounds_index;
 	listitem->get_checked = _w_listitem_get_checked;
+	listitem->get_grayed = _w_listitem_get_grayed;
 	listitem->get_image = _w_listitem_get_image;
+	listitem->get_text = _w_listitem_get_text_0;
+	listitem->set_attr = _w_listitem_set_attr;
 	listitem->set_checked = _w_listitem_set_checked;
+	listitem->set_grayed = _w_listitem_set_grayed;
 	listitem->set_image = _w_listitem_set_image;
+	listitem->set_text = _w_listitem_set_text_0;
 }
 void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_listview_class *clazz) {
@@ -421,7 +478,7 @@ void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
 		W_WIDGET_CLASS(clazz)->platformPrivate =
 				&gtk_toolkit->class_listview_priv;
 	}
-	_w_listviewbase_class_init(toolkit, classId,W_LISTVIEWBASE_CLASS(clazz));
+	_w_listviewbase_class_init(toolkit, classId, W_LISTVIEWBASE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_LISTVIEW;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_listview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_listview);

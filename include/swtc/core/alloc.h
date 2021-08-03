@@ -8,6 +8,7 @@
 #ifndef SWTC_CORE_ALLOC_H_
 #define SWTC_CORE_ALLOC_H_
 #include "defs.h"
+#include "atomic.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,7 +31,6 @@ size_t w_alloc_buffer_copy(void *user_data, size_t size, void **buffer);
 typedef struct w_array {
 	int alloc;
 	int count;
-	void *user_data;
 	char data[0];
 } w_array;
 typedef void (*w_array_free_element)(w_array *array, void *element, int index);

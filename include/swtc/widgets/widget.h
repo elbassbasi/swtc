@@ -30,8 +30,7 @@ struct w_widget {
 	wushort children_count;
 	w_widget *parent;
 	w_widget *first_child;
-	w_widget *next_sibling;
-	w_widget *prev_sibling;
+	w_link_0 sibling;
 	w_theme *theme;
 	void *data[5];
 };

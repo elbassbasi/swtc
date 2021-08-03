@@ -8,7 +8,7 @@
 #include "TTextEditor.h"
 
 TTextEditor::TTextEditor() {
-	strcpy(this->text,"hh int hh  int ");
+	strcpy(this->text, "hh int hh  int ");
 	this->length = strlen(this->text);
 }
 
@@ -16,16 +16,16 @@ TTextEditor::~TTextEditor() {
 }
 
 void TTextEditor::Registre(WTreeItem &parent) {
-	ITreeItem::Regitre(parent,"TextEditor",new TTextEditor());
+	ITreeItem::Regitre(parent, "TextEditor", new TTextEditor());
 }
 
 void TTextEditor::CreateControl(WComposite *parent) {
 	this->Create(parent, W_HSCROLL | W_VSCROLL);
-	menu.Create(this,W_POP_UP);
-	WMenuItem item,root;
+	menu.Create(this, W_POP_UP);
+	WMenuItem item, root;
 	menu.GetRoot(root);
-	for(int i=0;i<5;i++){
-		root.AppendItem(item,"item1");
+	for (int i = 0; i < 5; i++) {
+		root.AppendItem(item, "item1");
 	}
 	SetMenu(&this->menu);
 }
@@ -59,13 +59,9 @@ bool TTextEditor::OnKeyDown(WKeyEvent &e) {
 }
 
 void TTextEditor::Add(int c) {
-	char txt[10];
-	int sz = w_utf8_from_unichar(c, txt);
-	if ((this->length + sz) >= (int) sizeof(this->text))
-		return;
-	memcpy(&this->text[this->length], txt, sz);
-	this->length += sz;
-	this->text[this->length] = 0;
+	int sz = w_utf8_add_unichar(&this->text[this->length],
+			sizeof(this->text) - this->length, c);
+	this->length = WMIN(sizeof(this->text), this->length + sz);
 }
 
 bool TTextEditor::OnMouseDown(WMouseEvent &e) {

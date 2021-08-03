@@ -33,10 +33,6 @@ enum {
 	 */
 	SWT_GQUARK_WIDGET = 0,
 	SWT_GQUARK_LAST = 4,
-	/*
-	 *
-	 */
-	THREAD_IDLE_COUNT = 0x10,
 };
 typedef struct _gtk_theme {
 	w_theme theme;
@@ -45,16 +41,11 @@ typedef struct _gtk_theme {
 } _gtk_theme;
 typedef struct threads_idle {
 	w_thread_start func;
-	void *data;
-	wuint signalled;
+	void *user_data;
+	void *args;
+	volatile wuint *signalled;
 } threads_idle;
 extern const char *_gtk_signal_names[SIGNAL_LAST];
-typedef struct _w_mem_region {
-	wushort size;
-	wushort flags;
-	wuint prev_index;
-	char data[0];
-} _w_mem_region;
 typedef struct _w_toolkit {
 	w_toolkit toolkit;
 	int version;
@@ -95,11 +86,10 @@ typedef struct _w_toolkit {
 	/*
 	 * thread
 	 */
-	threads_idle threads_idle[THREAD_IDLE_COUNT];
-	pthread_mutex_t mutex;
 	pthread_cond_t condition;
 	pthread_mutex_t condition_mutex;
 	w_thread thread;
+	w_thread filewatcher;
 	GPollFD *fds;
 	size_t allocated_nfds;
 	GPollFD fds_tmp[0x10];
@@ -107,7 +97,7 @@ typedef struct _w_toolkit {
 	 * shell
 	 */
 	w_shell *activeShell;
-	_w_shell *shells;
+	w_shell *shells;
 	int shells_count;
 	//theme
 	_gtk_theme gtktheme;
@@ -134,7 +124,6 @@ typedef struct _w_toolkit {
 	_w_progressbar_priv class_progressbar_priv;
 	_w_groupbox_priv class_groupbox_priv;
 	_w_combobox_priv class_combobox_priv;
-	_w_coolbar_priv class_coolbar_priv;
 	_w_datetime_priv class_datetime_priv;
 	_w_slider_priv class_slider_priv;
 	_w_spinner_priv class_spinner_priv;
@@ -146,14 +135,19 @@ typedef struct _w_toolkit {
 	/*
 	 * internal memory
 	 */
-	int tmp_alloc;
-	int tmp_region_length;
-	int tmp_lock;
-	int tmp_length;
-	char tmp[0];
+	w_futex tmp_lock; /* futex for lock */
+	wuint total_size; /* total size of toolkit */
+	wushort tmp_total; /* temporary memery size */
+	wushort tmp_reserved;/* reserved for gui thread*/
+	wushort tmp_alloc; /* size of temporary memory allocated */
+	wushort tmpaddr_alloc; /* memory allocated for others thread */
+	wushort tmpaddr_sz_bits;
+	wuchar tmpaddr_sz;
+	char _tmp[0];
 } _w_toolkit;
 #define _W_TOOLKIT(x) ((_w_toolkit*)x)
 #define GTK_VERSION (gtk_toolkit->version)
+#define _PAGES_SIZE (4*sizeof(void*))
 extern _w_toolkit *gtk_toolkit;
 extern w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST];
 typedef struct _w_shells_iterator {
@@ -165,6 +159,8 @@ typedef struct _w_shells_iterator {
 void* _w_toolkit_malloc(size_t size);
 void* _w_toolkit_malloc_all(size_t *size);
 void _w_toolkit_free(void *ptr, size_t size);
+void* _w_toolkit_new_pages(size_t size);
+void _w_toolkit_delete_pages(void *ptr, size_t size);
 void _w_toolkit_add_shell(_w_shell *shell);
 void _w_toolkit_remove_shell(_w_shell *shell);
 void _w_toolkit_init(_w_toolkit *toolkit);
@@ -188,7 +184,7 @@ struct _w_widget_class* _w_toolkit_get_class(w_toolkit *toolkit,
 		wushort clazz_id);
 struct w_theme* _w_toolkit_get_theme(w_toolkit *toolkit);
 wresult _w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args);
+		void *user_data, void *args);
 wresult _w_toolkit_beep(w_toolkit *toolkit);
 wresult _w_toolkit_close(w_toolkit *toolkit);
 w_shell* _w_toolkit_get_active_shell(w_toolkit *toolkit);
@@ -229,9 +225,9 @@ wresult _w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *point);
 int _w_toolkit_run(w_toolkit *toolkit);
 wresult _w_toolkit_read(w_toolkit *toolkit);
 wresult _w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *args);
+		void *user_data, void *args);
 wresult _w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *args);
+		w_thread_start function, void *user_data, void *args);
 wresult _w_toolkit_update(w_toolkit *toolkit);
 wresult _w_toolkit_wake(w_toolkit *toolkit);
 #endif /* GTK_WIDGETS_TOOLKIT_H_ */

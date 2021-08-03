@@ -7,86 +7,122 @@
  */
 #include "toolkit.h"
 #include "../../custom/controls/expandbar.h"
+#include <sys/inotify.h>
 #define INNER_BORDER 2
 void* _w_toolkit_malloc(size_t size) {
-	while (1) {
-		if (__sync_val_compare_and_swap(&gtk_toolkit->tmp_lock, 0, 1) == 0) {
-			if ((gtk_toolkit->tmp_length + size)
-					< (gtk_toolkit->tmp_alloc - gtk_toolkit->tmp_region_length)) {
-				int i = gtk_toolkit->tmp_length;
-				gtk_toolkit->tmp_length += size;
-				gtk_toolkit->tmp_lock = 0;
-				return &gtk_toolkit->tmp[i];
-			} else {
-				gtk_toolkit->tmp_lock = 0;
-				return malloc(size);
-			}
+	void *ptr;
+	if ((gtk_toolkit->tmp_alloc + size) < gtk_toolkit->tmp_reserved) {
+		int i = gtk_toolkit->tmp_alloc;
+		gtk_toolkit->tmp_alloc += size;
+		ptr = &gtk_toolkit->_tmp[i + gtk_toolkit->tmpaddr_sz * sizeof(wuint64)];
+	} else {
+		w_futex_lock(&gtk_toolkit->tmp_lock);
+		if ((gtk_toolkit->tmp_alloc + size)
+				< (gtk_toolkit->tmp_total - gtk_toolkit->tmpaddr_alloc)) {
+			int i = gtk_toolkit->tmp_alloc;
+			gtk_toolkit->tmp_alloc += size;
+			ptr = &gtk_toolkit->_tmp[i
+					+ gtk_toolkit->tmpaddr_sz * sizeof(wuint64)];
+		} else {
+			ptr = malloc(size);
 		}
+		w_futex_unlock(&gtk_toolkit->tmp_lock);
 	}
-	return 0;
+	return ptr;
 }
 void* _w_toolkit_malloc_all(size_t *size) {
-	*size = gtk_toolkit->tmp_alloc - gtk_toolkit->tmp_length;
-	int i = gtk_toolkit->tmp_length;
-	gtk_toolkit->tmp_length += *size;
-	return &gtk_toolkit->tmp[i];
+	*size = gtk_toolkit->tmp_total - gtk_toolkit->tmp_alloc;
+	int i = gtk_toolkit->tmp_alloc;
+	gtk_toolkit->tmp_alloc += *size;
+	return &gtk_toolkit->_tmp[i + gtk_toolkit->tmpaddr_sz * sizeof(wuint64)];
 }
 void _w_toolkit_free(void *ptr, size_t size) {
-	wintptr diff = ptr - (void*) gtk_toolkit->tmp;
-	if (diff >= 0 && diff < gtk_toolkit->tmp_alloc) {
-		gtk_toolkit->tmp_length -= size;
+	wintptr diff = ptr - (void*) gtk_toolkit;
+	if (diff >= 0 && diff < gtk_toolkit->total_size) {
+		gtk_toolkit->tmp_alloc -= size;
 	} else
 		free(ptr);
 }
-void* _w_toolkit_region_malloc(size_t size) {
-	while (1) {
-		if (__sync_val_compare_and_swap(&gtk_toolkit->tmp_lock, 0, 1) == 0) {
-			if ((gtk_toolkit->tmp_length + size) < gtk_toolkit->tmp_alloc) {
-				int i = gtk_toolkit->tmp_length;
-				gtk_toolkit->tmp_length += size;
-				gtk_toolkit->tmp_lock = 0;
-				return &gtk_toolkit->tmp[i];
-			} else {
-				gtk_toolkit->tmp_lock = 0;
-				return malloc(size);
+void* _w_toolkit_new_pages(size_t size) {
+	const int sz = gtk_toolkit->tmpaddr_sz;
+	int pages_count = size / _PAGES_SIZE;
+	if ((size % _PAGES_SIZE) != 0)
+		pages_count++;
+	wuint k = gtk_toolkit->tmpaddr_sz_bits;
+	wuint64 *tmpaddr = (wuint64*) gtk_toolkit->_tmp;
+	if (pages_count == 1) {
+		int j = -1;
+		int i;
+		w_futex_lock(&gtk_toolkit->tmp_lock);
+		for (i = 0; i < sz; i++) {
+			if (tmpaddr[i] != -1) {
+				j = __builtin_ctz(~tmpaddr[i]);
+				tmpaddr[i] |= 1 << j;
+				k = i * 64 + j;
+				break;
 			}
 		}
+		w_futex_unlock(&gtk_toolkit->tmp_lock);
+	} else {
+		int i, j, c = 0, s = 0;
+		wuint64 t;
+		w_futex_lock(&gtk_toolkit->tmp_lock);
+		for (i = 0; i < sz; i++) {
+			t = tmpaddr[i];
+			if (t != -1) {
+				for (j = 0; j < 64; j++) {
+					if (t & (1 << j)) {
+						c++;
+						if (c == pages_count) {
+							k = s;
+							break;
+						}
+					} else {
+						s = i * 64 + j;
+						c = 0;
+					}
+				}
+				if (c == pages_count) {
+					break;
+				}
+			} else {
+				s = (i + 1) * 64 + j;
+				c = 0;
+			}
+		}
+		w_futex_unlock(&gtk_toolkit->tmp_lock);
 	}
-	return 0;
+	void *addr;
+	if (k < gtk_toolkit->tmpaddr_sz_bits) {
+		addr = &((char*) gtk_toolkit)[gtk_toolkit->total_size
+				- (k + pages_count) * _PAGES_SIZE];
+	} else {
+		addr = malloc(size);
+	}
+	return addr;
 }
-void _w_toolkit_region_free(void *ptr, size_t size) {
-	wintptr diff = ptr - (void*) gtk_toolkit->tmp;
-	if (diff >= 0 && diff < gtk_toolkit->tmp_alloc) {
-		gtk_toolkit->tmp_length -= size;
+void _w_toolkit_delete_pages(void *ptr, size_t size) {
+	wintptr diff = ptr - (void*) gtk_toolkit;
+	if (diff >= 0 && diff < gtk_toolkit->total_size) {
+		wuint64 *tmpaddr = (wuint64*) gtk_toolkit->_tmp;
+		int pages_count = size / _PAGES_SIZE;
+		if ((size % _PAGES_SIZE) != 0)
+			pages_count++;
+		int k = gtk_toolkit->total_size - diff / (4 * sizeof(void*));
+		for (; k < pages_count; k++) {
+			int i = k / 64;
+			int j = k % 64;
+			tmpaddr[i] &= ~(1 << j);
+		}
 	} else
 		free(ptr);
 }
 void _w_toolkit_add_shell(_w_shell *shell) {
-	shell->next = 0;
-	if (gtk_toolkit->shells == 0) {
-		gtk_toolkit->shells = shell;
-		shell->prev = shell; //last
-	} else {
-		_w_shell *last = gtk_toolkit->shells->prev;
-		last->next = shell;
-		shell->prev = last;
-		gtk_toolkit->shells->prev = shell;
-	}
+	w_link_linklast_0(&shell->shells_link, shell,(void**) &gtk_toolkit->shells);
 	gtk_toolkit->shells_count++;
 }
 void _w_toolkit_remove_shell(_w_shell *shell) {
-	if (shell == gtk_toolkit->shells) {
-		gtk_toolkit->shells = shell->next;
-		if (gtk_toolkit->shells != 0)
-			gtk_toolkit->shells->prev = shell->prev; //last
-	} else {
-		if (shell->next == 0) {
-			gtk_toolkit->shells->prev = shell->prev;
-		} else {
-			shell->next->prev = shell->prev;
-		}
-		shell->prev->next = shell->next;
-	}
+	w_link_unlink_0(&shell->shells_link, shell,(void**) &gtk_toolkit->shells);
 	gtk_toolkit->shells_count--;
 }
 void _w_toolkit_put_gdk_events(int event, ...) {
@@ -215,6 +251,8 @@ const char *_gtk_signal_names[SIGNAL_LAST] = { //
 				[SIGNAL_DRAG_END]="drag_end", //
 				[SIGNAL_DRAG_DATA_DELETE]="drag_data_delete", //
 		};
+void cw_coolbar_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_coolbar_class *clazz);
 w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST] = {			//
 		[_W_CLASS_SHELL] =(w_widget_init_class) _w_shell_class_init,		//
 				[_W_CLASS_CANVAS] =(w_widget_init_class) _w_canvas_class_init,//
@@ -237,7 +275,7 @@ w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST] = {			//
 						] =(w_widget_init_class) _w_groupbox_class_init,	//
 				[_W_CLASS_COMBOBOX
 						] =(w_widget_init_class) _w_combobox_class_init,	//
-				[_W_CLASS_COOLBAR] =(w_widget_init_class) _w_coolbar_class_init,//
+				[_W_CLASS_COOLBAR] =(w_widget_init_class) cw_coolbar_class_init,//
 				[_W_CLASS_DATETIME
 						] =(w_widget_init_class) _w_datetime_class_init,	//
 				[_W_CLASS_SLIDER] =(w_widget_init_class) _w_slider_class_init,//
@@ -265,7 +303,6 @@ void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	if (toolkit->empty_tab != 0) {
 		pango_tab_array_set_tab(toolkit->empty_tab, 0, PANGO_TAB_LEFT, 1);
 	}
-	pthread_mutex_init(&toolkit->mutex, NULL);
 	pthread_mutex_init(&toolkit->condition_mutex, NULL);
 	pthread_cond_init(&toolkit->condition, NULL);
 }

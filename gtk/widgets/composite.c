@@ -18,6 +18,9 @@ void _w_composite_add_child(w_control *composite, w_widget *child,
 	GtkWidget *parentHandle = _W_COMPOSITE_PRIV(priv)->handle_parenting(
 			W_WIDGET(composite), priv);
 	gtk_container_add(GTK_CONTAINER(parentHandle), topHandle);
+	w_link_linklast_0(&_W_WIDGET(child)->sibling, child,
+			(void**) &_W_WIDGET(composite)->first_child);
+	_W_WIDGET(composite)->children_count++;
 }
 wresult _w_composite_create_handle_0(w_widget *composite, GtkWidget **fixed,
 		GtkWidget **scrolled, GtkWidget **handle, _w_control_priv *priv) {
@@ -132,7 +135,7 @@ wresult _w_composite_create_handle(w_widget *widget, _w_control_priv *priv) {
 			return W_ERROR_NO_HANDLES;
 		fixedHandle = handle;
 		gtk_widget_set_has_window(handle, TRUE);
-//gtk_widget_set_can_focus(handle, TRUE);
+		gtk_widget_set_can_focus(handle, TRUE);
 	} else {
 		int ret = _w_composite_create_handle_0(widget, &fixedHandle, scrolled_,
 				&handle, priv);
