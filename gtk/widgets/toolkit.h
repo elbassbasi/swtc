@@ -182,6 +182,7 @@ void _w_toolkit_put_gdk_events(int event, ...);
 void _w_toolkit_remove_gdk_events();
 void _w_toolkit_get_entry_inner_border(GtkWidget *handle, GtkBorder *border);
 void _w_toolkit_get_shells_from_parent(w_shell *shell, w_iterator *iterator);
+void _w_toolkit_registre_free(w_widget *widget);
 /*
  * dialogs
  */

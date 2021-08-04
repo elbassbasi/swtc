@@ -125,6 +125,10 @@ void _w_toolkit_remove_shell(_w_shell *shell) {
 	w_link_unlink_0(&shell->shells_link, shell,(void**) &gtk_toolkit->shells);
 	gtk_toolkit->shells_count--;
 }
+void _w_toolkit_registre_free(w_widget *widget) {
+	widget->handle = gtk_toolkit->widget_free; //widget->next =
+	gtk_toolkit->widget_free = widget;
+}
 void _w_toolkit_put_gdk_events(int event, ...) {
 
 }

@@ -222,6 +222,7 @@ wresult _w_control_is_focus_control(w_control *control);
 wresult _w_control_is_reparentable(w_control *control);
 wresult _w_control_is_visible(w_control *control);
 wresult _w_control_kill_timer(w_control *control, wushort id);
+void _w_control_kill_all_timer(w_control *control);
 wresult _w_control_move_above(w_control *control, w_control *_control);
 wresult _w_control_move_below(w_control *control, w_control *_control);
 wresult _w_control_new_layout_data(w_control *control, void **data,

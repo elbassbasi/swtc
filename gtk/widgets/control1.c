@@ -24,7 +24,28 @@ gboolean _w_control_contained_in_region(w_widget *widget, w_point *input,
  */
 gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	w_event e;
+	if (!w_widget_is_ok(widget))
+		return TRUE;
+	wuint64 style = w_widget_get_style(widget);
+	_w_control_kill_all_timer(W_CONTROL(widget));
+	e.type = W_EVENT_DISPOSE;
+	e.widget = widget;
+	e.data = 0;
+	e.time = 0;
+	e.platform_event = (w_event_platform*) ee;
+	_w_widget_send_event(widget, &e,W_EVENT_SEND);
+	widget->clazz = 0;
+	if (style & W_FREE_MEMORY) {
+		_w_toolkit_registre_free(widget);
+		/*e.type = W_EVENT_FREE_MEMORY;
+		 e.widget = widget;
+		 e.data = 0;
+		 e.time = 0;
+		 e.platform_event = (w_event_platform*) ee;
+		 w_widget_send_event(widget, &e);*/
+	}
+	return FALSE;
 }
 gboolean _gtk_control_button_press_event_0(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv, int sendMouseDown) {
