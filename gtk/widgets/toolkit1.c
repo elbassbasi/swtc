@@ -306,6 +306,20 @@ void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	pthread_mutex_init(&toolkit->condition_mutex, NULL);
 	pthread_cond_init(&toolkit->condition, NULL);
 }
+void _w_toolkit_init_trims(_w_toolkit *toolkit) {
+	toolkit->trimWidths[TRIM_NONE] = 0;
+	toolkit->trimHeights[TRIM_NONE] = 0;
+	toolkit->trimWidths[TRIM_BORDER] = 4;
+	toolkit->trimHeights[TRIM_BORDER] = 4;
+	toolkit->trimWidths[TRIM_RESIZE] = 6;
+	toolkit->trimHeights[TRIM_RESIZE] = 6;
+	toolkit->trimWidths[TRIM_TITLE_BORDER] = 5;
+	toolkit->trimHeights[TRIM_TITLE_BORDER] = 28;
+	toolkit->trimWidths[TRIM_TITLE_RESIZE] = 6;
+	toolkit->trimHeights[TRIM_TITLE_RESIZE] = 29;
+	toolkit->trimWidths[TRIM_TITLE] = 0;
+	toolkit->trimHeights[TRIM_TITLE] = 23;
+}
 void _w_toolkit_init_display(_w_toolkit *toolkit) {
 	GdkDisplay *display = gdk_display_get_default();
 	const char *type_name = g_type_name(
@@ -322,6 +336,7 @@ void _w_toolkit_init(_w_toolkit *toolkit) {
 	_w_toolkit_classes_init(&toolkit->classes);
 	_w_toolkit_init_gtk(toolkit);
 	_w_toolkit_init_display(toolkit);
+	_w_toolkit_init_trims(toolkit);
 	_w_widget_init_signal_0();
 	_w_theme_init();
 }

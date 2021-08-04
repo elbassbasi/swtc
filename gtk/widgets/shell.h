@@ -37,11 +37,16 @@ struct _w_shell {
 	GtkAccelGroup *accelGroup;
 	GtkWindowGroup *group;
 	w_control *lastActive;
+	w_control *savedFocus;
+	w_button *defaultButton;
+	w_button *saveDefault;
 	unsigned center :1;
 	unsigned fullScreen :1;
 	unsigned mapped :1;
 	unsigned minimized :1;
+	unsigned maximized :1;
 	unsigned opened :1;
+	unsigned modified :1;
 	unsigned moved :1;
 	unsigned resized :1;
 	unsigned showWithParent :1;
@@ -69,9 +74,13 @@ wresult _w_shell_close(w_shell *shell);
 void _w_shell_close_widget(w_shell *shell, _w_event_platform *e);
 GtkAccelGroup* _w_shell_create_accel_group(w_shell *shell);
 void _w_shell_destroy_accel_group(w_shell *shell);
+void _w_shell_force_resize(w_control *control, _w_control_priv *priv);
 void _w_shell_set_active_control_0(w_shell *shell, w_control *control,
 		int type);
+wresult _w_shell_set_maximized(w_shell *shell, int maximized);
 void _w_shell_set_saved_focus(w_shell *shell, w_control *control);
+int _w_shell_trim_height(w_shell *shell);
+int _w_shell_trim_width(w_shell *shell);
 void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_shell_class *clazz);
 /*

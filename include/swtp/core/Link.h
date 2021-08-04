@@ -140,7 +140,7 @@ public:
 	}
 };
 template<typename T>
-class WNode: protected WLink<T> {
+class WNode: public WLink<T> {
 public:
 	T *firstElement;
 	size_t count;

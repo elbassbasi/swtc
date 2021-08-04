@@ -33,6 +33,15 @@ enum {
 	 */
 	SWT_GQUARK_WIDGET = 0,
 	SWT_GQUARK_LAST = 4,
+	/*
+	 * trim
+	 */
+	TRIM_NONE = 0,
+	TRIM_BORDER = 1,
+	TRIM_RESIZE = 2,
+	TRIM_TITLE_BORDER = 3,
+	TRIM_TITLE_RESIZE = 4,
+	TRIM_TITLE = 5
 };
 typedef struct _gtk_theme {
 	w_theme theme;
@@ -54,6 +63,8 @@ typedef struct _w_toolkit {
 	_w_image images[5];
 	GQuark quark[SWT_GQUARK_LAST];
 	_gtk_signal signals[SIGNAL_LAST];
+	int trimWidths[6];
+	int trimHeights[6];
 	w_taskbar taskbar;
 	w_tray tray;
 	w_widget *widget_free;
@@ -170,6 +181,7 @@ void _w_theme_init();
 void _w_toolkit_put_gdk_events(int event, ...);
 void _w_toolkit_remove_gdk_events();
 void _w_toolkit_get_entry_inner_border(GtkWidget *handle, GtkBorder *border);
+void _w_toolkit_get_shells_from_parent(w_shell *shell, w_iterator *iterator);
 /*
  * dialogs
  */

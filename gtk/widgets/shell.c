@@ -11,7 +11,115 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 void _w_shell_bring_totop(w_shell *shell, int force) {
-
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	if (!gtk_widget_get_visible(shellHandle))
+		return;
+	w_shell *activeShell = gtk_toolkit->activeShell;
+	if (activeShell == shell)
+		return;
+	if (!force) {
+		if (activeShell == 0)
+			return;
+		if (!gtk_toolkit->activePending) {
+			GtkWidget *focusHandle = gtk_window_get_focus(
+					GTK_WINDOW(_W_SHELL_HANDLE(activeShell)));
+			if (focusHandle != 0 && !gtk_widget_has_focus(focusHandle))
+				return;
+		}
+	}
+	/*
+	 * Bug in GTK.  When a shell that is not managed by the window
+	 * manage is given focus, GTK gets stuck in "focus follows pointer"
+	 * mode when the pointer is within the shell and its parent when
+	 * the shell is hidden or disposed. The fix is to use XSetInputFocus()
+	 * to assign focus when ever the active shell has not managed by
+	 * the window manager.
+	 *
+	 * NOTE: This bug is fixed in GTK+ 2.6.8 and above.
+	 */
+	int xFocus = W_FALSE;
+	if (activeShell != 0) {
+		gtk_toolkit->activeShell = shell;
+		gtk_toolkit->activePending = W_TRUE;
+	}
+	/*
+	 * Feature in GTK.  When the shell is an override redirect
+	 * window, gdk_window_focus() does not give focus to the
+	 * window.  The fix is to use XSetInputFocus() to force
+	 * the focus.
+	 */
+	GdkWindow *window = gtk_widget_get_window(shellHandle);
+	if ((xFocus || (_W_WIDGET(shell)->style & W_ON_TOP) != 0)) {
+		if (gtk_toolkit->ISX11) {
+			/*Display *xDisplay;
+			 if (GTK_VERSION >= VERSION(2, 24, 0)) {
+			 xDisplay = gdk_x11_display_get_xdisplay(
+			 gdk_window_get_display(window));
+			 } else {
+			 xDisplay = gdk_x11_drawable_get_xdisplay(window);
+			 }
+			 Window xWindow;
+			 #if GTK3
+			 xWindow = gdk_x11_window_get_xid(window);
+			 #else
+			 #endif
+			 gdk_error_trap_push();*/
+			/* Use CurrentTime instead of the last event time to ensure that the shell becomes active */
+			/*XSetInputFocus(xDisplay, xWindow, 2, 0);
+			 gdk_error_trap_pop();*/
+		} else {
+			//	find the proper fix as this doesn't seem to have effect
+			//  gtk_window_present(window);
+		}
+	} else {
+		/*
+		 * Bug in metacity.  Calling gdk_window_focus() with a timestamp more
+		 * recent than the last user interaction time can cause windows not
+		 * to come forward in versions > 2.10.0.  The fix is to use the last
+		 * user event time.
+		 */
+		guint32 timestamp = GDK_CURRENT_TIME;
+		/*if (isX11()) {
+		 GdkScreen *_screen = gdk_screen_get_default();
+		 const char *windowManager = gdk_x11_screen_get_window_manager_name(
+		 _screen);
+		 if (!strcasecmp(windowManager, "metacity")) {
+		 timestamp = gtk_toolkit->lastUserEventTime;
+		 }
+		 }*/
+		gdk_window_focus(window, timestamp);
+	}
+	gtk_toolkit->activeShell = shell;
+	gtk_toolkit->activePending = W_TRUE;
+}
+void _w_shell_center(w_control *control) {
+	if (_W_WIDGET(control)->parent == 0)
+		return;
+	w_rect rect, parentRect, parentClientArea, monitorRect;
+	w_toolkit *toolkit = w_widget_get_toolkit(W_WIDGET(control));
+	w_control_get_bounds(control, &rect.pt, &rect.sz);
+	w_scrollable_get_client_area(W_SCROLLABLE(control), &parentClientArea);
+	w_toolkit_map_1(toolkit, W_CONTROL(_W_WIDGET(control)->parent), 0,
+			&parentRect, &parentClientArea);
+	w_rect pt;
+	pt.x = WMAX(parentRect.x,
+			parentRect.x + (parentRect.width - rect.width) / 2);
+	pt.y = WMAX(parentRect.y,
+			parentRect.y + (parentRect.height - rect.height) / 2);
+	w_toolkit_get_client_area(toolkit, &monitorRect);
+	if (pt.x + rect.width > monitorRect.x + monitorRect.width) {
+		pt.x = WMAX(monitorRect.x,
+				monitorRect.x + monitorRect.width - rect.width);
+	} else {
+		pt.x = WMAX(pt.x, monitorRect.x);
+	}
+	if (pt.y + rect.height > monitorRect.y + monitorRect.height) {
+		pt.y = WMAX(monitorRect.y,
+				monitorRect.y + monitorRect.height - rect.height);
+	} else {
+		pt.y = WMAX(pt.y, monitorRect.y);
+	}
+	w_control_set_bounds(control, &pt.pt, 0);
 }
 wresult _w_shell_close(w_shell *shell) {
 	_w_shell_close_widget(shell, 0);
@@ -28,6 +136,35 @@ void _w_shell_close_widget(w_shell *shell, _w_event_platform *e) {
 	if (style & W_DISPOSE_ON_CLOSE) {
 		w_widget_dispose(W_WIDGET(shell));
 	}
+}
+wresult _w_shell_compute_trim(w_widget *widget, w_event_compute_trim *e,
+		_w_control_priv *priv) {
+	_w_scrollable_compute_trim(widget, e, priv);
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
+	int border = 0;
+	int style = _W_WIDGET(widget)->style;
+	if ((style & (W_NO_TRIM | W_BORDER | W_SHELL_TRIM)) == 0) {
+		border = gtk_container_get_border_width(GTK_CONTAINER(shellHandle));
+	}
+	if (ISCUSTOMRESIZE(style)) {
+		border = gtk_container_get_border_width(GTK_CONTAINER(shellHandle));
+	}
+	int trimWidth = _w_shell_trim_width(W_SHELL(widget)), trimHeight =
+			_w_shell_trim_height(W_SHELL(widget));
+	e->result->x -= (trimWidth / 2) + border;
+	e->result->y -= trimHeight - (trimWidth / 2) + border;
+	e->result->width += trimWidth + border * 2;
+	e->result->height += trimHeight + border * 2;
+	if (_W_SHELL(widget)->menubar != 0) {
+		_w_shell_force_resize(W_CONTROL(widget), priv);
+		GtkAllocation allocation;
+		gtk_widget_get_allocation(
+		_W_WIDGET(_W_SHELL(widget)->menubar)->handle, &allocation);
+		int menuBarHeight = allocation.height;
+		e->result->y -= menuBarHeight;
+		e->result->height += menuBarHeight;
+	}
+	return W_TRUE;
 }
 wuint64 _w_shell_check_style(w_widget *widget, wuint64 style) {
 	if ((style & W_NO_TRIM) != 0) {
@@ -304,35 +441,131 @@ void _w_shell_force_resize(w_control *control, _w_control_priv *priv) {
 	}
 	_w_shell_force_resize_0(control, allocation.width, allocation.height, priv);
 }
-wresult _w_shell_get_default_button(w_shell *shell, w_button **button) {
-	return W_FALSE;
+wresult _w_shell_get_default_button(w_shell *shell, w_button **_button) {
+	w_button *button =
+	_W_SHELL(shell)->defaultButton != 0 ?
+	_W_SHELL(shell)->defaultButton :
+											_W_SHELL(shell)->saveDefault;
+	if (button != 0 && !w_widget_is_ok(W_WIDGET(button))) {
+		*_button = 0;
+	} else {
+		*_button = button;
+	}
+	return W_TRUE;
 }
 wresult _w_shell_get_alpha(w_shell *shell) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+#if H_GTK_VERSION > VERSION(3,22,0)
+	if (gdk_screen_is_composited(
+			gtk_window_get_screen(GTK_WINDOW(shellHandle)))) {
+#else
+		if (gtk_widget_is_composited(shellHandle)) {
+#endif
+		/*
+		 * Feature in GTK: gtk_window_get_opacity() is deprecated on GTK3.8
+		 * onward. Use gtk_widget_get_opacity() instead.
+		 */
+#if H_GTK_VERSION > VERSION(3,22,0)
+		return gtk_widget_get_opacity(shellHandle) * 255;
+#else
+	return gtk_window_get_opacity(GTK_WINDOW(shellHandle)) * 255);
+#endif
+	}
+	return 0xFF;
+}
+wresult _w_shell_get_bounds(w_control *control, w_point *location,
+		w_size *size) {
+	GtkWindow *shellHandle = GTK_WINDOW(_W_SHELL_HANDLE(control));
+	if (location != 0) {
+		int x, y;
+		gtk_window_get_position(shellHandle, &x, &y);
+		location->x = x;
+		location->y = y;
+	}
+	if (size != 0) {
+		GtkWidget *vboxHandle = _W_SHELL_VBOX(control);
+		GtkAllocation allocation;
+		gtk_widget_get_allocation(vboxHandle, &allocation);
+		int width = allocation.width;
+		int height = allocation.height;
+		int border = 0;
+		if ((_W_WIDGET(control)->style & (W_NO_TRIM | W_BORDER | W_FRAME_TRIM))
+				== 0) {
+			border = gtk_container_get_border_width(GTK_CONTAINER(shellHandle));
+		}
+		size->width = width + _w_shell_trim_width(W_SHELL(control))
+				+ 2 * border;
+		size->height = height + _w_shell_trim_height(W_SHELL(control))
+				+ 2 * border;
+	}
+	return W_TRUE;
 }
 wresult _w_shell_get_full_screen(w_shell *shell) {
-	return W_FALSE;
+	return _W_SHELL(shell)->fullScreen;
 }
 wresult _w_shell_get_minimum_size(w_shell *shell, w_size *size) {
-	return W_FALSE;
+	size->width = WMAX(1,
+			_W_SHELL(shell)->minWidth + _w_shell_trim_width(shell));
+	size->height = WMAX(1,
+			_W_SHELL(shell)->minHeight + _w_shell_trim_height(shell));
+	return W_TRUE;
 }
 wresult _w_shell_get_modified(w_shell *shell) {
-	return W_FALSE;
+	return _W_SHELL(shell)->modified;
 }
-wresult _w_shell_get_images(w_shell *shell, w_image *image, size_t length) {
-	return W_FALSE;
+void _w_shell_images_destroy(gpointer data) {
+	if (data != 0) {
+		g_object_unref(data);
+	}
+}
+wresult _w_shell_get_images(w_shell *shell, w_image *images, size_t length) {
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	GList *icons = gtk_window_get_icon_list(GTK_WINDOW(shellHandle));
+	size_t l = g_list_length(icons);
+	if (images != 0) {
+		size_t i = 0;
+		while (icons != 0) {
+			if (i >= length) {
+				break;
+			}
+			w_image_dispose(&images[i]);
+			_W_IMAGE(&images[i])->pixbuf = GDK_PIXBUF(icons->data);
+			_W_IMAGE(&images[i])->flags = 0;
+			icons->data = 0;
+			i++;
+			icons = icons->next;
+		}
+	}
+	g_list_free_full(icons, _w_shell_images_destroy);
+	return l;
 }
 wresult _w_shell_get_ime_input_mode(w_shell *shell) {
-	return W_FALSE;
+	return W_NONE;
 }
 wresult _w_shell_get_maximized(w_shell *shell) {
-	return W_FALSE;
+	return !(_W_SHELL(shell)->fullScreen) && (_W_SHELL(shell)->maximized);
 }
 wresult _w_shell_get_menu_bar(w_shell *shell, w_menu **menu) {
-	return W_FALSE;
+	*menu = _W_SHELL(shell)->menubar;
+	return W_TRUE;
 }
 wresult _w_shell_get_minimized(w_shell *shell) {
-	return W_FALSE;
+	return _W_SHELL(shell)->minimized;
+}
+wresult _w_shell_get_visible(w_control *shell) {
+	return gtk_widget_get_visible(_W_SHELL_HANDLE(shell));
+}
+wresult _w_shell_get_region(w_control *shell, w_region *region) {
+	/*if (_W_SHELL(shell)->originalRegion != 0) {
+	 w_region_dispose(region);
+	 _W_REGION(region)->handle = cairo_region_copy(
+	 _W_SHELL(shell)->originalRegion);
+	 if (_W_REGION(region)->handle != 0) {
+	 return W_TRUE;
+	 } else
+	 return W_ERROR_NO_HANDLES;
+	 }*/
+	return _w_control_get_region(shell, region);
 }
 int _w_shell_get_resize_mode(w_shell *shell, double x, double y) {
 	GtkAllocation allocation;
@@ -374,11 +607,15 @@ wresult _w_shell_get_shell(w_widget *control, w_shell **shell) {
 	return W_TRUE;
 }
 wresult _w_shell_get_shells(w_shell *shell, w_iterator *iterator) {
-	return W_FALSE;
+	_w_toolkit_get_shells_from_parent(shell, iterator);
+	return W_TRUE;
 }
 wresult _w_shell_get_text(w_shell *shell, w_alloc alloc, void *user_data,
 		int enc) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	const char *text = gtk_window_get_title(GTK_WINDOW(shellHandle));
+	_gtk_alloc_set_text(alloc, user_data, text, -1, enc);
+	return W_TRUE;
 }
 wresult _w_shell_get_toolbar(w_shell *shell, w_toolbar **toolbar) {
 	return W_FALSE;
@@ -420,6 +657,10 @@ wresult _w_shell_is_enabled(w_control *shell) {
 wresult _w_shell_is_visible(w_control *shell) {
 	return W_CONTROL_GET_CLASS(shell)->get_visible(shell);
 }
+wresult _w_shell_request_layout(w_control *shell) {
+	//_w_composite_layout(W_COMPOSITE(shell), W_DEFER);
+	return W_TRUE;
+}
 wresult _w_shell_open(w_shell *shell) {
 	//_w_shell_bring_totop(shell, W_FALSE);
 	w_widget *parent = _W_WIDGET(shell)->parent;
@@ -429,6 +670,13 @@ wresult _w_shell_open(w_shell *shell) {
 	}
 	W_CONTROL_GET_CLASS(shell)->set_visible(W_CONTROL(shell), W_TRUE);
 	return W_TRUE;
+}
+wresult _w_shell_print(w_control *shell, w_graphics *gc) {
+	if (gc == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (!w_graphics_is_ok(gc))
+		return W_ERROR_INVALID_ARGUMENT;
+	return W_FALSE;
 }
 void _w_shell_resize_bounds(w_control *control, int width, int height,
 		int notify, _w_control_priv *priv) {
@@ -538,7 +786,25 @@ void _w_shell_set_active_control(w_shell *shell, w_control *control) {
 	_w_shell_set_active_control_0(shell, control, W_NONE);
 }
 wresult _w_shell_set_alpha(w_shell *shell, int alpha) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+#if H_GTK_VERSION > VERSION(3,22,0)
+	if (gdk_screen_is_composited(
+			gtk_window_get_screen(GTK_WINDOW(shellHandle)))) {
+#else
+		if (gtk_widget_is_composited(shellHandle)) {
+#endif
+		/*
+		 * Feature in GTK: gtk_window_set_opacity() is deprecated on GTK3.8
+		 * onward. Use gtk_widget_set_opacity() instead.
+		 */
+		alpha &= 0xFF;
+#if H_GTK_VERSION > VERSION(3,22,0)
+		gtk_widget_set_opacity(shellHandle, (double) alpha / 255.0);
+#else
+			gtk_window_set_opacity(GTK_WINDOW(shellHandle), alpha / 255.0);
+#endif
+	}
+	return W_TRUE;
 }
 wresult _w_shell_set_bounds_0(w_control *control, w_point *location,
 		w_size *size, _w_control_priv *priv) {
@@ -606,19 +872,89 @@ wresult _w_shell_set_bounds_0(w_control *control, w_point *location,
 	return result;
 }
 wresult _w_shell_set_default_button(w_shell *shell, w_button *button) {
-	return W_FALSE;
+	GtkWidget *buttonHandle = 0;
+	if (button != 0) {
+		if (!w_widget_is_ok(W_WIDGET(button)))
+			return W_ERROR_INVALID_ARGUMENT;
+		w_shell *_shell;
+		w_widget_get_shell(W_WIDGET(button), &_shell);
+		if (_shell != shell)
+			return W_ERROR_INVALID_PARENT;
+		buttonHandle = _W_WIDGET(button)->handle;
+	}
+	_W_SHELL(shell)->saveDefault = _W_SHELL(shell)->defaultButton = button;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	gtk_window_set_default(GTK_WINDOW(shellHandle), buttonHandle);
+	return W_TRUE;
 }
 wresult _w_shell_set_full_screen(w_shell *shell, int fullScreen) {
-	return W_FALSE;
+	GtkWindow *shellHandle = GTK_WINDOW(_W_SHELL_HANDLE(shell));
+	if (fullScreen) {
+		gtk_window_fullscreen(shellHandle);
+		_W_SHELL(shell)->fullScreen = fullScreen;
+	} else {
+		gtk_window_unfullscreen(shellHandle);
+		if (_W_SHELL(shell)->maximized) {
+			_w_shell_set_maximized(shell, W_TRUE);
+		}
+		_W_SHELL(shell)->fullScreen = 0;
+	}
+	return W_TRUE;
 }
-wresult _w_shell_set_images(w_shell *shell, w_image *image, size_t length) {
-	return W_FALSE;
+gint _w_shell_set_images_compare(gconstpointer data1, gconstpointer data2) {
+	wuint data1_width = gdk_pixbuf_get_width((GdkPixbuf*) data1);
+	wuint data1_height = gdk_pixbuf_get_height((GdkPixbuf*) data1);
+	wuint data2_width = gdk_pixbuf_get_width((GdkPixbuf*) data2);
+	wuint data2_height = gdk_pixbuf_get_height((GdkPixbuf*) data2);
+	if (data1_width == data2_width && data1_height == data2_height) {
+		int transparent1 = 0;	//data1.getTransparencyType ();
+		int transparent2 = 0;	//data2.getTransparencyType ();
+		if (transparent1 == W_TRANSPARENCY_ALPHA)
+			return -1;
+		if (transparent2 == W_TRANSPARENCY_ALPHA)
+			return 1;
+		if (transparent1 == W_TRANSPARENCY_MASK)
+			return -1;
+		if (transparent2 == W_TRANSPARENCY_MASK)
+			return 1;
+		if (transparent1 == W_TRANSPARENCY_PIXEL)
+			return -1;
+		if (transparent2 == W_TRANSPARENCY_PIXEL)
+			return 1;
+		return 0;
+	}
+	return data1_width > data2_width || data1_height > data2_height ? -1 : 1;
+}
+wresult _w_shell_set_images(w_shell *shell, w_image *images, size_t length) {
+	GList *pixbufs = 0;
+	if (images != 0) {
+		for (size_t i = 0; i < 0; i++) {
+			GdkPixbuf *pixbuf = _W_IMAGE(&images[i])->pixbuf;
+			if (pixbuf != 0) {
+				pixbufs = g_list_append(pixbufs, pixbuf);
+			}
+		}
+		pixbufs = g_list_sort(pixbufs, _w_shell_set_images_compare);
+	}
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	gtk_window_set_icon_list(GTK_WINDOW(shellHandle), pixbufs);
+	if (pixbufs != 0)
+		g_list_free(pixbufs);
+	return W_TRUE;
 }
 wresult _w_shell_set_ime_input_mode(w_shell *shell, int mode) {
 	return W_FALSE;
 }
 wresult _w_shell_set_maximized(w_shell *shell, int maximized) {
-	return W_FALSE;
+	GtkWindow *shellHandle = GTK_WINDOW(_W_SHELL_HANDLE(shell));
+	if (maximized) {
+		_W_SHELL(shell)->maximized = 1;
+		gtk_window_maximize(shellHandle);
+	} else {
+		_W_SHELL(shell)->maximized = 0;
+		gtk_window_unmaximize(shellHandle);
+	}
+	return W_TRUE;
 }
 wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 	if (_W_SHELL(shell)->menubar == menu)
@@ -655,16 +991,44 @@ wresult _w_shell_set_menu_bar(w_shell *shell, w_menu *menu) {
 	return W_TRUE;
 }
 wresult _w_shell_set_minimized(w_shell *shell, int minimized) {
-	return W_FALSE;
+	if (_W_SHELL(shell)->minimized == minimized)
+		return W_TRUE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	if (minimized) {
+		_W_SHELL(shell)->minimized = 1;
+		gtk_window_iconify(GTK_WINDOW(shellHandle));
+	} else {
+		_W_SHELL(shell)->minimized = 0;
+		gtk_window_deiconify(GTK_WINDOW(shellHandle));
+		_w_shell_bring_totop(shell, W_FALSE);
+	}
+	return W_TRUE;
 }
 wresult _w_shell_set_minimum_size(w_shell *shell, w_size *size) {
-	return W_FALSE;
+	GtkWidget *shellHandle = _W_SHELL_HANDLE(shell);
+	GdkGeometry geometry;
+	int trimWidth = _w_shell_trim_width(shell);
+	int trimHeight = _w_shell_trim_height(shell);
+	_W_SHELL(shell)->minWidth = geometry.min_width = WMAX(size->width,
+			trimWidth) - trimWidth;
+	_W_SHELL(shell)->minHeight = geometry.min_height = WMAX(size->height,
+			trimHeight) - trimHeight;
+	gtk_window_set_geometry_hints(GTK_WINDOW(shellHandle), 0, &geometry,
+			GDK_HINT_MIN_SIZE);
+	return W_TRUE;
 }
 wresult _w_shell_set_modified(w_shell *shell, int modified) {
-	return W_FALSE;
+	if (modified) {
+		_W_SHELL(shell)->modified = 1;
+	} else {
+		_W_SHELL(shell)->modified = 0;
+	}
+	return W_TRUE;
 }
 void _w_shell_set_saved_focus(w_shell *shell, w_control *control) {
-
+	if (W_CONTROL(shell) == control)
+		return;
+	_W_SHELL(shell)->savedFocus = control;
 }
 wresult _w_shell_set_text(w_shell *shell, const char *string, size_t length,
 		int enc) {
@@ -732,7 +1096,7 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 		return W_TRUE;
 	if (visible) {
 		if (parent != 0 && (_W_WIDGET(control)->style & W_SHEET)) {
-			//_w_shell_center(control);
+			_w_shell_center(control);
 			if (!w_widget_is_ok(W_WIDGET(control)))
 				return W_FALSE;
 		}
@@ -773,20 +1137,20 @@ wresult _w_shell_set_visible(w_control *control, int visible) {
 			w_widget_get_shell(W_WIDGET(parent), &shell);
 		} else
 			shell = 0;
-		do {
-			/*
-			 * This call to gdk_threads_leave() is a temporary work around
-			 * to avoid deadlocks when gdk_threads_init() is called by native
-			 * code outside of SWT (i.e AWT, etc). It ensures that the current
-			 * thread leaves the GTK lock before calling the function below.
-			 */
-			gdk_threads_leave();
-			g_main_context_iteration(0, FALSE);
-			if (!w_widget_is_ok(W_WIDGET(control)))
-				break;
-			iconic = _W_SHELL(control)->minimized
-					|| (shell != 0 && _W_SHELL(shell)->minimized);
-		} while (!_W_SHELL(control)->mapped && !iconic);
+		//do {
+		/*
+		 * This call to gdk_threads_leave() is a temporary work around
+		 * to avoid deadlocks when gdk_threads_init() is called by native
+		 * code outside of SWT (i.e AWT, etc). It ensures that the current
+		 * thread leaves the GTK lock before calling the function below.
+		 */
+		/*gdk_threads_leave();
+		 g_main_context_iteration(0, FALSE);
+		 if (!w_widget_is_ok(W_WIDGET(control)))
+		 break;
+		 iconic = _W_SHELL(control)->minimized
+		 || (shell != 0 && _W_SHELL(shell)->minimized);
+		 } while (!_W_SHELL(control)->mapped && !iconic);*/
 		_w_toolkit_remove_gdk_events();
 		if (!w_widget_is_ok(W_WIDGET(control)))
 			return W_FALSE;
@@ -883,6 +1247,52 @@ void _w_shell_show_widget(w_control *control, _w_control_priv *priv) {
 	}
 	GtkWidget *vboxHandle = _W_SHELL_VBOX(control);
 	gtk_widget_show_all(vboxHandle);
+}
+int _w_shell_trim_height(w_shell *shell) {
+	int style = _W_WIDGET(shell)->style;
+	if ((style & W_NO_TRIM) != 0)
+		return 0;
+	if (_W_SHELL(shell)->fullScreen)
+		return 0;
+	int hasTitle = W_FALSE, hasResize = W_FALSE, hasBorder = W_FALSE;
+	hasTitle = (style & (W_MIN | W_MAX | /*W_TITLE |*/W_MENU)) != 0;
+	hasResize = (style & W_RESIZE) != 0;
+	hasBorder = (style & W_BORDER) != 0;
+	if (hasTitle) {
+		if (hasResize)
+			return gtk_toolkit->trimHeights[TRIM_TITLE_RESIZE];
+		if (hasBorder)
+			return gtk_toolkit->trimHeights[TRIM_TITLE_BORDER];
+		return gtk_toolkit->trimHeights[TRIM_TITLE];
+	}
+	if (hasResize)
+		return gtk_toolkit->trimHeights[TRIM_RESIZE];
+	if (hasBorder)
+		return gtk_toolkit->trimHeights[TRIM_BORDER];
+	return gtk_toolkit->trimHeights[TRIM_NONE];
+}
+int _w_shell_trim_width(w_shell *shell) {
+	wuint64 style = _W_WIDGET(shell)->style;
+	if ((style & W_NO_TRIM) != 0)
+		return 0;
+	if (_W_SHELL(shell)->fullScreen)
+		return 0;
+	int hasTitle = W_FALSE, hasResize = W_FALSE, hasBorder = W_FALSE;
+	hasTitle = (style & (W_MIN | W_MAX | /*W_TITLE |*/W_MENU)) != 0;
+	hasResize = (style & W_RESIZE) != 0;
+	hasBorder = (style & W_BORDER) != 0;
+	if (hasTitle) {
+		if (hasResize)
+			return gtk_toolkit->trimWidths[TRIM_TITLE_RESIZE];
+		if (hasBorder)
+			return gtk_toolkit->trimWidths[TRIM_TITLE_BORDER];
+		return gtk_toolkit->trimWidths[TRIM_TITLE];
+	}
+	if (hasResize)
+		return gtk_toolkit->trimWidths[TRIM_RESIZE];
+	if (hasBorder)
+		return gtk_toolkit->trimWidths[TRIM_BORDER];
+	return gtk_toolkit->trimWidths[TRIM_NONE];
 }
 /*
  * signals
@@ -1315,7 +1725,15 @@ void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 	W_WIDGET_CLASS(clazz)->get_shell = _w_shell_get_shell;
 	W_CONTROL_CLASS(clazz)->is_enabled = _w_shell_is_enabled;
 	W_CONTROL_CLASS(clazz)->is_visible = _w_shell_is_visible;
+	W_CONTROL_CLASS(clazz)->request_layout = _w_shell_request_layout;
+	W_CONTROL_CLASS(clazz)->get_visible = _w_shell_get_visible;
+	W_CONTROL_CLASS(clazz)->get_region = _w_shell_get_region;
+	W_CONTROL_CLASS(clazz)->print = _w_shell_print;
+	//W_CONTROL_CLASS(clazz)->set_enabled = _w_shell_set_enabled;
+	//W_CONTROL_CLASS(clazz)->set_region = _w_shell_set_region;
 	W_CONTROL_CLASS(clazz)->set_visible = _w_shell_set_visible;
+	W_CONTROL_CLASS(clazz)->get_bounds = _w_shell_get_bounds;
+	//W_CONTROL_CLASS(clazz)->is_reparentable = _w_shell_is_reparentable;
 	clazz->close = _w_shell_close;
 	clazz->get_toolbar = _w_shell_get_toolbar;
 	clazz->get_alpha = _w_shell_get_alpha;
@@ -1357,6 +1775,7 @@ void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 		_W_WIDGET_PRIV(priv)->create_handle = _w_shell_create_handle;
 		_W_WIDGET_PRIV(priv)->check_style = _w_shell_check_style;
 		_W_WIDGET_PRIV(priv)->hook_events = _w_shell_hook_events;
+		_W_WIDGET_PRIV(priv)->compute_trim = _w_shell_compute_trim;
 		priv->set_bounds_0 = _w_shell_set_bounds_0;
 		priv->show_widget = _w_shell_show_widget;
 		_W_COMPOSITE_PRIV(priv)->find_deferred_control =
