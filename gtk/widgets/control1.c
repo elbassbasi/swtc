@@ -38,12 +38,6 @@ gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 	widget->clazz = 0;
 	if (style & W_FREE_MEMORY) {
 		_w_toolkit_registre_free(widget);
-		/*e.type = W_EVENT_FREE_MEMORY;
-		 e.widget = widget;
-		 e.data = 0;
-		 e.time = 0;
-		 e.platform_event = (w_event_platform*) ee;
-		 w_widget_send_event(widget, &e);*/
 	}
 	return FALSE;
 }

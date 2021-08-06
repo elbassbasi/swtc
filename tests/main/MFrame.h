@@ -39,7 +39,7 @@ public:
     const char* GetExePath();
 protected:
 	bool OnLayout(WEvent &e);
-	bool OnNotifySelection(WEvent &e);
+	bool OnSashSelection(WEvent &e);
 	void UpdateSize();
 public:
     bool NewCustomShell(WEvent &e);

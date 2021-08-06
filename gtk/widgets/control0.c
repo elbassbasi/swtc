@@ -92,7 +92,7 @@ wresult _w_control_create_droptarget(w_control *control,
 }
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_DRAG_DETECT;
-	w_composite *parent = _W_WIDGET(widget)->parent;
+	w_widget *parent = _W_WIDGET(widget)->parent;
 
 	_W_WIDGET_PRIV(priv)->check_orientation(widget, W_WIDGET(parent), priv);
 	wresult ret = _w_widget_create_widget(widget, priv);
@@ -416,7 +416,7 @@ wresult _w_control_get_region(w_control *control, w_region *region) {
 	return W_FALSE;
 }
 wresult _w_control_get_shell(w_widget *control, w_shell **shell) {
-	w_composite *p = _W_WIDGET(control)->parent;
+	w_widget *p = _W_WIDGET(control)->parent;
 	return w_widget_get_shell(W_WIDGET(p), shell);
 }
 wresult _w_control_get_tab(w_control *control) {
@@ -466,7 +466,7 @@ wresult _w_control_get_visible(w_control *control) {
 }
 wresult _w_control_init_themedata(w_widget *widget, w_themedata *data) {
 	_w_widget_init_themedata(widget, data);
-	data->attr.font = _W_CONTROL(widget)->font;
+	data->attr.font = (w_font*) _W_CONTROL(widget)->font;
 	data->attr.background = _W_CONTROL(widget)->background;
 	data->attr.foreground = _W_CONTROL(widget)->foreground;
 	return W_TRUE;
@@ -573,7 +573,7 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 }
 wresult _w_control_is_enabled(w_control *control) {
 	if (W_CONTROL_GET_CLASS(control)->get_enabled(control) > 0) {
-		w_composite *parent = _W_WIDGET(control)->parent;
+		w_widget *parent = _W_WIDGET(control)->parent;
 		return W_CONTROL_GET_CLASS(parent)->is_enabled(W_CONTROL(parent));
 	}
 	return W_FALSE;
@@ -590,50 +590,85 @@ wresult _w_control_is_reparentable(w_control *control) {
 }
 wresult _w_control_is_visible(w_control *control) {
 	if (W_CONTROL_GET_CLASS(control)->get_visible(control) > 0) {
-		w_composite *parent = _W_WIDGET(control)->parent;
+		w_widget *parent = _W_WIDGET(control)->parent;
 		return W_CONTROL_GET_CLASS(parent)->is_visible(W_CONTROL(parent));
 	}
 	return W_FALSE;
 }
-void _w_control_kill_all_timer(w_control *control) {
-	_w_control_timer *timer, *next;
-	timer = &_W_CONTROL(control)->timer;
-	if (timer->control != 0) {
-		g_source_remove_by_user_data(timer);
+wuint* _w_control_find_timer(w_control *control, wushort id,
+		wuint **firstFree) {
+	if (id == 0)
+		return W_FALSE;
+	_w_control_timer *timer = &_W_CONTROL(control)->timer;
+	wuint *_timer = 0, _t;
+	int remove_timer = W_FALSE;
+	for (int i = 0; i < sizeof(timer->id) / sizeof(timer->id[0]); i++) {
+		_t = timer->id[i];
+		if ((_t & _TIMER_ID_MASK) == id) {
+			return &timer->id[i];
+		}
+		if (_timer == 0 && (_t & _TIMER_ID_MASK) == 0) {
+			_t |= ((i & _TIMER_INDEX_MASK) << 16);
+			_t &= ~ _TIMER_ARRAY;
+			_timer = &timer->id[i];
+			*_timer = _t;
+		}
 	}
-	timer = timer->next;
-	while (timer != 0) {
-		g_source_remove_by_user_data(timer);
-		next = timer->next;
-		free(timer);
-		timer = next;
+	const int start_index = sizeof(void*) / sizeof(wuint);
+	w_array *array = timer->ids;
+	if (array != 0) {
+		wuint *_arr_time;
+		int count = w_array_get_count(array, (void**) &_arr_time);
+		for (int i = start_index; i < count; i++) {
+			_t = _arr_time[i];
+			if ((_t & _TIMER_ID_MASK) == id) {
+				return &_arr_time[i];
+			}
+			if (_timer == 0 && (_t & _TIMER_ID_MASK) == 0) {
+				_t |= ((i & _TIMER_INDEX_MASK) << 16) | _TIMER_ARRAY;
+				_timer = &_arr_time[i];
+				*_timer = _t;
+			}
+		}
+	}
+	if (firstFree != 0) {
+		*firstFree = _timer;
+	}
+	return 0;
+}
+void _w_control_kill_all_timer(w_control *control) {
+	_w_control_timer *timer = &_W_CONTROL(control)->timer;
+	wuint _t;
+	int remove_timer = W_FALSE;
+	for (int i = 0; i < sizeof(timer->id) / sizeof(timer->id[0]); i++) {
+		_t = timer->id[i];
+		if ((_t & _TIMER_ID_MASK) != 0) {
+			g_source_remove_by_user_data(&timer->id[i]);
+		}
+	}
+	const int start_index = sizeof(void*) / sizeof(wuint);
+	w_array *array = timer->ids;
+	if (array != 0) {
+		wuint *_arr_time;
+		int count = w_array_get_count(array, (void**) &_arr_time);
+		for (int i = start_index; i < count; i++) {
+			_t = _arr_time[i];
+			if ((_t & _TIMER_ID_MASK) != 0) {
+				g_source_remove_by_user_data(&_arr_time[i]);
+			}
+		}
+		w_array_free(array, sizeof(wuint), 0);
 	}
 }
 wresult _w_control_kill_timer(w_control *control, wushort id) {
-	_w_control_timer *timer, *last;
-	timer = &_W_CONTROL(control)->timer;
-	if (timer->control == 0) {
-		last = timer;
-		timer = timer->next;
-	}
-	while (timer != 0) {
-		if (timer->id == id)
-			break;
-		last = timer;
-		timer = timer->next;
-	}
-	if (timer != 0) {
-		g_source_remove_by_user_data(timer);
-		if (timer == &_W_CONTROL(control)->timer) {
-			timer->control = 0;
-		} else {
-			if (last != 0)
-				last->next = timer->next;
-			free(timer);
-		}
+	wuint *_t = _w_control_find_timer(control, id, 0);
+	if (_t != 0) {
+		*_t = 0;
+		g_source_remove_by_user_data(_t);
 		return W_TRUE;
+	} else {
+		return W_FALSE;
 	}
-	return W_FALSE;
 }
 void _w_control_mark_layout(w_control *control, int flags,
 		_w_control_priv *priv) {
@@ -765,7 +800,7 @@ wresult _w_control_set_bounds_0(w_control *control, w_point *location,
 	GdkWindow *redrawWindow = priv->window_redraw(W_WIDGET(control), priv);
 	GdkWindow *enableWindow = priv->window_enable(W_WIDGET(control), priv);
 	int sendMove = location != 0;
-	w_composite *parent = _W_WIDGET(control)->parent;
+	w_widget *parent = _W_WIDGET(control)->parent;
 	GtkAllocation allocation;
 	gtk_widget_get_allocation(topHandle, &allocation);
 	if (location != 0) {
@@ -1041,43 +1076,55 @@ wresult _w_control_set_text_direction(w_control *control, int textDirection) {
 	return W_FALSE;
 }
 gboolean _w_timer_listenner(gpointer user_data) {
-	_w_control_timer *timer = (_w_control_timer*) user_data;
+	wuint _id = *((wuint*) user_data);
+	w_control *control;
+	if (_id & _TIMER_ARRAY) {
+		control = *((w_control**) (((char*) user_data)
+				- (((_id >> 16) & _TIMER_INDEX_MASK) * sizeof(wuint))));
+	} else {
+		control = (w_control*) (((char*) user_data)
+				- (((_id >> 16) & _TIMER_INDEX_MASK) * sizeof(wuint))
+				+ ((char*) user_data
+						- (char*) &((_w_control*) (user_data))->timer));
+	}
 	w_event_time e;
 	e.event.type = W_EVENT_TIMER;
 	e.event.platform_event = 0;
 	e.event.time = 0;
-	e.event.widget = W_WIDGET(timer->control);
+	e.event.widget = W_WIDGET(control);
 	e.event.data = 0;
-	_w_widget_send_event(W_WIDGET(timer->control), (w_event*) &e, W_EVENT_SEND);
+	_w_widget_send_event(W_WIDGET(control), (w_event*) &e, W_EVENT_SEND);
 	return TRUE;
 }
 wresult _w_control_set_timer(w_control *control, wint64 ms, wushort id) {
-	_w_control_timer *timer, *last;
-	if (_W_CONTROL(control)->timer.control == 0) {
-		_W_CONTROL(control)->timer.control = control;
-		_W_CONTROL(control)->timer.id = id;
-		timer = &_W_CONTROL(control)->timer;
+	if (id == 0)
+		return W_FALSE;
+	_w_control_timer *timer = &_W_CONTROL(control)->timer;
+	wuint *_timer = 0, *_t;
+	_timer = _w_control_find_timer(control, id, &_t);
+	if (_timer != 0) {
+		g_source_remove_by_user_data(_timer);
 	} else {
-		timer = &_W_CONTROL(control)->timer;
-		while (timer != 0) {
-			if (timer->id == id)
-				break;
-			last = timer;
-			timer = timer->next;
-		}
-		if (timer == 0) {
-			timer = malloc(sizeof(_w_control_timer));
-			if (timer == 0)
-				return W_ERROR_NO_MEMORY;
-			last->next = timer;
-			timer->next = 0;
-			timer->control = control;
-			timer->id = id;
-		} else {
-			g_source_remove_by_user_data(timer);
-		}
+		_timer = _t;
 	}
-	g_timeout_add(ms, _w_timer_listenner, timer);
+	if (_timer == 0) {
+		int _index;
+		if (timer->ids == 0) {
+			_index = sizeof(void*) / sizeof(wuint);
+			w_array_set(&timer->ids, _index, sizeof(wuint));
+			if (timer->ids == 0)
+				return W_FALSE;
+			*((w_control**) timer->ids->data) = control;
+			_timer = (wuint*) w_array_get(timer->ids, _index, sizeof(wuint));
+		} else {
+			_timer = w_array_add(&timer->ids, -1, sizeof(wuint), &_index);
+			if (_timer == 0)
+				return W_FALSE;
+		}
+		(*_timer) = ((_index & _TIMER_INDEX_MASK) << 16) | _TIMER_ARRAY;
+	}
+	(*_timer) |= id;
+	g_timeout_add(ms, _w_timer_listenner, _timer);
 	return W_TRUE;
 }
 wresult _w_control_set_tooltip_text(w_control *control, const char *text,
@@ -1341,8 +1388,7 @@ void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 		signals[SIGNAL_UNREALIZE] = _gtk_control_unrealize;
 	}
 }
-wresult _w_ccanvas_create_handle(w_widget *widget, int index,
-		_w_widget_priv *priv) {
+wresult _w_ccanvas_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle;
 	fixedHandle = _w_fixed_new();
 	if (fixedHandle == 0)

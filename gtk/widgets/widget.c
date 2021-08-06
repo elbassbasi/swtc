@@ -523,8 +523,9 @@ wresult _w_widget_send_event(w_widget *widget, w_event *ee, int flags) {
 	return W_WIDGET_GET_CLASS(widget)->post_event(widget, ee, flags);
 }
 wresult _w_widget_post_event(w_widget *widget, w_event *ee, int flags) {
+	wresult result = W_FALSE;
 	if (widget->post_event != 0) {
-		widget->post_event(widget, ee);
+		result = widget->post_event(widget, ee);
 	}
 	_w_widget_priv *priv;
 	switch (ee->type) {
@@ -565,7 +566,7 @@ wresult _w_widget_post_event(w_widget *widget, w_event *ee, int flags) {
 	}
 		break;
 	}
-	return W_FALSE;
+	return result;
 }
 gboolean _w_widget_proc(GtkWidget *widget, _gtk_signal *signal, void *args0,
 		void *args1, void *args2) {

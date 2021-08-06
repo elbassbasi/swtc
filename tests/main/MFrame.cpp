@@ -47,6 +47,7 @@ bool MFrame::Create(WToolkit *toolkit) {
 			W_FRAME_TRIM | W_DELETE_ON_DISPOSE | W_DISPOSE_ON_CLOSE)) {
 		panel.Create(this);
 		sash.Create(this, W_VERTICAL);
+		sash.SetSelectionAction(this, W_ACTION(MFrame::OnSashSelection));
 		menu.CreateBar(this);
 		menu.CreateItems(this, MApp::Get()->GetImageList16(), menuitems);
 		this->SetMenuBar(menu);
@@ -70,17 +71,14 @@ void MFrame::UpdateSize() {
 				area.width - (this->width + 3) - 3, area.height - 3);
 	}
 }
-bool MFrame::OnNotifySelection(WEvent &e) {
-	if (e.widget == &sash) {
-		WSashEvent &event = reinterpret_cast<WSashEvent&>(e);
-		WRect sashBounds;
-		sash.GetBounds(sashBounds);
-		int shift = event.bounds.x - sashBounds.x;
-		this->width += shift;
-		UpdateSize();
-		return true;
-	}
-	return false;
+bool MFrame::OnSashSelection(WEvent &e) {
+	WSashEvent &event = reinterpret_cast<WSashEvent&>(e);
+	WRect sashBounds;
+	sash.GetBounds(sashBounds);
+	int shift = event.bounds.x - sashBounds.x;
+	this->width += shift;
+	UpdateSize();
+	return true;
 }
 WImageList* MFrame::GetImageList16() {
 	return MApp::Get()->GetImageList16();

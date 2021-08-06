@@ -54,10 +54,15 @@
 /*
  * control
  */
+#define _TIMER_ID_MASK 0xFFFF
+#define _TIMER_INDEX_MASK 0x7FFF
+#define _TIMER_ARRAY (1 << 15)
 typedef struct _w_control_timer {
-	w_control *control;
-	struct _w_control_timer *next;
-	wushort id;
+	wuint id[4];
+	/*
+	 * the first and second is pointer of widget
+	 */
+	w_array *ids;
 } _w_control_timer;
 typedef struct _w_control {
 	_w_widget widget;

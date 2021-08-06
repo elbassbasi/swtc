@@ -93,22 +93,21 @@ void WWidget::SetNotify(IWNotify *notify) {
 bool WWidget::GetSelectionAction(IWNotify **obj,
 		IWNotify::SelectionAction *function) {
 	if ((this->state & __DATA_MASK_LISTENER) == __DATA_FLAGS_SELECTION_ACTION) {
-		*function = 0;
-		*((void**) function) = GetData(__DATA_LISTENER);
 		*obj = (IWNotify*) GetData(__DATA_NOTIFY);
+		*function =
+				*((IWNotify::SelectionAction*) &this->data[__DATA_LISTENER]);
 		return true;
 	} else {
-		*function = 0;
 		*obj = 0;
+		*function = 0;
 		return false;
 	}
 }
 void WWidget::SetSelectionAction(IWNotify *obj,
 		IWNotify::SelectionAction function) {
 	FreeListenerData();
-	IWNotify::SelectionAction *_function = &function;
-	SetData(__DATA_LISTENER, *((void**) _function));
 	SetData(__DATA_NOTIFY, obj);
+	*((IWNotify::SelectionAction*) &this->data[__DATA_LISTENER]) = function;
 	this->state &= ~__DATA_MASK_LISTENER;
 	this->state |= __DATA_FLAGS_SELECTION_ACTION;
 }
