@@ -143,7 +143,7 @@ wresult _w_datetime_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle = 0, *textEntryHandle = 0, *handle;
 	if (style & W_CALENDAR) {
 		_W_WIDGET(widget)->state |= STATE_HANDLE;
-		fixedHandle = _w_fixed_new();
+		fixedHandle = _w_fixed_new(widget);
 		if (fixedHandle == 0)
 			goto _err;
 		gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -153,8 +153,7 @@ wresult _w_datetime_create_handle(w_widget *widget, _w_control_priv *priv) {
 
 		//Calenadar becomes container in this case.
 		//containerHandle = handle;
-
-		gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+		_w_fixed_set_child(fixedHandle, handle);
 
 		GtkCalendarDisplayOptions flags = GTK_CALENDAR_SHOW_HEADING
 				| GTK_CALENDAR_SHOW_DAY_NAMES;
@@ -164,7 +163,7 @@ wresult _w_datetime_create_handle(w_widget *widget, _w_control_priv *priv) {
 		gtk_calendar_set_display_options(GTK_CALENDAR(handle), flags);
 
 	} else {
-		fixedHandle = _w_fixed_new();
+		fixedHandle = _w_fixed_new(widget);
 		if (fixedHandle == 0)
 			goto _err;
 		gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -176,7 +175,7 @@ wresult _w_datetime_create_handle(w_widget *widget, _w_control_priv *priv) {
 				goto _err;
 			gtk_box_set_homogeneous(GTK_BOX(handle), FALSE);
 #endif
-			gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+			_w_fixed_set_child(fixedHandle, handle);
 
 			//Create entry
 			textEntryHandle = gtk_entry_new();
@@ -206,7 +205,7 @@ wresult _w_datetime_create_handle(w_widget *widget, _w_control_priv *priv) {
 
 			gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(textEntryHandle),
 			FALSE);
-			gtk_container_add(GTK_CONTAINER(fixedHandle), textEntryHandle);
+			_w_fixed_set_child(fixedHandle, textEntryHandle);
 			gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(textEntryHandle),
 					(style & W_WRAP) != 0);
 		}
@@ -453,7 +452,7 @@ void _w_datetime_class_init(w_toolkit *toolkit, wushort classId,
 		W_WIDGET_CLASS(clazz)->platformPrivate =
 				&gtk_toolkit->class_datetime_priv;
 	}
-	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_DATETIME;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_datetime_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_datetime);

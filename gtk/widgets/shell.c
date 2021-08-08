@@ -1309,6 +1309,7 @@ gboolean _gtk_shell_destroy(w_widget *widget, _w_event_platform *e,
 	if (gtk_toolkit->shells == 0) {
 		w_toolkit_post_quit(W_TOOLKIT(gtk_toolkit), EXIT_SUCCESS);
 	}
+	_gtk_control_destroy(widget, e, priv);
 	return W_FALSE;
 }
 gboolean _gtk_shell_button_press_event(w_widget *widget, _w_event_platform *e,

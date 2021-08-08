@@ -85,68 +85,46 @@ void _w_fixed_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
 		child_allocation.height = allocation->height;
 		gtk_widget_size_allocate(fixed->child, &child_allocation);
 	}
+	if (fixed->widget != 0 && has_window) {
+		w_widget *child = _W_WIDGET(fixed->widget)->first_child;
 
-	_w_fixed *child = fixed->first;
-
-	while (child) {
-		if (has_window && child->ignore_fixed == 0) {
-			gtk_widget_size_allocate(GTK_WIDGET(child), &child->alloc);
+		while (child) {
+			if (child->clazz->class_id > _W_CLASS_CONTROL) {
+				_w_control_priv *priv = _W_CONTROL_GET_PRIV(child);
+				GtkWidget *tophandle = priv->widget.handle_top(child, priv);
+				if (gtk_widget_get_parent(tophandle) == widget) {
+					if (_W_IS_FIXED(tophandle)) {
+						_w_fixed *_child = (_w_fixed*) tophandle;
+						gtk_widget_size_allocate(GTK_WIDGET(tophandle),
+								&_child->alloc);
+					}
+				}
+			}
+			child = (w_widget*) _W_WIDGET(child)->sibling.next;
 		}
-		child = child->next;
 	}
+}
+void _w_fixed_set_child(GtkWidget *_fixed, GtkWidget *child) {
+	_w_fixed *fixed = _w_fixed_get(_fixed);
+	if (fixed == 0)
+		return;
+	if (fixed->child != 0) {
+		gtk_widget_unparent(fixed->child);
+	}
+	fixed->child = child;
+	g_object_ref(child);
+	gtk_widget_unparent(child);
+	gtk_widget_set_parent(child, _fixed);
+	g_object_unref(child);
 }
 void _w_fixed_add(GtkContainer *container, GtkWidget *widget) {
-	_w_fixed *fixed = _w_fixed_get((GtkWidget*) container);
-	if (fixed == 0)
-		return;
-	_w_fixed *_child = _w_fixed_get(widget);
-	if (_child != 0 && _child->use_as_child == 0) {
-		if (fixed->first != 0) {
-			_child->next = 0;
-			_child->prev = fixed->first->prev;
-			fixed->first->prev->next = _child;
-			fixed->first->prev = _child;
-		} else {
-			_child->next = 0;
-			fixed->first = _child;
-			fixed->first->prev = _child;
-		}
-		fixed->count++;
-	} else {
-		if (fixed->child != 0) {
-			printf("add multiple child");
-			gtk_widget_unparent(fixed->child);
-		}
-		fixed->child = widget;
-	}
+	g_object_ref(widget);
+	gtk_widget_unparent(widget);
 	gtk_widget_set_parent(widget, GTK_WIDGET(container));
+	g_object_unref(widget);
 }
 void _w_fixed_remove(GtkContainer *container, GtkWidget *widget) {
-	_w_fixed *fixed = _w_fixed_get((GtkWidget*) container);
-	if (fixed == 0)
-		return;
-	if (fixed->child == widget) {
-		gtk_widget_unparent(widget);
-		fixed->child = 0;
-		return;
-	}
-	_w_fixed *_child = _w_fixed_get(widget);
-	if (_child != 0) {
-		if (_child == fixed->first) {
-			fixed->first = _child->next;
-			if (fixed->first != 0) {
-				fixed->first->prev = _child->prev;
-			}
-		} else {
-			if (_child->next != 0) {
-				_child->next->prev = _child->prev;
-			} else {
-				fixed->first->prev = _child->prev;
-			}
-		}
-		gtk_widget_unparent(widget);
-		fixed->count--;
-	}
+	gtk_widget_unparent(widget);
 }
 
 void _w_fixed_forall(GtkContainer *container, gboolean include_internals,
@@ -157,11 +135,23 @@ void _w_fixed_forall(GtkContainer *container, gboolean include_internals,
 	if (fixed->child != 0) {
 		callback(fixed->child, callback_data);
 	}
-	_w_fixed *_child = fixed->first;
-	while (_child != 0) {
-		if (_child->ignore_fixed == 0)
-			callback(GTK_WIDGET(_child), callback_data);
-		_child = _child->next;
+
+	if (fixed->widget != 0) {
+		w_widget *child = _W_WIDGET(fixed->widget)->first_child;
+		w_widget *next;
+
+		while (child) {
+			next = (w_widget*) _W_WIDGET(child)->sibling.next;
+			if (child->clazz->class_id >= _W_CLASS_CONTROL) {
+				_w_control_priv *priv = _W_CONTROL_GET_PRIV(child);
+				GtkWidget *tophandle = priv->widget.handle_top(child, priv);
+				if (gtk_widget_get_parent(tophandle)
+						== (GtkWidget*) container) {
+					callback(GTK_WIDGET(tophandle), callback_data);
+				}
+			}
+			child = next;
+		}
 	}
 }
 void _w_fixed_finalize(GObject *object) {
@@ -218,15 +208,24 @@ void _w_fixed_map(GtkWidget *widget) {
 				gtk_widget_map(fixed->child);
 		}
 	}
-	_w_fixed *_child = fixed->first;
-	while (_child != 0) {
-		if (_child->ignore_fixed == 0) {
-			if (gtk_widget_get_visible(GTK_WIDGET(_child))) {
-				if (!gtk_widget_get_mapped(GTK_WIDGET(_child)))
-					gtk_widget_map(GTK_WIDGET(_child));
+	if (fixed->widget != 0) {
+		w_widget *child = _W_WIDGET(fixed->widget)->first_child;
+		w_widget *next;
+
+		while (child) {
+			next = (w_widget*) _W_WIDGET(child)->sibling.next;
+			if (child->clazz->class_id > _W_CLASS_CONTROL) {
+				_w_control_priv *priv = _W_CONTROL_GET_PRIV(child);
+				GtkWidget *tophandle = priv->widget.handle_top(child, priv);
+				if (gtk_widget_get_parent(tophandle) == widget) {
+					if (gtk_widget_get_visible(GTK_WIDGET(tophandle))) {
+						if (!gtk_widget_get_mapped(GTK_WIDGET(tophandle)))
+							gtk_widget_map(GTK_WIDGET(tophandle));
+					}
+				}
 			}
+			child = next;
 		}
-		_child = _child->next;
 	}
 	if (gtk_widget_get_has_window(widget)) {
 		//NOTE: contrary to most of GTK, swt_fixed_* container does not raise windows upon showing them.
@@ -378,11 +377,15 @@ void _w_fixed_registre(const char *name, GType *type) {
 	GInterfaceInfo interface_info = { NULL, NULL, NULL };
 	g_type_add_interface_static(*type, GTK_TYPE_SCROLLABLE, &interface_info);
 }
-GtkWidget* _w_fixed_new() {
+GtkWidget* _w_fixed_new(w_widget *widget) {
 	if (_w_fixed_type == 0) {
 		_w_fixed_registre("w_fixed", &_w_fixed_type);
 	}
-	return g_object_new(_w_fixed_type, NULL);
+	_w_fixed *fixed = g_object_new(_w_fixed_type, NULL);
+	if (fixed != 0) {
+		fixed->widget = widget;
+	}
+	return (GtkWidget*) fixed;
 }
 /**
  * image widget implementation

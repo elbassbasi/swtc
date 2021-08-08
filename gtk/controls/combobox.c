@@ -176,7 +176,7 @@ wresult _w_combobox_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkCellRenderer *textRenderer = 0, *pixbufRenderer = 0;
 	GtkTreeModel *model = 0;
 	_W_WIDGET(widget)->state |= STATE_HANDLE | STATE_MENU;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -208,7 +208,7 @@ wresult _w_combobox_create_handle(w_widget *widget, _w_control_priv *priv) {
 		//imContext = imContextLast();
 #endif
 	}
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	gtk_cell_layout_clear(GTK_CELL_LAYOUT(handle));
 	/* icon cell */
 	pixbufRenderer = _w_pixbuf_renderer_new(widget);

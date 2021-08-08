@@ -1390,7 +1390,7 @@ void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 }
 wresult _w_ccanvas_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		return W_ERROR_NO_HANDLES;
 	g_object_set_qdata(G_OBJECT(fixedHandle), gtk_toolkit->quark[0], widget);

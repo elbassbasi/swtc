@@ -151,25 +151,22 @@ typedef struct _w_fixed {
 	GtkContainer container;
 	GtkAdjustment *hadjustment;
 	GtkAdjustment *vadjustment;
-	struct _w_fixed *next;
-	struct _w_fixed *prev;
-	struct _w_fixed *first;
 	/* Accessibility */
 	AtkObject *accessible;
 	GtkWidget *child;
+	w_widget *widget;
 	guint count :28;
 	guint hscroll_policy :1;
 	guint vscroll_policy :1;
-	guint use_as_child :1;
-	guint ignore_fixed :1;
 	GtkAllocation alloc;
 } _w_fixed;
 #define _W_TYPE_FIXED             (_w_fixed_type)
 #define _W_FIXED(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj), _W_TYPE_FIXED, _w_fixed))
 #define _W_IS_FIXED(obj)           (G_TYPE_CHECK_INSTANCE_TYPE ((obj), _W_TYPE_FIXED))
-GtkWidget* _w_fixed_new();
+GtkWidget* _w_fixed_new(w_widget *widget);
 void _w_fixed_move(GtkWidget *child, gint x, gint y);
 void _w_fixed_resize(GtkWidget *child, gint width, gint height);
+void _w_fixed_set_child(GtkWidget *fixed,GtkWidget* child);
 _w_fixed* _w_fixed_get(GtkWidget *widget);
 void _w_fixed_add_remove_child(_w_fixed *fixed, GtkWidget *child);
 void _w_fixed_restack(GtkWidget *fixed, GtkWidget *child, GtkWidget *sibling,

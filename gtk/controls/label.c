@@ -390,7 +390,7 @@ wresult _w_label_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle, *boxHandle = 0, *frameHandle = 0, *labelHandle = 0,
 			*imageHandle = 0, *handle = 0;
 	_W_WIDGET(widget)->state |= STATE_HANDLE | STATE_THEME_BACKGROUND;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	wuint64 style = _W_WIDGET(widget)->style;
@@ -438,12 +438,12 @@ wresult _w_label_create_handle(w_widget *widget, _w_control_priv *priv) {
 			frameHandle = gtk_frame_new("");
 			if (frameHandle == 0)
 				goto _err;
-			gtk_container_add(GTK_CONTAINER(fixedHandle), frameHandle);
+			_w_fixed_set_child(fixedHandle, frameHandle);
 			gtk_container_add(GTK_CONTAINER(frameHandle), handle);
 			gtk_frame_set_shadow_type(GTK_FRAME(frameHandle),
 					GTK_SHADOW_ETCHED_IN);
 		} else {
-			gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+			_w_fixed_set_child(fixedHandle, handle);
 		}
 	}
 	_w_widget_set_control(handle, widget);
@@ -798,7 +798,7 @@ void _w_label_class_init(w_toolkit *toolkit, wushort classId,
 	if (classId == _W_CLASS_LABEL) {
 		W_WIDGET_CLASS(clazz)->platformPrivate = &gtk_toolkit->class_label_priv;
 	}
-	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_LABEL;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_label_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_label);

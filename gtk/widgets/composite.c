@@ -17,9 +17,9 @@ void _w_composite_add_child(w_control *composite, w_widget *child,
 			cpriv);
 	GtkWidget *parentHandle = _W_COMPOSITE_PRIV(priv)->handle_parenting(
 			W_WIDGET(composite), priv);
-	gtk_container_add(GTK_CONTAINER(parentHandle), topHandle);
 	w_link_linklast_0(&_W_WIDGET(child)->sibling, child,
 			(void**) &_W_WIDGET(composite)->first_child);
+	gtk_container_add(GTK_CONTAINER(parentHandle), topHandle);
 	_W_WIDGET(composite)->children_count++;
 }
 wresult _w_composite_create_handle_0(w_widget *composite, GtkWidget **fixed,
@@ -30,7 +30,7 @@ wresult _w_composite_create_handle_0(w_widget *composite, GtkWidget **fixed,
 	GtkIMContext *imHandle = 0;
 	*handle = 0;
 	if (fixed != 0) {
-		*fixed = _w_fixed_new();
+		*fixed = _w_fixed_new(0);
 		if (*fixed == 0)
 			goto _err;
 		gtk_widget_set_has_window(*fixed, TRUE);
@@ -51,7 +51,7 @@ wresult _w_composite_create_handle_0(w_widget *composite, GtkWidget **fixed,
 		_w_widget_set_control(*scrolled, composite);
 		gtk_widget_show_all(*scrolled);
 	}
-	*handle = (GtkWidget*) _w_fixed_new();
+	*handle = (GtkWidget*) _w_fixed_new(composite);
 	if (*handle == 0)
 		goto _err;
 	_w_widget_set_control(*handle, composite);
@@ -64,7 +64,7 @@ wresult _w_composite_create_handle_0(w_widget *composite, GtkWidget **fixed,
 	}
 	if (scrolled) {
 		if (fixed)
-			gtk_container_add(GTK_CONTAINER(*fixed), *scrolled);
+			_w_fixed_set_child(*fixed, *scrolled);
 		/*
 		 * Force the scrolledWindow to have a single child that is
 		 * not scrolled automatically.  Calling gtk_container_add()
@@ -130,7 +130,7 @@ wresult _w_composite_create_handle(w_widget *widget, _w_control_priv *priv) {
 		scrolled_ = &scrolledHandle;
 	}
 	if (scrolled_ == 0) {
-		handle = _w_fixed_new();
+		handle = _w_fixed_new(widget);
 		if (handle == 0)
 			return W_ERROR_NO_HANDLES;
 		fixedHandle = handle;
@@ -308,56 +308,36 @@ wresult _w_composite_get_client_area(w_widget *widget, w_event_client_area *e,
 typedef struct _w_composite_children {
 	w_basic_iterator base;
 	w_composite *composite;
-	_w_fixed *first;
-	_w_fixed *i;
+	w_widget *current;
 	size_t count;
 	int tablist;
 } _w_composite_children;
-_w_fixed* _w_composite_iterator_find_next(_w_fixed *fixed, w_control **control,
-		int tablist) {
-	w_widget *c;
-	if (tablist) {
-		_w_fixed *i = fixed;
-		while (i != 0) {
-			c = _w_widget_find_control(i);
-			if (c == 0) {
-				*control = 0;
-				return 0;
-			}
-			if (_W_WIDGET(c)->state & STATE_TAB_LIST) {
-				*control = W_CONTROL(c);
-				return i->next;
-			}
-			i = i->next;
-		}
-		return 0;
-	} else {
-		*control = (w_control*) _w_widget_find_control(fixed);
-		if (*control == 0) {
-			return 0;
-		}
-		return fixed->next;
-	}
-}
 wresult _w_composite_children_close(w_iterator *it) {
 	return W_TRUE;
 }
 wresult _w_composite_children_next(w_iterator *it, void *obj) {
 	_w_composite_children *iter = (_w_composite_children*) it;
-	if (iter->i != 0) {
-		iter->i = _w_composite_iterator_find_next(iter->i, (w_control**) obj,
-				iter->tablist);
-		if (*((w_control**) obj) == 0)
-			return W_FALSE;
+	if (iter->current != 0) {
+		w_widget *w = iter->current;
+		int tablist = iter->tablist;
+		while (w != 0) {
+			if (w->clazz->class_id >= _W_CLASS_CONTROL) {
+				if (!tablist || (_W_WIDGET(w)->state & STATE_TAB_LIST) != 0)
+					break;
+			}
+			w = _W_WIDGET(w)->sibling.next;
+		}
+		*((w_widget**) obj) = w;
+		iter->current = _W_WIDGET(w)->sibling.next;
 		return W_TRUE;
 	} else {
-		*((w_control**) obj) = 0;
+		*((w_widget**) obj) = 0;
 		return W_FALSE;
 	}
 }
 wresult _w_composite_children_reset(w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
-	iter->i = iter->first;
+	iter->current = _W_WIDGET(iter->composite)->first_child;
 	return W_TRUE;
 }
 wresult _w_composite_children_remove(w_iterator *it) {
@@ -377,32 +357,26 @@ _w_iterator_class _w_composite_children_class = { //
 		};
 wresult _w_composite_for_all_children(w_composite *composite,
 		w_widget_callback callback, void *user_data, int flags) {
-	_w_control_priv *priv = _W_CONTROL_GET_PRIV(composite);
-	_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
-			W_WIDGET(composite), priv);
-	_w_fixed *i = fixed->first;
+	w_widget *w = _W_WIDGET(composite)->first_child;
+	w_widget *next;
 	wresult result;
-	while (i != 0) {
-		w_control *c = (w_control*) _w_widget_find_control(i);
-		if (c != 0) {
-			result = callback(W_WIDGET(composite), c, user_data);
-			if (result)
-				break;
+	while (w != 0) {
+		next = _W_WIDGET(w)->sibling.next;
+		if (w->clazz->class_id >= _W_CLASS_CONTROL) {
+			result = callback(W_WIDGET(composite), w, user_data);
 		}
-		i = i->next;
+		if (result)
+			break;
+		w = next;
 	}
 	return W_TRUE;
 }
 wresult _w_composite_get_children(w_composite *composite, w_iterator *it) {
 	_w_composite_children *iter = (_w_composite_children*) it;
 	iter->base.clazz = &_w_composite_children_class;
-	_w_control_priv *priv = _W_CONTROL_GET_PRIV(composite);
-	_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
-			W_WIDGET(composite), priv);
 	iter->composite = composite;
-	iter->first = fixed->first;
-	iter->i = fixed->first;
-	iter->count = fixed->count;
+	iter->current = _W_WIDGET(composite)->first_child;
+	iter->count = _W_WIDGET(composite)->children_count;
 	iter->tablist = 0;
 	return W_TRUE;
 }

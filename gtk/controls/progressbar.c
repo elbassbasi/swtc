@@ -60,14 +60,14 @@ gboolean _w_progressbar_timer_fn(gpointer widget) {
 wresult _w_progressbar_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
 	GtkWidget *fixedHandle, *handle = 0;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
 	handle = gtk_progress_bar_new();
 	if (handle == 0)
 		goto _err;
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	wuint64 style = _W_WIDGET(widget)->style;
 	GtkOrientation orientation =
 			(style & W_VERTICAL) != 0 ?
@@ -109,7 +109,7 @@ void _w_progressbar_class_init(w_toolkit *toolkit, wushort classId,
 		W_WIDGET_CLASS(clazz)->platformPrivate =
 				&gtk_toolkit->class_progressbar_priv;
 	}
-	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_PROGRESSBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_progressbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_progressbar);

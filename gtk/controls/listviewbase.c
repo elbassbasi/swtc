@@ -243,7 +243,7 @@ wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkTreeSelection *selectionHandle;
 	GtkPolicyType hsp;
 	GtkPolicyType vsp;
-	fixed = (GtkWidget*) _w_fixed_new();
+	fixed = (GtkWidget*) _w_fixed_new(widget);
 	if (fixed == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixed, TRUE);
@@ -269,7 +269,7 @@ wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv) {
 
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(handle), FALSE);
 
-	gtk_container_add(GTK_CONTAINER(fixed), scrolledHandle);
+	_w_fixed_set_child(fixed, scrolledHandle);
 	gtk_container_add(GTK_CONTAINER(scrolledHandle), handle);
 	_w_widget_set_control(modelHandle, widget);
 	wuint64 style = _W_WIDGET(widget)->style;

@@ -258,7 +258,7 @@ void _w_expandbar_add_child(w_control *composite, w_widget *child,
 	GtkWidget *parentHandle = _W_COMPOSITE_PRIV(priv)->handle_parenting(
 			W_WIDGET(composite), priv);
 	gtk_container_add(GTK_CONTAINER(parentHandle), topHandle);
-	_W_FIXED(topHandle)->ignore_fixed = 1;
+	//_W_FIXED(topHandle)->ignore_fixed = 1;
 }
 wuint64 _w_expandbar_check_style(w_widget *control, wuint64 style) {
 	return style;
@@ -287,7 +287,7 @@ wresult _w_expandbar_create_handle(w_widget *widget, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(widget)->style;
 	GtkWidget *fixedHandle, *handle = 0, *scrolledHandle, *viewport;
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);

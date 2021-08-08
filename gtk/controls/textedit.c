@@ -251,7 +251,7 @@ wresult _w_textedit_create_handle(w_widget *widget, _w_control_priv *priv) {
 			_W_WIDGET(widget)->state |= STATE_THEME_BACKGROUND;
 		}
 	}
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -259,7 +259,7 @@ wresult _w_textedit_create_handle(w_widget *widget, _w_control_priv *priv) {
 		handle = gtk_entry_new();
 		if (handle == 0)
 			goto _err;
-		gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+		_w_fixed_set_child(fixedHandle, handle);
 		gtk_editable_set_editable(GTK_EDITABLE(handle),
 				(style & W_READ_ONLY) == 0);
 		/*
@@ -298,7 +298,7 @@ wresult _w_textedit_create_handle(w_widget *widget, _w_control_priv *priv) {
 			goto _err;
 		g_object_set_qdata(G_OBJECT(scrolledHandle), gtk_toolkit->quark[0],
 				widget);
-		gtk_container_add(GTK_CONTAINER(fixedHandle), scrolledHandle);
+		_w_fixed_set_child(fixedHandle, scrolledHandle);
 		gtk_container_add(GTK_CONTAINER(scrolledHandle), handle);
 		gtk_text_view_set_editable(GTK_TEXT_VIEW(handle),
 				(style & W_READ_ONLY) == 0);

@@ -34,7 +34,7 @@ wresult _w_sash_set_cursor(w_control *control, w_cursor *cursor) {
 }
 wresult _w_sash_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
-	GtkWidget *handle = _w_fixed_new();
+	GtkWidget *handle = _w_fixed_new(0);
 	if (handle == 0) {
 		return W_ERROR_NO_HANDLES;
 	}

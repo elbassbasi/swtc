@@ -382,26 +382,47 @@ void _w_canvas_redraw_widget(w_control *control, w_rect *rect, int flags,
 	if (isFocus)
 		_w_caret_set_focus(caret);
 }
+struct scrollRect {
+	w_rect rect;
+	w_point delta;
+};
+wresult _w_canvas_scroll_all_callback(w_widget *widget, void *child,
+		void *user_data) {
+	struct scrollRect *sr = (struct scrollRect*) user_data;
+	w_rect _r, _r2;
+	w_control_get_bounds(W_CONTROL(child), &_r.pt, &_r.sz);
+	if (WMIN(sr->rect.x + sr->rect.width,
+			_r.x + _r.width) >= WMAX(sr->rect.x, _r.x)
+			&& WMIN(sr->rect.y + sr->rect.height, _r.y + _r.height)
+					>= WMAX(sr->rect.y, _r.y)) {
+		_r2.x = _r.x + sr->delta.x;
+		_r2.y = _r.y + sr->delta.y;
+		w_control_set_bounds(W_CONTROL(child), &_r2.pt, 0);
+	}
+	return W_FALSE;
+}
 wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 		int all) {
 	w_point dest;
-	w_rect rect, tmp;
+	w_rect tmp;
+	struct scrollRect sr;
 	if (_dest == 0)
 		memset(&dest, 0, sizeof(w_point));
 	else
 		memcpy(&dest, _dest, sizeof(w_point));
 	if (_rect == 0)
-		memset(&rect, 0, sizeof(w_rect));
+		memset(&sr.rect, 0, sizeof(w_rect));
 	else
-		memcpy(&rect, _rect, sizeof(w_rect));
+		memcpy(&sr.rect, _rect, sizeof(w_rect));
 	_w_control_priv *priv = _W_CONTROL_GET_PRIV(canvas);
 	if ((_W_WIDGET(canvas)->style & W_MIRRORED) != 0) {
 		int clientWidth = priv->get_client_width(W_CONTROL(canvas), priv);
-		rect.x = clientWidth - rect.width - rect.x;
-		dest.x = clientWidth - rect.width - dest.x;
+		sr.rect.x = clientWidth - sr.rect.width - sr.rect.x;
+		dest.x = clientWidth - sr.rect.width - dest.x;
 	}
-	int deltaX = dest.x - rect.x, deltaY = dest.y - rect.y;
-	if (deltaX == 0 && deltaY == 0)
+	sr.delta.x = dest.x - sr.rect.x;
+	sr.delta.y = dest.y - sr.rect.y;
+	if (sr.delta.x == 0 && sr.delta.y == 0)
 		return W_TRUE;
 	if (W_CONTROL_GET_CLASS(canvas)->is_visible(W_CONTROL(canvas)) < 0)
 		return W_FALSE;
@@ -417,8 +438,8 @@ wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 		visibleRegion = gdk_drawable_get_visible_region(window);
 #endif
 	GdkRectangle srcRect;
-	srcRect.x = rect.x;
-	srcRect.y = rect.y;
+	srcRect.x = sr.rect.x;
+	srcRect.y = sr.rect.y;
 	/*
 	 * Feature in GTK: for 3.16+ the "visible" region in Canvas includes
 	 * the scrollbar dimensions in its calculations. This means the "previous"
@@ -440,24 +461,24 @@ wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 		if (hBarHandle != 0) {
 			gtk_widget_get_preferred_size(hBarHandle, &requisition, NULL);
 			if (requisition.height > 0) {
-				srcRect.y = rect.y - requisition.height;
+				srcRect.y = sr.rect.y - requisition.height;
 			}
 		}
 		if (vBarHandle != 0) {
 			gtk_widget_get_preferred_size(vBarHandle, &requisition, NULL);
 			if (requisition.width > 0) {
-				srcRect.x = rect.x - requisition.width;
+				srcRect.x = sr.rect.x - requisition.width;
 			}
 		}
 	}
-	srcRect.width = rect.width;
-	srcRect.height = rect.height;
+	srcRect.width = sr.rect.width;
+	srcRect.height = sr.rect.height;
 
 	cairo_region_t *copyRegion = cairo_region_create_rectangle(&srcRect);
 	cairo_region_intersect(copyRegion, visibleRegion);
 	cairo_region_t *invalidateRegion = cairo_region_create_rectangle(&srcRect);
 	cairo_region_subtract(invalidateRegion, visibleRegion);
-	cairo_region_translate(invalidateRegion, deltaX, deltaY);
+	cairo_region_translate(invalidateRegion, sr.delta.x, sr.delta.y);
 	GdkRectangle copyRect;
 	cairo_region_get_extents(copyRegion, &copyRect);
 	if (copyRect.width != 0 && copyRect.height != 0) {
@@ -467,11 +488,11 @@ wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 	if (control == 0)
 		control = W_CONTROL(canvas);
 	if (_W_CONTROL(control)->backgroundImage.pixbuf != 0) {
-		priv->redraw_widget(W_CONTROL(canvas), &rect, 0, priv);
+		priv->redraw_widget(W_CONTROL(canvas), &sr.rect, 0, priv);
 		tmp.x = dest.x;
 		tmp.y = dest.y;
-		tmp.width = rect.width;
-		tmp.height = rect.height;
+		tmp.width = sr.rect.width;
+		tmp.height = sr.rect.height;
 		priv->redraw_widget(W_CONTROL(canvas), &tmp, 0, priv);
 	} else {
 #if GTK3
@@ -494,10 +515,10 @@ wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 		matrix.yx = 0;
 		matrix.xy = 0;
 		matrix.yy = 1;
-		matrix.x0 = -deltaX;
-		matrix.y0 = -deltaY;
+		matrix.x0 = -sr.delta.x;
+		matrix.y0 = -sr.delta.y;
 		cairo_pattern_set_matrix(cairo_get_source(cairo), &matrix);
-		cairo_rectangle(cairo, copyRect.x + deltaX, copyRect.y + deltaY,
+		cairo_rectangle(cairo, copyRect.x + sr.delta.x, copyRect.y + sr.delta.y,
 				copyRect.width, copyRect.height);
 		cairo_clip(cairo);
 		cairo_paint(cairo);
@@ -508,37 +529,37 @@ wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 #endif
 #else
 #endif
-		int disjoint = (dest.x + rect.width < rect.x)
-				|| (rect.x + rect.width < dest.x)
-				|| (dest.y + rect.height < rect.y)
-				|| (rect.y + rect.height < dest.y);
+		int disjoint = (dest.x + sr.rect.width < sr.rect.x)
+				|| (sr.rect.x + sr.rect.width < dest.x)
+				|| (dest.y + sr.rect.height < sr.rect.y)
+				|| (sr.rect.y + sr.rect.height < dest.y);
 		if (disjoint) {
 			GdkRectangle __rect;
-			__rect.x = rect.x;
-			__rect.y = rect.y;
-			__rect.width = rect.width;
-			__rect.height = rect.height;
+			__rect.x = sr.rect.x;
+			__rect.y = sr.rect.y;
+			__rect.width = sr.rect.width;
+			__rect.height = sr.rect.height;
 			cairo_region_union_rectangle(invalidateRegion, &__rect);
 		} else {
 			GdkRectangle __rect;
-			if (deltaX != 0) {
-				int newX = dest.x - deltaX;
-				if (deltaX < 0)
-					newX = dest.x + rect.width;
+			if (sr.delta.x != 0) {
+				int newX = dest.x - sr.delta.x;
+				if (sr.delta.x < 0)
+					newX = dest.x + sr.rect.width;
 				__rect.x = newX;
-				__rect.y = rect.y;
-				__rect.width = abs(deltaX);
-				__rect.height = rect.height;
+				__rect.y = sr.rect.y;
+				__rect.width = abs(sr.delta.x);
+				__rect.height = sr.rect.height;
 				cairo_region_union_rectangle(invalidateRegion, &__rect);
 			}
-			if (deltaY != 0) {
-				int newY = dest.y - deltaY;
-				if (deltaY < 0)
-					newY = dest.y + rect.height;
-				__rect.x = rect.x;
+			if (sr.delta.y != 0) {
+				int newY = dest.y - sr.delta.y;
+				if (sr.delta.y < 0)
+					newY = dest.y + sr.rect.height;
+				__rect.x = sr.rect.x;
 				__rect.y = newY;
-				__rect.width = rect.width;
-				__rect.height = abs(deltaY);
+				__rect.width = sr.rect.width;
+				__rect.height = abs(sr.delta.y);
 				cairo_region_union_rectangle(invalidateRegion, &__rect);
 			}
 		}
@@ -548,27 +569,8 @@ wresult _w_canvas_scroll(w_canvas *canvas, w_point *_dest, w_rect *_rect,
 	cairo_region_destroy(copyRegion);
 	cairo_region_destroy(invalidateRegion);
 	if (all) {
-		_w_control_priv *priv = _W_CONTROL_GET_PRIV(canvas);
-		_w_fixed *fixed = (_w_fixed*) _W_COMPOSITE_PRIV(priv)->handle_parenting(
-				W_WIDGET(canvas), priv);
-		_w_fixed *i = fixed->first;
-		while (i != 0) {
-			w_control *child = (w_control*) g_object_get_qdata(G_OBJECT(i),
-					gtk_toolkit->quark[0]);
-			if (child != 0) {
-				w_rect _r, _r2;
-				w_control_get_bounds(child, &_r.pt, &_r.sz);
-				if (WMIN(rect.x + rect.width,
-						_r.x + _r.width) >= WMAX(rect.x, _r.x)
-						&& WMIN(rect.y + rect.height, _r.y + _r.height)
-								>= WMAX(rect.y, _r.y)) {
-					_r2.x = _r.x + deltaX;
-					_r2.y = _r.y + deltaY;
-					w_control_set_bounds(child, &_r2.pt, 0);
-				}
-			}
-			i = i->next;
-		}
+		w_composite_for_all_children(W_COMPOSITE(canvas),
+				_w_canvas_scroll_all_callback, &sr, 0);
 	}
 	if (isFocus)
 		_w_caret_set_focus(caret);

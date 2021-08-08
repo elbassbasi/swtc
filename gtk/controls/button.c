@@ -150,7 +150,7 @@ wresult _w_button_create_handle(w_widget *widget, _w_control_priv *priv) {
 	if ((style & (W_PUSH | W_TOGGLE)) == 0)
 		_W_WIDGET(widget)->state |= STATE_THEME_BACKGROUND;
 	int bits = W_ARROW | W_TOGGLE | W_CHECK | W_RADIO | W_PUSH;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	//gtk_fixed_set_has_window (fixedHandle, TRUE);
@@ -240,7 +240,7 @@ wresult _w_button_create_handle(w_widget *widget, _w_control_priv *priv) {
 			}
 		}
 	}
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	_w_widget_set_control(handle, widget);
 	_w_widget_set_control(imageHandle, widget);
 	_w_widget_set_control(boxHandle, widget);
@@ -334,45 +334,22 @@ void _w_button_hook_events(w_widget *widget, _w_control_priv *priv) {
 				&gtk_toolkit->signals[SIGNAL_MNEMONIC_ACTIVATE], FALSE);
 	}
 }
-void _w_button_select_radio_0(_w_fixed *t, _w_event_platform *e, int next) {
-	_w_fixed *first;
-	w_widget *w;
+gboolean _w_button_send_select_event(w_widget *c, _w_event_platform *e) {
 	w_event event;
-	if (next) {
-		t = t->next;
-	} else {
-		first = (_w_fixed*) gtk_widget_get_parent((GtkWidget*) t);
-		first = (_w_fixed*) first->first;
-		if (t == first)
-			return;
-		t = t->prev;
+	if (c->clazz->class_id != _W_CLASS_BUTTON)
+		return TRUE;
+	if ((_W_WIDGET(c)->style & W_RADIO) == 0)
+		return TRUE;
+	if (gtk_toggle_button_get_active(
+			GTK_TOGGLE_BUTTON(_W_WIDGET(c)->handle)) == TRUE) {
+		_w_button_set_selection(W_BUTTON(c), W_FALSE);
+		memset(&event, 0, sizeof(event));
+		event.type = W_EVENT_SELECTION;
+		event.platform_event = (struct w_event_platform*) e;
+		event.widget = c;
+		_w_widget_send_event(c, &event, W_EVENT_SEND);
 	}
-	while (t != 0) {
-		w = g_object_get_qdata(G_OBJECT(t), gtk_toolkit->quark[0]);
-		if (w == 0)
-			return;
-		if (w_widget_class_id(w) != _W_CLASS_BUTTON)
-			return;
-		if ((_W_WIDGET(w)->style & W_RADIO) == 0)
-			return;
-		if (gtk_toggle_button_get_active(
-				GTK_TOGGLE_BUTTON(_W_WIDGET(w)->handle)) == TRUE) {
-			_w_button_set_selection(W_BUTTON(w), W_FALSE);
-			memset(&event, 0, sizeof(event));
-			event.type = W_EVENT_SELECTION;
-			event.platform_event = (struct w_event_platform*) e;
-			event.widget = w;
-			_w_widget_send_event(w, &event,W_EVENT_SEND);
-		}
-		if (next)
-			t = t->next;
-		else {
-			if (t == first)
-				t = 0;
-			else
-				t = t->prev;
-		}
-	}
+	return FALSE;
 }
 void _w_button_select_radio(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -385,9 +362,23 @@ void _w_button_select_radio(w_widget *widget, _w_event_platform *e,
 	 * with radio tool and menu items.  The commented code
 	 * implements this behavior.
 	 */
-	_w_fixed *fixed = (_w_fixed*) priv->widget.handle_top(widget, priv);
-	_w_button_select_radio_0(fixed, e, W_FALSE);
-	_w_button_select_radio_0(fixed, e, W_TRUE);
+	w_widget *c = widget;
+	w_widget *p = _W_WIDGET(widget)->parent;
+	w_widget *first = _W_WIDGET(p)->first_child;
+	c = _W_WIDGET(widget)->sibling.next;
+	while (c != 0) {
+		if (_w_button_send_select_event(c, e))
+			break;
+		c = _W_WIDGET(c)->sibling.next;
+	}
+	if (widget != first) {
+		c = _W_WIDGET(widget)->sibling.prev;
+		while (c != 0 && c != first) {
+			if (_w_button_send_select_event(c, e))
+				break;
+			c = _W_WIDGET(c)->sibling.prev;
+		}
+	}
 	gboolean selected = _W_WIDGET(widget)->state & STATE_BUTTON_SELECTED;
 	_w_button_set_selection(W_BUTTON(widget), !selected);
 }
@@ -659,7 +650,7 @@ gboolean _gtk_button_clicked(w_widget *widget, _w_event_platform *e,
 	event.type = W_EVENT_SELECTION;
 	event.platform_event = (struct w_event_platform*) e;
 	event.widget = widget;
-	_w_widget_send_event(widget, &event,W_EVENT_SEND);
+	_w_widget_send_event(widget, &event, W_EVENT_SEND);
 	return FALSE;
 }
 void _w_button_class_init(w_toolkit *toolkit, wushort classId,

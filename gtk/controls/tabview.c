@@ -72,11 +72,9 @@ wresult _w_tabitem_pack(w_tabitem *item, w_control *control) {
 			_w_control_priv *priv = _W_CONTROL_GET_PRIV(W_WIDGET(control));
 			GtkWidget *topHandle = priv->widget.handle_top(W_WIDGET(control),
 					priv);
-			if (gtk_widget_get_parent(topHandle) != pageHandle) {
-				g_object_ref(topHandle);
-				gtk_widget_unparent(topHandle);
-				gtk_widget_set_parent(topHandle, pageHandle);
-				g_object_unref(topHandle);
+			GtkWidget *parentHandle = gtk_widget_get_parent(topHandle);
+			if (parentHandle != pageHandle) {
+				_w_fixed_set_child(pageHandle, topHandle);
 			}
 		}
 		int index = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
@@ -171,14 +169,14 @@ wresult _w_tabview_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle, *handle = 0;
 	GtkPositionType pos;
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(widget);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
 	handle = gtk_notebook_new();
 	if (handle == 0)
 		goto _err;
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(handle), TRUE);
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(handle), TRUE);
 	pos = GTK_POS_TOP;
@@ -325,18 +323,16 @@ wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 			GTK_PACK_START);
 	gtk_box_set_child_packing(GTK_BOX(boxHandle), (GtkWidget*) imageHandle,
 	TRUE, TRUE, 0, GTK_PACK_START);
-	pageHandle = _w_fixed_new();
+	pageHandle = _w_fixed_new(0);
 	if (pageHandle == 0)
 		goto _err;
-	g_object_set_qdata(G_OBJECT(pageHandle), gtk_toolkit->quark[0], tabview);
+	_w_widget_set_control(pageHandle, W_WIDGET(tabview));
 	if (_W_WIDGET(tabview)->style & W_CLOSE) {
 		closeHandle = gtk_button_new_from_icon_name("gtk-close",
 				GTK_ICON_SIZE_MENU);
 		if (closeHandle == 0)
 			goto _err;
-
-		g_object_set_qdata(G_OBJECT(closeHandle), gtk_toolkit->quark[0],
-				tabview);
+		_w_widget_set_control(closeHandle, W_WIDGET(tabview));
 		g_object_set_qdata(G_OBJECT(closeHandle), gtk_toolkit->quark[1],
 				pageHandle);
 		_w_widget_connect(closeHandle, &priv->signals[1], FALSE); //SIGNAL_CLICKED
@@ -345,12 +341,16 @@ wresult _w_tabview_insert_item(w_tabview *tabview, w_tabitem *item, int index) {
 		gtk_box_set_child_packing(GTK_BOX(boxHandle), (GtkWidget*) imageHandle,
 		TRUE, TRUE, 0, GTK_PACK_START);
 	}
-	g_signal_handlers_block_matched(GTK_NOTEBOOK(handle), G_SIGNAL_MATCH_ID,
-			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].id, 0, 0, 0, 0);
+	g_signal_handlers_block_matched(GTK_NOTEBOOK(handle),
+			G_SIGNAL_MATCH_CLOSURE,
+			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].id, 0,
+			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].closure, 0, 0);
 	i = gtk_notebook_insert_page(GTK_NOTEBOOK(handle), pageHandle, boxHandle,
 			index);
-	g_signal_handlers_unblock_matched(GTK_NOTEBOOK(handle), G_SIGNAL_MATCH_ID,
-			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].id, 0, 0, 0, 0);
+	g_signal_handlers_unblock_matched(GTK_NOTEBOOK(handle),
+			G_SIGNAL_MATCH_CLOSURE,
+			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].id, 0,
+			priv->signals[_W_TABVIEW_SIGNAL_SWITCH_PAGE].closure, 0, 0);
 	if (i < 0)
 		goto _err;
 
@@ -421,6 +421,7 @@ gboolean _gtk_tabview_switch_page(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	w_event_tabview _e;
 	_w_tabitem item;
+	w_rect r;
 	_w_tabview_get_selection(W_TABVIEW(widget), W_TABITEM(&item));
 	w_control *c = 0;
 	if (W_WIDGETDATA(&item)->clazz != 0) {
@@ -428,24 +429,24 @@ gboolean _gtk_tabview_switch_page(w_widget *widget, _w_event_platform *e,
 	}
 	if (c != 0 && w_widget_is_ok(W_WIDGET(c)) > 0) {
 		w_control_set_visible(c, W_FALSE);
-		GtkWidget *pageHandle = gtk_notebook_get_nth_page(
-				GTK_NOTEBOOK(_W_WIDGET(item.item.parent)->handle),
-				_W_ITEM(&item)->index);
-		if (pageHandle != 0) {
-			_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(c);
-			GtkWidget *topHandle = cpriv->widget.handle_top(W_WIDGET(c), cpriv);
-			if (gtk_widget_get_parent(topHandle) != pageHandle) {
-				gtk_widget_unparent(pageHandle);
-				gtk_widget_set_parent(topHandle, pageHandle);
-			}
-		}
 	}
 	_w_tabview_get_item(W_TABVIEW(widget), (intptr_t) e->args[1],
 			W_TABITEM(&item));
 	c = w_tabitem_get_control(W_TABITEM(&item));
 	if (c != 0) {
 		if (w_widget_is_ok(W_WIDGET(c)) > 0) {
-			w_rect r;
+			GtkWidget *pageHandle = gtk_notebook_get_nth_page(
+					GTK_NOTEBOOK(_W_WIDGET(widget)->handle),
+					_W_ITEM(&item)->index);
+			if (pageHandle != 0) {
+				_w_control_priv *cpriv = _W_CONTROL_GET_PRIV(c);
+				GtkWidget *topHandle = cpriv->widget.handle_top(W_WIDGET(c),
+						cpriv);
+				GtkWidget *parentHandle = gtk_widget_get_parent(topHandle);
+				if (parentHandle != pageHandle) {
+					_w_fixed_set_child(pageHandle, topHandle);
+				}
+			}
 			w_scrollable_get_client_area(W_SCROLLABLE(widget), &r);
 			w_control_set_visible(c, W_TRUE);
 			w_control_set_bounds(c, &r.pt, &r.sz);
@@ -458,7 +459,7 @@ gboolean _gtk_tabview_switch_page(w_widget *widget, _w_event_platform *e,
 	_e.event.data = 0;
 	_e.item = W_TABITEM(&item);
 	_e.control = c;
-	_w_widget_send_event(widget, (w_event*) &_e,W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &_e, W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
@@ -485,7 +486,7 @@ gboolean _gtk_tabview_clicked(w_widget *widget, _w_event_platform *e,
 	_e.event.data = 0;
 	_e.item = W_TABITEM(&item);
 	_e.control = 0;
-	_w_widget_send_event(widget, (w_event*) &_e,W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &_e, W_EVENT_SEND);
 	return FALSE;
 }
 _gtk_signal_info _gtk_tabview_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //
@@ -498,7 +499,7 @@ void _w_tabview_class_init(w_toolkit *toolkit, wushort classId,
 		W_WIDGET_CLASS(clazz)->platformPrivate =
 				&gtk_toolkit->class_tabview_priv;
 	}
-	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TABVIEW;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_tabview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_tabview);

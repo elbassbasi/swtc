@@ -119,7 +119,7 @@ wresult _w_spinner_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle, *handle = 0;
 	GtkAdjustment *adjustment;
 	_W_WIDGET(widget)->state |= STATE_HANDLE | STATE_MENU;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(widget);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -130,7 +130,7 @@ wresult _w_spinner_create_handle(w_widget *widget, _w_control_priv *priv) {
 	handle = gtk_spin_button_new(adjustment, _W_SPINNER(widget)->climbRate, 0);
 	if (handle == 0)
 		goto _err;
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	gtk_editable_set_editable(GTK_EDITABLE(handle), (style & W_READ_ONLY) == 0);
 	if (GTK_VERSION <= VERSION(3, 20, 0)) {
 		gtk_entry_set_has_frame(GTK_ENTRY(handle), (style & W_BORDER) != 0);

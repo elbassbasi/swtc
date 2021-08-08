@@ -35,7 +35,7 @@ wresult _w_slider_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle, *handle = 0;
 	GtkAdjustment *hAdjustment = 0;
 	_W_WIDGET(widget)->state |= STATE_HANDLE | STATE_THEME_BACKGROUND;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -54,7 +54,7 @@ wresult _w_slider_create_handle(w_widget *widget, _w_control_priv *priv) {
 	}
 	if (handle == 0)
 		goto _err;
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	_w_widget_set_control(handle, widget);
 	_w_widget_set_control(fixedHandle, widget);
 	_W_WIDGET(widget)->handle = handle;

@@ -76,7 +76,7 @@ class WArray {
 public:
 	w_array *array;
 	static void array_remove_element(w_array *array, T *element, int index) {
-		T::~T();
+		element->~T();
 	}
 	static void array_delete_element(w_array *array, T *element, int index) {
 		if (*element != 0) {

@@ -21,7 +21,7 @@ wresult _w_groupbox_create_handle(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *fixedHandle = 0, *handle = 0, *labelHandle = 0, *clientHandle;
 	_W_WIDGET(widget)->state |= STATE_HANDLE | STATE_THEME_BACKGROUND;
 	wuint64 style = _W_WIDGET(widget)->style;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(0);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -36,7 +36,7 @@ wresult _w_groupbox_create_handle(w_widget *widget, _w_control_priv *priv) {
 	g_object_ref(labelHandle);
 	g_object_ref_sink(labelHandle);
 
-	clientHandle = _w_fixed_new();
+	clientHandle = _w_fixed_new(widget);
 	if (clientHandle == 0)
 		goto _err;
 	/*
@@ -45,8 +45,7 @@ wresult _w_groupbox_create_handle(w_widget *widget, _w_control_priv *priv) {
 	 * background can be drawn on it.
 	 */
 	gtk_widget_set_has_window(clientHandle, TRUE);
-
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	gtk_container_add(GTK_CONTAINER(handle), clientHandle);
 	gtk_frame_set_label_widget(GTK_FRAME(handle), labelHandle);
 	if ((style & W_SHADOW_IN) != 0) {
@@ -170,7 +169,7 @@ void _w_groupbox_class_init(w_toolkit *toolkit, wushort classId,
 		W_WIDGET_CLASS(clazz)->platformPrivate =
 				&gtk_toolkit->class_groupbox_priv;
 	}
-	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_GROUPBOX;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_groupbox_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_groupbox);

@@ -154,7 +154,7 @@ wresult _w_toolitem_get_control(w_toolitem *item, w_control **control) {
 		event.event.type = W_EVENT_ITEM_GET_CONTROL;
 		event.event.widget = parent;
 		event.item = item;
-		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
+		_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 		*control = event.control;
 		return W_TRUE;
 	} else {
@@ -173,6 +173,18 @@ wresult _w_toolitem_get_id(w_toolitem *item) {
 			gtk_toolkit->quark[GQUARK_ID]);
 	return (id & 0xFFFF);
 }
+wresult _w_toolitem_get_image(w_toolitem *item) {
+	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
+	if (GTK_IS_TOOL_BUTTON(toolitem)) {
+		_w_image_widget *im =
+				(_w_image_widget*) gtk_tool_button_get_icon_widget(
+						GTK_TOOL_BUTTON(toolitem));
+		if (im != 0) {
+			return im->index;
+		}
+	}
+	return -1;
+}
 wresult _w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 	GtkToolItem *toolitem = _W_TOOLITEM(item)->toolItem;
 	if (GTK_IS_MENU_TOOL_BUTTON(toolitem)) {
@@ -182,7 +194,7 @@ wresult _w_toolitem_get_menu(w_toolitem *item, w_menu **menu) {
 		event.event.type = W_EVENT_ITEM_GET_CONTROL;
 		event.event.widget = parent;
 		event.item = item;
-		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
+		_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 		*menu = event.menu;
 		return W_TRUE;
 	} else {
@@ -281,7 +293,7 @@ wresult _w_toolitem_set_control(w_toolitem *item, w_control *control) {
 		event.event.widget = parent;
 		event.item = item;
 		event.control = control;
-		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
+		_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 		_w_toolbar_relayout(W_TOOLBAR(parent));
 		return W_TRUE;
 	}
@@ -327,7 +339,7 @@ wresult _w_toolitem_set_menu(w_toolitem *item, w_menu *menu) {
 		event.event.widget = parent;
 		event.item = item;
 		event.menu = menu;
-		_w_widget_send_event(parent, W_EVENT(&event),W_EVENT_SEND);
+		_w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
 		GtkWidget *hmenu = _W_WIDGET(menu)->handle;
 		gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(toolitem), hmenu);
 		return W_TRUE;
@@ -394,7 +406,7 @@ wresult _w_toolbar_create_handle(w_widget *widget, _w_control_priv *priv) {
 	wuint64 style = _W_WIDGET(widget)->style;
 	GtkWidget *fixedHandle, *handle = 0;
 	_W_WIDGET(widget)->state |= STATE_HANDLE | STATE_THEME_BACKGROUND;
-	fixedHandle = _w_fixed_new();
+	fixedHandle = _w_fixed_new(widget);
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
@@ -405,7 +417,7 @@ wresult _w_toolbar_create_handle(w_widget *widget, _w_control_priv *priv) {
 			(style & W_VERTICAL) != 0 ?
 					GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL;
 	gtk_orientable_set_orientation(GTK_ORIENTABLE(handle), orientation);
-	gtk_container_add(GTK_CONTAINER(fixedHandle), handle);
+	_w_fixed_set_child(fixedHandle, handle);
 	GtkIconSize iconesize;
 #if GTK3
 	iconesize = GTK_ICON_SIZE_SMALL_TOOLBAR;
@@ -732,7 +744,7 @@ void _gtk_toolbar_send_selection(GtkWidget *widget,
 	_W_ITEM(&item)->parent = st->parent;
 	_W_ITEM(&item)->index = -1;
 	_W_TOOLITEM(&item)->toolItem = GTK_TOOL_ITEM(st->lastSelected);
-	_w_widget_send_event(st->parent, W_EVENT(&event),W_EVENT_SEND);
+	_w_widget_send_event(st->parent, W_EVENT(&event), W_EVENT_SEND);
 }
 void _gtk_toolbar_select_radio_callback(GtkWidget *widget, gpointer data) {
 	struct _gtk_toolbar_select_radio_struct *st =
@@ -840,7 +852,7 @@ gboolean _gtk_toolbar_clicked(w_widget *widget, _w_event_platform *e,
 			}
 		}
 	}
-	_w_widget_send_event(widget, W_EVENT(&event),W_EVENT_SEND);
+	_w_widget_send_event(widget, W_EVENT(&event), W_EVENT_SEND);
 	return FALSE;
 }
 
@@ -910,7 +922,7 @@ void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,
 		W_WIDGET_CLASS(clazz)->platformPrivate =
 				&gtk_toolkit->class_toolbar_priv;
 	}
-	_w_composite_class_init(toolkit, classId,W_COMPOSITE_CLASS(clazz));
+	_w_composite_class_init(toolkit, classId, W_COMPOSITE_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_TOOLBAR;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_toolbar_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_toolbar);
@@ -940,6 +952,7 @@ void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,
 	item->get_control = _w_toolitem_get_control;
 	item->get_enabled = _w_toolitem_get_enabled;
 	item->get_id = _w_toolitem_get_id;
+	item->get_image = _w_toolitem_get_image;
 	item->get_menu = _w_toolitem_get_menu;
 	item->get_selection = _w_toolitem_get_selection;
 	item->get_style = _w_toolitem_get_style;

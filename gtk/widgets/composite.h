@@ -51,6 +51,8 @@ wresult _w_composite_compute_size(w_widget *widget, w_event_compute_size *e,
 		_w_control_priv *priv);
 wresult _w_composite_set_bounds_0(w_control *control, w_point *location,
 		w_size *size, _w_control_priv *priv);
+void _w_composite_add_child(w_control *composite, w_widget *child,
+		_w_control_priv *priv);
 /*
  * signals
  */
