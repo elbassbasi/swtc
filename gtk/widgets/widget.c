@@ -572,7 +572,7 @@ gboolean _w_widget_proc(GtkWidget *widget, _gtk_signal *signal, void *args0,
 		void *args1, void *args2) {
 	w_widget *cc = (w_widget*) g_object_get_qdata(G_OBJECT(widget),
 			gtk_toolkit->quark[0]);
-	if (cc == 0)
+	if (cc == 0 || cc->clazz == 0)
 		return FALSE;
 	else {
 		struct _w_event_platform e;

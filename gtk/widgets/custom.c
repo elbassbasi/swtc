@@ -89,7 +89,8 @@ void _w_fixed_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
 		w_widget *child = _W_WIDGET(fixed->widget)->first_child;
 
 		while (child) {
-			if (child->clazz->class_id > _W_CLASS_CONTROL) {
+			if (child->clazz != 0
+					&& child->clazz->class_id > _W_CLASS_CONTROL) {
 				_w_control_priv *priv = _W_CONTROL_GET_PRIV(child);
 				GtkWidget *tophandle = priv->widget.handle_top(child, priv);
 				if (gtk_widget_get_parent(tophandle) == widget) {
@@ -142,7 +143,8 @@ void _w_fixed_forall(GtkContainer *container, gboolean include_internals,
 
 		while (child) {
 			next = (w_widget*) _W_WIDGET(child)->sibling.next;
-			if (child->clazz->class_id >= _W_CLASS_CONTROL) {
+			if (child->clazz != 0
+					&& child->clazz->class_id >= _W_CLASS_CONTROL) {
 				_w_control_priv *priv = _W_CONTROL_GET_PRIV(child);
 				GtkWidget *tophandle = priv->widget.handle_top(child, priv);
 				if (gtk_widget_get_parent(tophandle)
@@ -214,7 +216,8 @@ void _w_fixed_map(GtkWidget *widget) {
 
 		while (child) {
 			next = (w_widget*) _W_WIDGET(child)->sibling.next;
-			if (child->clazz->class_id > _W_CLASS_CONTROL) {
+			if (child->clazz != 0
+					&& child->clazz->class_id > _W_CLASS_CONTROL) {
 				_w_control_priv *priv = _W_CONTROL_GET_PRIV(child);
 				GtkWidget *tophandle = priv->widget.handle_top(child, priv);
 				if (gtk_widget_get_parent(tophandle) == widget) {

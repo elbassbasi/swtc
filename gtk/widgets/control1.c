@@ -27,6 +27,12 @@ gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 	w_event e;
 	if (!w_widget_is_ok(widget))
 		return TRUE;
+	w_widget *p = _W_WIDGET(widget)->parent;
+	if (p != 0) {
+		w_link_unlink_0(&_W_WIDGET(widget)->sibling, widget,
+				(void**) &_W_WIDGET(p)->first_child);
+		_W_WIDGET(p)->children_count--;
+	}
 	wuint64 style = w_widget_get_style(widget);
 	_w_control_kill_all_timer(W_CONTROL(widget));
 	e.type = W_EVENT_DISPOSE;
@@ -34,7 +40,7 @@ gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 	e.data = 0;
 	e.time = 0;
 	e.platform_event = (w_event_platform*) ee;
-	_w_widget_send_event(widget, &e,W_EVENT_SEND);
+	_w_widget_send_event(widget, &e, W_EVENT_SEND);
 	widget->clazz = 0;
 	if (style & W_FREE_MEMORY) {
 		_w_toolkit_registre_free(widget);
@@ -114,7 +120,8 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 			}
 			event.y = gdkEvent->y;
 			event.detail = _w_widget_set_input_state(gdkEvent->state);
-			result = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+			result = _w_widget_send_event(widget, (w_event*) &event,
+					W_EVENT_SEND);
 		}
 		if (!w_widget_is_ok(widget))
 			return TRUE;
@@ -138,7 +145,7 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 				}
 				event.y = gdkEvent->y;
 				event.detail = _w_widget_set_input_state(gdkEvent->state);
-				_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+				_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 				if (!w_widget_is_ok(widget))
 					return TRUE;
 				if (_W_CONTROL(widget)->dragsource != 0) {
@@ -146,7 +153,7 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 							_W_CONTROL(widget)->dragsource);
 					_w_widget_send_event(
 							W_WIDGET(_W_CONTROL(widget)->dragsource),
-							(w_event*) &event,W_EVENT_SEND);
+							(w_event*) &event, W_EVENT_SEND);
 					if (!w_widget_is_ok(widget))
 						return TRUE;
 				}
@@ -176,7 +183,7 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 		event.x = gdkEvent->x_root;
 		event.y = gdkEvent->y_root;
 		event.detail = _w_widget_set_input_state(gdkEvent->state);
-		result = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+		result = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 
 		if (!w_widget_is_ok(widget))
 			return TRUE;
@@ -210,7 +217,7 @@ gboolean _gtk_control_button_release_event(w_widget *widget,
 	event.x = gdkEvent->x;
 	event.y = gdkEvent->y;
 	event.detail = _w_widget_set_input_state(gdkEvent->state);
-	_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return FALSE;
 }
 gboolean _gtk_control_commit(w_widget *widget, _w_event_platform *e,
@@ -280,7 +287,7 @@ gboolean _gtk_control_enter_notify_event(w_widget *widget, _w_event_platform *e,
 		event.x = gdkEvent->x_root;
 		event.y = gdkEvent->y_root;
 		event.detail = _w_widget_set_input_state(gdkEvent->state);
-		_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+		_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 	if (w_widget_is_ok(widget)) {
 		gtk_toolkit->currentControl = W_CONTROL(widget);
@@ -294,7 +301,7 @@ gboolean _gtk_control_enter_notify_event(w_widget *widget, _w_event_platform *e,
 		event.x = gdkEvent->x_root;
 		event.y = gdkEvent->y_root;
 		event.detail = _w_widget_set_input_state(gdkEvent->state);
-		_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+		_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 	return FALSE;
 }
@@ -358,7 +365,7 @@ gboolean _gtk_control_event_after(w_widget *widget, _w_event_platform *e,
 		event.time = 0;
 		event.platform_event = (w_event_platform*) e;
 		event.data = 0;
-		_w_widget_send_event(widget, &event,W_EVENT_SEND);
+		_w_widget_send_event(widget, &event, W_EVENT_SEND);
 		break;
 	}
 	}
@@ -407,7 +414,7 @@ gboolean _gtk_control_draw(w_widget *widget, _w_event_platform *e,
 	w_control_get_foreground(W_CONTROL(widget), &foreground);
 	w_graphics_set_foreground(W_GRAPHICS(&gc), foreground);
 	priv->draw_widget(W_CONTROL(widget), W_GRAPHICS(&gc), priv);
-	_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	w_graphics_dispose(W_GRAPHICS(&gc));
 #else
 #endif
@@ -545,7 +552,7 @@ gboolean _gtk_control_leave_notify_event(w_widget *widget, _w_event_platform *e,
 		event.x = gdkEvent->x_root;
 		event.y = gdkEvent->y_root;
 		event.detail = _w_widget_set_input_state(gdkEvent->state);
-		_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+		_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 		gtk_toolkit->currentControl = 0;
 	}
 	return result;
@@ -622,7 +629,7 @@ gboolean _gtk_control_motion_notify_event(w_widget *widget,
 			}
 			event.y = gdkEvent1->y;
 			event.detail = _w_widget_set_input_state(gdkEvent1->state);
-			if (_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND)) {
+			if (_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND)) {
 				return TRUE;
 			}
 			if (!w_widget_is_ok(widget))
@@ -630,7 +637,7 @@ gboolean _gtk_control_motion_notify_event(w_widget *widget,
 			if (_W_CONTROL(widget)->dragsource != 0) {
 				event.event.widget = W_WIDGET(_W_CONTROL(widget)->dragsource);
 				_w_widget_send_event(W_WIDGET(_W_CONTROL(widget)->dragsource),
-						(w_event*) &event,W_EVENT_SEND);
+						(w_event*) &event, W_EVENT_SEND);
 			}
 		}
 	}
@@ -685,7 +692,7 @@ gboolean _gtk_control_motion_notify_event(w_widget *widget,
 			}
 			event.detail = _w_widget_set_input_state(state);
 			_w_widget_send_event(W_WIDGET(gtk_toolkit->currentControl),
-					(w_event*) &event,W_EVENT_SEND);
+					(w_event*) &event, W_EVENT_SEND);
 		}
 		if (w_widget_is_ok(widget)) {
 			gtk_toolkit->currentControl = W_CONTROL(widget);
@@ -711,7 +718,7 @@ gboolean _gtk_control_motion_notify_event(w_widget *widget,
 						- event.x;
 			}
 			event.detail = _w_widget_set_input_state(state);
-			_w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+			_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 		}
 	}
 #endif
@@ -736,7 +743,7 @@ gboolean _gtk_control_motion_notify_event(w_widget *widget,
 		event.x = priv->get_client_width(W_CONTROL(widget), priv) - event.x;
 	}
 	event.detail = _w_widget_set_input_state(state);
-	result = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+	result = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	return result;
 }
 gboolean _gtk_control_popup_menu(w_widget *widget, _w_event_platform *e,
@@ -835,7 +842,7 @@ gboolean _gtk_control_scroll_event(w_widget *widget, _w_event_platform *e,
 			event.x = client_width - event.x;
 		}
 		event.detail = _w_widget_set_input_state(gdkEvent->state);
-		return _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+		return _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	}
 	return FALSE;
 }
@@ -851,7 +858,7 @@ gboolean _gtk_control_show_help(w_widget *widget, _w_event_platform *e,
 		event.time = 0;
 		event.widget = W_WIDGET(control);
 		event.data = 0;
-		if (_w_widget_send_event(W_WIDGET(control), &event,W_EVENT_SEND)) {
+		if (_w_widget_send_event(W_WIDGET(control), &event, W_EVENT_SEND)) {
 			return TRUE;
 		}
 		control = W_CONTROL(_W_WIDGET(control)->parent);
