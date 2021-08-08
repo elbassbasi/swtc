@@ -27,6 +27,18 @@ gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 	w_event e;
 	if (!w_widget_is_ok(widget))
 		return TRUE;
+	if (gtk_toolkit->currentControl == W_CONTROL(widget)) {
+		gtk_toolkit->currentControl = 0;
+	}
+	if (gtk_toolkit->focusControl == W_CONTROL(widget)) {
+		gtk_toolkit->focusControl = 0;
+	}
+	if (gtk_toolkit->imControl == W_CONTROL(widget)) {
+		gtk_toolkit->imControl = 0;
+	}
+	if (gtk_toolkit->mnemonicControl == W_CONTROL(widget)) {
+		gtk_toolkit->mnemonicControl = 0;
+	}
 	w_widget *p = _W_WIDGET(widget)->parent;
 	if (p != 0) {
 		w_link_unlink_0(&_W_WIDGET(widget)->sibling, widget,
