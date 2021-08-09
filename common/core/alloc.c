@@ -249,29 +249,45 @@ void w_link_unlink_0(w_link_0 *x, void *x_p, void **first) {
 void w_link_unlink(w_link *e, w_link **first) {
 	w_link_unlink_0((w_link_0*) e, e, (void**) first);
 }
-void w_link_replace_0(w_link_0 *x, void *x_p, void *e, void **first) {
-	const wintptr diff = (wintptr) x - (wintptr) x_p;
-	w_link_0 *_e = (w_link_0*) (e + diff);
-	_e->next = x->next;
-	_e->prev = x->prev;
-	if (_e->next != 0) {
-		w_link_0 *_next = (w_link_0*) (_e->next + diff);
-		_next->prev = e;
-	} else {
-		if (*first != 0) {
-			w_link_0 *_first = (w_link_0*) (*first + diff);
-			_first->prev = e;
+void w_link_replace_1(w_link_0 *newlink, void *newelement, w_link_0 *oldlink,
+		void *oldelement, void **first) {
+	const wintptr diff = (wintptr) newlink - (wintptr) newelement;
+	newlink->next = oldlink->next;
+	newlink->prev = oldlink->prev;
+	if (first != 0) {
+		if (*first == oldelement) {
+			*first = newelement;
 		}
 	}
-	if (_e->prev != 0) {
-		w_link_0 *_prev = (w_link_0*) (_e->prev + diff);
-		_prev->next = e;
+	if (newlink->prev != 0) {
+		if (first != 0 && *first == oldelement) {
+			*first = newelement;
+		} else {
+			w_link_0 *_prev = (w_link_0*) (newlink->prev + diff);
+			_prev->next = newelement;
+		}
 	} else {
-		if (*first != 0) {
-			*first = e;
+		if (first != 0) {
+			*first = newelement;
+		}
+	}
+	if (newlink->next != 0) {
+		w_link_0 *_next = (w_link_0*) (newlink->next + diff);
+		_next->prev = newelement;
+	} else {
+		if (first != 0 && *first != 0) {
+			w_link_0 *_first = (w_link_0*) (*first + diff);
+			_first->prev = newelement;
 		}
 	}
 }
-void w_link_replace(w_link *x, w_link *e, w_link **first) {
-	w_link_replace_0((w_link_0*) x, x, e, (void**) first);
+void w_link_replace_0(w_link_0 *newlink, void *newelement, void *oldElement,
+		void **first) {
+	const wintptr diff = (wintptr) newlink - (wintptr) newelement;
+	w_link_0 *oldlink = (w_link_0*) (oldElement + diff);
+	w_link_replace_1(newlink, newelement, oldlink, oldElement, first);
+}
+void w_link_replace(w_link *newelement, w_link *oldElement, w_link **first) {
+	w_link_replace_0((w_link_0*) newelement, newelement, oldElement,
+			(void**) first);
 }

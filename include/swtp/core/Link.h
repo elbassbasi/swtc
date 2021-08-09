@@ -29,8 +29,13 @@ public:
 	void Unlink(T *e, T **first) {
 		w_link_unlink_0((w_link_0*) this, e, (void**) first);
 	}
-	void Replace(T *x, T *newElement, T **first) {
-		w_link_replace_0((w_link_0*) this, x, newElement, (void**) first);
+	void Replace(T *newelement, T *oldElement, T **first) {
+		w_link_replace_0((w_link_0*) this, newelement, oldElement,
+				(void**) first);
+	}
+	void Replace1(T *newelement, WLink<T> *oldlink, T *oldElement, T **first) {
+		w_link_replace_1((w_link_0*) this, newelement, (w_link_0*) oldlink,
+				oldElement, (void**) first);
 	}
 public:
 	void LinkFirst(T *e, T *&first) {
@@ -48,8 +53,11 @@ public:
 	void Unlink(T *e, T *&first) {
 		Unlink(e, &first);
 	}
-	void Replace(T *x, T *newElement, T *&first) {
-		Replace(x, newElement, &first);
+	void Replace(T *newelement, T *oldElement, T *&first) {
+		Replace(newelement, oldElement, &first);
+	}
+	void Replace1(T *newelement, WLink<T> *oldlink, T *oldElement, T *&first) {
+		Replace1(newelement, oldlink, oldElement, &first);
 	}
 public:
 	void LinkFirst(T *&first) {
@@ -67,8 +75,11 @@ public:
 	void Unlink(T *&first) {
 		Unlink(this, &first);
 	}
-	void Replace(T *newElement, T *&first) {
-		Replace(this, newElement, &first);
+	void Replace(T *oldElement, T *&first) {
+		Replace(this, oldElement, &first);
+	}
+	void Replace1(WLink<T> *oldlink, T *oldElement, T *&first) {
+		Replace1(this, oldlink, oldElement, &first);
 	}
 };
 template<typename T>

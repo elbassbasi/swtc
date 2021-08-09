@@ -58,7 +58,10 @@ SWT_PUBLIC void w_link_linkbefore_0(w_link_0 *e, void *e_p, void *succ,
 SWT_PUBLIC void w_link_linkafter_0(w_link_0 *e, void *e_p, void *succ,
 		void **first);
 SWT_PUBLIC void w_link_unlink_0(w_link_0 *e, void *e_p, void **first);
-SWT_PUBLIC void w_link_replace_0(w_link_0 *x, void *x_p, void *e, void **first);
+SWT_PUBLIC void w_link_replace_0(w_link_0 *newlink, void *newelement,
+		void *oldElement, void **first);
+SWT_PUBLIC void w_link_replace_1(w_link_0 *newlink, void *newelement,
+		w_link_0 *oldlink, void *oldelement, void **first);
 
 typedef struct w_link w_link;
 struct w_link {
@@ -70,7 +73,8 @@ SWT_PUBLIC void w_link_linklast(w_link *e, w_link **first);
 SWT_PUBLIC void w_link_linkbefore(w_link *e, w_link *succ, w_link **first);
 SWT_PUBLIC void w_link_linkafter(w_link *e, w_link *succ, w_link **first);
 SWT_PUBLIC void w_link_unlink(w_link *e, w_link **first);
-SWT_PUBLIC void w_link_replace(w_link *x, w_link *e, w_link **first);
+SWT_PUBLIC void w_link_replace(w_link *newelement, w_link *oldElement,
+		w_link **first);
 
 #ifdef __cplusplus
 }
