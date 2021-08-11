@@ -148,15 +148,15 @@ void w_array_free(w_array *array, int element_size,
  * link
  */
 void w_link_linkfirst_0(w_link_0 *e, void *e_p, void **first) {
-	void *f = *first;
-	e->next = f;
+	void *_first = *first;
+	e->next = _first;
 	e->prev = 0;
 	*first = e_p;
-	if (f == 0) {
+	if (_first == 0) {
 		e->prev = e_p;
 	} else {
 		const wintptr diff = (wintptr) e - (wintptr) e_p;
-		w_link_0 *_f = (w_link_0*) (f + diff);
+		w_link_0 *_f = (w_link_0*) (_first + diff);
 		_f->prev = e_p;
 	}
 }
@@ -164,13 +164,14 @@ void w_link_linkfirst(w_link *e, w_link **first) {
 	w_link_linkfirst_0((w_link_0*) e, e, (void**) first);
 }
 void w_link_linklast_0(w_link_0 *e, void *e_p, void **first) {
-	if (*first == 0) {
+	void *_first = *first;
+	if (_first == 0) {
 		*first = e_p;
 		e->next = 0;
 		e->prev = e_p;
 	} else {
 		const wintptr diff = (wintptr) e - (wintptr) e_p;
-		w_link_0 *_f = (w_link_0*) (*first + diff);
+		w_link_0 *_f = (w_link_0*) (_first + diff);
 		void *l = _f->prev;
 		w_link_0 *_l = (w_link_0*) (l + diff);
 		e->next = 0;
@@ -190,8 +191,7 @@ void w_link_linkbefore_0(w_link_0 *e, void *e_p, void *succ, void **first) {
 	e->prev = pred;
 	_succ->prev = e_p;
 	if (pred == 0) {
-		if (first != 0)
-			*first = e_p;
+		*first = e_p;
 	} else {
 		w_link_0 *_pred = (w_link_0*) (pred + diff);
 		_pred->next = e_p;
@@ -208,14 +208,13 @@ void w_link_linkafter_0(w_link_0 *e, void *e_p, void *succ, void **first) {
 	e->prev = succ;
 	_succ->next = e;
 	if (next == 0) {
-		if (first != 0) {
-			if (*first == 0) {
-				*first = e_p;
-				e->prev = e_p;
-			} else {
-				w_link_0 *_first = (w_link_0*) (*first + diff);
-				_first->prev = e_p;
-			}
+		void *_first = *first;
+		if (_first == 0) {
+			*first = e_p;
+			e->prev = e_p;
+		} else {
+			w_link_0 *_f = (w_link_0*) (_first + diff);
+			_f->prev = e_p;
 		}
 	} else {
 		w_link_0 *_next = (w_link_0*) (next + diff);
@@ -227,20 +226,18 @@ void w_link_linkafter(w_link *e, w_link *succ, w_link **first) {
 }
 void w_link_unlink_0(w_link_0 *x, void *x_p, void **first) {
 	const wintptr diff = (wintptr) x - (wintptr) x_p;
-	if (first != 0) {
-		void *_f = *first;
-		if (_f == x_p) {
-			*first = x->next;
-			if (x->next != 0) {
-				w_link_0 *_next0 = (w_link_0*) (x->next + diff);
-				_next0->prev = x->prev;
-			}
-			return;
-		} else if (x->next == 0) {
-			w_link_0 *_first = (w_link_0*) (_f + diff);
-			_first->prev = x->prev;
-			return;
+	void *_first = *first;
+	if (_first == x_p) {
+		*first = x->next;
+		if (x->next != 0) {
+			w_link_0 *_next0 = (w_link_0*) (x->next + diff);
+			_next0->prev = x->prev;
 		}
+		return;
+	} else if (x->next == 0) {
+		w_link_0 *_f = (w_link_0*) (_first + diff);
+		_f->prev = x->prev;
+		return;
 	}
 	w_link_0 *_next = (w_link_0*) (x->next + diff);
 	_next->prev = x->prev;
@@ -254,31 +251,18 @@ void w_link_replace_1(w_link_0 *newlink, void *newelement, w_link_0 *oldlink,
 	const wintptr diff = (wintptr) newlink - (wintptr) newelement;
 	newlink->next = oldlink->next;
 	newlink->prev = oldlink->prev;
-	if (first != 0) {
-		if (*first == oldelement) {
-			*first = newelement;
-		}
-	}
-	if (newlink->prev != 0) {
-		if (first != 0 && *first == oldelement) {
-			*first = newelement;
-		} else {
-			w_link_0 *_prev = (w_link_0*) (newlink->prev + diff);
-			_prev->next = newelement;
-		}
+	if (*first == oldelement) {
+		*first = newelement;
 	} else {
-		if (first != 0) {
-			*first = newelement;
-		}
+		w_link_0 *_prev = (w_link_0*) (newlink->prev + diff);
+		_prev->next = newelement;
 	}
 	if (newlink->next != 0) {
 		w_link_0 *_next = (w_link_0*) (newlink->next + diff);
 		_next->prev = newelement;
 	} else {
-		if (first != 0 && *first != 0) {
-			w_link_0 *_first = (w_link_0*) (*first + diff);
-			_first->prev = newelement;
-		}
+		w_link_0 *_first = (w_link_0*) (*first + diff);
+		_first->prev = newelement;
 	}
 }
 void w_link_replace_0(w_link_0 *newlink, void *newelement, void *oldElement,

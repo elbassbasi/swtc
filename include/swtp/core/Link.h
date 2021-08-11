@@ -14,50 +14,28 @@ public:
 	T *next;
 	T *prev;
 public:
-	void LinkFirst(T *e, T **first) {
-		w_link_linkfirst_0((w_link_0*) this, e, (void**) first);
-	}
-	void LinkLast(T *e, T **first) {
-		w_link_linklast_0((w_link_0*) this, e, (void**) first);
-	}
-	void LinkBefore(T *e, T *succ, T **first) {
-		w_link_linkbefore_0((w_link_0*) this, e, succ, (void**) first);
-	}
-	void LinkAfter(T *e, T *succ, T **first) {
-		w_link_linkafter_0((w_link_0*) this, e, succ, (void**) first);
-	}
-	void Unlink(T *e, T **first) {
-		w_link_unlink_0((w_link_0*) this, e, (void**) first);
-	}
-	void Replace(T *newelement, T *oldElement, T **first) {
-		w_link_replace_0((w_link_0*) this, newelement, oldElement,
-				(void**) first);
-	}
-	void Replace1(T *newelement, WLink<T> *oldlink, T *oldElement, T **first) {
-		w_link_replace_1((w_link_0*) this, newelement, (w_link_0*) oldlink,
-				oldElement, (void**) first);
-	}
-public:
 	void LinkFirst(T *e, T *&first) {
-		LinkFirst(e, &first);
+		w_link_linkfirst_0((w_link_0*) this, e, (void**) &first);
 	}
 	void LinkLast(T *e, T *&first) {
-		LinkLast(e, &first);
+		w_link_linklast_0((w_link_0*) this, e, (void**) &first);
 	}
 	void LinkBefore(T *e, T *succ, T *&first) {
-		LinkBefore(e, succ, &first);
+		w_link_linkbefore_0((w_link_0*) this, e, succ, (void**) &first);
 	}
 	void LinkAfter(T *e, T *succ, T *&first) {
-		LinkAfter(e, succ, &first);
+		w_link_linkafter_0((w_link_0*) this, e, succ, (void**) &first);
 	}
 	void Unlink(T *e, T *&first) {
-		Unlink(e, &first);
+		w_link_unlink_0((w_link_0*) this, e, (void**) &first);
 	}
 	void Replace(T *newelement, T *oldElement, T *&first) {
-		Replace(newelement, oldElement, &first);
+		w_link_replace_0((w_link_0*) this, newelement, oldElement,
+				(void**) &first);
 	}
 	void Replace1(T *newelement, WLink<T> *oldlink, T *oldElement, T *&first) {
-		Replace1(newelement, oldlink, oldElement, &first);
+		w_link_replace_1((w_link_0*) this, newelement, (w_link_0*) oldlink,
+				oldElement, (void**) &first);
 	}
 public:
 	void LinkFirst(T *&first) {
@@ -80,6 +58,59 @@ public:
 	}
 	void Replace1(WLink<T> *oldlink, T *oldElement, T *&first) {
 		Replace1(this, oldlink, oldElement, &first);
+	}
+};
+template<typename T>
+class WListHead {
+public:
+	T *first;
+	size_t count;
+	WListHead() {
+		this->first = 0;
+		this->count = 0;
+	}
+	size_t GetCount() {
+		return count;
+	}
+	void Add(WLink<T> *link, T *element) {
+		link->LinkLast(element, first);
+		count++;
+	}
+	void Add(T *element) {
+		Add(element, element);
+	}
+	void AddBefore(WLink<T> *link, T *element, T *succ) {
+		link->LinkBefore(element, succ, first);
+	}
+	void AddBefore(T *element, T *succ) {
+		AddBefore(element, element, succ);
+	}
+	void AddAfter(WLink<T> *link, T *element, T *succ) {
+		link->LinkAfter(element, succ, first);
+	}
+	void AddAfter(T *element, T *succ) {
+		AddAfter(element, element, succ);
+	}
+	void Remove(WLink<T> *link, T *element) {
+		link->Unlink(element, first);
+		count--;
+	}
+	void Remove(T *element) {
+		Remove(element, element);
+	}
+	void Delete(WLink<T> *link, T *element) {
+		Remove(link, element);
+		delete element;
+	}
+	void Delete(T *element) {
+		Delete(element, element);
+	}
+	void Replace(WLink<T> *newlink, T *newelement, WLink<T> *oldlink,
+			T *oldElement) {
+		newlink->Replace1(newelement, oldlink, oldElement, first);
+	}
+	void Replace(T *newelement, T *oldElement) {
+		Replace(newelement, newelement, oldElement, oldElement);
 	}
 };
 template<typename T>
