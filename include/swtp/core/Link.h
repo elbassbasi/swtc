@@ -72,12 +72,25 @@ public:
 	size_t GetCount() {
 		return count;
 	}
-	void Add(WLink<T> *link, T *element) {
+	void AddLast(WLink<T> *link, T *element) {
 		link->LinkLast(element, first);
 		count++;
 	}
+	void AddLast(T *element) {
+		AddLast(element, element);
+	}
+	void Add(WLink<T> *link, T *element) {
+		AddLast(link, element);
+	}
 	void Add(T *element) {
-		Add(element, element);
+		AddLast(element);
+	}
+	void AddFirst(WLink<T> *link, T *element) {
+		link->LinkFirst(element, first);
+		count++;
+	}
+	void AddFirst(T *element) {
+		AddFirst(element, element);
 	}
 	void AddBefore(WLink<T> *link, T *element, T *succ) {
 		link->LinkBefore(element, succ, first);
