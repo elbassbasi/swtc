@@ -193,9 +193,6 @@ class WTextStyleRange: public WTextStyle {
 public:
 	WRange range;
 };
-class WTextSelection: public w_text_selection {
-public:
-};
 class WTextLayout: public WResource {
 public:
 	/**
@@ -217,6 +214,9 @@ public:
 	void Dispose() {
 		w_textlayout_dispose(W_TEXTLAYOUT(this));
 	}
+	bool IsOk() {
+		return w_textlayout_isok(W_TEXTLAYOUT(this)) > 0;
+	}
 	bool Create() {
 		return w_textlayout_create(W_TEXTLAYOUT(this)) > 0;
 	}
@@ -229,58 +229,10 @@ public:
 	 * @param y the y coordinate of the top left corner of the rectangular area where the text is to be drawn
 	 */
 	void Draw(WGraphics &gc, int x, int y) {
-		Draw(gc, x, y, 0, 0);
+		Draw(gc, WRect(x, y, -1, -1));
 	}
-
-	/**
-	 * Draws the receiver's text using the specified GC at the specified
-	 * point.
-	 *
-	 * @param gc the GC to draw
-	 * @param x the x coordinate of the top left corner of the rectangular area where the text is to be drawn
-	 * @param y the y coordinate of the top left corner of the rectangular area where the text is to be drawn
-	 * @param selectionStart the offset where the selections starts, or -1 indicating no selection
-	 * @param selectionEnd the offset where the selections ends, or -1 indicating no selection
-	 * @param selectionForeground selection foreground, or NULL to use the system default color
-	 * @param selectionBackground selection background, or NULL to use the system default color
-	 */
-	void Draw(WGraphics &gc, int x, int y, int selectionStart, int selectionEnd,
-			w_color selectionForeground, w_color selectionBackground) {
-		Draw(gc, x, y, selectionStart, selectionEnd, selectionForeground,
-				selectionBackground, 0);
-	}
-	/**
-	 * Draws the receiver's text using the specified GC at the specified
-	 * point.
-	 * <p>
-	 * The parameter <code>flags</code> can include one of <code>W_DELIMITER_SELECTION</code>
-	 * or <code>W_FULL_SELECTION</code> to specify the selection behavior on all lines except
-	 * for the last line, and can also include <code>W_LAST_LINE_SELECTION</code> to extend
-	 * the specified selection behavior to the last line.
-	 * </p>
-	 * @param gc the GC to draw
-	 * @param x the x coordinate of the top left corner of the rectangular area where the text is to be drawn
-	 * @param y the y coordinate of the top left corner of the rectangular area where the text is to be drawn
-	 * @param selectionStart the offset where the selections starts, or -1 indicating no selection
-	 * @param selectionEnd the offset where the selections ends, or -1 indicating no selection
-	 * @param selectionForeground selection foreground, or NULL to use the system default color
-	 * @param selectionBackground selection background, or NULL to use the system default color
-	 * @param flags drawing options
-	 */
-	void Draw(WGraphics &gc, int x, int y, int selectionStart, int selectionEnd,
-			w_color selectionForeground, w_color selectionBackground,
-			int flags) {
-		WTextSelection selection;
-		selection.start = selectionStart;
-		selection.end = selectionEnd;
-		selection.foreground = selectionForeground;
-		selection.background = selectionForeground;
-		Draw(gc, x, y, &selection, flags);
-	}
-	void Draw(WGraphics &gc, int x, int y, WTextSelection *selection,
-			int flags) {
-		w_textlayout_draw(W_TEXTLAYOUT(this), W_GRAPHICS(&gc), x, y, selection,
-				flags);
+	void Draw(WGraphics &gc, const WRect &rect) {
+		w_textlayout_draw(W_TEXTLAYOUT(this), W_GRAPHICS(&gc), (w_rect*) &rect);
 	}
 	/**
 	 * Returns the receiver's horizontal text alignment, which will be one
@@ -575,7 +527,8 @@ public:
 	 */
 	WString GetText() {
 		WString str;
-		w_textlayout_get_text(W_TEXTLAYOUT(this), w_alloc_string_ref, &str.ref,W_ENCODING_UTF8);
+		w_textlayout_get_text(W_TEXTLAYOUT(this), w_alloc_string_ref, &str.ref,
+				W_ENCODING_UTF8);
 		return str;
 	}
 	/**

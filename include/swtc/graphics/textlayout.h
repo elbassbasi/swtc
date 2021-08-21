@@ -133,19 +133,13 @@ typedef struct w_textlayout {
 	void *handle[0x20];
 } w_textlayout;
 #define W_TEXTLAYOUT(x) ((w_textlayout*)x)
-typedef struct w_text_selection {
-	int start;
-	int end;
-	w_color foreground;
-	w_color background;
-} w_text_selection;
 
 SWT_PUBLIC void w_textlayout_init(w_textlayout *textlayout);
 SWT_PUBLIC void w_textlayout_dispose(w_textlayout *textlayout);
 SWT_PUBLIC wresult w_textlayout_isok(w_textlayout *textlayout);
 SWT_PUBLIC wresult w_textlayout_create(w_textlayout *textlayout);
 SWT_PUBLIC wresult w_textlayout_draw(w_textlayout *textlayout, w_graphics *gc,
-		int x, int y, w_text_selection *selection, int flags);
+		w_rect *rect);
 void w_textlayout_draw_border(w_textlayout *textlayout, w_graphics *gc, int x,
 		int y, int start, int end, int style, w_color color);
 SWT_PUBLIC int w_textlayout_get_alignment(w_textlayout *textlayout);

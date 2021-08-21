@@ -163,15 +163,15 @@ void _w_graphics_init(w_graphics* gc,GdkWindow* drawable);
 wresult _w_graphics_check(w_graphics *gc, int mask);
 typedef struct _w_textlayout {
 	PangoLayout *layout;
-	PangoAttrList *selAttrList;
 	w_font *font;
+	int *tabs;
+	unsigned is_ascii;
+	unsigned text_length;
 	int ascentInPoints;
 	int descentInPoints;
 	int indent;
 	int wrapIndent;
 	int wrapWidth;
-	int *tabs;
-	int *invalidOffsets;
 } _w_textlayout;
 wresult _w_attr_list_get_ranges(PangoAttrList *attrList, w_iterator *ranges);
 #define _W_TEXTLAYOUT(x) ((_w_textlayout*)x)

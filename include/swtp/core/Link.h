@@ -9,7 +9,7 @@
 #define SWTP_CORE_LINK_H_
 #include "Iterator.h"
 template<typename T>
-class WLink {
+class WLink0 {
 public:
 	T *next;
 	T *prev;
@@ -33,31 +33,91 @@ public:
 		w_link_replace_0((w_link_0*) this, newelement, oldElement,
 				(void**) &first);
 	}
-	void Replace1(T *newelement, WLink<T> *oldlink, T *oldElement, T *&first) {
+	void Replace1(T *newelement, WLink0<T> *oldlink, T *oldElement, T *&first) {
 		w_link_replace_1((w_link_0*) this, newelement, (w_link_0*) oldlink,
 				oldElement, (void**) &first);
 	}
+};
+template<typename T>
+class WListHead0 {
+public:
+	T *first;
+	size_t count;
+	WListHead0() {
+		this->first = 0;
+		this->count = 0;
+	}
+	size_t GetCount() {
+		return count;
+	}
+	T* GetFirst() {
+		return this->first;
+	}
+	T* GetLast(WLink0<T> *first) {
+		if (this->first == 0)
+			return 0;
+		else
+			return first->prev;
+	}
+	void AddLast(WLink0<T> *link, T *element) {
+		link->LinkLast(element, first);
+		count++;
+	}
+	void Add(WLink0<T> *link, T *element) {
+		AddLast(link, element);
+	}
+	void AddFirst(WLink0<T> *link, T *element) {
+		link->LinkFirst(element, first);
+		count++;
+	}
+	void AddBefore(WLink0<T> *link, T *element, T *succ) {
+		link->LinkBefore(element, succ, first);
+		count++;
+	}
+	void AddAfter(WLink0<T> *link, T *element, T *succ) {
+		link->LinkAfter(element, succ, first);
+		count++;
+	}
+	void Remove(WLink0<T> *link, T *element) {
+		link->Unlink(element, first);
+		count--;
+	}
+	void Delete(WLink0<T> *link, T *element) {
+		Remove(link, element);
+		delete element;
+	}
+	void Replace(WLink0<T> *newlink, T *newelement, WLink0<T> *oldlink,
+			T *oldElement) {
+		newlink->Replace1(newelement, oldlink, oldElement, first);
+	}
+};
+template<typename T>
+class WLink {
+public:
+	T *next;
+	T *prev;
 public:
 	void LinkFirst(T *&first) {
-		LinkFirst(this, &first);
+		w_link_linkfirst((w_link*) this, (w_link**) &first);
 	}
 	void LinkLast(T *&first) {
-		LinkLast(this, &first);
+		w_link_linklast((w_link*) this, (w_link**) &first);
 	}
 	void LinkBefore(T *succ, T *&first) {
-		LinkBefore(this, succ, &first);
+		w_link_linkbefore((w_link*) this, (w_link*)succ, (w_link**) &first);
 	}
 	void LinkAfter(T *succ, T *&first) {
-		LinkAfter(this, succ, &first);
+		w_link_linkafter((w_link*) this, (w_link*)succ, (w_link**) &first);
 	}
 	void Unlink(T *&first) {
-		Unlink(this, &first);
+		w_link_unlink((w_link*) this, (w_link**) &first);
 	}
 	void Replace(T *oldElement, T *&first) {
-		Replace(this, oldElement, &first);
+		w_link_replace((w_link*) this, (w_link*)oldElement, (w_link**) &first);
 	}
-	void Replace1(WLink<T> *oldlink, T *oldElement, T *&first) {
-		Replace1(this, oldlink, oldElement, &first);
+	void Replace1(T *newelement, WLink<T> *oldlink, T *oldElement, T *&first) {
+		w_link_replace_1((w_link_0*) this, newelement, (w_link_0*) oldlink,
+				oldElement, (void**) &first);
 	}
 };
 template<typename T>
@@ -69,61 +129,241 @@ public:
 		this->first = 0;
 		this->count = 0;
 	}
+	~WListHead() {
+		DeleteAll();
+	}
 	size_t GetCount() {
 		return count;
 	}
-	void AddLast(WLink<T> *link, T *element) {
-		link->LinkLast(element, first);
-		count++;
+	T* GetFirst() {
+		return this->first;
+	}
+	T* GetLast() {
+		if (this->first == 0)
+			return 0;
+		else
+			return first->prev;
+	}
+	T* Get(int index) {
+		if (index < (this->count >> 1)) {
+			T *x = first;
+			for (int i = 0; i < index; i++)
+				x = x->next;
+			return x;
+		} else {
+			T *x = first->prev;
+			for (int i = this->count - 1; i > index; i--)
+				x = x->prev;
+			return x;
+		}
+	}
+	void Clear() {
+		for (T *x = first; x != 0;) {
+			T *next = x->next;
+			x->next = 0;
+			x->prev = 0;
+			x = next;
+		}
+		this->first = 0;
+		this->count = 0;
+	}
+	void DeleteAll() {
+		for (T *x = first; x != 0;) {
+			T *next = x->next;
+			delete x;
+			x = next;
+		}
+		this->first = 0;
+		this->count = 0;
 	}
 	void AddLast(T *element) {
-		AddLast(element, element);
-	}
-	void Add(WLink<T> *link, T *element) {
-		AddLast(link, element);
+		element->LinkLast(first);
+		count++;
 	}
 	void Add(T *element) {
 		AddLast(element);
 	}
-	void AddFirst(WLink<T> *link, T *element) {
-		link->LinkFirst(element, first);
-		count++;
+	void Add(int index, T *element) {
+		T *before = Get(index);
+		AddBefore(element, before);
 	}
 	void AddFirst(T *element) {
-		AddFirst(element, element);
-	}
-	void AddBefore(WLink<T> *link, T *element, T *succ) {
-		link->LinkBefore(element, succ, first);
+		element->LinkFirst(first);
+		count++;
 	}
 	void AddBefore(T *element, T *succ) {
-		AddBefore(element, element, succ);
-	}
-	void AddAfter(WLink<T> *link, T *element, T *succ) {
-		link->LinkAfter(element, succ, first);
+		element->LinkBefore(succ, first);
+		count++;
 	}
 	void AddAfter(T *element, T *succ) {
-		AddAfter(element, element, succ);
-	}
-	void Remove(WLink<T> *link, T *element) {
-		link->Unlink(element, first);
-		count--;
+		element->LinkAfter(succ, first);
+		count++;
 	}
 	void Remove(T *element) {
-		Remove(element, element);
-	}
-	void Delete(WLink<T> *link, T *element) {
-		Remove(link, element);
-		delete element;
+		element->Unlink(first);
+		count--;
 	}
 	void Delete(T *element) {
-		Delete(element, element);
+		Remove(element);
+		delete element;
 	}
 	void Replace(WLink<T> *newlink, T *newelement, WLink<T> *oldlink,
 			T *oldElement) {
 		newlink->Replace1(newelement, oldlink, oldElement, first);
 	}
 	void Replace(T *newelement, T *oldElement) {
-		Replace(newelement, newelement, oldElement, oldElement);
+		newelement->Replace(oldElement, first);
+	}
+	size_t ToArray(T **array, size_t size) {
+		int i = 0;
+		size_t retSize = this->count > size ? size : this->count;
+		for (T *x = first; retSize; x = x->next)
+			array[i++] = x;
+		return retSize;
+	}
+};
+template<typename T>
+class WLinkedList {
+public:
+	class WLinkData: protected WLink<WLinkData> {
+	public:
+		friend class WLinkedList;
+		WLinkData(const T &o) {
+			this->data = o;
+		}
+		T data;
+	};
+private:
+	WLinkData *first;
+	size_t count;
+public:
+	WLinkedList() {
+		this->first = 0;
+		this->count = 0;
+	}
+	~WLinkedList() {
+		DeleteAll();
+	}
+	size_t GetCount() {
+		return count;
+	}
+	T& GetFirst() {
+		return this->first->data;
+	}
+	T& GetLast() {
+		if (this->first == 0)
+			return 0;
+		else
+			return first->prev->data;
+	}
+	T& Get(int index) {
+		return GetLink(index)->data;
+	}
+	void Set(int index, const T &o) {
+		GetLink(index)->data = o;
+	}
+	WLinkData* GetLink(int index) {
+		if (index < (this->count >> 1)) {
+			WLinkData *x = first;
+			for (int i = 0; i < index; i++)
+				x = x->next;
+			return x;
+		} else {
+			WLinkData *x = first->prev;
+			for (int i = this->count - 1; i > index; i--)
+				x = x->prev;
+			return x;
+		}
+	}
+	void Clear() {
+		for (WLinkData *x = first; x != 0;) {
+			WLinkData *next = x->next;
+			x->next = 0;
+			x->prev = 0;
+			x = next;
+		}
+		this->first = 0;
+		this->count = 0;
+	}
+	void DeleteAll() {
+		for (WLinkData *x = first; x != 0;) {
+			WLinkData *next = x->next;
+			delete x;
+			x = next;
+		}
+		this->first = 0;
+		this->count = 0;
+	}
+	void AddLast(WLinkData *link) {
+		link->LinkLast(first);
+		count++;
+	}
+	void AddLast(const T &o) {
+		WLinkData *link = new WLinkData(o);
+		link->LinkLast(first);
+		count++;
+	}
+	void Add(WLinkData *link) {
+		AddLast(link);
+	}
+	void Add(const T &o) {
+		AddLast(o);
+	}
+	void Add(int index, WLinkData *link) {
+		T *before = Get(index);
+		AddBefore(link, before);
+	}
+	void Add(int index, const T &o) {
+		WLinkData *link = new WLinkData(o);
+		Add(index, link);
+	}
+	void AddFirst(WLinkData *link) {
+		link->LinkFirst(first);
+		count++;
+	}
+	void AddFirst(const T &o) {
+		WLinkData *link = new WLinkData(o);
+		AddFirst(link);
+	}
+	void AddBefore(WLinkData *link, WLinkData *succ) {
+		link->LinkBefore(succ, first);
+		count++;
+	}
+	void AddBefore(const T &o, WLinkData *succ) {
+		WLinkData *link = new WLinkData(o);
+		AddBefore(link, succ);
+	}
+	void AddAfter(WLinkData *link, WLinkData *succ) {
+		link->LinkAfter(succ, first);
+		count++;
+	}
+	void AddAfter(const T &o, WLinkData *succ) {
+		WLinkData *link = new WLinkData(o);
+		AddAfter(link, succ);
+	}
+	WLinkData* Next(WLinkData *link) {
+		return link->next;
+	}
+	WLinkData* Prev(WLinkData *link) {
+		if (link == this->first)
+			return 0;
+		else
+			return link->prev;
+	}
+	void Remove(WLinkData *link) {
+		link->Unlink(first);
+		count--;
+	}
+	void Remove(int index) {
+		WLinkData *link = GetLink(index);
+		Remove(link);
+	}
+	size_t ToArray(T *array, size_t size) {
+		int i = 0;
+		size_t retSize = this->count > size ? size : this->count;
+		for (T *x = first; retSize; x = x->next)
+			array[i++] = x->data;
+		return retSize;
 	}
 };
 template<typename T>

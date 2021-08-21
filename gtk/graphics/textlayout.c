@@ -43,9 +43,11 @@ wresult w_textlayout_check(w_textlayout *textlayout) {
 }
 int _w_textlayout_translate_offset(w_textlayout *textlayout, int offset) {
 	_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
+	if (_layout->is_ascii)
+		return offset;
 	PangoLayout *layout = _layout->layout;
 	const char *ptr = pango_layout_get_text(layout);
-	int length = strlen(ptr);
+	int length = _layout->text_length;
 	if (offset < 0 || offset > length)
 		offset = length;
 	if (offset < length) {
@@ -59,13 +61,14 @@ int _w_textlayout_translate_offset(w_textlayout *textlayout, int offset) {
  *  Translate an internal offset to a client offset
  */
 int _w_textlayout_untranslate_offset(w_textlayout *textlayout, int offset) {
-	/*int length = text.length();
-	 if (length == 0)
-	 return offset;
-	 if (invalidOffsets == null)
-	 return offset;
-	 int i = 0;
-	 while (i < invalidOffsets.length && offset > invalidOffsets[i]) {
+	_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
+	if (_layout->is_ascii)
+		return offset;
+	int length = _layout->text_length;
+	if (length == 0)
+		return offset;
+	int i = 0;
+	/*while (i < invalidOffsets.length && offset > ptr[i]) {
 	 i++;
 	 }*/
 	return offset /*- i*/;
@@ -109,203 +112,31 @@ int _w_textlayout_width(w_textlayout *textlayout) {
 	}
 	return 0;
 }
-// Bug 477950: In order to support GTK2 and GTK3 colors simultaneously, this method's parameters
-// were modified to accept SWT Color objects instead of GdkColor structs.
-void _w_textlayout_draw_with_cairo(w_textlayout *textlayout, w_graphics *gc,
-		int x, int y, int start, int end, int fullSelection, w_color fg,
-		w_color bg) {
-	_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-	cairo_t *cairo = _W_GRAPHICS(gc)->cairo;
-	PangoLayout *layout = _layout->layout;
-	cairo_save(cairo);
-	if (!fullSelection) {
-		cairo_move_to(cairo, x, y);
-		pango_cairo_show_layout(cairo, layout);
-	}
-	int ranges[] = { start, end };
-	cairo_region_t *rgn = gdk_pango_layout_get_clip_region(layout, x, y, ranges,
-			1);
-	if (rgn != 0) {
-		gdk_cairo_region(cairo, rgn);
-		cairo_clip(cairo);
-#if GTK3
-		cairo_set_source_rgba(cairo, W_RED(bg), W_GREEN(bg), W_BLUE(bg),
-				W_ALPHA(bg));
-#else
-			cairo_set_source_rgba(cairo, (bg.handle.red & 0xFFFF) / (float)0xFFFF, (bg.handle.green & 0xFFFF) / (float)0xFFFF, (bg.handle.blue & 0xFFFF) / (float)0xFFFF, data.alpha / (float)0xFF);
-#endif
-		cairo_paint(cairo);
-		cairo_region_destroy(rgn);
-	}
-#if GTK3
-	cairo_set_source_rgba(cairo, W_RED(fg), W_GREEN(fg), W_BLUE(fg),
-			W_ALPHA(fg));
-#else
-		Cairo.cairo_set_source_rgba(cairo, (fg.handle.red & 0xFFFF) / (float)0xFFFF, (fg.handle.green & 0xFFFF) / (float)0xFFFF, (fg.handle.blue & 0xFFFF) / (float)0xFFFF, data.alpha / (float)0xFF);
-#endif
-	cairo_move_to(cairo, x, y);
-	PangoAttrList *attrList = pango_layout_get_attributes(layout);
-	pango_layout_set_attributes(layout, _layout->selAttrList);
-	pango_cairo_show_layout(cairo, layout);
-	pango_layout_set_attributes(layout, attrList);
-	cairo_restore(cairo);
-}
-wresult w_textlayout_draw(w_textlayout *textlayout, w_graphics *gc, int x,
-		int y, w_text_selection *selection, int flags) {
+wresult w_textlayout_draw(w_textlayout *textlayout, w_graphics *gc,
+		w_rect *rect) {
 	if (gc == 0)
 		return W_ERROR_NULL_ARGUMENT;
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
+		int x = rect->x;
+		int y = rect->y;
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
 		PangoLayout *layout = _layout->layout;
 		_w_graphics_check(gc, GRAPHICS_STATE_FOREGROUND);
 		int length = pango_layout_get_character_count(layout);
 		x += MIN(_layout->indent, _layout->wrapIndent);
-		int selectionStart = 0;
-		int selectionEnd = 0;
-		w_color selectionForeground = 0;
-		w_color selectionBackground = 0;
-		if (selection != 0) {
-			selectionStart = selection->start;
-			selectionEnd = selection->end;
-			selectionForeground = selection->foreground;
-			selectionBackground = selection->background;
-		}
-		wresult hasSelection = selectionStart <= selectionEnd
-				&& selectionStart != -1 && selectionEnd != -1;
 		cairo_t *cairo = _W_GRAPHICS(gc)->cairo;
-		if ((flags & (W_FULL_SELECTION | W_DELIMITER_SELECTION)) != 0
-				&& (hasSelection || (flags & W_LAST_LINE_SELECTION) != 0)) {
-			int nAttrs;
-			PangoLogAttr *attrs = 0;
-			PangoRectangle rect;
-			int lineCount = pango_layout_get_line_count(layout);
-			const char *ptr = pango_layout_get_text(layout);
-			PangoLayoutIter *iter = pango_layout_get_iter(layout);
-			if (selectionBackground == 0) {
-				selectionBackground = w_toolkit_get_system_color(0,
-						W_COLOR_LIST_SELECTION);
-			}
-			cairo_save(cairo);
-#if GTK3
-			cairo_set_source_rgba(cairo, W_RED(selectionBackground),
-					W_GREEN(selectionBackground), W_BLUE(selectionBackground),
-					W_ALPHA(selectionBackground));
-#endif
-			int lineIndex = 0;
-			do {
-				int lineEnd;
-				pango_layout_iter_get_line_extents(iter, NULL, &rect);
-				if (pango_layout_iter_next_line(iter)) {
-					int bytePos = pango_layout_iter_get_index(iter);
-					//lineEnd = g_utf16_pointer_to_offset(ptr, ptr + bytePos);
-				} else {
-					//lineEnd = g_utf16_strlen(ptr, -1);
-				}
-				int extent = FALSE;
-				if (lineIndex == lineCount - 1
-						&& (flags & W_LAST_LINE_SELECTION) != 0) {
-					extent = TRUE;
-				} else {
-					if (attrs == 0)
-						pango_layout_get_log_attrs(layout, &attrs, &nAttrs);
-					if (!attrs->is_line_break) {
-						if (selectionStart <= lineEnd
-								&& lineEnd <= selectionEnd)
-							extent = TRUE;
-					} else {
-						if (selectionStart <= lineEnd && lineEnd < selectionEnd
-								&& (flags & W_FULL_SELECTION) != 0) {
-							extent = TRUE;
-						}
-					}
-				}
-				if (extent) {
-					int lineX = x
-							+ PANGO_PIXELS(rect.x) + PANGO_PIXELS(rect.width);
-					int lineY = y + PANGO_PIXELS(rect.y);
-					int height = PANGO_PIXELS(rect.height);
-					if (_layout->ascentInPoints != -1
-							&& _layout->descentInPoints != -1) {
-						height = MAX(height,
-								_layout->ascentInPoints
-										+ _layout->descentInPoints);
-					}
-					int width =
-							(flags & W_FULL_SELECTION) != 0 ?
-									0x7fff : height / 3;
-					cairo_rectangle(cairo, lineX, lineY, width, height);
-					cairo_fill(cairo);
-				}
-				lineIndex++;
-			} while (lineIndex < lineCount);
-			pango_layout_iter_free(iter);
-			if (attrs != 0)
-				g_free(attrs);
-			cairo_restore(cairo);
-		}
 		if (length == 0)
 			return W_FALSE;
-		if (!hasSelection) {
-			if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
-				cairo_save(cairo);
-				cairo_scale(cairo, -1, 1);
-				cairo_translate(cairo, -2 * x - _w_textlayout_width(textlayout),
-						0);
-			}
-			cairo_move_to(cairo, x, y);
-			pango_cairo_show_layout(cairo, layout);
-			if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
-				cairo_restore(cairo);
-			}
-		} else {
-			selectionStart = WMIN(WMAX(0, selectionStart), length - 1);
-			selectionEnd = WMIN(WMAX(0, selectionEnd), length - 1);
-			length = g_utf8_strlen(pango_layout_get_text(layout), -1);
-			//selectionStart = translateOffset(selectionStart);
-			//selectionEnd = translateOffset(selectionEnd);
-			if (selectionForeground == 0)
-				selectionForeground = w_toolkit_get_system_color(0,
-						W_COLOR_LIST_SELECTION_TEXT);
-			if (selectionBackground == 0)
-				selectionBackground = w_toolkit_get_system_color(0,
-						W_COLOR_LIST_SELECTION);
-			int fullSelection = selectionStart == 0
-					&& selectionEnd == length - 1;
-			if (fullSelection) {
-				const char *ptr = pango_layout_get_text(layout);
-				if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
-					cairo_save(cairo);
-					cairo_scale(cairo, -1, 1);
-					cairo_translate(cairo,
-							-2 * x - _w_textlayout_width(textlayout), 0);
-				}
-				_w_textlayout_draw_with_cairo(textlayout, gc, x, y, 0,
-						strlen(ptr), fullSelection, selectionForeground,
-						selectionBackground);
-				if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
-					cairo_restore(cairo);
-				}
-			} else {
-				const char *ptr = pango_layout_get_text(layout);
-				int _strlen = strlen(ptr);
-				int byteSelStart = 0; //(g_utf16_offset_to_pointer(ptr, selectionStart) - ptr);
-				int byteSelEnd = _strlen; //(g_utf16_offset_to_pointer(ptr, selectionEnd + 1) - ptr);
-				byteSelStart = WMIN(byteSelStart, _strlen);
-				byteSelEnd = WMIN(byteSelEnd, _strlen);
-				if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
-					cairo_save(cairo);
-					cairo_scale(cairo, -1, 1);
-					cairo_translate(cairo,
-							-2 * x - _w_textlayout_width(textlayout), 0);
-				}
-				_w_textlayout_draw_with_cairo(textlayout, gc, x, y,
-						byteSelStart, byteSelEnd, fullSelection,
-						selectionForeground, selectionBackground);
-				if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
-					cairo_restore(cairo);
-				}
-			}
+		if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
+			cairo_save(cairo);
+			cairo_scale(cairo, -1, 1);
+			cairo_translate(cairo, -2 * x - _w_textlayout_width(textlayout), 0);
+		}
+		cairo_move_to(cairo, x, y);
+		pango_cairo_show_layout(cairo, layout);
+		if ((_W_GRAPHICS(gc)->state & GRAPHICS_STATE_MIRRORED) != 0) {
+			cairo_restore(cairo);
 		}
 		cairo_new_path(cairo);
 	}
@@ -350,27 +181,98 @@ void w_textlayout_get_bounds(w_textlayout *textlayout, int start, int end,
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
 		PangoLayout *layout = _layout->layout;
-		int w, h;
-		pango_layout_get_size(layout, &w, &h);
-		int wrapWidth = pango_layout_get_width(layout);
-		w = wrapWidth != -1 ? wrapWidth : w + pango_layout_get_indent(layout);
-		int width = PANGO_PIXELS(w);
-		int height = PANGO_PIXELS(h);
-		if (_layout->ascentInPoints != -1 && _layout->descentInPoints != -1) {
-			height = WMAX(height,
-					_layout->ascentInPoints + _layout->descentInPoints);
+		int length = pango_layout_get_character_count(layout);
+		if (length == 0) {
+			memset(rect, 0, sizeof(w_rect));
+			return;
 		}
-		height += PANGO_PIXELS(pango_layout_get_spacing(layout));
-		/*int lineCount = pango_layout_get_line_count(layout);
-		 int totalLineheight = 0;
-		 for (int i = 0; i < lineCount; i++) {
-		 totalLineheight += this.getLineBounds(i).height;
-		 }
-		 height = totalLineheight;*/
-		rect->x = 0;
-		rect->y = 0;
-		rect->width = width;
-		rect->height = height;
+		if (start > end) {
+			memset(rect, 0, sizeof(w_rect));
+			return;
+		}
+		start = WMIN(WMAX(0, start), length - 1);
+		end = WMIN(WMAX(0, end), length - 1);
+		const char *ptr = pango_layout_get_text(layout);
+		int byteStart;
+		int byteEnd;
+		int strlen = _layout->text_length;
+		if (_layout->is_ascii) {
+			byteStart = start;
+			byteEnd = end + 1;
+		} else {
+			byteStart = start;
+			byteEnd = end;
+			//byteStart = g_utf16_offset_to_pointer (ptr, start) - ptr;
+			//byteEnd = g_utf16_offset_to_pointer (ptr, end + 1) - ptr;
+		}
+		byteStart = WMIN(byteStart, strlen);
+		byteEnd = WMIN(byteEnd, strlen);
+		gint ranges[2] = { byteStart, byteEnd };
+		cairo_region_t *clipRegion = gdk_pango_layout_get_clip_region(layout, 0,
+				0, ranges, 1);
+		if (clipRegion == 0) {
+			memset(rect, 0, sizeof(w_rect));
+			return;
+		}
+		GdkRectangle _rect;
+
+		/*
+		 * Bug in Pango. The region returned by gdk_pango_layout_get_clip_region()
+		 * includes areas from lines outside of the requested range.  The fix
+		 * is to subtract these areas from the clip region.
+		 */
+		PangoRectangle pangoRect;
+		PangoLayoutIter *iter = pango_layout_get_iter(layout);
+		if (iter == 0) {
+			memset(rect, 0, sizeof(w_rect));
+			return /*W_ERROR_NO_HANDLES*/;
+		}
+		cairo_region_t *linesRegion = cairo_region_create();
+		if (linesRegion == 0) {
+			pango_layout_iter_free(iter);
+			memset(rect, 0, sizeof(w_rect));
+			return /*W_ERROR_NO_HANDLES*/;
+		}
+		int lineEnd = 0;
+		do {
+			pango_layout_iter_get_line_extents(iter, 0, &pangoRect);
+			if (pango_layout_iter_next_line(iter)) {
+				lineEnd = pango_layout_iter_get_index(iter) - 1;
+			} else {
+				lineEnd = strlen;
+			}
+			if (byteStart > lineEnd)
+				continue;
+			_rect.x = PANGO_PIXELS(pangoRect.x);
+			_rect.y = PANGO_PIXELS(pangoRect.y);
+			_rect.width = PANGO_PIXELS(pangoRect.width);
+			_rect.height = PANGO_PIXELS(pangoRect.height);
+			cairo_region_union_rectangle(linesRegion, &_rect);
+		} while (lineEnd + 1 <= byteEnd);
+		cairo_region_intersect(clipRegion, linesRegion);
+		cairo_region_destroy(linesRegion);
+		pango_layout_iter_free(iter);
+
+		cairo_region_get_extents(clipRegion, &_rect);
+		cairo_region_destroy(clipRegion);
+		PangoContext *context = pango_layout_get_context(layout);
+		if (pango_context_get_base_dir(context) == PANGO_DIRECTION_RTL) {
+			int w, h;
+			int wrapWidth = pango_layout_get_width(layout);
+			if (wrapWidth != -1) {
+				w = PANGO_PIXELS(wrapWidth);
+			} else {
+				w = 0, h = 0;
+				pango_layout_get_pixel_size(layout, &w, &h);
+			}
+			_rect.x = w - _rect.x - _rect.width;
+		}
+		_rect.x += WMIN(_layout->indent, _layout->wrapIndent);
+		rect->x = _rect.x;
+		rect->y = _rect.y;
+		rect->width = _rect.width;
+		rect->height = _rect.height;
+		return;
 	}
 }
 int w_textlayout_get_descent(w_textlayout *textlayout) {
@@ -401,7 +303,8 @@ wresult w_textlayout_get_justify(w_textlayout *textlayout) {
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-
+		PangoLayout *layout = _layout->layout;
+		return pango_layout_get_justify(layout);
 	}
 	return result;
 }
@@ -409,23 +312,97 @@ int w_textlayout_get_level(w_textlayout *textlayout, int offset, int enc) {
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
+		PangoLayout *layout = _layout->layout;
+		int length = pango_layout_get_character_count(layout);
+		if (!(0 <= offset && offset <= length)) {
+			//return W_ERROR_INVALID_RANGE;
+			return 0;
+		}
+		PangoLayoutIter *iter = pango_layout_get_iter(layout);
+		if (iter == 0) {
+			//return W_ERROR_NO_HANDLES;
+			return 0;
+		}
+		int level = 0;
+		PangoItem *item;
+		const char *ptr = pango_layout_get_text(layout);
+		int strlen = _layout->text_length;
+		int byteOffset;
+		if (_layout->is_ascii) {
+			byteOffset = offset;
+		} else {
+			//offset = translateOffset(offset);
+			//byteOffset = OS.g_utf16_offset_to_pointer(ptr, offset) - ptr;
+			byteOffset = offset;
+		}
+		byteOffset = WMIN(byteOffset, strlen);
+		do {
+			PangoLayoutRun *run = pango_layout_iter_get_run(iter);
+			if (run != 0) {
+				item = run->item;
+				if (item->offset <= byteOffset
+						&& byteOffset < item->offset + item->length) {
+					level = item->analysis.level;
+					break;
+				}
+			}
+		} while (pango_layout_iter_next_run(iter));
+		pango_layout_iter_free(iter);
+		return level;
 
 	}
 	return result;
 }
 void w_textlayout_get_line_bounds(w_textlayout *textlayout, int lineIndex,
-		w_rect *rect) {
+		w_rect *_rect) {
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-
+		PangoLayout *layout = _layout->layout;
+		int lineCount = pango_layout_get_line_count(layout);
+		if (!(0 <= lineIndex && lineIndex < lineCount))
+			return /*W_ERROR_INVALID_RANGE*/;
+		PangoLayoutIter *iter = pango_layout_get_iter(layout);
+		if (iter == 0)
+			return /*W_ERROR_NO_HANDLES*/;
+		for (int i = 0; i < lineIndex; i++)
+			pango_layout_iter_next_line(iter);
+		PangoRectangle rect;
+		pango_layout_iter_get_line_extents(iter, 0, &rect);
+		pango_layout_iter_free(iter);
+		int x = PANGO_PIXELS(rect.x);
+		int y = PANGO_PIXELS(rect.y);
+		int width = PANGO_PIXELS(rect.width);
+		int height = PANGO_PIXELS(rect.height);
+		if (_layout->ascentInPoints != -1 && _layout->descentInPoints != -1) {
+			height = WMAX(height,
+					_layout->ascentInPoints + _layout->descentInPoints);
+		}
+		PangoContext *context = pango_layout_get_context(layout);
+		if (pango_context_get_base_dir(context) == PANGO_DIRECTION_RTL) {
+			int w, h;
+			int wrapWidth = pango_layout_get_width(layout);
+			if (wrapWidth != -1) {
+				w = PANGO_PIXELS(wrapWidth);
+			} else {
+				w = 0, h = 0;
+				pango_layout_get_pixel_size(layout, &w, &h);
+			}
+			x = w - x - width;
+		}
+		x += WMIN(_layout->indent, _layout->wrapIndent);
+		_rect->x = x;
+		_rect->y = y;
+		_rect->width = width;
+		_rect->height = height;
 	}
 }
 int w_textlayout_get_line_count(w_textlayout *textlayout) {
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-
+		PangoLayout *layout = _layout->layout;
+		return pango_layout_get_line_count(layout);
 	}
 	return result;
 }
@@ -433,7 +410,34 @@ int w_textlayout_get_line_index(w_textlayout *textlayout, int offset, int enc) {
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-
+		PangoLayout *layout = _layout->layout;
+		int length = pango_layout_get_character_count(layout);
+		if (!(0 <= offset && offset <= length)) {
+			return W_ERROR_INVALID_ARGUMENT;
+		}
+		int line = 0;
+		const char *ptr = pango_layout_get_text(layout);
+		int byteOffset;
+		if (_layout->is_ascii) {
+			byteOffset = offset;
+		} else {
+			//offset = translateOffset(offset);
+			//byteOffset = g_utf16_offset_to_pointer(ptr,offset) - ptr;
+			byteOffset = offset;
+		}
+		int strlen = _layout->text_length;
+		byteOffset = WMIN(byteOffset, strlen);
+		PangoLayoutIter *iter = pango_layout_get_iter(layout);
+		if (iter == 0) {
+			return W_ERROR_NO_HANDLES;
+		}
+		while (pango_layout_iter_next_line(iter)) {
+			if (pango_layout_iter_get_index(iter) > byteOffset)
+				break;
+			line++;
+		}
+		pango_layout_iter_free(iter);
+		return line;
 	}
 	return result;
 }
@@ -442,7 +446,45 @@ wresult w_textlayout_get_line_metrics(w_textlayout *textlayout, int lineIndex,
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-
+		PangoLayout *layout = _layout->layout;
+		PangoLayoutLine *line = pango_layout_get_line(layout, lineIndex);
+		if (line == 0)
+			return W_ERROR_INVALID_RANGE;
+		int heightInPoints;
+		int ascentInPoints;
+		if (line->runs == 0) {
+			PangoFontDescription *font;
+			if (_layout->font != 0) {
+				font = (PangoFontDescription*) _layout->font;
+			} else {
+				font = (PangoFontDescription*) w_toolkit_get_system_font(0);
+			}
+			PangoContext *context = pango_layout_get_context(layout);
+			PangoLanguage *lang = pango_context_get_language(context);
+			PangoFontMetrics *metrics = pango_context_get_metrics(context, font,
+					lang);
+			int ascent = pango_font_metrics_get_ascent(metrics);
+			int descent = pango_font_metrics_get_descent(metrics);
+			ascentInPoints = PANGO_PIXELS(ascent);
+			heightInPoints = PANGO_PIXELS(ascent + descent);
+			pango_font_metrics_unref(metrics);
+		} else {
+			PangoRectangle rect;
+			pango_layout_line_get_extents(
+					pango_layout_get_line(layout, lineIndex), 0, &rect);
+			ascentInPoints = PANGO_PIXELS(-rect.y);
+			heightInPoints = PANGO_PIXELS(rect.height);
+		}
+		heightInPoints = WMAX(
+				_layout->ascentInPoints + _layout->descentInPoints,
+				heightInPoints);
+		ascentInPoints = WMAX(_layout->ascentInPoints, ascentInPoints);
+		int descentInPoints = heightInPoints - ascentInPoints;
+		_w_fontmetrics *_metrics = (_w_fontmetrics*) fontmetrics;
+		_metrics->ascentInPoints = ascentInPoints;
+		_metrics->descentInPoints = descentInPoints;
+		_metrics->averageCharWidthInPoints = 0;
+		return W_TRUE;
 	}
 	return result;
 }
@@ -451,7 +493,19 @@ int w_textlayout_get_line_offset(w_textlayout *textlayout, int lineIndex,
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-
+		PangoLayout *layout = _layout->layout;
+		int lineCount = pango_layout_get_line_count(layout);
+		const char *ptr = pango_layout_get_text(layout);
+		PangoLayoutLine *line = pango_layout_get_line(layout, lineIndex);
+		if (line == 0)
+			return W_ERROR_INVALID_RANGE;
+		if (_layout->is_ascii) {
+			return line->start_index;
+		} else {
+			//int pos = g_utf16_pointer_to_offset(ptr, ptr + line.start_index);
+			//offsets = untranslateOffset(pos);
+			return line->start_index;
+		}
 	}
 	return result;
 }
@@ -460,7 +514,45 @@ wresult w_textlayout_get_location(w_textlayout *textlayout, int offset,
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
+		PangoLayout *layout = _layout->layout;
+		int length = pango_layout_get_character_count(layout);
+		if (!(0 <= offset && offset <= length)) {
+			return W_ERROR_INVALID_RANGE;
+		}
 
+		const char *ptr = pango_layout_get_text(layout);
+		int byteOffset;
+		if (_layout->is_ascii) {
+			byteOffset = offset;
+		} else {
+			//offset = translateOffset(offset);
+			//byteOffset =g_utf16_offset_to_pointer(ptr, offset) - ptr;
+			byteOffset = offset;
+		}
+
+		int strlen = _layout->text_length;
+		byteOffset = WMIN(byteOffset, strlen);
+		PangoRectangle pos;
+		pango_layout_index_to_pos(layout, byteOffset, &pos);
+		int x = trailing ? pos.x + pos.width : pos.x;
+		int y = pos.y;
+		x = PANGO_PIXELS(x);
+		PangoContext *context = pango_layout_get_context(layout);
+		if (pango_context_get_base_dir(context) == PANGO_DIRECTION_RTL) {
+			int w, h;
+			int wrapWidth = pango_layout_get_width(layout);
+			if (wrapWidth != -1) {
+				w = PANGO_PIXELS(wrapWidth);
+			} else {
+				w = 0, h = 0;
+				pango_layout_get_pixel_size(layout, &w, &h);
+			}
+			x = w - x;
+		}
+		x += WMIN(_layout->indent, _layout->wrapIndent);
+		pt->x = x;
+		pt->y = PANGO_PIXELS(y);
+		return W_TRUE;
 	}
 	return result;
 }
@@ -486,7 +578,12 @@ int w_textlayout_get_orientation(w_textlayout *textlayout) {
 	wresult result = w_textlayout_check(textlayout);
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
-
+		PangoLayout *layout = _layout->layout;
+		;
+		PangoContext *context = pango_layout_get_context(layout);
+		int baseDir = pango_context_get_base_dir(context);
+		return baseDir == PANGO_DIRECTION_RTL ?
+				W_RIGHT_TO_LEFT : W_LEFT_TO_RIGHT;
 	}
 	return result;
 }
@@ -740,9 +837,9 @@ wresult w_textlayout_set_font(w_textlayout *textlayout, w_font *font) {
 			return W_TRUE;
 		PangoFontDescription *_font;
 		if (font == 0) {
-			_font = w_toolkit_get_system_font(0);
+			_font = (PangoFontDescription*) w_toolkit_get_system_font(0);
 		} else {
-			_font = font;
+			_font = (PangoFontDescription*) font;
 		}
 		pango_layout_set_font_description(layout,
 				(PangoFontDescription*) _font);
@@ -831,10 +928,8 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 	PangoAttrList *attrList = pango_layout_get_attributes(_layout->layout);
 	if (attrList == 0) {
 		attrList = pango_attr_list_new();
-		_layout->selAttrList = pango_attr_list_new();
 		pango_layout_set_attributes(_layout->layout, attrList);
 	}
-	PangoAttrList *selAttrList = _layout->selAttrList;
 	w_font *font = style->font;
 	if ((style->flags & W_TEXTSTYLE_MASK_FONT) != 0 && font != 0
 			&& font != _layout->font) {
@@ -843,7 +938,6 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 		attr->start_index = byteStart;
 		attr->end_index = byteEnd;
 		pango_attr_list_insert(attrList, attr);
-		pango_attr_list_insert(selAttrList, attr);
 	}
 	if ((style->flags & W_TEXTSTYLE_MASK_UNDERLINE) != 0 && style->underline) {
 		PangoUnderline underlineStyle = PANGO_UNDERLINE_NONE;
@@ -884,7 +978,6 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 		attr->start_index = byteStart;
 		attr->end_index = byteEnd;
 		pango_attr_list_insert(attrList, attr);
-		pango_attr_list_insert(selAttrList, pango_attribute_copy(attr));
 		if (style->underlineColor != 0) {
 #if GTK3
 			attr = pango_attr_underline_color_new(
@@ -898,7 +991,6 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 				attr->start_index = byteStart;
 				attr->end_index = byteEnd;
 				pango_attr_list_insert(attrList, attr);
-				pango_attr_list_insert(selAttrList, pango_attribute_copy(attr));
 			}
 		}
 	}
@@ -907,7 +999,6 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 		attr->start_index = byteStart;
 		attr->end_index = byteEnd;
 		pango_attr_list_insert(attrList, attr);
-		pango_attr_list_insert(selAttrList, pango_attribute_copy(attr));
 		if (style->strikeoutColor != 0) {
 #if GTK3
 			attr = pango_attr_strikethrough_color_new(
@@ -921,7 +1012,6 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 				attr->start_index = byteStart;
 				attr->end_index = byteEnd;
 				pango_attr_list_insert(attrList, attr);
-				pango_attr_list_insert(selAttrList, pango_attribute_copy(attr));
 			}
 		}
 	}
@@ -967,7 +1057,6 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 		attr->start_index = byteStart;
 		attr->end_index = byteEnd;
 		pango_attr_list_insert(attrList, attr);
-		pango_attr_list_insert(selAttrList, pango_attribute_copy(attr));
 	}
 	int rise = style->rise;
 	if ((style->flags & W_TEXTSTYLE_MASK_RISE) != 0 && rise != 0) {
@@ -975,7 +1064,6 @@ wresult w_textlayout_set_style_0(w_textlayout *textlayout, w_textstyle *style,
 		attr->start_index = byteStart;
 		attr->end_index = byteEnd;
 		pango_attr_list_insert(attrList, attr);
-		pango_attr_list_insert(selAttrList, pango_attribute_copy(attr));
 	}
 	return W_TRUE;
 }
@@ -1025,8 +1113,32 @@ wresult w_textlayout_set_text(w_textlayout *textlayout, const char *text,
 	if (result > 0) {
 		_w_textlayout *_layout = _W_TEXTLAYOUT(textlayout);
 		PangoLayout *layout = _layout->layout;
-		if (count < 0)
+		_layout->is_ascii = W_TRUE;
+		if (count < 0) {
 			count = -1;
+			const unsigned char *s = (const unsigned char*) text;
+			while (*s != 0) {
+				if (*s > 0x7f) {
+					_layout->is_ascii = W_FALSE;
+					break;
+				}
+				s++;
+			}
+			while (*s != 0)
+				s++;
+			_layout->text_length = (intptr_t) s - (intptr_t) text;
+		} else {
+			const unsigned char *s = (const unsigned char*) text;
+			int i = 0;
+			while (i < count) {
+				if (s[i] > 0x7f) {
+					_layout->is_ascii = W_FALSE;
+					break;
+				}
+				i++;
+			}
+			_layout->text_length = count;
+		}
 		pango_layout_set_text(layout, text, count);
 	}
 	return result;
