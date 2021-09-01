@@ -109,7 +109,7 @@ void* w_array_add(w_array **array, int index, int element_size, int *newIndex) {
 		}
 	}
 	_array->count = count + 1;
-	if (*newIndex != 0)
+	if (newIndex != 0)
 		*newIndex = _newIndex;
 	void *element = &_array->data[_newIndex * element_size];
 	memset(element, 0, element_size);

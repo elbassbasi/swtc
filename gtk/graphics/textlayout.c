@@ -186,6 +186,8 @@ void w_textlayout_get_bounds(w_textlayout *textlayout, int start, int end,
 			memset(rect, 0, sizeof(w_rect));
 			return;
 		}
+		if (end < 0)
+			end = length - 1;
 		if (start > end) {
 			memset(rect, 0, sizeof(w_rect));
 			return;

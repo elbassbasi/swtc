@@ -894,11 +894,12 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	event.event.type = W_EVENT_ITEM_GET_TEXT;
 	event.event.widget = widget;
 	event.column = W_COLUMNITEM(column);
-	event.item = W_ITEM(item);
+	event.item = W_LISTITEM(item);
 	event.rect = 0;
 	event.gc = 0;
 	event.textattr = &attr;
 	memset(&attr, 0, sizeof(attr));
+	event.detail = W_ITEM_ATTR_MASK_ALL_NO_TEXT;
 	int ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (!ret) {
 		memset(&attr, 0, sizeof(attr));
@@ -1005,7 +1006,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			event.event.type = W_EVENT_ITEM_ERASE;
 			event.event.widget = widget;
 			event.column = W_COLUMNITEM(column);
-			event.item = W_ITEM(item);
+			event.item = W_LISTITEM(item);
 			event.rect = &rect;
 			event.gc = W_GRAPHICS(&gc);
 			event.detail = _list->drawState;
@@ -1085,18 +1086,28 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			}
 			if (text == 0) {
 				memset(&event, 0, sizeof(event));
+				_gtk_toolkit_alloc alloc;
+				alloc.text = 0;
+				alloc.size = 0;
+				attr.alloc = _gtk_toolkit_alloc_fn;
+				attr.user_data = &alloc;
+				attr.enc = W_ENCODING_UTF8;
 				event.event.type = W_EVENT_ITEM_GET_TEXT;
 				event.event.widget = widget;
 				event.column = W_COLUMNITEM(column);
-				event.item = W_ITEM(item);
+				event.item = W_LISTITEM(item);
 				event.rect = 0;
 				event.gc = 0;
 				event.textattr = &attr;
 				int ret = _w_widget_send_event(widget, (w_event*) &event,
 						W_EVENT_SEND);
+				text = alloc.text;
 				if (text == 0)
 					text = "";
 				g_object_set(cell, "text", text, NULL);
+				if(alloc.text != 0){
+					_w_toolkit_free(alloc.text, alloc.size);
+				}
 			} else {
 				g_object_set(cell, "text", text, NULL);
 			}
@@ -1199,7 +1210,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 			event.event.type = W_EVENT_ITEM_PAINT;
 			event.event.widget = widget;
 			event.column = W_COLUMNITEM(column);
-			event.item = W_ITEM(item);
+			event.item = W_LISTITEM(item);
 			event.gc = W_GRAPHICS(&gc);
 			event.rect = &rect;
 			if (attr.font != 0) {
@@ -1261,7 +1272,7 @@ void _w_listviewbase_renderer_get_preferred_width(w_widget *widget,
 		event.event.type = W_EVENT_ITEM_MEASURE;
 		event.event.widget = widget;
 		event.column = W_COLUMNITEM(&cell->column);
-		event.item = W_ITEM(&cell->listitem);
+		event.item = W_LISTITEM(&cell->listitem);
 		event.rect = &rect;
 		event.gc = &gc;
 		int ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);

@@ -104,16 +104,16 @@ public:
 		w_link_linklast((w_link*) this, (w_link**) &first);
 	}
 	void LinkBefore(T *succ, T *&first) {
-		w_link_linkbefore((w_link*) this, (w_link*)succ, (w_link**) &first);
+		w_link_linkbefore((w_link*) this, (w_link*) succ, (w_link**) &first);
 	}
 	void LinkAfter(T *succ, T *&first) {
-		w_link_linkafter((w_link*) this, (w_link*)succ, (w_link**) &first);
+		w_link_linkafter((w_link*) this, (w_link*) succ, (w_link**) &first);
 	}
 	void Unlink(T *&first) {
 		w_link_unlink((w_link*) this, (w_link**) &first);
 	}
 	void Replace(T *oldElement, T *&first) {
-		w_link_replace((w_link*) this, (w_link*)oldElement, (w_link**) &first);
+		w_link_replace((w_link*) this, (w_link*) oldElement, (w_link**) &first);
 	}
 	void Replace1(T *newelement, WLink<T> *oldlink, T *oldElement, T *&first) {
 		w_link_replace_1((w_link_0*) this, newelement, (w_link_0*) oldlink,
@@ -394,26 +394,44 @@ public:
 	int GetCount() {
 		return GetCount((T**) 0);
 	}
-	T* Get(int index) {
+	T* Get0(int index) {
 		return (T*) w_array_get(array, index, sizeof(T));
 	}
-	T* Set(int index) {
+	T& Get(int index) {
+		return *Get0(index);
+	}
+	void Set(int index, const T &e) {
+		T *_e = Get0(index);
+		*_e = e;
+	}
+	T* SetAt(int index) {
 		return (T*) w_array_set(&array, index, sizeof(T));
 	}
 	int Alloc(int newalloc) {
 		return w_array_alloc(&array, newalloc, sizeof(T));
 	}
-	T* Add(int index, int *newIndex) {
+	T* Add0(int index, int *newIndex) {
 		return (T*) w_array_add(&array, index, sizeof(T), newIndex);
 	}
-	T* Add(int *newIndex) {
-		return Add(-1, newIndex);
+	T* Add0(int *newIndex) {
+		return Add0(-1, newIndex);
 	}
-	T* Add(int index) {
-		return Add(index, 0);
+	T* Add0(int index) {
+		return Add0(index, 0);
 	}
-	T* Add() {
-		return Add(-1, 0);
+	T* Add0() {
+		return Add0(-1, 0);
+	}
+	int Add(int index, const T &e) {
+		int newIndex;
+		T *_e = Add0(index, &newIndex);
+		if (_e != 0) {
+			*_e = e;
+		}
+		return newIndex;
+	}
+	int Add(const T &e) {
+		return Add(-1, e);
 	}
 	void Remove(int index) {
 		w_array_remove(array, index, sizeof(T),
@@ -435,31 +453,8 @@ public:
 	}
 };
 template<typename T>
-class WNode: public WLink<T> {
+class WNode: public WLink<T>, public WListHead<T> {
 public:
-	T *firstElement;
-	size_t count;
-public:
-	T* GetFirst() {
-		return this->firstElement;
-	}
-	T* GetLast(WLink<T> *first) {
-		if (this->firstElement == 0)
-			return 0;
-		else
-			return first->prev;
-	}
-	T* GetLast() {
-		return GetLast(static_cast<WLink<T>>(this));
-	}
-	void Add(WLink<T> *link, T *e) {
-		link->LinkLast(e, firstElement);
-		count++;
-	}
-	void Add(WLink<T> *link) {
-		link->LinkLast(reinterpret_cast<T*>(link), firstElement);
-		count++;
-	}
 };
 
 #endif /* SWTP_CORE_LINK_H_ */

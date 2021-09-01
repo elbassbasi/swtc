@@ -175,7 +175,7 @@ wresult w_canvas_scroll(w_canvas *canvas, w_point *dest, w_rect *rect,
 		return result;
 }
 wresult w_canvas_get_caret(w_canvas *canvas,w_caret** caret) {
-    wresult result = W_WIDGETDATA_CHECK0(canvas);
+    wresult result = W_WIDGET_CHECK0(canvas);
     if (result > 0) {
 		return W_CANVAS_GET_CLASS(canvas)->get_caret(canvas,caret);
     } else{

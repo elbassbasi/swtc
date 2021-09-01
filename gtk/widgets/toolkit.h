@@ -55,6 +55,11 @@ typedef struct threads_idle {
 	volatile wuint *signalled;
 } threads_idle;
 extern const char *_gtk_signal_names[SIGNAL_LAST];
+typedef struct _gtk_toolkit_alloc {
+	char *text;
+	size_t size;
+} _gtk_toolkit_alloc;
+size_t _gtk_toolkit_alloc_fn(void *user_data, size_t size, void **buf);
 typedef struct _w_toolkit {
 	w_toolkit toolkit;
 	int version;

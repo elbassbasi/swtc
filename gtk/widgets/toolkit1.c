@@ -117,6 +117,13 @@ void _w_toolkit_delete_pages(void *ptr, size_t size) {
 	} else
 		free(ptr);
 }
+size_t _gtk_toolkit_alloc_fn(void *user_data, size_t size, void **buf) {
+	_gtk_toolkit_alloc *alloc = (_gtk_toolkit_alloc*) user_data;
+	alloc->text = (char*) _w_toolkit_malloc(size);
+	alloc->size = size;
+	*buf = alloc->text;
+	return size;
+}
 void _w_toolkit_add_shell(_w_shell *shell) {
 	w_link_linklast_0(&shell->shells_link, shell,(void**) &gtk_toolkit->shells);
 	gtk_toolkit->shells_count++;

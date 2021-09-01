@@ -42,3 +42,8 @@ void TCaretDemo::CreateControl(WComposite *parent) {
 	this->SetCaret(&caret);
 	this->ForceFocus();
 }
+
+bool TCaretDemo::OnMouseUp(WMouseEvent &e) {
+	ForceFocus();
+	return true;
+}

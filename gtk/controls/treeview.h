@@ -30,6 +30,11 @@ typedef struct _w_treeview_priv {
 	_w_listviewbase_priv base;
 } _w_treeview_priv;
 #define _W_TREEVIEW_PRIV(x) ((_w_treeview_priv*)x)
+
+typedef struct _w_tree_for_all {
+	w_event_list event;
+	GtkTreeModel *model;
+}_w_tree_for_all;
 /*
  * functions
  */

@@ -14,6 +14,8 @@ public:
 	TCaretDemo();
 	~TCaretDemo();
 	void CreateControl(WComposite *parent);
+protected:
+	bool OnMouseUp(WMouseEvent &e);
 public:
 	WCaret caret;
 };
