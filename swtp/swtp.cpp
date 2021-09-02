@@ -1242,6 +1242,12 @@ bool WListViewBase::PostEvent(WEvent *e) {
 	case W_EVENT_ITEM_SET_TEXT:
 		return OnItemSetText(static_cast<WTreeEvent&>(*e));
 		break;
+	case W_EVENT_ITEM_GET_ATTR:
+		return OnItemGetAttr(static_cast<WTreeEvent&>(*e));
+		break;
+	case W_EVENT_ITEM_SET_ATTR:
+		return OnItemSetAttr(static_cast<WTreeEvent&>(*e));
+		break;
 	case W_EVENT_ITEM_DISPOSE:
 		return OnItemDispose(static_cast<WTreeEvent&>(*e));
 		break;
@@ -1262,6 +1268,14 @@ bool WListViewBase::OnItemGetText(WListEvent &e) {
 }
 
 bool WListViewBase::OnItemSetText(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemGetAttr(WListEvent &e) {
+	return false;
+}
+
+bool WListViewBase::OnItemSetAttr(WListEvent &e) {
 	return false;
 }
 

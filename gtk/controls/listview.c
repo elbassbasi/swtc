@@ -67,7 +67,7 @@ wresult _w_listitem_set_text(w_item *item, const char *text, int length,
 wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
 		w_item_attr *attr) {
 	w_widget *parent = _W_ITEM(item)->parent;
-	wresult result ;
+	wresult result;
 	if (mask & W_ITEM_ATTR_MASK_FONT) {
 		attr->font = 0;
 	}
@@ -87,15 +87,63 @@ wresult _w_listitem_get_attr(w_listitem *item, int index, int mask,
 		_W_ITEM(&column)->parent = parent;
 		_W_ITEM(&column)->index = index;
 		memset(&event, 0, sizeof(event));
-		event.event.type = W_EVENT_ITEM_GET_TEXT;
+		event.event.type = W_EVENT_ITEM_GET_ATTR;
 		event.event.widget = parent;
 		event.event.platform_event = 0;
 		event.detail = mask;
 		event.item = item;
 		event.column = W_COLUMNITEM(&column);
 		event.textattr = attr;
-		result = _w_widget_send_event(parent, W_EVENT(&event), W_EVENT_SEND);
+		if ((mask & W_ITEM_ATTR_MASK_ALL_NO_TEXT) != 0) {
+			result = _w_widget_send_event(parent, W_EVENT(&event),
+					W_EVENT_SEND);
+		}
+		if ((mask & W_ITEM_ATTR_MASK_TEXT) != 0) {
+			event.event.type = W_EVENT_ITEM_GET_TEXT;
+			result = _w_widget_send_event(parent, W_EVENT(&event),
+					W_EVENT_SEND);
+		}
 	} else {
+		GtkWidget *handle = _W_WIDGET(parent)->handle;
+		GtkTreeModel *modelHandle = gtk_tree_view_get_model(
+				GTK_TREE_VIEW(handle));
+		w_array *arr;
+		_w_item_list *subitem;
+		if (index == 0 && mask == W_ITEM_ATTR_MASK_TEXT) {
+			w_array *arr;
+			_w_item_list *subitem;
+		} else {
+			gtk_tree_model_get(modelHandle, &_W_TREEITEM(item)->iter,
+					COLUMN_ARRAY, &arr, -1);
+			if (arr != 0) {
+				subitem = w_array_get(arr, index, sizeof(_w_item_list));
+			}
+		}
+		if (mask & W_ITEM_ATTR_MASK_TEXT) {
+			char *text = 0;
+			if (index == 0) {
+				gtk_tree_model_get(modelHandle, &_W_TREEITEM(item)->iter,
+						COLUMN_TEXT, &text, -1);
+			} else {
+				if (subitem != 0) {
+					text = subitem->text;
+				}
+			}
+			_gtk_alloc_set_text(attr->alloc, attr->user_data, text, -1,
+					attr->enc);
+		}
+		if (subitem != 0) {
+			if (mask & W_ITEM_ATTR_MASK_FONT) {
+				attr->font = subitem->font;
+			}
+			if (mask & W_ITEM_ATTR_MASK_BACKGROUND) {
+				attr->background = subitem->background;
+			}
+			if (mask & W_ITEM_ATTR_MASK_FORGROUND) {
+				attr->foreground = subitem->foreground;
+			}
+		}
+		result = W_TRUE;
 	}
 	return result;
 }
@@ -259,7 +307,97 @@ wresult _w_listitem_get_text_0(w_listitem *item, int index, w_alloc alloc,
 }
 wresult _w_listitem_set_attr(w_listitem *item, int index, int mask,
 		w_item_attr *attr) {
+	w_widget *parent = _W_ITEM(item)->parent;
+	wresult result = W_FALSE;
+	if (_W_WIDGET(parent)->style & W_VIRTUAL) {
+		if (index == 0) {
 
+		}
+		w_event_list event;
+		_w_item column;
+		W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(parent);
+		_W_ITEM(&column)->parent = parent;
+		_W_ITEM(&column)->index = index;
+		memset(&event, 0, sizeof(event));
+		event.event.type = W_EVENT_ITEM_SET_ATTR;
+		event.event.widget = parent;
+		event.event.platform_event = 0;
+		event.detail = mask;
+		event.item = item;
+		event.column = W_COLUMNITEM(&column);
+		event.textattr = attr;
+		if ((mask & W_ITEM_ATTR_MASK_ALL_NO_TEXT) != 0) {
+			result = _w_widget_send_event(parent, W_EVENT(&event),
+					W_EVENT_SEND);
+		}
+		if ((mask & W_ITEM_ATTR_MASK_TEXT) != 0) {
+			event.event.type = W_EVENT_ITEM_SET_TEXT;
+			result = _w_widget_send_event(parent, W_EVENT(&event),
+					W_EVENT_SEND);
+		}
+	} else {
+		GtkWidget *handle = _W_WIDGET(parent)->handle;
+		GtkTreeModel *modelHandle = gtk_tree_view_get_model(
+				GTK_TREE_VIEW(handle));
+		struct _w_widget_class *clazz = W_WIDGET_GET_CLASS(parent);
+		w_class_id class_id = clazz->class_id;
+		int need_arr = index != 0 || (mask & W_ITEM_ATTR_MASK_FONT) != 0
+				|| (mask & W_ITEM_ATTR_MASK_BACKGROUND) != 0
+				|| (mask & W_ITEM_ATTR_MASK_FORGROUND) != 0;
+		_w_item_list *subitem = 0;
+		if (need_arr) {
+			w_array *arr = 0, *lastArr;
+			gtk_tree_model_get(modelHandle, &_W_TREEITEM(item)->iter,
+					COLUMN_ARRAY, &arr, -1);
+			lastArr = arr;
+			subitem = w_array_set(&arr, index, sizeof(_w_item_list));
+			if (subitem == 0)
+				return W_ERROR_NO_MEMORY;
+			if (lastArr != arr) {
+				if (class_id == _W_CLASS_TREEVIEW) {
+					gtk_tree_store_set(GTK_TREE_STORE(modelHandle),
+							&_W_TREEITEM(item)->iter, COLUMN_ARRAY, arr, -1);
+				} else {
+					gtk_list_store_set(GTK_LIST_STORE(modelHandle),
+							&_W_TREEITEM(item)->iter, COLUMN_ARRAY, arr, -1);
+				}
+			}
+		} else {
+			int newlength;
+			int mnemonic;
+			char *s = _gtk_text_fix(attr->text, attr->length, attr->enc,
+					&newlength, &mnemonic);
+			if (class_id == _W_CLASS_TREEVIEW) {
+				gtk_tree_store_set(GTK_TREE_STORE(modelHandle),
+						&_W_TREEITEM(item)->iter, COLUMN_TEXT, s, -1);
+			} else {
+				gtk_list_store_set(GTK_LIST_STORE(modelHandle),
+						&_W_TREEITEM(item)->iter, COLUMN_TEXT, s, -1);
+			}
+			_gtk_text_free(attr->text, s, newlength);
+		}
+		if (subitem != 0) {
+			if (mask & W_ITEM_ATTR_MASK_TEXT) {
+				if (subitem->text != 0) {
+					free(subitem->text);
+					subitem->text = 0;
+				}
+				_gtk_alloc_set_text(w_alloc_buffer_new, (void*) &subitem->text,
+						attr->text, attr->length, attr->enc);
+			}
+			if (mask & W_ITEM_ATTR_MASK_FONT) {
+				subitem->font = attr->font;
+			}
+			if (mask & W_ITEM_ATTR_MASK_BACKGROUND) {
+				subitem->background = attr->background;
+			}
+			if (mask & W_ITEM_ATTR_MASK_FORGROUND) {
+				subitem->foreground = attr->foreground;
+			}
+		}
+		result = W_TRUE;
+	}
+	return result;
 }
 wresult _w_listitem_set_checked(w_listitem *item, int checked) {
 	w_widget *tree = _W_ITEM(item)->parent;
@@ -318,7 +456,11 @@ wresult _w_listitem_set_image(w_listitem *item, int image) {
 }
 wresult _w_listitem_set_text_0(w_listitem *item, int index, const char *text,
 		int length, int enc) {
-
+	w_item_attr attr;
+	attr.text = (char*) text;
+	attr.length = length;
+	attr.enc = enc;
+	return _w_listitem_set_attr(item, index, W_ITEM_ATTR_MASK_TEXT, &attr);
 }
 /*
  * listview
@@ -539,6 +681,18 @@ void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
 		 * signals
 		 */
 		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_treeview_button_press_event;
+		signals[SIGNAL_ROW_ACTIVATED] = _gtk_treeview_row_activated;
+		signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_treeview_key_press_event;
+		signals[SIGNAL_BUTTON_RELEASE_EVENT] =
+				_gtk_treeview_button_release_event;
+		signals[SIGNAL_CHANGED] = _gtk_treeview_changed;
+		signals[SIGNAL_EVENT_AFTER] = _gtk_treeview_event_after;
+		signals[SIGNAL_DRAW] = _gtk_treeview_draw;
+		signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_treeview_motion_notify_event;
+		//signals[SIGNAL_ROW_INSERTED] = _gtk_treeview_row_inserted;
+		signals[SIGNAL_START_INTERACTIVE_SEARCH] =
+				_gtk_treeview_start_interactive_search;
 		signals[SIGNAL_TOGGLED] = _gtk_treeview_toggled;
 	}
 }

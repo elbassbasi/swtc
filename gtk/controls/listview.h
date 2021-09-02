@@ -17,6 +17,7 @@ enum {
 	COLUMN_USER_DATA, //
 	COLUMN_INFO, //
 	COLUMN_IMAGE, //
+	COLUMN_ARRAY,
 	COLUMN_COUNT
 };
 extern GType gtk_store_types[COLUMN_COUNT];
@@ -24,6 +25,14 @@ extern GType gtk_store_types[COLUMN_COUNT];
 #define COLUMN_INFO_GRAYED (1 << 2)
 #define COLUMN_INFO_HAS_CHILDREN (1 << 3)
 #define COLUMN_INFO_IS_ARRAY (1 << 4)
+
+typedef struct _w_item_list {
+	w_color background;
+	w_color foreground;
+	int image;
+	w_font *font;
+	char *text;
+} _w_item_list;
 /*
  * treeitem
  */
@@ -59,10 +68,11 @@ typedef struct _w_listview {
  * private
  */
 enum {
-	_W_LISTVIEW_SIGNAL_TOGGLED, _W_LISTVIEW_SIGNAL_CHANGED, //
+	_W_LISTVIEW_SIGNAL_TOGGLED,//
+	_W_LISTVIEW_SIGNAL_CHANGED, //
 	_W_LISTVIEW_SIGNAL_ROW_HAS_CHILD_TOGGLED, //
 	_W_LISTVIEW_SIGNAL_ROW_INSERTED, //
-	_W_LISTVIEW_SIGNAL_ROW_DELETED, //
+	_W_LISTVIEW_SIGNAL_ROW_DELETED,
 	_W_LISTVIEW_SIGNAL_ROW_ACTIVATED, //
 	_W_LISTVIEW_SIGNAL_START_INTERACTIVE_SEARCH, //
 	_W_LISTVIEW_SIGNAL_TEST_EXPAND_ROW, //
@@ -85,7 +95,8 @@ typedef struct _w_listviewbase_priv {
 } _w_listviewbase_priv;
 #define _W_LISTVIEWBASE_PRIV(x) ((_w_listviewbase_priv*)x)
 #define _W_LISTVIEWBASE_GET_PRIV(x) ((_w_listviewbase_priv*)_W_WIDGET_GET_PRIV(x))
-void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,struct _w_listviewbase_class *clazz);
+void _w_listviewbase_class_init(w_toolkit *toolkit, wushort classId,
+		struct _w_listviewbase_class *clazz);
 typedef struct _w_listview_priv {
 	_w_listviewbase_priv tablebase;
 } _w_listview_priv;

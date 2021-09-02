@@ -10,7 +10,11 @@
 void TTreeVirtual::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "virtual", new TTreeVirtual());
 }
-
+WMenuItems TTreeVirtual::menuitems[] = { //
+		{ W_PUSH, 0, -1, "Insert", 0 },	//
+				{ W_PUSH, 0, -1, "Delete", W_ACTION(TTreeVirtual::Delete) },//
+				{ 0, 0, 0, 0 },	//
+		};
 WControl* TTreeVirtual::GetControl(WComposite *parent) {
 	if (!this->IsOk()) {
 		this->CreateControl(parent);
@@ -32,6 +36,9 @@ void TTreeVirtual::CreateControl(WComposite *parent) {
 	this->Create(parent,
 			W_VIRTUAL | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION | W_CHECK
 					| W_CUSTOMDRAW);
+	menu.CreatePopUp(this);
+	menu.CreateItems(this, menuitems);
+	SetMenu(&menu);
 	/* create text edit */
 	text.Create(this, W_NONE);
 	text.SetVisible(false);
@@ -144,6 +151,19 @@ bool TTreeVirtual::OnItemGetText(WTreeEvent &e) {
 			break;
 		case 2:
 			e.SetAttrTextV("n:%s p:%d", p->name, p->progress);
+			break;
+		default:
+			return WTreeView::OnItemGetText(e);
+			break;
+		}
+	}
+	return true;
+}
+bool TTreeVirtual::OnItemGetAttr(WListEvent &e) {
+	Person *p = e.GetItemData<Person>();
+	if (p != 0) {
+		switch (e.GetColumnIndex()) {
+		case 2:
 			if (e.item->GetChecked()) {
 				e.SetAttrBackground(W_COLOR_MAGENTA);
 				e.SetAttrForeground(W_COLOR_RED);
@@ -153,13 +173,12 @@ bool TTreeVirtual::OnItemGetText(WTreeEvent &e) {
 			}
 			break;
 		default:
-			return WTreeView::OnItemGetText(e);
+			return WTreeView::OnItemGetAttr(e);
 			break;
 		}
 	}
 	return true;
 }
-
 bool TTreeVirtual::OnItemDefaultSelection(WTreeEvent &e) {
 	if (e.item->IsOk()) {
 		WRect bounds;
@@ -180,6 +199,23 @@ bool TTreeVirtual::OnItemDispose(WTreeEvent &e) {
 		delete p;
 	}
 	return false;
+}
+
+bool TTreeVirtual::OnItemCollapse(WListEvent &e) {
+	e.GetTreeItem()->RemoveAll();
+	return true;
+}
+
+bool TTreeVirtual::Delete(WEvent &e) {
+	WIterator<WTreeItem> selection;
+	if (GetSelection(selection)) {
+		WTreeItem item;
+		while (selection.Next(item)) {
+			item.RemoveAll();
+			item.SetHasChildren();
+		}
+	}
+	return true;
 }
 
 bool TTreeVirtualEdit::OnFocusOut(WEvent &e) {

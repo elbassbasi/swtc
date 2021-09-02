@@ -42,12 +42,21 @@ public:
 		va_end(args);
 		return ret;
 	}
+	WString GetText() {
+		w_string_ref *ref = 0;
+		this->_get_text(w_alloc_string_ref, &ref, W_ENCODING_UTF8);
+		return ref;
+	}
 public:
 	WResult _set_text(const char *text, int length, int enc) {
 		return w_alloc_set_text(alloc, user_data, this->enc, text, length, enc);
 	}
 	WResult _printf(int enc, const char *format, va_list args) {
 		return w_alloc_printf(alloc, user_data, this->enc, enc, format, args);
+	}
+	WResult _get_text(w_alloc alloc, void *user_data, int enc) {
+		return w_alloc_set_text(alloc, user_data, enc, this->text, this->length,
+				this->enc);
 	}
 };
 typedef w_scrollbar_value WScrollBarValue;

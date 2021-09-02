@@ -453,6 +453,18 @@ public:
 		return _WReturnBool(_get_selection((w_iterator*) &selection));
 	}
 	/**
+	 * Returns the first <code>TreeItem</code> selected in the receiver.
+	 * The order of the items is unspecified.
+	 * @return the first selection
+	 */
+	bool GetSelection(WTreeItem &selection) {
+		WIterator<WTreeItem> iter;
+		if (GetSelection(iter)) {
+			return iter.Next(selection);
+		}
+		return false;
+	}
+	/**
 	 * Returns the item which is currently at the top of the receiver.
 	 * This item can change when items are expanded, collapsed, scrolled
 	 * or new items are added or removed.

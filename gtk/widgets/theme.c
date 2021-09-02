@@ -43,7 +43,7 @@ void _gtk_theme_init_widget(_gtk_theme *theme) {
 	GtkContainer *fixed = GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]);
 	for (int i = GTK_THEME_HANDLE_BUTTON; i < GTK_THEME_HANDLE_LAST; i++) {
 		gtk_container_add(fixed, handles[i]);
-		gtk_widget_realize(handles[i]);
+		//gtk_widget_realize(handles[i]);
 	}
 }
 typedef struct _gtk_theme_info {

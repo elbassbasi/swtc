@@ -65,8 +65,6 @@ gboolean _gtk_treeview_draw(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 gboolean _gtk_treeview_motion_notify_event(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv);
-gboolean _gtk_treeview_row_deleted(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv);
 gboolean _gtk_treeview_row_has_child_toggled(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv);
 gboolean _gtk_treeview_start_interactive_search(w_widget *widget,

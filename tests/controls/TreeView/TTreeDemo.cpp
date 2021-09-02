@@ -9,6 +9,11 @@
 void TTreeDemo::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Demo", new TTreeDemo());
 }
+WMenuItems TTreeDemo::menuitems[] = { //
+		{ W_PUSH, 0, -1, "Insert", 0 }, //
+				{ W_PUSH, 0, -1, "Delete", W_ACTION(TTreeDemo::Delete) }, //
+				{ 0, 0, 0, 0 },	//
+		};
 TTreeDemo::TTreeDemo() {
 	memset(fonts, 0, sizeof(fonts));
 }
@@ -21,6 +26,9 @@ void TTreeDemo::CreateControl(WComposite *parent) {
 	this->Create(parent,
 			W_DOUBLE_BUFFERED | W_HSCROLL | W_VSCROLL | W_FULL_SELECTION
 					| W_CHECK);
+	menu.CreatePopUp(this);
+	menu.CreateItems(this, menuitems);
+	SetMenu(&menu);
 	CreateColumns();
 	CreateItems();
 	CreateFonts();
@@ -97,4 +105,15 @@ void TTreeDemo::CreateFonts() {
 	this->fonts[2] = WFont::Create(fontdata);
 	fontdata.SetStyle(W_ITALIC);
 	this->fonts[3] = WFont::Create(fontdata);
+}
+
+bool TTreeDemo::Delete(WEvent &e) {
+	WIterator<WTreeItem> selection;
+	if (GetSelection(selection)) {
+		WTreeItem item;
+		while (selection.Next(item)) {
+			item.RemoveAll();
+		}
+	}
+	return true;
 }

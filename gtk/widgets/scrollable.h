@@ -69,6 +69,8 @@ gboolean _gtk_scrollbar_button_press_event(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv);
 gboolean _gtk_scrollable_button_press_event(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv);
+gboolean _gtk_scrollable_event_after(w_widget *widget, _w_event_platform *e,
+		_w_control_priv *priv);
 void _w_scrollable_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_scrollable_class *clazz);
 #endif /* GTK_WIDGETS_SCROLLABLE_H_ */

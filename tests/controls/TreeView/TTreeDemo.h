@@ -15,6 +15,7 @@ public:
 	static w_color columns_forgrounds[columns_count];
 	static w_color columns_backgrounds[columns_count];
 	static wuchar columns_fonts[columns_count];
+	static WMenuItems menuitems[];
 	static void Registre(WTreeItem &parent);
 	TTreeDemo();
 	~TTreeDemo();
@@ -24,6 +25,9 @@ public:
 	void CreateItems();
 	void CreateFonts();
 protected:
+	bool Delete(WEvent& e);
+protected:
+	WMenu menu;
 	WFont *fonts[font_length];
 };
 

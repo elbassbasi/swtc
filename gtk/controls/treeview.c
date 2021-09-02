@@ -60,8 +60,10 @@ wresult _w_treeitem_for_all_children(w_treeitem *_item,
 						break;
 					}
 					level--;
-					if (level < 0)
+					if (level < 0) {
+						callback(tree, &item, user_data);
 						return W_TRUE;
+					}
 					gtk_tree_model_iter_parent(modelHandle, &pIter, iIter);
 					callback(tree, &item, user_data);
 				}
@@ -236,12 +238,36 @@ wresult _w_treeitem_remove_all(w_treeitem *item) {
 	GtkTreeView *_handle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
 	d.model = gtk_tree_view_get_model(_handle);
 	GtkTreeSelection *selection = gtk_tree_view_get_selection(_handle);
-	/*g_signal_handlers_block_matched(selection, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
-	 CHANGED);*/
+	_w_listviewbase_priv *priv = (_w_listviewbase_priv*) _W_CONTROL_GET_PRIV(
+			tree);
+	g_signal_handlers_block_matched(selection, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+			&priv->signals[_W_LISTVIEW_SIGNAL_CHANGED]);
 	wresult ret = _w_treeitem_for_all_children(item, _w_treeitem_remove_fn,
 			&d.event, W_SUBCHILDREN);
-	/*g_signal_handlers_unblock_matched(selection, G_SIGNAL_MATCH_DATA, 0, 0, 0,
-	 0, CHANGED);*/
+	g_signal_handlers_unblock_matched(selection, G_SIGNAL_MATCH_DATA, 0, 0, 0,
+			0, &priv->signals[_W_LISTVIEW_SIGNAL_CHANGED]);
+	return ret;
+}
+wresult _w_treeitem_remove(w_treeitem *item) {
+	_w_tree_for_all d;
+	memset(&d, 0, sizeof(d));
+	d.event.event.type = W_EVENT_ITEM_DISPOSE;
+	d.event.event.widget = _W_TREEITEM(item)->item.parent;
+	d.event.item = 0;
+	w_widget *tree = _W_ITEM(item)->parent;
+	GtkTreeView *_handle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
+	d.model = gtk_tree_view_get_model(_handle);
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(_handle);
+	_w_listviewbase_priv *priv = (_w_listviewbase_priv*) _W_CONTROL_GET_PRIV(
+			tree);
+	g_signal_handlers_block_matched(selection, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+			&priv->signals[_W_LISTVIEW_SIGNAL_CHANGED]);
+	wresult ret = _w_treeitem_for_all_children(item, _w_treeitem_remove_fn,
+			&d.event, W_SUBCHILDREN);
+	_w_treeitem_remove_fn(tree, item, &d);
+	W_WIDGETDATA(item)->clazz = 0;
+	g_signal_handlers_unblock_matched(selection, G_SIGNAL_MATCH_DATA, 0, 0, 0,
+			0, &priv->signals[_W_LISTVIEW_SIGNAL_CHANGED]);
 	return ret;
 }
 void _w_treeitem_remove_children_flags(GtkTreeModel *modelHandle,
@@ -267,15 +293,24 @@ wresult _w_treeitem_set_expanded(w_treeitem *item, int expanded) {
 	GtkTreePath *path = gtk_tree_model_get_path(modelHandle,
 			&_W_TREEITEM(item)->iter);
 	if (expanded != gtk_tree_view_row_expanded(_handle, path)) {
+		_w_listviewbase_priv *lpriv =
+				(_w_listviewbase_priv*) _W_CONTROL_GET_PRIV(tree);
+		_gtk_signal *sign;
 		if (expanded) {
-			//g_signal_handlers_block_matched (_handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0, TEST_EXPAND_ROW);
+			sign = &lpriv->signals[_W_LISTVIEW_SIGNAL_TEST_EXPAND_ROW];
+			g_signal_handlers_block_matched(_handle, G_SIGNAL_MATCH_DATA, 0, 0,
+					0, 0, sign);
 			gtk_tree_view_expand_row(_handle, path, FALSE);
-			//g_signal_handlers_unblock_matched (_handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0, TEST_EXPAND_ROW);
+			g_signal_handlers_unblock_matched(_handle, G_SIGNAL_MATCH_DATA, 0,
+					0, 0, 0, sign);
 		} else {
-			//g_signal_handlers_block_matched (_handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0, TEST_COLLAPSE_ROW);
+			sign = &lpriv->signals[_W_LISTVIEW_SIGNAL_TEST_COLLAPSE_ROW];
+			g_signal_handlers_block_matched(_handle, G_SIGNAL_MATCH_DATA, 0, 0,
+					0, 0, sign);
 			gtk_widget_realize(GTK_WIDGET(_handle));
 			gtk_tree_view_collapse_row(_handle, path);
-			//g_signal_handlers_unblock_matched (_handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0, TEST_COLLAPSE_ROW);
+			g_signal_handlers_unblock_matched(_handle, G_SIGNAL_MATCH_DATA, 0,
+					0, 0, 0, sign);
 		}
 	}
 	gtk_tree_path_free(path);
@@ -302,7 +337,10 @@ wresult _w_treeitem_set_item_count(w_treeitem *item, int count) {
 	w_widget *tree = _W_ITEM(item)->parent;
 	GtkTreeView *_handle = GTK_TREE_VIEW(_W_WIDGET(tree)->handle);
 	GtkTreeModel *modelHandle = gtk_tree_view_get_model(_handle);
+	_w_tree_for_all d;
+	_w_treeitem _item;
 	GtkTreeIter *parentIter = &_W_TREEITEM(item)->iter;
+	GtkTreeIter *iter = &_item.iter;
 	if (parentIter->stamp == 0)
 		parentIter = 0;
 	int itemCount = gtk_tree_model_iter_n_children(modelHandle, parentIter);
@@ -313,11 +351,36 @@ wresult _w_treeitem_set_item_count(w_treeitem *item, int count) {
 	if ((style & W_VIRTUAL) == 0) {
 		w_control_set_redraw(W_CONTROL(tree), W_FALSE);
 	}
+	W_WIDGETDATA(&_item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(tree);
+	_W_ITEM(&_item)->parent = tree;
+	_W_ITEM(&_item)->index = -1;
 	//remove(parentIter, count, itemCount - 1);
+	if (count < itemCount) {
+		if (gtk_tree_model_iter_nth_child(modelHandle, iter, parentIter,
+				count)) {
+			GtkTreeSelection *selection = gtk_tree_view_get_selection(_handle);
+			memset(&d, 0, sizeof(d));
+			d.event.event.type = W_EVENT_ITEM_DISPOSE;
+			d.event.event.widget = _W_TREEITEM(item)->item.parent;
+			d.event.item = 0;
+			d.model = modelHandle;
+			W_WIDGETDATA(item)->clazz = 0;
+			_w_listviewbase_priv *priv =
+					(_w_listviewbase_priv*) _W_CONTROL_GET_PRIV(tree);
+			g_signal_handlers_block_matched(selection, G_SIGNAL_MATCH_DATA, 0,
+					0, 0, 0, &priv->signals[_W_LISTVIEW_SIGNAL_CHANGED]);
+			do {
+				wresult ret = _w_treeitem_for_all_children(W_TREEITEM(&_item),
+						_w_treeitem_remove_fn, &d.event, W_SUBCHILDREN);
+				_w_treeitem_remove_fn(tree, &_item, &d);
+			} while (gtk_tree_model_iter_next(modelHandle, iter));
+			g_signal_handlers_unblock_matched(selection, G_SIGNAL_MATCH_DATA, 0,
+					0, 0, 0, &priv->signals[_W_LISTVIEW_SIGNAL_CHANGED]);
+		}
+	}
 	for (int i = itemCount; i < count; i++) {
-		GtkTreeIter iter;
-		gtk_tree_store_append(GTK_TREE_STORE(modelHandle), &iter, parentIter);
-		gtk_tree_store_set(GTK_TREE_STORE(modelHandle), &iter, COLUMN_IMAGE, -1,
+		gtk_tree_store_append(GTK_TREE_STORE(modelHandle), iter, parentIter);
+		gtk_tree_store_set(GTK_TREE_STORE(modelHandle), iter, COLUMN_IMAGE, -1,
 				-1);
 	}
 	if ((style & W_VIRTUAL) == 0) {
@@ -335,7 +398,7 @@ wresult _w_treeview_deselect(w_treeview *tree, w_treeitem *item) {
 	return W_FALSE;
 }
 wresult _w_treeview_for_all_item(w_listviewbase *list,
-		w_widget_callback callback, void *user_data,int flags) {
+		w_widget_callback callback, void *user_data, int flags) {
 	w_treeitem root;
 	w_treeview_get_root_item(W_TREEVIEW(list), &root);
 	return _w_treeitem_for_all_children(&root, callback, user_data, flags);
@@ -402,7 +465,7 @@ wresult _w_treeview_get_top_item(w_treeview *tree, w_treeitem *topitem) {
 	return W_FALSE;
 }
 wresult _w_treeview_remove(w_treeview *tree, w_treeitem *item) {
-	return W_FALSE;
+	return _w_treeitem_remove(item);
 }
 wresult _w_treeview_set_insert_mark(w_treeview *tree, w_treeitem *item,
 		int before) {
@@ -486,11 +549,35 @@ gboolean _gtk_treeview_row_activated(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_treeview_key_press_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	GdkEventKey *keyEvent = (GdkEventKey*) e->args[0];
+	int key = keyEvent->keyval;
+	int mask = 0;
+	if (key == GDK_KEY_Return) {
+		mask = GDK_MOD1_MASK | GDK_SHIFT_MASK | GDK_CONTROL_MASK
+				| GDK_SUPER_MASK | GDK_META_MASK | GDK_HYPER_MASK;
+	}
+	if (key == GDK_KEY_space) {
+		mask = GDK_MOD1_MASK | GDK_CONTROL_MASK | GDK_SUPER_MASK | GDK_META_MASK
+				| GDK_HYPER_MASK;
+	}
+	if (mask != 0) {
+		GdkModifierType keymask;
+		if (gdk_event_get_state((GdkEvent*) keyEvent, &keymask)) {
+			if ((keymask & mask) == 0) {
+				_gtk_treeview_send_default_selection(widget, e, priv);
+			}
+		}
+	}
+	return _gtk_composite_key_press_event(widget, e, priv);
 }
 gboolean _gtk_treeview_button_release_event(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv) {
-	return W_FALSE;
+	GdkEventButton *gdkEvent = e->args[0];
+	GdkWindow *window = gdkEvent->window;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(widget)->handle);
+	if (window != gtk_tree_view_get_bin_window(handle))
+		return FALSE;
+	return _gtk_control_button_release_event(widget, e, priv);
 }
 gboolean _gtk_treeview_changed(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -517,7 +604,7 @@ gboolean _gtk_treeview_changed(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_treeview_event_after(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	return W_FALSE;
+	return _gtk_scrollable_event_after(widget, e, priv);
 }
 gboolean _gtk_treeview_expand_collapse_cursor_row(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv) {
@@ -542,10 +629,6 @@ gboolean _gtk_treeview_motion_notify_event(w_widget *widget,
 		return FALSE;
 	return _gtk_control_motion_notify_event(widget, e, priv);
 }
-gboolean _gtk_treeview_row_deleted(w_widget *widget, _w_event_platform *e,
-		_w_control_priv *priv) {
-	return W_FALSE;
-}
 gboolean _gtk_treeview_row_has_child_toggled(w_widget *widget,
 		_w_event_platform *e, _w_control_priv *priv) {
 	return W_FALSE;
@@ -556,10 +639,10 @@ gboolean _gtk_treeview_start_interactive_search(w_widget *widget,
 }
 gboolean _gtk_treeview_test_collapse_row(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	gint index;
 	w_treeitem item;
 	w_event_list event;
 	GtkTreeIter *iter = (GtkTreeIter*) e->args[0];
+	GtkTreePath *path = (GtkTreePath*) e->args[1];
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
 
 	memset(&event, 0, sizeof(event));
@@ -571,14 +654,43 @@ gboolean _gtk_treeview_test_collapse_row(w_widget *widget, _w_event_platform *e,
 	_W_ITEM(&item)->index = -1;
 	memcpy(&_W_TREEITEM(&item)->iter, iter, sizeof(GtkTreeIter));
 	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
-	return W_FALSE;
+	/*
+	 * Bug in GTK.  Collapsing the target row during the test_collapse_row
+	 * handler will cause a segmentation fault if the animation code is allowed
+	 * to run.  The fix is to block the animation if the row is already
+	 * collapsed.
+	 */
+	gboolean changed = !gtk_tree_view_row_expanded(GTK_TREE_VIEW(handle), path);
+	if (!w_widget_is_ok(widget) || !w_widgetdata_is_ok(W_WIDGETDATA(&item)))
+		return TRUE;
+	/*
+	 * Bug in GTK.  Expanding or collapsing a row which has no more
+	 * children causes the model state to become invalid, causing
+	 * GTK to give warnings and behave strangely.  Other changes to
+	 * the model can cause expansion to fail when using the multiple
+	 * expansion keys (such as *).  The fix is to stop the expansion
+	 * if there are model changes.
+	 *
+	 * Note: This callback must return 0 for the collapsing
+	 * animation to occur.
+	 */
+	if (changed) {
+		_w_listviewbase_priv *lpriv = (_w_listviewbase_priv*) priv;
+		g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+				&lpriv->signals[_W_LISTVIEW_SIGNAL_TEST_COLLAPSE_ROW]);
+		gtk_tree_view_collapse_row(GTK_TREE_VIEW(handle), path);
+		g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0,
+				0, &lpriv->signals[_W_LISTVIEW_SIGNAL_TEST_COLLAPSE_ROW]);
+		return TRUE;
+	}
+	return FALSE;
 }
 gboolean _gtk_treeview_test_expand_row(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
-	gint index;
 	w_treeitem item;
 	w_event_list event;
 	GtkTreeIter *iter = (GtkTreeIter*) e->args[0];
+	GtkTreePath *path = (GtkTreePath*) e->args[1];
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	GtkTreeModel *modelHandle = gtk_tree_view_get_model(GTK_TREE_VIEW(handle));
 	_w_treeitem_remove_children_flags(modelHandle, iter);
@@ -591,6 +703,39 @@ gboolean _gtk_treeview_test_expand_row(w_widget *widget, _w_event_platform *e,
 	_W_ITEM(&item)->index = -1;
 	memcpy(&_W_TREEITEM(&item)->iter, iter, sizeof(GtkTreeIter));
 	_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
+	/*
+	 * Bug in GTK.  Expanding the target row during the test_expand_row
+	 * handler will cause a segmentation fault if the animation code is allowed
+	 * to run.  The fix is to block the animation if the row is already
+	 * expanded.
+	 */
+	gboolean changed = gtk_tree_view_row_expanded(GTK_TREE_VIEW(handle), path);
+	if (!w_widget_is_ok(widget) || !w_widgetdata_is_ok(W_WIDGETDATA(&item)))
+		return TRUE;
+	/*
+	 * Bug in GTK.  Expanding or collapsing a row which has no more
+	 * children causes the model state to become invalid, causing
+	 * GTK to give warnings and behave strangely.  Other changes to
+	 * the model can cause expansion to fail when using the multiple
+	 * expansion keys (such as *).  The fix is to stop the expansion
+	 * if there are model changes.
+	 *
+	 * Bug in GTK.  test-expand-row does not get called for each row
+	 * in an expand all operation.  The fix is to block the initial
+	 * expansion and only expand a single level.
+	 *
+	 * Note: This callback must return 0 for the collapsing
+	 * animation to occur.
+	 */
+	if (changed) {
+		_w_listviewbase_priv *lpriv = (_w_listviewbase_priv*) priv;
+		g_signal_handlers_block_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0, 0,
+				&lpriv->signals[_W_LISTVIEW_SIGNAL_TEST_EXPAND_ROW]);
+		gtk_tree_view_expand_row(GTK_TREE_VIEW(handle), path, FALSE);
+		g_signal_handlers_unblock_matched(handle, G_SIGNAL_MATCH_DATA, 0, 0, 0,
+				0, &lpriv->signals[_W_LISTVIEW_SIGNAL_TEST_EXPAND_ROW]);
+		return TRUE;
+	}
 	return FALSE;
 }
 gboolean _gtk_treeview_toggled(w_widget *widget, _w_event_platform *e,
@@ -683,7 +828,6 @@ void _w_treeview_class_init(w_toolkit *toolkit, wushort classId,
 				_gtk_treeview_expand_collapse_cursor_row;
 		signals[SIGNAL_DRAW] = _gtk_treeview_draw;
 		signals[SIGNAL_MOTION_NOTIFY_EVENT] = _gtk_treeview_motion_notify_event;
-		signals[SIGNAL_ROW_DELETED] = _gtk_treeview_row_deleted;
 		signals[SIGNAL_ROW_HAS_CHILD_TOGGLED] =
 				_gtk_treeview_row_has_child_toggled;
 		//signals[SIGNAL_ROW_INSERTED] = _gtk_treeview_row_inserted;

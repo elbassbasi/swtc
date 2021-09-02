@@ -29,6 +29,7 @@ protected:
 class TTreeVirtual: public WTreeView, public ITreeItem {
 public:
 	static void Registre(WTreeItem &parent);
+	static WMenuItems menuitems[];
 	TTreeVirtual();
 	~TTreeVirtual();
 	WControl* GetControl(WComposite *parent);
@@ -37,10 +38,15 @@ public:
 	bool OnItemErase(WTreeEvent &e);
 	bool OnItemPaint(WTreeEvent &e);
 	bool OnItemGetText(WTreeEvent &e);
+	bool OnItemGetAttr(WListEvent &e);
 	bool OnItemDefaultSelection(WTreeEvent &e);
 	bool OnItemDispose(WTreeEvent &e);
+	bool OnItemCollapse(WListEvent &e);
+protected:
+	bool Delete(WEvent& e);
 	WFont* fontBold;
 	TTreeVirtualEdit text;
+	WMenu menu;
 };
 
 #endif /* TESTS_CONTROLS_TREEVIEW_TTREEVIRTUAL_H_ */

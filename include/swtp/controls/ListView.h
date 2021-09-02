@@ -806,6 +806,42 @@ public:
 		if (this->detail & W_ITEM_ATTR_MASK_FORGROUND)
 			textattr->foreground = foreground;
 	}
+	bool IsAttrTextMask() {
+		return (this->detail & W_ITEM_ATTR_MASK_TEXT) != 0;
+	}
+	bool IsAttrFontMask() {
+		return (this->detail & W_ITEM_ATTR_MASK_FONT) != 0;
+	}
+	bool IsAttrForegroundMask() {
+		return (this->detail & W_ITEM_ATTR_MASK_FORGROUND) != 0;
+	}
+	bool IsAttrBackgroundMask() {
+		return (this->detail & W_ITEM_ATTR_MASK_BACKGROUND) != 0;
+	}
+	WFont* GetAttrFont(WFont *font) {
+		if (this->detail & W_ITEM_ATTR_MASK_FONT)
+			return textattr->font;
+		else
+			return 0;
+	}
+	w_color GetAttrBackground(w_color background) {
+		if (this->detail & W_ITEM_ATTR_MASK_BACKGROUND)
+			return textattr->background;
+		else
+			return 0;
+	}
+	w_color GetAttrForeground(w_color foreground) {
+		if (this->detail & W_ITEM_ATTR_MASK_FORGROUND)
+			return textattr->foreground;
+		else
+			return 0;
+	}
+	WString GetAttrText() {
+		if (this->detail & W_ITEM_ATTR_MASK_TEXT) {
+			return textattr->GetText();
+		} else
+			return WString();
+	}
 };
 class SWTP_PUBLIC WListViewBase: public WComposite {
 public:
@@ -1150,6 +1186,8 @@ protected:
 	virtual bool OnItemDefaultSelection(WListEvent &e);
 	virtual bool OnItemGetText(WListEvent &e);
 	virtual bool OnItemSetText(WListEvent &e);
+	virtual bool OnItemGetAttr(WListEvent &e);
+	virtual bool OnItemSetAttr(WListEvent &e);
 	virtual bool OnItemMeasure(WListEvent &e);
 	virtual bool OnItemErase(WListEvent &e);
 	virtual bool OnItemPaint(WListEvent &e);

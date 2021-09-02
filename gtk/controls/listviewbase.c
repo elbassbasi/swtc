@@ -233,7 +233,8 @@ GType gtk_store_types[COLUMN_COUNT] = {
 G_TYPE_STRING, //
 		G_TYPE_POINTER, //
 		G_TYPE_INT, //
-		G_TYPE_INT //
+		G_TYPE_INT, //
+		G_TYPE_POINTER, //
 		};
 wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_HANDLE;
@@ -254,6 +255,10 @@ wresult _w_listviewbase_create_handle(w_widget *widget, _w_control_priv *priv) {
 			GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolledHandle),
 			GTK_SHADOW_IN);
+	int column_count = COLUMN_COUNT;
+	if (_W_WIDGET(widget)->style & W_VIRTUAL) {
+		column_count--;
+	}
 	w_class_id clazz_id = W_WIDGET_GET_CLASS(widget)->class_id;
 	if (clazz_id == _W_CLASS_TREEVIEW) {
 		modelHandle = (GtkListStore*) gtk_tree_store_newv(COLUMN_COUNT,
@@ -461,7 +466,7 @@ wresult _w_listviewbase_deselect_all(w_listviewbase *list) {
 	return W_TRUE;
 }
 wresult _w_listviewbase_for_all_column(w_listviewbase *list,
-		w_widget_callback callback, void *user_data) {
+		w_widget_callback callback, void *user_data, int flags) {
 	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
 	w_columnitem column;
 	W_WIDGETDATA(&column)->clazz = _W_LISTVIEWBASE_GET_COLUMN_CLASS(list);
@@ -520,9 +525,87 @@ wresult _w_listviewbase_get_item_height(w_listviewbase *list) {
 wresult _w_listviewbase_get_lines_visible(w_listviewbase *list) {
 	return W_FALSE;
 }
+/*
+ * iterator of children control
+ */
+typedef struct w_listviewbase_selection {
+	w_basic_iterator base;
+	w_listviewbase *list;
+	GtkTreeModel *modelHandle;
+	GList *origin;
+	GList *current;
+	size_t count;
+} w_listviewbase_selection;
+void _w_listviewbase_selection_destroy(gpointer data) {
+	GtkTreeRowReference *ref = (GtkTreeRowReference*) data;
+	g_object_unref(ref);
+}
+wresult _w_listviewbase_selection_close(w_iterator *it) {
+	w_listviewbase_selection *iter = (w_listviewbase_selection*) it;
+	g_list_free_full(iter->origin, _w_listviewbase_selection_destroy);
+	return W_TRUE;
+}
+wresult _w_listviewbase_selection_next(w_iterator *it, void *obj) {
+	w_listviewbase_selection *iter = (w_listviewbase_selection*) it;
+	w_treeitem *item = (w_treeitem*) obj;
+	if (iter->current != 0) {
+		GtkTreeRowReference *ref = (GtkTreeRowReference*) iter->current->data;
+		GtkTreePath *path = gtk_tree_row_reference_get_path(ref);
+		gtk_tree_model_get_iter(iter->modelHandle, &_W_TREEITEM(item)->iter,
+				path);
+		W_WIDGETDATA(item)->clazz = _W_LISTVIEWBASE_GET_ITEM_CLASS(iter->list);
+		_W_ITEM(item)->parent = W_WIDGET(iter->list);
+		_W_ITEM(item)->index = -1;
+		iter->current = iter->current->next;
+		return W_TRUE;
+	} else {
+		w_widgetdata_close(W_WIDGETDATA(item));
+		return W_FALSE;
+	}
+}
+wresult _w_listviewbase_selection_reset(w_iterator *it) {
+	w_listviewbase_selection *iter = (w_listviewbase_selection*) it;
+	iter->current = iter->origin;
+	return W_TRUE;
+}
+wresult _w_listviewbase_selection_remove(w_iterator *it) {
+	return W_ERROR_NOT_IMPLEMENTED;
+
+}
+size_t _w_listviewbase_selection_get_count(w_iterator *it) {
+	w_listviewbase_selection *iter = (w_listviewbase_selection*) it;
+	if (iter->count == -1) {
+		iter->count = g_list_length(iter->origin);
+	}
+	return iter->count;
+}
+_w_iterator_class _w_listviewbase_selection_class = { //
+		_w_listviewbase_selection_close, //
+				_w_listviewbase_selection_next, //
+				_w_listviewbase_selection_reset, //
+				_w_listviewbase_selection_remove, //
+				_w_listviewbase_selection_get_count //
+		};
 wresult _w_listviewbase_get_selection(w_listviewbase *list,
 		w_iterator *selection) {
-	return W_FALSE;
+	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
+	GtkTreeSelection *_selection = gtk_tree_view_get_selection(handle);
+	GtkTreeModel *modelHandle = gtk_tree_view_get_model(GTK_TREE_VIEW(handle));
+	GList *_list = gtk_tree_selection_get_selected_rows(_selection, NULL);
+	GList *tmp = _list;
+	while (tmp != 0) {
+		tmp->data = gtk_tree_row_reference_new(modelHandle,
+				(GtkTreePath*) tmp->data);
+		tmp = tmp->next;
+	}
+	w_listviewbase_selection *iter = (w_listviewbase_selection*) selection;
+	iter->base.clazz = &_w_listviewbase_selection_class;
+	iter->origin = _list;
+	iter->current = _list;
+	iter->count = -1;
+	iter->modelHandle = modelHandle;
+	iter->list = list;
+	return W_TRUE;
 }
 wresult _w_listviewbase_get_selection_count(w_listviewbase *list) {
 	GtkTreeView *handle = GTK_TREE_VIEW(_W_WIDGET(list)->handle);
@@ -551,8 +634,6 @@ void _w_listviewbase_hook_events(w_widget *widget, _w_control_priv *priv) {
 	//if (fixAccessibility()) {
 	_w_widget_connect((GtkWidget*) modelHandle,
 			&tpriv->signals[_W_LISTVIEW_SIGNAL_ROW_INSERTED], FALSE);
-	_w_widget_connect((GtkWidget*) modelHandle,
-			&tpriv->signals[_W_LISTVIEW_SIGNAL_ROW_DELETED], FALSE);
 	//}
 	_w_widget_connect(handle, &tpriv->signals[_W_LISTVIEW_SIGNAL_ROW_ACTIVATED],
 	FALSE);
@@ -888,10 +969,11 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	w_rect rect;
 	_w_graphics gc;
 	w_item_attr attr;
+	wuint64 style = _W_WIDGET(widget)->style;
 	char *text;
 	int wasSelected = FALSE;
 	memset(&event, 0, sizeof(event));
-	event.event.type = W_EVENT_ITEM_GET_TEXT;
+	event.event.type = W_EVENT_ITEM_GET_ATTR;
 	event.event.widget = widget;
 	event.column = W_COLUMNITEM(column);
 	event.item = W_LISTITEM(item);
@@ -963,77 +1045,79 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 				}
 			}
 
-			//if (hooks (SWT.EraseItem)) {
-			/*
-			 * Cache the selection state so that it is not lost if a
-			 * PaintListener wants to draw custom selection foregrounds.
-			 * See bug 528155.
-			 */
-			wasSelected = (_list->drawState & W_SELECTED) != 0;
-			if (wasSelected) {
-			}
-			_w_graphics_init(W_GRAPHICS(&gc), cr);
-			if ((_list->drawState & W_SELECTED) != 0) {
-				w_toolkit *toolkit = w_widget_get_toolkit(widget);
-				w_color color = w_toolkit_get_system_color(toolkit,
-						W_COLOR_LIST_SELECTION);
-				w_graphics_set_background(W_GRAPHICS(&gc), color);
-				color = w_toolkit_get_system_color(toolkit,
-						W_COLOR_LIST_SELECTION_TEXT);
-				w_graphics_set_foreground(W_GRAPHICS(&gc), color);
-			} else {
-				if (attr.background != 0)
-					w_graphics_set_background(W_GRAPHICS(&gc), attr.background);
-				if (attr.foreground != 0)
-					w_graphics_set_foreground(W_GRAPHICS(&gc), attr.foreground);
-			}
-			if (attr.font != 0) {
-				w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
-			} else {
-				w_font *font;
-				w_control_get_font(W_CONTROL(widget), &font);
-				w_graphics_set_font(W_GRAPHICS(&gc), font);
-			}
-			if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
-				int clientWidth = priv->get_client_width(W_CONTROL(widget),
-						priv);
-				rect.x = clientWidth - rect.width - rect.x;
-			}
-#if GTK3
-			//w_graphics_set_clipping_rect(W_GRAPHICS(&gc), &rect);
-#endif
-			memset(&event, 0, sizeof(event));
-			event.event.type = W_EVENT_ITEM_ERASE;
-			event.event.widget = widget;
-			event.column = W_COLUMNITEM(column);
-			event.item = W_LISTITEM(item);
-			event.rect = &rect;
-			event.gc = W_GRAPHICS(&gc);
-			event.detail = _list->drawState;
-			int ret = w_widget_post_event(widget, (w_event*) &event,
-					W_EVENT_SEND);
-			if (ret) {
-#if GTK3
-				//drawForegroundRGBA = null;
-#endif
-				_list->drawState = event.doit ? event.detail : 0;
-				_list->drawFlags &= ~(GTK_CELL_RENDERER_FOCUSED
-						| GTK_CELL_RENDERER_SELECTED);
-				if ((_list->drawState & W_SELECTED) != 0)
-					_list->drawFlags |= GTK_CELL_RENDERER_SELECTED;
-				if ((_list->drawState & W_FOCUSED) != 0)
-					_list->drawFlags |= GTK_CELL_RENDERER_FOCUSED;
+			if (style & W_CUSTOMDRAW) {
+				/*
+				 * Cache the selection state so that it is not lost if a
+				 * PaintListener wants to draw custom selection foregrounds.
+				 * See bug 528155.
+				 */
+				wasSelected = (_list->drawState & W_SELECTED) != 0;
+				if (wasSelected) {
+				}
+				_w_graphics_init(W_GRAPHICS(&gc), cr);
 				if ((_list->drawState & W_SELECTED) != 0) {
+					w_toolkit *toolkit = w_widget_get_toolkit(widget);
+					w_color color = w_toolkit_get_system_color(toolkit,
+							W_COLOR_LIST_SELECTION);
+					w_graphics_set_background(W_GRAPHICS(&gc), color);
+					color = w_toolkit_get_system_color(toolkit,
+							W_COLOR_LIST_SELECTION_TEXT);
+					w_graphics_set_foreground(W_GRAPHICS(&gc), color);
 				} else {
-					if (wasSelected) {
+					if (attr.background != 0)
+						w_graphics_set_background(W_GRAPHICS(&gc),
+								attr.background);
+					if (attr.foreground != 0)
+						w_graphics_set_foreground(W_GRAPHICS(&gc),
+								attr.foreground);
+				}
+				if (attr.font != 0) {
+					w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
+				} else {
+					w_font *font;
+					w_control_get_font(W_CONTROL(widget), &font);
+					w_graphics_set_font(W_GRAPHICS(&gc), font);
+				}
+				if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
+					int clientWidth = priv->get_client_width(W_CONTROL(widget),
+							priv);
+					rect.x = clientWidth - rect.width - rect.x;
+				}
 #if GTK3
-						//drawForegroundRGBA = gc.getForeground().handleRGBA;
+				//w_graphics_set_clipping_rect(W_GRAPHICS(&gc), &rect);
 #endif
+				memset(&event, 0, sizeof(event));
+				event.event.type = W_EVENT_ITEM_ERASE;
+				event.event.widget = widget;
+				event.column = W_COLUMNITEM(column);
+				event.item = W_LISTITEM(item);
+				event.rect = &rect;
+				event.gc = W_GRAPHICS(&gc);
+				event.detail = _list->drawState;
+				int ret = w_widget_post_event(widget, (w_event*) &event,
+						W_EVENT_SEND);
+				if (ret) {
+#if GTK3
+					//drawForegroundRGBA = null;
+#endif
+					_list->drawState = event.doit ? event.detail : 0;
+					_list->drawFlags &= ~(GTK_CELL_RENDERER_FOCUSED
+							| GTK_CELL_RENDERER_SELECTED);
+					if ((_list->drawState & W_SELECTED) != 0)
+						_list->drawFlags |= GTK_CELL_RENDERER_SELECTED;
+					if ((_list->drawState & W_FOCUSED) != 0)
+						_list->drawFlags |= GTK_CELL_RENDERER_FOCUSED;
+					if ((_list->drawState & W_SELECTED) != 0) {
+					} else {
+						if (wasSelected) {
+#if GTK3
+							//drawForegroundRGBA = gc.getForeground().handleRGBA;
+#endif
+						}
 					}
 				}
-			}
-			w_graphics_dispose(W_GRAPHICS(&gc));
-			//}//if (hooks (SWT.EraseItem))
+				w_graphics_dispose(W_GRAPHICS(&gc));
+			} //if (hooks (SWT.EraseItem))
 		}
 	}
 	if ((_list->drawState & W_BACKGROUND) != 0
@@ -1078,34 +1162,41 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 				pangoHandle = (PangoFontDescription*) attr.font;
 			}
 			g_object_set(cell, "font-desc", pangoHandle, NULL);
-			GtkTreeViewColumn *firstColumn = gtk_tree_view_get_column(handle,
-					0);
-			if (columnHandle == firstColumn) {
+
+			int columnindex = _w_columnitem_get_index(W_ITEM(column));
+			if (columnindex == 0) {
 				gtk_tree_model_get(modelHandle, &item->iter, COLUMN_TEXT, &text,
 						-1);
 			}
 			if (text == 0) {
-				memset(&event, 0, sizeof(event));
 				_gtk_toolkit_alloc alloc;
 				alloc.text = 0;
 				alloc.size = 0;
-				attr.alloc = _gtk_toolkit_alloc_fn;
-				attr.user_data = &alloc;
-				attr.enc = W_ENCODING_UTF8;
-				event.event.type = W_EVENT_ITEM_GET_TEXT;
-				event.event.widget = widget;
-				event.column = W_COLUMNITEM(column);
-				event.item = W_LISTITEM(item);
-				event.rect = 0;
-				event.gc = 0;
-				event.textattr = &attr;
-				int ret = _w_widget_send_event(widget, (w_event*) &event,
-						W_EVENT_SEND);
-				text = alloc.text;
+				if (_W_WIDGET(widget)->style & W_VIRTUAL) {
+					memset(&event, 0, sizeof(event));
+					attr.alloc = _gtk_toolkit_alloc_fn;
+					attr.user_data = &alloc;
+					attr.enc = W_ENCODING_UTF8;
+					w_listitem_get_attr(W_LISTITEM(item), columnindex,
+							W_ITEM_ATTR_MASK_TEXT, &attr);
+					text = alloc.text;
+				} else {
+					w_array *arr = 0;
+					_w_item_list *subitem;
+					gtk_tree_model_get(modelHandle, &_W_TREEITEM(item)->iter,
+							COLUMN_ARRAY, &arr, -1);
+					if (arr != 0) {
+						subitem = w_array_get(arr, columnindex,
+								sizeof(_w_item_list));
+						if (subitem != 0) {
+							text = subitem->text;
+						}
+					}
+				}
 				if (text == 0)
 					text = "";
 				g_object_set(cell, "text", text, NULL);
-				if(alloc.text != 0){
+				if (alloc.text != 0) {
 					_w_toolkit_free(alloc.text, alloc.size);
 				}
 			} else {
@@ -1152,88 +1243,92 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 	}
 	if (W_WIDGETDATA(item)->clazz) {
 		if (GTK_IS_CELL_RENDERER_TEXT(cell)) {
-			//if (hooks (SWT.PaintItem)) {
-			if (wasSelected)
-				_list->drawState |= W_SELECTED;
-			GdkRectangle r2; //cell_area
-			rect.x = cell_area->x;
-			rect.y = cell_area->y;
-			rect.width = cell_area->width;
-			rect.height = cell_area->height;
-			GtkTreePath *path = gtk_tree_model_get_path(modelHandle,
-					&item->iter);
-			gtk_tree_view_get_background_area(handle, path, columnHandle,
-					(GdkRectangle*) &rect);
-			gtk_tree_path_free(path);
-			// Use the x and width information from the Cairo context. See bug 535124 and 465309.
-			if (GTK_VERSION > VERSION(3, 9, 0)
-					&& GTK_VERSION <= VERSION(3, 14, 8)) {
-				gdk_cairo_get_clip_rectangle(cr, &r2);
-				rect.x = r2.x;
-				rect.width = r2.width;
-			}
-			_list->ignoreSize = TRUE;
-			int contentX, contentWidth;
-			GtkRequisition req;
-			gtk_cell_renderer_get_preferred_size(GTK_CELL_RENDERER(cell),
-					(GtkWidget*) handle, &req, NULL);
-			contentWidth = req.width;
-			gtk_tree_view_column_cell_get_position(columnHandle,
-					GTK_CELL_RENDERER(cell), &contentX, NULL);
-			_list->ignoreSize = FALSE;
-			// Account for the expander arrow offset in x position
-			if (gtk_tree_view_get_expander_column(
-					GTK_TREE_VIEW(_W_WIDGET(widget)->handle)) == columnHandle) {
-				/* indent */
-				GdkRectangle rect3;
-				gtk_widget_realize(GTK_WIDGET(handle));
-				path = gtk_tree_model_get_path(modelHandle, &item->iter);
-				gtk_tree_view_get_cell_area(handle, path, columnHandle, &rect3);
-				contentX += rect3.x;
-			}
-			_w_graphics_init(W_GRAPHICS(&gc), cr);
-			if ((_list->drawState & W_SELECTED) != 0) {
-				w_toolkit *toolkit = w_widget_get_toolkit(widget);
-				w_color color = w_toolkit_get_system_color(toolkit,
-						W_COLOR_LIST_SELECTION);
-				w_graphics_set_background(W_GRAPHICS(&gc), color);
-				color = w_toolkit_get_system_color(toolkit,
-						W_COLOR_LIST_SELECTION_TEXT);
-				w_graphics_set_foreground(W_GRAPHICS(&gc), color);
-			} else {
-				if (attr.background != 0)
-					w_graphics_set_background(W_GRAPHICS(&gc), attr.background);
-				if (attr.foreground != 0)
-					w_graphics_set_foreground(W_GRAPHICS(&gc), attr.foreground);
-			}
-			memset(&event, 0, sizeof(event));
-			event.event.type = W_EVENT_ITEM_PAINT;
-			event.event.widget = widget;
-			event.column = W_COLUMNITEM(column);
-			event.item = W_LISTITEM(item);
-			event.gc = W_GRAPHICS(&gc);
-			event.rect = &rect;
-			if (attr.font != 0) {
-				w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
-			} else {
-				w_font *font;
-				w_control_get_font(W_CONTROL(widget), &font);
-				w_graphics_set_font(W_GRAPHICS(&gc), font);
-			}
-			if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
-				int clientWidth = priv->get_client_width(W_CONTROL(widget),
-						priv);
-				rect.x = clientWidth - rect.width - rect.x;
-			}
-			// Caveat: rect2 is necessary because GC#setClipping(Rectangle) got broken by bug 446075
-			//w_graphics_set_clipping_rect(W_GRAPHICS(&gc), &rect);
-			rect.x += contentX;
-			rect.width = cell_area->width;			//contentWidth;
-			event.detail = _list->drawState;		//drawState;
-			int ret = w_widget_post_event(widget, (w_event*) &event,
-					W_EVENT_SEND);
-			w_graphics_dispose(W_GRAPHICS(&gc));
-			//}//if (hooks (PaintItem))
+			if (style & W_CUSTOMDRAW) {
+				if (wasSelected)
+					_list->drawState |= W_SELECTED;
+				GdkRectangle r2; //cell_area
+				rect.x = cell_area->x;
+				rect.y = cell_area->y;
+				rect.width = cell_area->width;
+				rect.height = cell_area->height;
+				GtkTreePath *path = gtk_tree_model_get_path(modelHandle,
+						&item->iter);
+				gtk_tree_view_get_background_area(handle, path, columnHandle,
+						(GdkRectangle*) &rect);
+				gtk_tree_path_free(path);
+				// Use the x and width information from the Cairo context. See bug 535124 and 465309.
+				if (GTK_VERSION > VERSION(3, 9, 0)
+						&& GTK_VERSION <= VERSION(3, 14, 8)) {
+					gdk_cairo_get_clip_rectangle(cr, &r2);
+					rect.x = r2.x;
+					rect.width = r2.width;
+				}
+				_list->ignoreSize = TRUE;
+				int contentX, contentWidth;
+				GtkRequisition req;
+				gtk_cell_renderer_get_preferred_size(GTK_CELL_RENDERER(cell),
+						(GtkWidget*) handle, &req, NULL);
+				contentWidth = req.width;
+				gtk_tree_view_column_cell_get_position(columnHandle,
+						GTK_CELL_RENDERER(cell), &contentX, NULL);
+				_list->ignoreSize = FALSE;
+				// Account for the expander arrow offset in x position
+				if (gtk_tree_view_get_expander_column(
+						GTK_TREE_VIEW(_W_WIDGET(widget)->handle))
+						== columnHandle) {
+					/* indent */
+					GdkRectangle rect3;
+					gtk_widget_realize(GTK_WIDGET(handle));
+					path = gtk_tree_model_get_path(modelHandle, &item->iter);
+					gtk_tree_view_get_cell_area(handle, path, columnHandle,
+							&rect3);
+					contentX += rect3.x;
+				}
+				_w_graphics_init(W_GRAPHICS(&gc), cr);
+				if ((_list->drawState & W_SELECTED) != 0) {
+					w_toolkit *toolkit = w_widget_get_toolkit(widget);
+					w_color color = w_toolkit_get_system_color(toolkit,
+							W_COLOR_LIST_SELECTION);
+					w_graphics_set_background(W_GRAPHICS(&gc), color);
+					color = w_toolkit_get_system_color(toolkit,
+							W_COLOR_LIST_SELECTION_TEXT);
+					w_graphics_set_foreground(W_GRAPHICS(&gc), color);
+				} else {
+					if (attr.background != 0)
+						w_graphics_set_background(W_GRAPHICS(&gc),
+								attr.background);
+					if (attr.foreground != 0)
+						w_graphics_set_foreground(W_GRAPHICS(&gc),
+								attr.foreground);
+				}
+				memset(&event, 0, sizeof(event));
+				event.event.type = W_EVENT_ITEM_PAINT;
+				event.event.widget = widget;
+				event.column = W_COLUMNITEM(column);
+				event.item = W_LISTITEM(item);
+				event.gc = W_GRAPHICS(&gc);
+				event.rect = &rect;
+				if (attr.font != 0) {
+					w_graphics_set_font(W_GRAPHICS(&gc), attr.font);
+				} else {
+					w_font *font;
+					w_control_get_font(W_CONTROL(widget), &font);
+					w_graphics_set_font(W_GRAPHICS(&gc), font);
+				}
+				if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
+					int clientWidth = priv->get_client_width(W_CONTROL(widget),
+							priv);
+					rect.x = clientWidth - rect.width - rect.x;
+				}
+				// Caveat: rect2 is necessary because GC#setClipping(Rectangle) got broken by bug 446075
+				//w_graphics_set_clipping_rect(W_GRAPHICS(&gc), &rect);
+				rect.x += contentX;
+				rect.width = cell_area->width;			//contentWidth;
+				event.detail = _list->drawState;		//drawState;
+				int ret = w_widget_post_event(widget, (w_event*) &event,
+						W_EVENT_SEND);
+				w_graphics_dispose(W_GRAPHICS(&gc));
+			}		//if (hooks (PaintItem))
 		}
 	}
 }
@@ -1245,6 +1340,7 @@ void _w_listviewbase_renderer_get_preferred_width(w_widget *widget,
 	struct _w_cell_renderer *cell = (struct _w_cell_renderer*) _cell;
 	struct _w_cell_renderer_class *clazz =
 			(struct _w_cell_renderer_class*) GTK_CELL_RENDERER_GET_CLASS(_cell);
+	wuint64 style = _W_WIDGET(widget)->style;
 	clazz->default_get_preferred_width(_cell, gtkwidget, minimum_size,
 			natural_size);
 	if (GTK_IS_CELL_RENDERER_TEXT(cell)) {
@@ -1253,31 +1349,34 @@ void _w_listviewbase_renderer_get_preferred_width(w_widget *widget,
 		gtk_cell_renderer_get_preferred_height_for_width(_cell, gtkwidget,
 				contentWidth, &contentHeight, NULL);
 #endif
-		int imageWidth = 0;
-		if (_list->imagelist != 0
-				&& _W_IMAGELIST(_list->imagelist)->images != 0) {
-			imageWidth =
-			_W_IMAGELIST(_list->imagelist)->images->width;
+		if (style & W_CUSTOMDRAW) {
+			int imageWidth = 0;
+			if (_list->imagelist != 0
+					&& _W_IMAGELIST(_list->imagelist)->images != 0) {
+				imageWidth =
+				_W_IMAGELIST(_list->imagelist)->images->width;
+			}
+			contentWidth += imageWidth;
+			w_event_list event;
+			w_rect rect;
+			w_graphics gc;
+			memset(&event, 0, sizeof(event));
+			_w_graphics_init(&gc, 0);
+			rect.x = 0;
+			rect.y = 0;
+			rect.width = contentWidth;
+			rect.height = contentHeight;
+			event.event.type = W_EVENT_ITEM_MEASURE;
+			event.event.widget = widget;
+			event.column = W_COLUMNITEM(&cell->column);
+			event.item = W_LISTITEM(&cell->listitem);
+			event.rect = &rect;
+			event.gc = &gc;
+			int ret = _w_widget_send_event(widget, (w_event*) &event,
+					W_EVENT_SEND);
+			if (contentHeight < rect.height)
+				contentHeight = rect.height;
 		}
-		contentWidth += imageWidth;
-		w_event_list event;
-		w_rect rect;
-		w_graphics gc;
-		memset(&event, 0, sizeof(event));
-		_w_graphics_init(&gc, 0);
-		rect.x = 0;
-		rect.y = 0;
-		rect.width = contentWidth;
-		rect.height = contentHeight;
-		event.event.type = W_EVENT_ITEM_MEASURE;
-		event.event.widget = widget;
-		event.column = W_COLUMNITEM(&cell->column);
-		event.item = W_LISTITEM(&cell->listitem);
-		event.rect = &rect;
-		event.gc = &gc;
-		int ret = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
-		if (contentHeight < rect.height)
-			contentHeight = rect.height;
 #if GTK3
 		*minimum_size = contentWidth;
 		gtk_cell_renderer_set_fixed_size(_cell, contentWidth, contentHeight);

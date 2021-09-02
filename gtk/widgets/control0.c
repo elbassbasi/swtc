@@ -1168,9 +1168,9 @@ gboolean _w_control_show_menu(w_control *control, int x, int y, int detail) {
 	if (ret && w_widget_is_ok(W_WIDGET(event.menu))) {
 		/*boolean hooksKeys = hooks(SWT.KeyDown) || hooks(SWT.KeyUp);
 		 menu.createIMMenu(hooksKeys ? imHandle() : 0);*/
-		if (event.location.x != x || event.location.y != y) {
+		//if (event.location.x != x || event.location.y != y) {
 			w_menu_set_location(event.menu, &event.location);
-		}
+		//}
 		w_menu_set_visible(event.menu, W_TRUE);
 		return TRUE;
 	}

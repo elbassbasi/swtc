@@ -631,7 +631,7 @@ void _w_shell_hook_events(w_widget *shell, _w_control_priv *priv) {
 	_w_widget_connect(shellHandle, &signals[SIGNAL_DELETE_EVENT], FALSE);
 	_w_widget_connect(shellHandle, &signals[SIGNAL_MAP_EVENT], FALSE);
 	_w_widget_connect(shellHandle, &signals[SIGNAL_ENTER_NOTIFY_EVENT], FALSE);
-	_w_widget_connect(shellHandle, &signals[SIGNAL_MOVE_FOCUS], FALSE);
+	_w_widget_connect(shellHandle, &_W_SHELL_PRIV(priv)->move_focus, FALSE);
 #if GTK3
 	_w_widget_connect(shellHandle, &signals[SIGNAL_FOCUS_IN_EVENT], FALSE);
 	_w_widget_connect(shellHandle, &signals[SIGNAL_FOCUS_OUT_EVENT], FALSE);
