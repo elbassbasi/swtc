@@ -40,6 +40,18 @@ public:
 	int Add(WImage &image) {
 		return Add(&image);
 	}
+	int AddMimeType(const char *mimetype, int flags) {
+		return w_imagelist_add_mimetype(W_IMAGELIST(this), mimetype, flags);
+	}
+	int AddMimeType(const char *mimetype) {
+		return AddMimeType(mimetype, W_IMAGELIST_MIME_DEFAULT);
+	}
+	int AddMimeExtension(const char *ext) {
+		return AddMimeType(ext, W_IMAGELIST_MIME_EXTENSION);
+	}
+	int AddMimeDirectory() {
+		return AddMimeType(0, W_IMAGELIST_MIME_DIRECTORY);
+	}
 	bool IsOk() {
 		return w_imagelist_is_ok(W_IMAGELIST(this));
 	}
@@ -84,7 +96,7 @@ public:
 				(w_point*) &location, flags);
 	}
 	bool Draw(WGraphics &gc, int index, const WPoint &location, int flags) {
-		return _Draw(gc,index,location,flags) > 0;
+		return _Draw(gc, index, location, flags) > 0;
 	}
 	bool Draw(WGraphics &gc, int index, int x, int y, int flags =
 			W_IMAGELIST_DRAW_NORMAL) {

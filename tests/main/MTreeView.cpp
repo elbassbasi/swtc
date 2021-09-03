@@ -17,7 +17,17 @@ MTreeView::~MTreeView() {
 bool MTreeView::Create(WComposite *parent) {
 	WTreeView::Create(parent, W_HSCROLL | W_VSCROLL);
 	MFrame *shell = (MFrame*) this->GetFrame();
-	this->SetImageList(shell->GetImageList16());
+	const int use_shell = false;
+	WImageList *imagelist;
+	if (use_shell) {
+		imagelist = shell->GetImageList16();
+	} else {
+		this->imagelist.Create(16, 16);
+		this->imagelist.AddMimeDirectory();
+		this->imagelist.AddMimeExtension("file");
+		imagelist = &this->imagelist;
+	}
+	this->SetImageList(imagelist);
 	WTreeItem root;
 	GetRootItem(root);
 	ITreeItem::RegitreRoot(root);

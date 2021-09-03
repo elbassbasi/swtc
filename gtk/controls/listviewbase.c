@@ -734,10 +734,10 @@ wresult _w_listviewbase_set_imagelist(w_listviewbase *list,
 			return W_ERROR_INVALID_ARGUMENT;
 		} else {
 			_W_LISTVIEWBASE(list)->imagelist = imagelist;
+			w_size size;
+			w_imagelist_get_size(imagelist, &size);
 			gtk_cell_renderer_set_fixed_size(
-			_W_LISTVIEWBASE(list)->pixbufrenderer,
-			_W_IMAGELIST(imagelist)->images->width,
-			_W_IMAGELIST(imagelist)->images->height);
+			_W_LISTVIEWBASE(list)->pixbufrenderer, size.width, size.height);
 		}
 	}
 	W_CONTROL_GET_CLASS(list)->update(W_CONTROL(list));
@@ -1226,10 +1226,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 					-1);
 			if (index >= 0) {
 				w_imagelist *imagelist = _list->imagelist;
-				if (imagelist != 0 && _W_IMAGELIST(imagelist)->images != 0
-						&& _W_IMAGELIST(imagelist)->images->count > index) {
-					pixbuf = _W_IMAGELIST(imagelist)->images->images[index];
-				}
+				pixbuf = _w_imagelist_get_pixbuf(imagelist, index);
 			}
 			g_object_set(cell, "pixbuf", pixbuf, NULL);
 			clazz->default_render(_cell, cr, gtkwidget, background_area,
@@ -1350,13 +1347,10 @@ void _w_listviewbase_renderer_get_preferred_width(w_widget *widget,
 				contentWidth, &contentHeight, NULL);
 #endif
 		if (style & W_CUSTOMDRAW) {
-			int imageWidth = 0;
-			if (_list->imagelist != 0
-					&& _W_IMAGELIST(_list->imagelist)->images != 0) {
-				imageWidth =
-				_W_IMAGELIST(_list->imagelist)->images->width;
-			}
-			contentWidth += imageWidth;
+			w_size imageSize;
+			imageSize.width = 0;
+			w_imagelist_get_size(_list->imagelist, &imageSize);
+			contentWidth += imageSize.width;
 			w_event_list event;
 			w_rect rect;
 			w_graphics gc;

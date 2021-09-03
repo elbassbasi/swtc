@@ -143,7 +143,7 @@ void _w_combobox_clear_text(w_combobox *combo) {
 				e.time = 0;
 				e.widget = W_WIDGET(combo);
 				e.data = 0;
-				_w_widget_send_event(W_WIDGET(combo), &e,W_EVENT_SEND);
+				_w_widget_send_event(W_WIDGET(combo), &e, W_EVENT_SEND);
 			}
 			g_free(ptr);
 		}
@@ -495,7 +495,7 @@ wresult _w_combobox_select(w_combobox *combo, int index) {
 		e.time = 0;
 		e.widget = W_WIDGET(combo);
 		e.data = 0;
-		_w_widget_send_event(W_WIDGET(combo), &e,W_EVENT_SEND);
+		_w_widget_send_event(W_WIDGET(combo), &e, W_EVENT_SEND);
 	}
 	return W_TRUE;
 }
@@ -512,10 +512,10 @@ wresult _w_combobox_set_imagelist(w_combobox *combo, w_imagelist *imagelist) {
 			return W_ERROR_INVALID_ARGUMENT;
 		} else {
 			_W_COMBOBOX(combo)->imagelist = imagelist;
+			w_size size;
+			w_imagelist_get_size(imagelist, &size);
 			gtk_cell_renderer_set_fixed_size(
-			_W_COMBOBOX(combo)->pixbufrenderer,
-			_W_IMAGELIST(imagelist)->images->width,
-			_W_IMAGELIST(imagelist)->images->height);
+			_W_COMBOBOX(combo)->pixbufrenderer, size.width, size.height);
 		}
 	}
 	W_CONTROL_GET_CLASS(combo)->update(W_CONTROL(combo));
@@ -583,7 +583,7 @@ wresult _w_combobox_set_text(w_combobox *combo, const char *string, int length,
 	e.time = 0;
 	e.widget = W_WIDGET(combo);
 	e.data = 0;
-	_w_widget_send_event(W_WIDGET(combo), &e,W_EVENT_SEND);
+	_w_widget_send_event(W_WIDGET(combo), &e, W_EVENT_SEND);
 	return W_TRUE;
 }
 wresult _w_combobox_set_text_limit(w_combobox *combo, int limit) {
@@ -639,10 +639,7 @@ void _w_combobox_renderer_render(w_widget *widget, _w_control_priv *priv,
 		gtk_tree_model_get(modelHandle, iter, COLUMN_IMAGE, &index, -1);
 		if (index >= 0) {
 			w_imagelist *imagelist = _W_COMBOBOX(widget)->imagelist;
-			if (imagelist != 0 && _W_IMAGELIST(imagelist)->images != 0
-					&& _W_IMAGELIST(imagelist)->images->count > index) {
-				pixbuf = _W_IMAGELIST(imagelist)->images->images[index];
-			}
+			pixbuf = _w_imagelist_get_pixbuf(imagelist, index);
 		}
 		g_object_set(cell, "pixbuf", pixbuf, NULL);
 	}

@@ -43,20 +43,23 @@ typedef struct _w_surface {
 	cairo_surface_t *handle;
 } _w_surface;
 #define _W_SURFACE(x) ((_w_surface*)x)
-typedef struct _w_imagelist_images {
-	int alloc;
-	int count;
+typedef struct _w_imagelist_info {
 	int style;
 	int width;
 	int height;
-	void *reserved;
-	GdkPixbuf *images[0];
-} _w_imagelist_images;
+} _w_imagelist_info;
+typedef struct _w_imagelist_mime {
+	int index;
+	char *mime;
+} _w_imagelist_mime;
 typedef struct _w_imagelist {
-	_w_imagelist_images *images;
+	w_array *images;
+	w_array *mime_types;
 } _w_imagelist;
 #define _W_IMAGELIST(x) ((_w_imagelist*)x)
-GdkPixbuf* w_imagelist_get_pixbuf(w_imagelist *imagelist, int index);
+int _w_imagelist_get_pixbufs(w_array *images, GdkPixbuf ***pixbuf);
+GdkPixbuf* _w_imagelist_get_pixbuf_0(w_array *images, int index);
+GdkPixbuf* _w_imagelist_get_pixbuf(w_imagelist *imagelist, int index);
 /*
  * cursor
  */

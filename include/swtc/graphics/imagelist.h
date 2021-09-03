@@ -42,6 +42,17 @@ SWT_PUBLIC wresult w_imagelist_draw(w_imagelist *imagelist,
 SWT_PUBLIC wresult w_imagelist_draw_ex(w_imagelist *imagelist,
 		w_graphics *graphics, int index, w_point *pt, int state, w_color bg,
 		w_color fg);
+/*
+ *
+ */
+enum {
+	W_IMAGELIST_MIME_DEFAULT = 0, //
+	W_IMAGELIST_MIME_DIRECTORY, //
+	W_IMAGELIST_MIME_EXTENSION,
+	W_IMAGELIST_MIME_FILE,
+};
+SWT_PUBLIC int w_imagelist_add_mimetype(w_imagelist *imagelist,
+		const char *filename, int flags);
 
 #ifdef __cplusplus
 }

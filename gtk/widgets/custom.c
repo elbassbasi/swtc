@@ -402,11 +402,7 @@ gboolean _w_image_widget_draw(GtkWidget *widget, cairo_t *cr) {
 		int i = image->index;
 		w_imagelist *imagelist = 0;
 		image->get_image_list(image->parent, &imagelist);
-		if (imagelist != 0) {
-			if (i < _W_IMAGELIST(imagelist)->images->count && i >= 0) {
-				pixbuf = _W_IMAGELIST(imagelist)->images->images[i];
-			}
-		}
+		pixbuf = _w_imagelist_get_pixbuf(imagelist, i);
 	}
 	g_object_set(widget, "pixbuf", pixbuf, NULL);
 	return parent_class->draw(widget, cr);
@@ -416,12 +412,15 @@ void _w_image_widget_get_preferred_width(GtkWidget *widget, gint *minimum,
 	_w_image_widget *image = _W_IMAGE_WIDGET(widget);
 	w_imagelist *imagelist = 0;
 	image->get_image_list(image->parent, &imagelist);
+	w_size size;
+	size.width = 0;
+	w_imagelist_get_size(imagelist, &size);
 	if (imagelist != 0) {
 		if (minimum) {
-			*minimum = _W_IMAGELIST(imagelist)->images->width;
+			*minimum = size.width;
 		}
 		if (natural)
-			*natural = _W_IMAGELIST(imagelist)->images->width;
+			*natural = size.width;
 	} else {
 		if (minimum) {
 			*minimum = 0;
@@ -436,12 +435,16 @@ void _w_image_widget_get_preferred_height(GtkWidget *widget, gint *minimum,
 	_w_image_widget *image = _W_IMAGE_WIDGET(widget);
 	w_imagelist *imagelist = 0;
 	image->get_image_list(image->parent, &imagelist);
+	w_size size;
+	size.width = 0;
+	size.height = 0;
+	w_imagelist_get_size(imagelist, &size);
 	if (imagelist != 0) {
 		if (minimum) {
-			*minimum = _W_IMAGELIST(imagelist)->images->height;
+			*minimum = size.height;
 		}
 		if (natural)
-			*natural = _W_IMAGELIST(imagelist)->images->height;
+			*natural = size.height;
 	} else {
 		if (minimum) {
 			*minimum = 0;

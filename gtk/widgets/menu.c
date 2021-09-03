@@ -549,7 +549,7 @@ wresult _w_menuitem_set_image(w_menuitem *item, w_image *image) {
 wresult _w_menuitem_set_image_index(w_menuitem *item, w_imagelist *imagelist,
 		int index) {
 	w_widget *menu = _W_ITEM(item)->parent;
-	GdkPixbuf *pixbuf = w_imagelist_get_pixbuf(imagelist, index);
+	GdkPixbuf *pixbuf = _w_imagelist_get_pixbuf(imagelist, index);
 	return _w_menuitem_set_image_0(item, pixbuf);
 }
 wresult _w_menuitem_set_selection(w_menuitem *item, int selected) {

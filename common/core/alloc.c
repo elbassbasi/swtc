@@ -135,7 +135,7 @@ void w_array_free(w_array *array, int element_size,
 	if (array == 0)
 		return;
 	if (free_element != 0) {
-		int count = array->alloc;
+		int count = array->count;
 		char *data = array->data;
 		for (int i = 0; i < count; i++) {
 			free_element(array, data, i);

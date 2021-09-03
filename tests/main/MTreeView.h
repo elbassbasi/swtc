@@ -10,6 +10,7 @@
 #include "TreeItems.h"
 class MTreeView: public WTreeView {
 public:
+	WImageList imagelist;
 	MTreeView();
 	~MTreeView();
 	bool Create(WComposite *parent);
