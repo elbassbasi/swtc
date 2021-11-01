@@ -74,7 +74,7 @@ struct _w_toolkit_class {
 	wresult (*dispatch)(w_toolkit *toolkit);
 	wresult (*set_cursor_location)(w_toolkit *toolkit, w_point *point);
 	wresult (*set_theme)(w_toolkit *toolkit, w_theme *theme);
-	int (*run)(w_toolkit *toolkit);
+	int (*run)(w_toolkit *toolkit,w_shell* shell);
 	wresult (*read)(w_toolkit *toolkit);
 	wresult (*sync_exec)(w_toolkit *toolkit, w_thread_start function,
 			void *user_data, void *args);
@@ -147,7 +147,7 @@ SWT_PUBLIC wresult w_toolkit_post_quit(w_toolkit *toolkit, int quit);
 SWT_PUBLIC wresult w_toolkit_read_and_dispatch(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_set_cursor_location(w_toolkit *toolkit,
 		w_point *point);
-SWT_PUBLIC int w_toolkit_run(w_toolkit *toolkit);
+SWT_PUBLIC int w_toolkit_run(w_toolkit *toolkit,w_shell* shell);
 SWT_PUBLIC wresult w_toolkit_sleep(w_toolkit *toolkit);
 SWT_PUBLIC wresult w_toolkit_sync_exec(w_toolkit *toolkit,
 		w_thread_start function, void *user_data, void *args);

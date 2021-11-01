@@ -70,7 +70,10 @@ public:
 		return (WToolkit*) w_app_set_custom_toolkit(this, W_TOOLKIT(toolkit));
 	}
 	WTheme* CreateTheme(const char *name) {
-		return (WTheme*)w_app_create_theme(this, name);
+		return (WTheme*) w_app_create_theme(this, name);
+	}
+	int Run(WFrame *frame) {
+		return GetDefaultToolkit()->Run(frame);
 	}
 	int Run() {
 		return GetDefaultToolkit()->Run();

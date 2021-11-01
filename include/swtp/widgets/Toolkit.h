@@ -664,8 +664,11 @@ public:
 	bool Sleep() {
 		return w_toolkit_sleep(W_TOOLKIT(this));
 	}
+	int Run(WFrame *frame) {
+		return w_toolkit_run(W_TOOLKIT(this), W_SHELL(frame));
+	}
 	int Run() {
-		return w_toolkit_run(W_TOOLKIT(this));
+		return Run(0);
 	}
 	/**
 	 * Causes the <code>run()</code> method of the runnable to

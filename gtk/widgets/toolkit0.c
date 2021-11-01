@@ -198,8 +198,9 @@ wresult w_iterator_filter_shell_parent(void *userdata, void *in, void *out) {
 	}
 }
 void _w_toolkit_get_shells_from_parent(w_shell *shell, w_iterator *iterator) {
-	w_iterator_link_create(iterator, &_W_SHELL(gtk_toolkit->shells)->shells_link,
-			gtk_toolkit->shells, -1, w_iterator_filter_shell_parent, shell);
+	w_iterator_link_create(iterator,
+			&_W_SHELL(gtk_toolkit->shells)->shells_link, gtk_toolkit->shells,
+			-1, w_iterator_filter_shell_parent, shell);
 }
 w_color _w_toolkit_get_system_color(w_toolkit *toolkit, wuint id) {
 	w_theme *theme = (w_theme*) &_W_TOOLKIT(toolkit)->gtktheme;
@@ -339,9 +340,7 @@ wresult _w_toolkit_dispatch(w_toolkit *toolkit) {
 	}
 	return TRUE;
 }
-wresult _w_toolkit_read(w_toolkit *toolkit) {
-	gdk_threads_leave();
-	g_main_context_iteration(0, FALSE);
+wresult _w_toolkit_event_free_memory(w_toolkit *toolkit) {
 	w_event _e;
 	w_widget *widget = ((_w_toolkit*) toolkit)->widget_free, *next;
 	while (widget != 0) {
@@ -362,6 +361,11 @@ wresult _w_toolkit_read(w_toolkit *toolkit) {
 	((_w_toolkit*) toolkit)->widget_free = 0;
 	return W_TRUE;
 }
+wresult _w_toolkit_read(w_toolkit *toolkit) {
+	gdk_threads_leave();
+	g_main_context_iteration(0, FALSE);
+	return _w_toolkit_event_free_memory(toolkit);
+}
 wresult _w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *location) {
 	GdkDisplay *gdkDisplay = gdk_display_get_default();
 	GdkDeviceManager *gdkDeviceManager = gdk_display_get_device_manager(
@@ -376,12 +380,18 @@ wresult _w_toolkit_set_theme(w_toolkit *toolkit, w_theme *theme) {
 	_W_TOOLKIT(toolkit)->theme = theme;
 	return W_TRUE;
 }
-int _w_toolkit_run(w_toolkit *toolkit) {
+int _w_toolkit_run(w_toolkit *toolkit, w_shell *shell) {
 	_W_TOOLKIT(toolkit)->exit_loop = 0;
-	while (_W_TOOLKIT(toolkit)->exit_loop == 0) {
+	do {
 		_w_toolkit_read(toolkit);
 		_w_toolkit_dispatch(toolkit);
-	}
+		if (shell != 0) {
+			if (w_widget_is_ok(W_WIDGET(shell)) <= 0) {
+				_w_toolkit_event_free_memory(toolkit);
+				break;
+			}
+		}
+	} while (_W_TOOLKIT(toolkit)->exit_loop == 0);
 	return _W_TOOLKIT(toolkit)->exit_code;
 }
 gboolean _w_toolkit_async_exec_GSourceFunc(gpointer user_data) {

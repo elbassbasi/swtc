@@ -240,7 +240,7 @@ wresult _w_toolkit_post(w_toolkit *toolkit, w_event *event);
 wresult _w_toolkit_post_quit(w_toolkit *toolkit, int quit);
 wresult _w_toolkit_dispatch(w_toolkit *toolkit);
 wresult _w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *point);
-int _w_toolkit_run(w_toolkit *toolkit);
+int _w_toolkit_run(w_toolkit *toolkit, w_shell *shell);
 wresult _w_toolkit_read(w_toolkit *toolkit);
 wresult _w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
 		void *user_data, void *args);

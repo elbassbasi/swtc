@@ -565,6 +565,15 @@ public:
 		return SetAttr(index, W_ITEM_ATTR_MASK_BACKGROUND, attr);
 	}
 	/**
+	 * Sets the checked state of the checkbox for this item.  This state change
+	 * only applies if the Table was created with the SWT.CHECK style.
+	 *
+	 * @param checked the new checked state of the checkbox
+	 */
+	bool SetChecked(bool checked) {
+		return _WReturnBool(_set_checked(checked));
+	}
+	/**
 	 * Sets the font that the receiver will use to paint textual information
 	 * for this item to the font specified by the argument, or to the default font
 	 * for that kind of control if the argument is null.

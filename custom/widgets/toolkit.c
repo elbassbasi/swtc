@@ -243,9 +243,9 @@ wresult w_toolkit_custom_set_theme(w_toolkit *toolkit, w_theme *theme) {
 	ctoolkit->theme = theme;
 	return W_TRUE;
 }
-int w_toolkit_custom_run(w_toolkit *toolkit) {
+int w_toolkit_custom_run(w_toolkit *toolkit, w_shell *shell) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
-	return W_TOOLKIT_GET_CLASS(systoolkit)->run(systoolkit);
+	return W_TOOLKIT_GET_CLASS(systoolkit)->run(systoolkit,shell);
 }
 wresult w_toolkit_custom_sync_exec(w_toolkit *toolkit, w_thread_start function,
 		void *user_data, void *args) {
