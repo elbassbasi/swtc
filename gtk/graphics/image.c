@@ -131,8 +131,18 @@ wresult w_image_create_from_data(w_image *image, void *data, wuint format,
 	_W_IMAGE(image)->flags = 0;
 	return W_TRUE;
 }
+GInputStream* w_input_stream_create(w_stream *stream, int flags);
 wresult w_image_create_from_stream(w_image *image, w_stream *stream) {
-	return W_FALSE;
+	GInputStream *s = w_input_stream_create(stream, 0);
+	if (s == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	GError *err = NULL;
+	_W_IMAGE(image)->pixbuf = gdk_pixbuf_new_from_stream(s, NULL, &err);
+	if (_W_IMAGE(image)->pixbuf == 0) {
+		return W_ERROR_NO_HANDLES;
+	}
+	_W_IMAGE(image)->flags = 0;
+	return W_TRUE;
 }
 wresult w_image_create_from_buffer(w_image *image, const void *buffer,
 		size_t size) {

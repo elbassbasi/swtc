@@ -70,6 +70,9 @@ public:
 		return w_image_create_from_file(W_IMAGE(this), file, -1,
 				W_ENCODING_UTF8) > 0;
 	}
+	bool Create(IWStream *stream) {
+		return w_image_create_from_stream(W_IMAGE(this), (w_stream*) stream) > 0;
+	}
 	bool Create(const void *buffer, size_t size) {
 		return w_image_create_from_buffer(W_IMAGE(this), buffer, size) > 0;
 	}

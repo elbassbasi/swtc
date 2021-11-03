@@ -1507,6 +1507,41 @@ WResult IWIterator::Remove() {
 size_t IWIterator::GetCount() {
 	return 0;
 }
+wresult _w_stream_cpp_close(w_stream *stream) {
+	return reinterpret_cast<IWStream*>(stream)->Close();
+}
+wresult _w_stream_cpp_read(w_stream *stream, void *pv, size_t cb,
+		size_t *pcbRead) {
+	return reinterpret_cast<IWStream*>(stream)->Read(pv, cb, pcbRead);
+}
+wresult _w_stream_cpp_write(w_stream *stream, const void *pv, size_t cb,
+		size_t *pcbWritten) {
+	return reinterpret_cast<IWStream*>(stream)->Write(pv, cb, pcbWritten);
+}
+wresult _w_stream_cpp_seek(w_stream *stream, wuint64 dlibMove, int dwOrigin) {
+	return reinterpret_cast<IWStream*>(stream)->Seek(dlibMove, dwOrigin);
+}
+wresult _w_stream_cpp_tell(w_stream *stream, wuint64 *pos) {
+	return reinterpret_cast<IWStream*>(stream)->Tell(pos);
+}
+wresult _w_stream_cpp_rewind(w_stream *stream) {
+	return reinterpret_cast<IWStream*>(stream)->Rewind();
+}
+wresult _w_stream_cpp_set_size(w_stream *stream, wuint64 libNewSize) {
+	return reinterpret_cast<IWStream*>(stream)->SetSize(libNewSize);
+}
+wresult _w_stream_cpp_get_size(w_stream *stream, wuint64 *libNewSize) {
+	return reinterpret_cast<IWStream*>(stream)->GetSize(libNewSize);
+}
+_w_stream_class _w_stream_cpp_class = { _w_stream_cpp_close, _w_stream_cpp_read,
+		_w_stream_cpp_write, _w_stream_cpp_seek, _w_stream_cpp_tell,
+		_w_stream_cpp_rewind, _w_stream_cpp_set_size, _w_stream_cpp_get_size };
+IWStream::IWStream() {
+	this->clazz = &_w_stream_cpp_class;
+}
+
+IWStream::~IWStream() {
+}
 /*
  * thread
  */

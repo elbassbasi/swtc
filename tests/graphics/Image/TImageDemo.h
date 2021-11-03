@@ -10,6 +10,7 @@
 #include "TImages.h"
 class TImageDemo: public CanvasTreeItem {
 public:
+	WImage streamImage;
 	static void Registre(WTreeItem &parent);
 	TImageDemo();
 	virtual ~TImageDemo();
