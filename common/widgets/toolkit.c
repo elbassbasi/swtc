@@ -26,11 +26,10 @@ void w_toolkit_init_class(w_toolkit *toolkit, wushort clazz_id,
 	W_TOOLKIT_GET_CLASS(toolkit)->init_class(toolkit, clazz_id, clazz);
 }
 wresult w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args) {
+		void *args) {
 	if (toolkit == 0)
 		toolkit = w_app_get_default_toolkit(w_app_get());
-	return W_TOOLKIT_GET_CLASS(toolkit)->async_exec(toolkit, function,
-			user_data, args);
+	return W_TOOLKIT_GET_CLASS(toolkit)->async_exec(toolkit, function, args);
 }
 wresult w_toolkit_beep(w_toolkit *toolkit) {
 	if (toolkit == 0)
@@ -205,10 +204,10 @@ wresult w_toolkit_set_theme(w_toolkit *toolkit, w_theme *theme) {
 		toolkit = w_app_get_default_toolkit(w_app_get());
 	return W_TOOLKIT_GET_CLASS(toolkit)->set_theme(toolkit, theme);
 }
-int w_toolkit_run(w_toolkit *toolkit,w_shell* shell) {
+int w_toolkit_run(w_toolkit *toolkit, w_shell *shell) {
 	if (toolkit == 0)
 		toolkit = w_app_get_default_toolkit(w_app_get());
-	return W_TOOLKIT_GET_CLASS(toolkit)->run(toolkit,shell);
+	return W_TOOLKIT_GET_CLASS(toolkit)->run(toolkit, shell);
 }
 wresult w_toolkit_sleep(w_toolkit *toolkit) {
 	if (toolkit == 0)
@@ -216,18 +215,17 @@ wresult w_toolkit_sleep(w_toolkit *toolkit) {
 	return W_TOOLKIT_GET_CLASS(toolkit)->read(toolkit);
 }
 wresult w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args) {
+		void *args) {
 	if (toolkit == 0)
 		toolkit = w_app_get_default_toolkit(w_app_get());
-	return W_TOOLKIT_GET_CLASS(toolkit)->sync_exec(toolkit, function, user_data,
-			args);
+	return W_TOOLKIT_GET_CLASS(toolkit)->sync_exec(toolkit, function, args);
 }
 wresult w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *user_data, void *args) {
+		w_thread_start function, void *args) {
 	if (toolkit == 0)
 		toolkit = w_app_get_default_toolkit(w_app_get());
 	return W_TOOLKIT_GET_CLASS(toolkit)->timer_exec(toolkit, milliseconds,
-			function, user_data, args);
+			function, args);
 }
 wresult w_toolkit_update(w_toolkit *toolkit) {
 	if (toolkit == 0)

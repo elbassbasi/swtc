@@ -69,7 +69,7 @@ void* _w_start_routine(void *_thread) {
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, 0);
 	thread->cleanup = 0;
 	pthread_cleanup_push(_w_cleanup_handler,thread);
-		ret = thread->start_proc(thread->user_data, thread->args);
+		ret = thread->start_proc(thread->args);
 		pthread_setspecific(_pthread_key, 0);
 		pthread_cleanup_pop(0);
 	return (void*) ((intptr_t) ret);

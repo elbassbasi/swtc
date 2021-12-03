@@ -11,10 +11,10 @@
 class SWTP_PUBLIC IWRunnable {
 public:
 	virtual ~IWRunnable();
-	virtual void Run(void *args)=0;
+	virtual void Run()=0;
 };
 #if __cplusplus >= 201103L
-typedef std::function<int(void *args)> WRunnable;
+typedef std::function<int()> WRunnable;
 #endif
 typedef w_threadid WThreadID;
 class WThreadClean;
@@ -204,24 +204,21 @@ protected:
 		w_thread_dispose((w_thread*) this);
 	}
 public:
-	bool Create(w_thread_start function, void *userdata, void *args,
-			size_t stackSize) {
+	bool Create(w_thread_start function, void *args, size_t stackSize) {
 		this->start_proc = function;
 		this->args = args;
-		this->user_data = userdata;
 		return w_thread_create((w_thread*) this, stackSize) > 0;
 	}
-	bool Create(IWRunnable *runnable, void *args, size_t stackSize) {
-		return Create(WThread::w_thread_runnable_start, runnable, args,
-				stackSize);
+	bool Create(IWRunnable *runnable, size_t stackSize) {
+		return Create(WThread::w_thread_runnable_start, runnable, stackSize);
 	}
-	bool Create(IWRunnable *runnable, void *args) {
-		return Create(runnable, args, 0);
+	bool Create(IWRunnable *runnable) {
+		return Create(runnable, 0);
 	}
 #if __cplusplus >= 201103L
-	bool Create(WRunnable &run, void *args);
+	bool Create(WRunnable &run);
 	void operator <<=(WRunnable &run) {
-		Create(run, 0);
+		Create(run);
 	}
 #endif
 	bool Cancel() {
@@ -305,7 +302,7 @@ public:
 	void Start() {
 
 	}
-	void Run(void *args);
+	void Run();
 	/**
 	 * Causes the currently executing thread to sleep (temporarily cease
 	 * execution) for the specified number of milliseconds, subject to
@@ -352,10 +349,9 @@ public:
 	static void Yield() {
 		w_thread_yield();
 	}
-	static int w_thread_runnable_start(void *userdata, void *args);
+	static int w_thread_runnable_start(void *args);
 private:
 	w_thread_start start_proc;
-	void *user_data;
 	void *args;
 	WThreadID id;
 	WThreadClean *cleanup;

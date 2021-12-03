@@ -396,23 +396,23 @@ int _w_toolkit_run(w_toolkit *toolkit, w_shell *shell) {
 }
 gboolean _w_toolkit_async_exec_GSourceFunc(gpointer user_data) {
 	threads_idle *funcs = (threads_idle*) user_data;
-	funcs->func(funcs->user_data, funcs->args);
+	funcs->func(funcs->args);
 	_w_toolkit_delete_pages(funcs, sizeof(threads_idle));
 	return FALSE;
 }
 gboolean _w_toolkit_sync_exec_GSourceFunc(gpointer user_data) {
 	threads_idle *funcs = (threads_idle*) user_data;
-	funcs->func(funcs->user_data, funcs->args);
+	funcs->func(funcs->args);
 	funcs->signalled[0] = 1;
 	_w_toolkit_delete_pages(funcs, sizeof(threads_idle));
 	pthread_cond_broadcast(&gtk_toolkit->condition);
 	return FALSE;
 }
-wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args, int sync, wuint ms) {
+wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function, void *args,
+		int sync, wuint ms) {
 	pthread_t thread = pthread_self();
 	if (pthread_equal(thread, _W_TOOLKIT(toolkit)->thread.id) && ms != -1) {
-		function(user_data, args);
+		function(args);
 		return TRUE;
 	}
 	threads_idle *funcs = (threads_idle*) _w_toolkit_new_pages(
@@ -421,7 +421,6 @@ wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function,
 		return W_ERROR_NO_MEMORY;
 	volatile wuint signalled = 0;
 	funcs->func = function;
-	funcs->user_data = user_data;
 	funcs->args = args;
 	funcs->signalled = &signalled;
 	GSourceFunc sourceFunc;
@@ -444,17 +443,16 @@ wresult _w_toolkit_exec(w_toolkit *toolkit, w_thread_start function,
 	return TRUE;
 }
 wresult _w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args) {
-	return _w_toolkit_exec(toolkit, function, user_data, args, W_FALSE, -1);
+		void *args) {
+	return _w_toolkit_exec(toolkit, function, args, W_FALSE, -1);
 }
 wresult _w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args) {
-	return _w_toolkit_exec(toolkit, function, user_data, args, W_TRUE, -1);
+		void *args) {
+	return _w_toolkit_exec(toolkit, function, args, W_TRUE, -1);
 }
 wresult _w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *user_data, void *args) {
-	return _w_toolkit_exec(toolkit, function, user_data, args, W_FALSE,
-			milliseconds);
+		w_thread_start function, void *args) {
+	return _w_toolkit_exec(toolkit, function, args, W_FALSE, milliseconds);
 }
 wresult _w_toolkit_update(w_toolkit *toolkit) {
 	return W_TRUE;

@@ -97,10 +97,10 @@ w_theme* w_toolkit_custom_get_theme(w_toolkit *toolkit) {
 	}
 }
 wresult w_toolkit_custom_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args) {
+		void *args) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
 	return W_TOOLKIT_GET_CLASS(systoolkit)->async_exec(systoolkit, function,
-			user_data, args);
+			args);
 }
 wresult w_toolkit_custom_beep(w_toolkit *toolkit) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
@@ -245,19 +245,19 @@ wresult w_toolkit_custom_set_theme(w_toolkit *toolkit, w_theme *theme) {
 }
 int w_toolkit_custom_run(w_toolkit *toolkit, w_shell *shell) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
-	return W_TOOLKIT_GET_CLASS(systoolkit)->run(systoolkit,shell);
+	return W_TOOLKIT_GET_CLASS(systoolkit)->run(systoolkit, shell);
 }
 wresult w_toolkit_custom_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args) {
+		void *args) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
 	return W_TOOLKIT_GET_CLASS(systoolkit)->sync_exec(systoolkit, function,
-			user_data, args);
+			args);
 }
 wresult w_toolkit_custom_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *user_data, void *args) {
+		w_thread_start function, void *args) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;
 	return W_TOOLKIT_GET_CLASS(systoolkit)->timer_exec(systoolkit, milliseconds,
-			function, user_data, args);
+			function, args);
 }
 wresult w_toolkit_custom_update(w_toolkit *toolkit) {
 	w_toolkit *systoolkit = ((struct c_toolkit*) toolkit)->system_toolkit;

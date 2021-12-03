@@ -15,9 +15,9 @@ public:
 	TProgressBarThread();
 	~TProgressBarThread();
 	void CreateControl(WComposite *parent);
-	void OnNotifyExec(void *args);
+	void OnNotifyExec();
 	bool OnStart(WEvent &e);
-	void Run(void *args);
+	void Run();
 	unsigned is_started :1;
 	int selection;
 	int maximum;

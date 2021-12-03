@@ -30,7 +30,7 @@ public:
 
 class SWTP_PUBLIC IWNotify: public IDestruct {
 protected:
-	static int exec_function(void *user_data, void *args);
+	static int exec_function(void *args);
 public:
 	typedef bool (IWNotify::*SelectionAction)(WEvent &e);
 	static bool _InvokeAction(IWNotify *notify,
@@ -38,13 +38,13 @@ public:
 	virtual bool OnNotifySelection(WEvent &e) = 0;
 	virtual bool OnNotifyItemSelection(WEvent &e) = 0;
 	virtual bool OnNotifyItemDispose(WEvent &e) = 0;
-	virtual void OnNotifyExec(void *args) = 0;
+	virtual void OnNotifyExec() = 0;
 public:
-	static void _AsyncExec(IWNotify *notify, void *args) {
-		w_toolkit_async_exec(0, IWNotify::exec_function, notify, args);
+	static void _AsyncExec(IWNotify *notify) {
+		w_toolkit_async_exec(0, IWNotify::exec_function, notify);
 	}
-	void AsyncExec(void *args) {
-		_AsyncExec(this, args);
+	void AsyncExec() {
+		_AsyncExec(this);
 	}
 };
 #define W_ACTION(x) ((IWNotify::SelectionAction)&x)
@@ -124,7 +124,7 @@ protected:
 	virtual bool OnPlatformEvent(WPlatformEvent *e);
 	virtual void OnFreeMemory(WEvent &e, WWidget *widget);
 	virtual void OnDispose(WEvent &e);
-	void OnNotifyExec(void *args);
+	void OnNotifyExec();
 	bool OnNotifySelection(WEvent &e);
 	bool OnNotifyItemSelection(WEvent &e);
 	bool OnNotifyItemDispose(WEvent &e);

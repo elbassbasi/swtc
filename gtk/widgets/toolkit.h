@@ -50,7 +50,6 @@ typedef struct _gtk_theme {
 } _gtk_theme;
 typedef struct threads_idle {
 	w_thread_start func;
-	void *user_data;
 	void *args;
 	volatile wuint *signalled;
 } threads_idle;
@@ -202,7 +201,7 @@ struct _w_widget_class* _w_toolkit_get_class(w_toolkit *toolkit,
 		wushort clazz_id);
 struct w_theme* _w_toolkit_get_theme(w_toolkit *toolkit);
 wresult _w_toolkit_async_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args);
+		void *args);
 wresult _w_toolkit_beep(w_toolkit *toolkit);
 wresult _w_toolkit_close(w_toolkit *toolkit);
 w_shell* _w_toolkit_get_active_shell(w_toolkit *toolkit);
@@ -243,9 +242,9 @@ wresult _w_toolkit_set_cursor_location(w_toolkit *toolkit, w_point *point);
 int _w_toolkit_run(w_toolkit *toolkit, w_shell *shell);
 wresult _w_toolkit_read(w_toolkit *toolkit);
 wresult _w_toolkit_sync_exec(w_toolkit *toolkit, w_thread_start function,
-		void *user_data, void *args);
+		void *args);
 wresult _w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
-		w_thread_start function, void *user_data, void *args);
+		w_thread_start function, void *args);
 wresult _w_toolkit_update(w_toolkit *toolkit);
 wresult _w_toolkit_wake(w_toolkit *toolkit);
 #endif /* GTK_WIDGETS_TOOLKIT_H_ */

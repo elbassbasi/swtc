@@ -12,7 +12,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef int (*w_thread_start)(void *userdata, void *args);
+typedef int (*w_thread_start)(void *args);
 
 typedef struct w_thread_cleanup {
 	void (*routine)(void*);
@@ -24,7 +24,6 @@ typedef struct w_thread_cleanup {
 typedef struct w_thread {
 	void *vtbl;      //used in c++
 	w_thread_start start_proc;
-	void *user_data;
 	void *args;
 	w_threadid id;
 	w_thread_cleanup *cleanup;

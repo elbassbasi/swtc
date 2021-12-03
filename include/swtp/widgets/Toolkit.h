@@ -122,12 +122,8 @@ public:
 	 *
 	 * @see #syncExec
 	 */
-	bool AsyncExec(w_thread_start function, void *userdata, void *args) {
-		return w_toolkit_async_exec(W_TOOLKIT(this), function, userdata, args)
-				> 0;
-	}
 	bool AsyncExec(w_thread_start function, void *args) {
-		return AsyncExec(function, 0, args);
+		return w_toolkit_async_exec(W_TOOLKIT(this), function, args) > 0;
 	}
 	/**
 	 * Causes the system hardware to emit a short sound
@@ -687,12 +683,8 @@ public:
 	 *
 	 * @see #asyncExec
 	 */
-	bool SyncExec(w_thread_start function, void *user_data, void *args) {
-		return w_toolkit_sync_exec(W_TOOLKIT(this), function, user_data, args)
-				> 0;
-	}
 	bool SyncExec(w_thread_start function, void *args) {
-		return SyncExec(function, 0, args);
+		return w_toolkit_sync_exec(W_TOOLKIT(this), function, args) > 0;
 	}
 	/**
 	 * Causes the <code>run()</code> method of the runnable to
@@ -711,13 +703,9 @@ public:
 	 *
 	 * @see #asyncExec
 	 */
-	bool TimerExec(int milliseconds, w_thread_start function, void *user_data,
-			void *args) {
-		return w_toolkit_timer_exec(W_TOOLKIT(this), milliseconds, function,
-				user_data, args) > 0;
-	}
 	bool TimerExec(int milliseconds, w_thread_start function, void *args) {
-		return TimerExec(milliseconds, function, 0, args);
+		return w_toolkit_timer_exec(W_TOOLKIT(this), milliseconds, function,
+				args) > 0;
 	}
 	/**
 	 * Forces all outstanding paint requests for the display
