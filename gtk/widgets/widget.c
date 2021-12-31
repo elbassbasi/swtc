@@ -699,6 +699,9 @@ void _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after) {
 			signal->callback = callback;
 		}
 		signal->closure = g_cclosure_new(signal->callback, signal, 0);
+		if (signal->closure != 0) {
+			g_closure_ref(signal->closure);
+		}
 	}
 	g_signal_connect_closure_by_id(widget, signal->id, 0, signal->closure,
 			after);
@@ -747,6 +750,9 @@ wresult _w_widget_get_parent(w_widget *control, w_widget **parent) {
 	*parent = _W_WIDGET(control)->parent;
 	return W_TRUE;
 }
+wresult _w_widget_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_widget_class *clazz) {
 	clazz->is_ok = _w_widget_is_ok;
@@ -758,6 +764,7 @@ void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
 	clazz->init_themedata = _w_widget_init_themedata;
 	clazz->get_parent = _w_widget_get_parent;
 	clazz->toolkit = toolkit;
+	clazz->dispose_class = _w_widget_dispose_class;
 	/*
 	 * public function
 	 */

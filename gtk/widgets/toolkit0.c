@@ -68,6 +68,7 @@ w_app* w_app_get() {
 }
 void w_app_dispose(w_app *app) {
 	w_app_dispose_all();
+	_w_toolkit_dispose((w_disposable*)gtk_toolkit);
 	munmap(gtk_toolkit, gtk_toolkit->total_size);
 }
 wresult _w_toolkit_check_widget(w_toolkit *toolkit, w_widget *widget) {

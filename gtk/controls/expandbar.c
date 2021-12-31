@@ -424,7 +424,7 @@ wresult _w_expandbar_set_imagelist(w_expandbar *expandbar,
 	if (imagelist == 0) {
 		_W_EXPANDBAR(expandbar)->imagelist = 0;
 	} else {
-		if (_W_IMAGELIST(imagelist)->images == 0) {
+		if (_W_IMAGELIST(imagelist)->handles == 0) {
 			_W_EXPANDBAR(expandbar)->imagelist = 0;
 			return W_ERROR_INVALID_ARGUMENT;
 		} else {

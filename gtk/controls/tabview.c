@@ -395,7 +395,7 @@ wresult _w_tabview_set_imagelist(w_tabview *tabview, w_imagelist *imagelist) {
 	if (imagelist == 0) {
 		_W_TABVIEW(tabview)->imagelist = 0;
 	} else {
-		if (_W_IMAGELIST(imagelist)->images == 0) {
+		if (_W_IMAGELIST(imagelist)->handles == 0) {
 			_W_TABVIEW(tabview)->imagelist = 0;
 			ret = W_ERROR_INVALID_ARGUMENT;
 		} else {

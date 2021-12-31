@@ -705,7 +705,7 @@ wresult _w_listviewbase_set_header_imagelist(w_listviewbase *list,
 	if (imagelist == 0) {
 		_W_LISTVIEWBASE(list)->headerimagelist = 0;
 	} else {
-		if (_W_IMAGELIST(imagelist)->images == 0) {
+		if (_W_IMAGELIST(imagelist)->handles == 0) {
 			_W_LISTVIEWBASE(list)->headerimagelist = 0;
 			return W_ERROR_INVALID_ARGUMENT;
 		} else {
@@ -727,7 +727,7 @@ wresult _w_listviewbase_set_imagelist(w_listviewbase *list,
 		gtk_cell_renderer_set_fixed_size(_W_LISTVIEWBASE(list)->pixbufrenderer,
 				0, 0);
 	} else {
-		if (_W_IMAGELIST(imagelist)->images == 0) {
+		if (_W_IMAGELIST(imagelist)->handles == 0) {
 			_W_LISTVIEWBASE(list)->imagelist = 0;
 			gtk_cell_renderer_set_fixed_size(
 			_W_LISTVIEWBASE(list)->pixbufrenderer, 0, 0);
@@ -1135,7 +1135,6 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 		}
 #endif
 		if (GTK_IS_CELL_RENDERER_TEXT(cell)) {
-			text = 0;
 			GdkRGBA rgba;
 			if (attr.background != 0) {
 				g_object_set(cell, "background-set", TRUE, NULL);
@@ -1162,7 +1161,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 				pangoHandle = (PangoFontDescription*) attr.font;
 			}
 			g_object_set(cell, "font-desc", pangoHandle, NULL);
-
+			text = 0;
 			int columnindex = _w_columnitem_get_index(W_ITEM(column));
 			if (columnindex == 0) {
 				gtk_tree_model_get(modelHandle, &item->iter, COLUMN_TEXT, &text,
@@ -1201,6 +1200,7 @@ void _w_listviewbase_renderer_render(w_widget *widget, _w_control_priv *priv,
 				}
 			} else {
 				g_object_set(cell, "text", text, NULL);
+				g_free(text);
 			}
 			clazz->default_render(_cell, cr, gtkwidget, background_area,
 					cell_area, flags);

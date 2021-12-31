@@ -54,6 +54,7 @@ struct _w_widget_class {
 	wresult (*create)(w_widget *widget, w_widget *parent, wuint64 style,
 			w_widget_post_event_proc post_event);
 	wresult (*dispose)(w_widget *widget);
+	wresult (*dispose_class)(struct _w_widget_class *clazz);
 	wresult (*is_ok)(w_widget *widget);
 	wresult (*init_themedata)(w_widget *widget, w_themedata *data);
 	wresult (*get_shell)(w_widget *widget, w_shell **shell);

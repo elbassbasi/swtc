@@ -63,6 +63,7 @@ typedef struct _w_toolkit {
 	w_toolkit toolkit;
 	int version;
 	_w_app app;
+	GtkApplication* gtkApp;
 	_w_cursor cursors[W_CURSOR_HAND + 1];
 	_w_image images[5];
 	GQuark quark[SWT_GQUARK_LAST];

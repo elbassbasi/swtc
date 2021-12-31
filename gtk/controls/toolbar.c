@@ -659,7 +659,7 @@ wresult _w_toolbar_set_imagelist(w_toolbar *toolbar, w_imagelist *imagelist) {
 	if (imagelist == 0) {
 		_W_TOOLBAR(toolbar)->imagelist = 0;
 	} else {
-		if (_W_IMAGELIST(imagelist)->images == 0) {
+		if (_W_IMAGELIST(imagelist)->handles == 0) {
 			_W_TOOLBAR(toolbar)->imagelist = 0;
 			ret = W_ERROR_INVALID_ARGUMENT;
 		} else {

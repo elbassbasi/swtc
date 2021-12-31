@@ -497,6 +497,10 @@ void _w_composite_update_layout(w_control *control, int flags,
  */
 gboolean _gtk_composite_destroy(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (_W_COMPOSITE(widget)->imHandle != 0) {
+		g_object_unref(_W_COMPOSITE(widget)->imHandle);
+		_W_COMPOSITE(widget)->imHandle = 0;
+	}
 	return _gtk_control_destroy(widget, e, priv);
 
 }
@@ -681,6 +685,7 @@ void _w_composite_class_init(w_toolkit *toolkit, wushort classId,
 		 * signals
 		 */
 		_gtk_signal_fn *signals = _W_WIDGET_PRIV(priv)->signals;
+		signals[SIGNAL_DESTROY] = _gtk_composite_destroy;
 		signals[SIGNAL_BUTTON_PRESS_EVENT] = _gtk_composite_button_press_event;
 		signals[SIGNAL_DRAW] = _gtk_composite_draw;
 		signals[SIGNAL_KEY_PRESS_EVENT] = _gtk_composite_key_press_event;

@@ -23,13 +23,20 @@ void _w_graphics_init(w_graphics *gc, cairo_t *drawable) {
 }
 #endif
 void w_graphics_dispose(w_graphics *gc) {
-	if (_W_GRAPHICS(gc)->state & GRAPHICS_STATE_DISPOSE_CAIRO) {
-		cairo_destroy(_W_GRAPHICS(gc)->cairo);
+	_w_graphics *_gc = _W_GRAPHICS(gc);
+	if (_gc->state & GRAPHICS_STATE_DISPOSE_CAIRO) {
+		cairo_destroy(_gc->cairo);
 	}
-	if (_W_GRAPHICS(gc)->context != 0)
-		g_object_unref(_W_GRAPHICS(gc)->context);
-	if (_W_GRAPHICS(gc)->layout != 0)
-		g_object_unref(_W_GRAPHICS(gc)->layout);
+	if (_gc->context != 0)
+		g_object_unref(_gc->context);
+	if (_gc->layout != 0)
+		g_object_unref(_gc->layout);
+	if(_gc->clipRgn != 0){
+		cairo_region_destroy(_gc->clipRgn);
+	}
+	if(_gc->damageRgn != 0){
+		cairo_region_destroy(_gc->damageRgn);
+	}
 }
 wuchar LINE_DOT[] = { 1, 1, 0 };
 wuchar LINE_DASH[] = { 3, 1, 0 };

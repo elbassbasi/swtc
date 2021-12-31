@@ -126,6 +126,17 @@ void _w_fixed_add(GtkContainer *container, GtkWidget *widget) {
 }
 void _w_fixed_remove(GtkContainer *container, GtkWidget *widget) {
 	gtk_widget_unparent(widget);
+	_w_fixed *fixed = _W_FIXED(container);
+	if (fixed == 0)
+		return;
+	if (fixed->child == widget) {
+		fixed->child = 0;
+	} else {
+		w_widget *_widget = _w_widget_find_control(widget);
+		if (_widget != 0) {
+			_W_WIDGET(_widget)->state |= STATE_DESTROYED;
+		}
+	}
 }
 
 void _w_fixed_forall(GtkContainer *container, gboolean include_internals,
@@ -143,12 +154,13 @@ void _w_fixed_forall(GtkContainer *container, gboolean include_internals,
 
 		while (child) {
 			next = (w_widget*) _W_WIDGET(child)->sibling.next;
-			if (child->clazz != 0
-					&& child->clazz->class_id >= _W_CLASS_CONTROL) {
+			if (child->clazz != 0 && child->clazz->class_id >= _W_CLASS_CONTROL
+					&& (_W_WIDGET(child)->state & STATE_DESTROYED) == 0) {
 				_w_control_priv *priv = _W_CONTROL_GET_PRIV(child);
 				GtkWidget *tophandle = priv->widget.handle_top(child, priv);
 				if (gtk_widget_get_parent(tophandle)
 						== (GtkWidget*) container) {
+
 					callback(GTK_WIDGET(tophandle), callback_data);
 				}
 			}
@@ -374,7 +386,6 @@ void _w_fixed_registre(const char *name, GType *type) {
 	sizeof(_w_fixed), 0, /* n_preallocs */
 	(GInstanceInitFunc) _w_fixed_init, NULL };
 	//GType parent_class = GTK_TYPE_CONTAINER;
-
 	*type = g_type_register_static(GTK_TYPE_CONTAINER, name, &fixed_info,
 			(GTypeFlags) 0);
 	GInterfaceInfo interface_info = { NULL, NULL, NULL };

@@ -125,11 +125,12 @@ size_t _gtk_toolkit_alloc_fn(void *user_data, size_t size, void **buf) {
 	return size;
 }
 void _w_toolkit_add_shell(_w_shell *shell) {
-	w_link_linklast_0(&shell->shells_link, shell,(void**) &gtk_toolkit->shells);
+	w_link_linklast_0(&shell->shells_link, shell,
+			(void**) &gtk_toolkit->shells);
 	gtk_toolkit->shells_count++;
 }
 void _w_toolkit_remove_shell(_w_shell *shell) {
-	w_link_unlink_0(&shell->shells_link, shell,(void**) &gtk_toolkit->shells);
+	w_link_unlink_0(&shell->shells_link, shell, (void**) &gtk_toolkit->shells);
 	gtk_toolkit->shells_count--;
 }
 void _w_toolkit_registre_free(w_widget *widget) {
@@ -300,6 +301,7 @@ w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST] = {			//
 		};
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];
+	//toolkit->gtkApp = gtk_application_new("", G_APPLICATION_FLAGS_NONE);
 	gtk_init(0, 0);
 	int major = gtk_get_major_version();
 	int minor = gtk_get_minor_version();
@@ -353,4 +355,25 @@ void _w_toolkit_init(_w_toolkit *toolkit) {
 }
 void _w_toolkit_dispose(w_disposable *disposable) {
 	_w_toolkit *toolkit = _W_TOOLKIT(disposable);
+	_gtk_signal *signals = toolkit->signals;
+	for (int i = 0; i < SIGNAL_LAST; i++) {
+		if (signals[i].closure != 0) {
+			g_closure_unref(signals[i].closure);
+		}
+	}
+	w_theme_dispose((w_theme*) &toolkit->gtktheme);
+	for (int i = 0; i <= W_CURSOR_HAND; i++) {
+		w_cursor_dispose((w_cursor*) &toolkit->cursors[i]);
+	}
+	if (toolkit->empty_tab != 0) {
+		pango_tab_array_free(toolkit->empty_tab);
+	}
+	w_font_dispose((w_font*) toolkit->system_font);
+	//g_object_unref(toolkit->gtkApp);
+	struct _w_widget_class **classes = toolkit->classes.classes;
+	for (int i = 0; i < _W_CLASS_LAST; i++) {
+		if (classes[i] != 0 && classes[i]->class_id != 0) {
+			classes[i]->dispose_class(classes[i]);
+		}
+	}
 }

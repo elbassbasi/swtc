@@ -13,7 +13,8 @@
  */
 #define STATE_HANDLE (1 << 0)
 #define STATE_OBSCURED (1 << 1)
-#define STATE_WIDGET_END (1)
+#define STATE_DESTROYED (1 << 2)
+#define STATE_WIDGET_END (2)
 /*
  *
  */
@@ -146,6 +147,7 @@ int _w_untranslate_key(int key);
 void _w_widget_set_font_description(w_widget *control, GtkWidget *widget,
 		PangoFontDescription *font, _w_control_priv *priv);
 wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data);
+wresult _w_widget_dispose_class(struct _w_widget_class *clazz);
 void _w_widget_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_widget_class *clazz);
 #endif /* GTK_WIDGETS_WIDGET_H_ */

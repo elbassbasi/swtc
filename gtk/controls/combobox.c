@@ -505,7 +505,7 @@ wresult _w_combobox_set_imagelist(w_combobox *combo, w_imagelist *imagelist) {
 		gtk_cell_renderer_set_fixed_size(_W_COMBOBOX(combo)->pixbufrenderer, 0,
 				0);
 	} else {
-		if (_W_IMAGELIST(imagelist)->images == 0) {
+		if (_W_IMAGELIST(imagelist)->handles == 0) {
 			_W_COMBOBOX(combo)->imagelist = 0;
 			gtk_cell_renderer_set_fixed_size(
 			_W_COMBOBOX(combo)->pixbufrenderer, 0, 0);

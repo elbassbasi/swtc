@@ -665,6 +665,7 @@ void _w_menu_hook_events(w_widget *widget, _w_control_priv *priv) {
 	_w_widget_hook_events(widget, priv);
 	_gtk_signal *signals = gtk_toolkit->signals;
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
+	_w_widget_connect(handle, &signals[SIGNAL_DESTROY], TRUE);
 	_w_widget_connect(handle, &signals[SIGNAL_SHOW], FALSE);
 	_w_widget_connect(handle, &signals[SIGNAL_HIDE], FALSE);
 	_w_widget_connect(handle, &signals[SIGNAL_SHOW_HELP], FALSE);
@@ -868,7 +869,17 @@ gboolean _gtk_menu_show_help(w_widget *widget, _w_event_platform *e,
 	_w_widget_send_event(widget, (w_event*) &ei, W_EVENT_SEND);
 	return FALSE;
 }
-
+wresult _w_menu_dispose_class(struct _w_widget_class *clazz) {
+	_w_widget_dispose_class(clazz);
+	_w_control_priv *priv = _W_CONTROL_PRIV(clazz->platformPrivate);
+	GClosure *closure = _W_MENU_PRIV(priv)->signal_activate.closure;
+	if (closure != 0)
+		g_closure_unref(closure);
+	closure = _W_MENU_PRIV(priv)->signal_select.closure;
+	if (closure != 0)
+		g_closure_unref(closure);
+	return W_TRUE;
+}
 void _w_menu_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_menu_class *clazz) {
 	if (classId == _W_CLASS_MENU) {
@@ -882,6 +893,7 @@ void _w_menu_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * functions of menu
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_menu_dispose_class;
 	W_WIDGET_CLASS(clazz)->create = _w_menu_create;
 	W_WIDGET_CLASS(clazz)->get_shell = _w_menu_get_shell;
 	clazz->get_bounds = _w_menu_get_bounds;

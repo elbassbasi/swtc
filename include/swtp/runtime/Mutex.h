@@ -70,6 +70,9 @@ public:
 class WFutex {
 public:
 	volatile int val;
+	WFutex(){
+		this->val = 0;
+	}
 	WResult Wait(int value) {
 		return w_futex_wait((w_futex*) this, value);
 	}
@@ -95,6 +98,10 @@ public:
 	volatile int val;
 	w_threadid owner;
 public:
+	WFutexLock(){
+		this->val =0;
+		this->owner = 0;
+	}
 	WResult Lock() {
 		return w_futexlock_lock((w_futexlock*) this);
 	}

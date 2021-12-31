@@ -6,46 +6,6 @@
  * Licence:
  */
 #include "toolkit.h"
-#if defined(__GNUC__) || defined(__GNUG__)
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if GTK3
-const char *gtk_tooltip_name = "gtk-tooltip";
-#endif
-#if GTK2
-	const char* gtk_tooltip_name = "gtk-tooltips";
-#endif
-void _gtk_theme_init_widget(_gtk_theme *theme) {
-	GtkWidget **handles = theme->handle;
-	handles[GTK_THEME_HANDLE_SHELL] = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	handles[GTK_THEME_HANDLE_TOOLTIP] = gtk_window_new(GTK_WINDOW_POPUP);
-	gtk_widget_set_name(theme->handle[GTK_THEME_HANDLE_TOOLTIP],
-			gtk_tooltip_name);
-	handles[GTK_THEME_HANDLE_FIXED] = gtk_fixed_new();
-	handles[GTK_THEME_HANDLE_BUTTON] = gtk_button_new();
-#if GTK3
-	handles[GTK_THEME_HANDLE_ARROW] = gtk_arrow_new(GTK_ARROW_DOWN,
-			GTK_SHADOW_NONE);
-#endif
-	handles[GTK_THEME_HANDLE_CHECK_BUTTON] = gtk_check_button_new();
-	handles[GTK_THEME_HANDLE_FRAME] = gtk_check_button_new();
-	handles[GTK_THEME_HANDLE_ENTRY] = gtk_entry_new();
-	handles[GTK_THEME_HANDLE_RADIO_BUTTON] = gtk_radio_button_new(0);
-	handles[GTK_THEME_HANDLE_NOTEBOOK] = gtk_notebook_new();
-	handles[GTK_THEME_HANDLE_PROGRESS] = gtk_progress_bar_new();
-	handles[GTK_THEME_HANDLE_TOOLBAR] = gtk_toolbar_new();
-	handles[GTK_THEME_HANDLE_TREE] = gtk_tree_view_new_with_model(0);
-#if GTK3
-	handles[GTK_THEME_HANDLE_SEPARATOR] = gtk_separator_new(
-			GTK_ORIENTATION_VERTICAL);
-#endif
-	handles[GTK_THEME_HANDLE_LABEL] = gtk_label_new(NULL);
-	GtkContainer *fixed = GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]);
-	for (int i = GTK_THEME_HANDLE_BUTTON; i < GTK_THEME_HANDLE_LAST; i++) {
-		gtk_container_add(fixed, handles[i]);
-		//gtk_widget_realize(handles[i]);
-	}
-}
 typedef struct _gtk_theme_info {
 	int flags;
 	int state;
@@ -501,10 +461,8 @@ void _gtk_theme_progressbar_draw_background(w_theme *theme, w_themedata *data,
 		x += thickness.x;
 		width -= thickness.x * 2;
 		height -= thickness.y * 2;
-		height *=
-				data->range.selection
-						/ (float) WMAX(1,
-								(data->range.maximum - data->range.minimum));
+		height *= data->range.selection
+				/ (float) WMAX(1, (data->range.maximum - data->range.minimum));
 		y += bounds->height - thickness.y - height;
 	} else {
 		/*gtk_orientable_set_orientation(GTK_ORIENTABLE(progressHandle),
@@ -863,7 +821,62 @@ _gtk_theme_part_id _gtk_themedata_part_fun[W_THEME_CLASS_LAST] = {
 		[W_THEME_CLASS_TOOLBAR] = 0, //
 		[W_THEME_CLASS_TOOLITEM] = 0, //
 		};
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if GTK3
+const char *gtk_tooltip_name = "gtk-tooltip";
+#endif
+#if GTK2
+	const char* gtk_tooltip_name = "gtk-tooltips";
+#endif
+void _gtk_theme_init_widget(_gtk_theme *theme) {
+	return;
+	GtkWidget **handles = theme->handle;
+	handles[GTK_THEME_HANDLE_SHELL] = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	handles[GTK_THEME_HANDLE_TOOLTIP] = gtk_window_new(GTK_WINDOW_POPUP);
+	gtk_widget_set_name(theme->handle[GTK_THEME_HANDLE_TOOLTIP],
+			gtk_tooltip_name);
+	handles[GTK_THEME_HANDLE_FIXED] = gtk_fixed_new();
+	handles[GTK_THEME_HANDLE_BUTTON] = gtk_button_new();
+#if GTK3
+	handles[GTK_THEME_HANDLE_ARROW] = gtk_arrow_new(GTK_ARROW_DOWN,
+			GTK_SHADOW_NONE);
+#endif
+	handles[GTK_THEME_HANDLE_CHECK_BUTTON] = gtk_check_button_new();
+	handles[GTK_THEME_HANDLE_FRAME] = gtk_check_button_new();
+	handles[GTK_THEME_HANDLE_ENTRY] = gtk_entry_new();
+	handles[GTK_THEME_HANDLE_RADIO_BUTTON] = gtk_radio_button_new(0);
+	handles[GTK_THEME_HANDLE_NOTEBOOK] = gtk_notebook_new();
+	handles[GTK_THEME_HANDLE_PROGRESS] = gtk_progress_bar_new();
+	handles[GTK_THEME_HANDLE_TOOLBAR] = gtk_toolbar_new();
+	handles[GTK_THEME_HANDLE_TREE] = gtk_tree_view_new_with_model(0);
+#if GTK3
+	handles[GTK_THEME_HANDLE_SEPARATOR] = gtk_separator_new(
+			GTK_ORIENTATION_VERTICAL);
+#endif
+	handles[GTK_THEME_HANDLE_LABEL] = gtk_label_new(NULL);
+	/*for (int i = 0; i < GTK_THEME_HANDLE_LAST; i++) {
+		if(handles[i] != 0){
+			g_object_ref(handles[i]);
+		}
+	}*/
+	GtkContainer *fixed = GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]);
+	for (int i = GTK_THEME_HANDLE_BUTTON; i < GTK_THEME_HANDLE_LAST; i++) {
+		gtk_container_add(fixed, handles[i]);
+		//gtk_widget_realize(handles[i]);
+	}
+}
 void _gtk_theme_dispose(w_theme *theme) {
+	_gtk_theme *_theme = (_gtk_theme*) theme;
+	GtkWidget **handles = _theme->handle;
+	GtkContainer *fixed = GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]);
+	for (int i = GTK_THEME_HANDLE_LAST - 1; i >= 0; i--) {
+		if (handles[i] != 0) {
+			//g_object_unref(handles[i]);
+			gtk_widget_destroy(handles[i]);
+		}
+	}
 }
 const char* _gtk_theme_get_name(w_theme *theme) {
 	return "gtk";

@@ -133,6 +133,7 @@ gboolean _w_control_drag_detect_2(w_control *control, int x, int y,
 	w_point startPos;
 	w_point currPos;
 #if GTK3
+	startPos.x = startPos.y = 0;
 	_w_toolkit_get_cursor_location(W_TOOLKIT(gtk_toolkit), &startPos);
 #endif
 	GtkWidget *handle = _W_WIDGET(control)->handle;
@@ -153,6 +154,7 @@ gboolean _w_control_drag_detect_2(w_control *control, int x, int y,
 				break;
 			} else {
 #if GTK3 //428852
+				currPos.x = currPos.y = 0;
 				_w_toolkit_get_cursor_location(W_TOOLKIT(gtk_toolkit),
 						&currPos);
 				dragging = gtk_drag_check_threshold(handle, startPos.x,
