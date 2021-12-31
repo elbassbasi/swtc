@@ -103,6 +103,9 @@ wresult _w_progressbar_compute_size(w_widget *widget, w_event_compute_size *e,
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
 	return _w_control_compute_native_size(widget, handle, e, priv);
 }
+wresult _w_progressbar_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_progressbar_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_progressbar_class *clazz) {
 	if (classId == _W_CLASS_PROGRESSBAR) {
@@ -117,6 +120,7 @@ void _w_progressbar_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_progressbar_dispose_class;
 	clazz->get_maximum = _w_progressbar_get_maximum;
 	clazz->get_selection = _w_progressbar_get_selection;
 	clazz->get_state = _w_progressbar_get_state;

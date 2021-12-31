@@ -81,6 +81,7 @@ wresult _w_shell_set_maximized(w_shell *shell, int maximized);
 void _w_shell_set_saved_focus(w_shell *shell, w_control *control);
 int _w_shell_trim_height(w_shell *shell);
 int _w_shell_trim_width(w_shell *shell);
+wresult _w_shell_dispose_class(struct _w_widget_class *clazz);
 void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_shell_class *clazz);
 /*

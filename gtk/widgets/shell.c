@@ -1301,7 +1301,7 @@ gboolean _gtk_shell_destroy(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	_w_toolkit_remove_shell(_W_SHELL(widget));
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
-	gtk_widget_hide(shellHandle);
+	//gtk_widget_hide(shellHandle);
 	if (gtk_toolkit->activeShell == W_SHELL(widget))
 		gtk_toolkit->activeShell = 0;
 	if (_W_SHELL(widget)->group != 0)
@@ -1309,6 +1309,7 @@ gboolean _gtk_shell_destroy(w_widget *widget, _w_event_platform *e,
 	if (gtk_toolkit->shells == 0) {
 		w_toolkit_post_quit(W_TOOLKIT(gtk_toolkit), EXIT_SUCCESS);
 	}
+	_w_shell_destroy_accel_group(W_SHELL(widget));
 	_gtk_composite_destroy(widget, e, priv);
 	return W_FALSE;
 }
@@ -1709,6 +1710,14 @@ gboolean _gtk_shell_window_state_event(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	return W_FALSE;
 }
+wresult _w_shell_dispose_class(struct _w_widget_class *clazz) {
+	_w_canvas_dispose_class(clazz);
+	_w_control_priv *priv = _W_CONTROL_PRIV(clazz->platformPrivate);
+	GClosure *closure = _W_SHELL_PRIV(priv)->move_focus.closure;
+	if (closure != 0)
+		g_closure_unref(closure);
+	return W_TRUE;
+}
 void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_shell_class *clazz) {
 	if (classId == _W_CLASS_SHELL) {
@@ -1722,6 +1731,7 @@ void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * functions
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_shell_dispose_class;
 	W_WIDGET_CLASS(clazz)->create = _w_shell_create;
 	W_WIDGET_CLASS(clazz)->get_shell = _w_shell_get_shell;
 	W_CONTROL_CLASS(clazz)->is_enabled = _w_shell_is_enabled;

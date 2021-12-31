@@ -595,6 +595,17 @@ wresult _w_listview_show_item(w_listview *list, w_listitem *item) {
 /*
  * signals
  */
+wresult _w_listview_dispose_class(struct _w_widget_class *clazz) {
+	_w_composite_dispose_class(clazz);
+	_w_control_priv *priv = _W_CONTROL_PRIV(clazz->platformPrivate);
+	_gtk_signal *signals = _W_LISTVIEWBASE_PRIV(priv)->signals;
+	for (int i = 0; i < _W_LISTVIEW_LAST; i++) {
+		if (signals[i].closure != 0) {
+			g_closure_unref(signals[i].closure);
+		}
+	}
+	return W_TRUE;
+}
 void _w_listitem_class_init(struct _w_listitem_class *listitem) {
 	_w_item_class_init(W_ITEM_CLASS(listitem));
 	W_ITEM_CLASS(listitem)->get_data = _w_listitem_get_data;
@@ -628,6 +639,7 @@ void _w_listview_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_listview_dispose_class;
 	clazz->clear_index = _w_listview_clear_index;
 	clazz->clear_indices = _w_listview_clear_indices;
 	clazz->clear_item = _w_listview_clear_item;

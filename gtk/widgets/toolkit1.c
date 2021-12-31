@@ -376,4 +376,5 @@ void _w_toolkit_dispose(w_disposable *disposable) {
 			classes[i]->dispose_class(classes[i]);
 		}
 	}
+	//gdk_destroy();
 }

@@ -793,6 +793,9 @@ gboolean _gtk_label_motion_notify_event(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
+wresult _w_label_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_label_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_label_class *clazz) {
 	if (classId == _W_CLASS_LABEL) {
@@ -806,6 +809,7 @@ void _w_label_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_label_dispose_class;
 	clazz->get_image = _w_label_get_image;
 	clazz->get_text = _w_label_get_text;
 	clazz->set_image = _w_label_set_image;

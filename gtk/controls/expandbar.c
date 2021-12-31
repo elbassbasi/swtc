@@ -441,7 +441,9 @@ wresult _w_expandbar_set_spacing(w_expandbar *expandbar, int spacing) {
 	gtk_container_set_border_width(GTK_CONTAINER(handle), spacing);
 	return W_TRUE;
 }
-
+wresult _w_expandbar_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_expandbar_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_expandbar_class *clazz) {
 	if (classId == _W_CLASS_EXPANDBAR) {
@@ -456,6 +458,7 @@ void _w_expandbar_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_expandbar_dispose_class;
 	clazz->get_imagelist = _w_expandbar_get_imagelist;
 	clazz->get_item = _w_expandbar_get_item;
 	clazz->get_item_count = _w_expandbar_get_item_count;

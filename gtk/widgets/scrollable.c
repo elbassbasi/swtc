@@ -933,12 +933,17 @@ gboolean _gtk_scrollable_scroll_event(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
+wresult _w_scrollable_dispose_class(struct _w_widget_class *clazz){
+	_w_control_dispose_class(clazz);
+	return W_TRUE;
+}
 void _w_scrollable_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_scrollable_class *clazz) {
 	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
 	/*
 	 * scrollable class
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_scrollable_dispose_class;
 	clazz->get_horizontal_bar = _w_scrollable_get_horizontal_bar;
 	clazz->get_scrollbars_mode = _w_scrollable_get_scrollbars_mode;
 	clazz->get_vertical_bar = _w_scrollable_get_vertical_bar;

@@ -132,6 +132,7 @@ w_control* _w_toolkit_get_cursor_control(w_toolkit *toolkit) {
 	return 0;
 }
 wresult _w_toolkit_get_cursor_location(w_toolkit *toolkit, w_point *location) {
+	_gdk_window_get_device_position (0, &location->x, &location->y, 0);
 	return W_TRUE;
 }
 size_t _w_toolkit_get_cursor_sizes(w_toolkit *toolkit, w_size *sizes,

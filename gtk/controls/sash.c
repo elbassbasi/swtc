@@ -42,7 +42,7 @@ wresult _w_sash_create_handle(w_widget *widget, _w_control_priv *priv) {
 	gtk_widget_set_can_focus(handle, TRUE);
 	_w_widget_set_control(handle, widget);
 	_W_WIDGET(widget)->handle = handle;
-	_w_sash_set_cursor(W_CONTROL(widget), 0);
+	//_w_sash_set_cursor(W_CONTROL(widget), 0);
 	return W_TRUE;
 }
 void _w_sash_hook_events(w_widget *widget, _w_control_priv *priv) {
@@ -105,7 +105,7 @@ gboolean _gtk_sash_button_press_event(w_widget *widget, _w_event_platform *e,
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = ClientWidth - size.width - event.bounds.x;
 	}
-	int doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+	int doit = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (w_widget_is_ok(widget) <= 0)
 		return FALSE;
 	if (doit) {
@@ -172,7 +172,7 @@ gboolean _gtk_sash_button_release_event(w_widget *widget, _w_event_platform *e,
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = ClientWidth - size.width - event.bounds.x;
 	}
-	int doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+	int doit = _w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
 	if (w_widget_is_ok(widget) <= 0)
 		return FALSE;
 	if (doit) {
@@ -310,7 +310,8 @@ gboolean _gtk_sash_key_press_event(w_widget *widget, _w_event_platform *e,
 			ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 			event.bounds.x = ClientWidth - size.width - event.bounds.x;
 		}
-		int doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+		int doit = _w_widget_send_event(widget, (w_event*) &event,
+				W_EVENT_SEND);
 		if (ptrGrabResult == GDK_GRAB_SUCCESS)
 			gdk_pointer_ungrab(GDK_CURRENT_TIME);
 		if (!w_widget_is_ok(W_WIDGET(widget))) {
@@ -361,7 +362,7 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 	int eventX, eventY, eventState;
 	if (gdkEvent->is_hint != 0) {
 		int pointer_x, pointer_y;
-		GdkModifierType mask;
+		GdkModifierType mask = (GdkModifierType) 0;
 		gdk_window_get_device_position(gdkEvent->window,
 				gdk_event_get_device((GdkEvent*) gdkEvent), &pointer_x,
 				&pointer_y, &mask);
@@ -425,7 +426,8 @@ gboolean _gtk_sash_motion_notify_event(w_widget *widget, _w_event_platform *e,
 		ClientWidth = ppriv->get_client_width(W_CONTROL(parent), ppriv);
 		event.bounds.x = (ClientWidth - size.width) - event.bounds.x;
 	}
-	wresult doit = _w_widget_send_event(widget, (w_event*) &event,W_EVENT_SEND);
+	wresult doit = _w_widget_send_event(widget, (w_event*) &event,
+			W_EVENT_SEND);
 	if (w_widget_is_ok(widget) <= 0)
 		return 0;
 	if (doit) {
@@ -476,16 +478,20 @@ wresult _w_sash_compute_size(w_widget *widget, struct w_event_compute_size *e,
 		e->size->height = e->hHint + (border * 2);
 	return W_TRUE;
 }
+wresult _w_sash_dispose_class(struct _w_widget_class *clazz) {
+	return W_TRUE;
+}
 void _w_sash_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_sash_class *clazz) {
 	if (classId == _W_CLASS_SASH) {
 		W_WIDGET_CLASS(clazz)->platformPrivate = &gtk_toolkit->class_sash_priv;
 	}
-	_w_control_class_init(toolkit, classId,W_CONTROL_CLASS(clazz));
+	_w_control_class_init(toolkit, classId, W_CONTROL_CLASS(clazz));
 	W_WIDGET_CLASS(clazz)->class_id = _W_CLASS_SASH;
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_sash_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_sash);
 	W_WIDGET_CLASS(clazz)->object_used_size = sizeof(_w_sash);
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_sash_dispose_class;
 	/*
 	 * private
 	 */

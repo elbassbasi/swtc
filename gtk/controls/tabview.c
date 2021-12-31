@@ -493,6 +493,9 @@ _gtk_signal_info _gtk_tabview_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //
 		{ SIGNAL_SWITCH_PAGE, 4, "switch-page" }, //
 				{ SIGNAL_CLICKED, 2, "clicked" }, //
 		};
+wresult _w_tabview_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_tabview_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_tabview_class *clazz) {
 	if (classId == _W_CLASS_TABVIEW) {
@@ -504,7 +507,7 @@ void _w_tabview_class_init(w_toolkit *toolkit, wushort classId,
 	W_WIDGET_CLASS(clazz)->class_size = sizeof(struct _w_tabview_class);
 	W_WIDGET_CLASS(clazz)->object_total_size = sizeof(w_tabview);
 	W_WIDGET_CLASS(clazz)->object_used_size = sizeof(_w_tabview);
-
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_tabview_dispose_class;
 	clazz->get_imagelist = _w_tabview_get_imagelist;
 	clazz->get_item = _w_tabview_get_item;
 	clazz->get_item_p = _w_tabview_get_item_p;

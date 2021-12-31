@@ -824,6 +824,10 @@ gboolean _gtk_canvas_preedit_changed(w_widget *widget, _w_event_platform *e,
 	}
 	return _gtk_control_preedit_changed(widget, e, priv);
 }
+wresult _w_canvas_dispose_class(struct _w_widget_class *clazz){
+	_w_composite_dispose_class(clazz);
+	return W_TRUE;
+}
 void _w_canvas_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_canvas_class *clazz) {
 	if (classId == _W_CLASS_CANVAS) {
@@ -838,6 +842,7 @@ void _w_canvas_class_init(w_toolkit *toolkit, wushort classId,
 	/**
 	 *
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_canvas_dispose_class;
 	W_CONTROL_CLASS(clazz)->set_font = _w_canvas_set_font;
 	clazz->create_caret = _w_canvas_create_caret;
 	clazz->create_ime = _w_canvas_create_ime;

@@ -163,6 +163,9 @@ wresult _w_groupbox_compute_trim(w_widget *widget, w_event_compute_trim *e,
 	e->result->height = e->rect->height + clientX + clientY;
 	return TRUE;
 }
+wresult _w_groupbox_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_groupbox_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_groupbox_class *clazz) {
 	if (classId == _W_CLASS_GROUPBOX) {
@@ -177,6 +180,7 @@ void _w_groupbox_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_groupbox_dispose_class;
 	clazz->get_text = _w_groupbox_get_text;
 	clazz->set_text = _w_groupbox_set_text;
 	/*

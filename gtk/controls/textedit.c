@@ -939,6 +939,9 @@ wresult _w_textedit_show_selection(w_textedit *text) {
 	gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(handle), mark, 0, TRUE, 0, 0);
 	return W_TRUE;
 }
+wresult _w_textedit_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_textedit_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_textedit_class *clazz) {
 	if (classId == _W_CLASS_TEXTEDIT) {
@@ -953,6 +956,7 @@ void _w_textedit_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_textedit_dispose_class;
 	clazz->append = _w_textedit_append;
 	clazz->clear_selection = _w_textedit_clear_selection;
 	clazz->copy = _w_textedit_copy;

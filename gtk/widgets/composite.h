@@ -76,6 +76,7 @@ gboolean _gtk_composite_realize(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
 gboolean _gtk_composite_scroll_child(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv);
+wresult _w_composite_dispose_class(struct _w_widget_class *clazz);
 void _w_composite_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_composite_class *clazz);
 /*

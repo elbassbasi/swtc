@@ -535,9 +535,14 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 	 */
 	GtkWidget *fixedHandle = priv->handle_fixed(widget, priv);
 	GtkWidget *blockHandle = fixedHandle != 0 ? fixedHandle : eventHandle;
-	_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT], TRUE);
-	_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_RELEASE_EVENT], TRUE);
-	_w_widget_connect(blockHandle, &signals[SIGNAL_MOTION_NOTIFY_EVENT], TRUE);
+	if (blockHandle != eventHandle) {
+		_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT],
+				TRUE);
+		_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_RELEASE_EVENT],
+				TRUE);
+		_w_widget_connect(blockHandle, &signals[SIGNAL_MOTION_NOTIFY_EVENT],
+				TRUE);
+	}
 	/* Connect the event_after signal for both key and mouse */
 	_w_widget_connect(eventHandle, &signals[SIGNAL_EVENT_AFTER], FALSE);
 	if (focusHandle != eventHandle) {
@@ -1171,7 +1176,7 @@ gboolean _w_control_show_menu(w_control *control, int x, int y, int detail) {
 		/*boolean hooksKeys = hooks(SWT.KeyDown) || hooks(SWT.KeyUp);
 		 menu.createIMMenu(hooksKeys ? imHandle() : 0);*/
 		//if (event.location.x != x || event.location.y != y) {
-			w_menu_set_location(event.menu, &event.location);
+		w_menu_set_location(event.menu, &event.location);
 		//}
 		w_menu_set_visible(event.menu, W_TRUE);
 		return TRUE;
@@ -1239,12 +1244,17 @@ GdkWindow* _w_control_window_paint(w_widget *control, _w_control_priv *priv) {
 GdkWindow* _w_control_window_redraw(w_widget *control, _w_control_priv *priv) {
 	return 0;
 }
+wresult _w_control_dispose_class(struct _w_widget_class *clazz) {
+	_w_widget_dispose_class(clazz);
+	return W_TRUE;
+}
 void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_control_class *clazz) {
 	_w_widget_class_init(toolkit, classId, W_WIDGET_CLASS(clazz));
 	/*
 	 * functions
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_control_dispose_class;
 	W_WIDGET_CLASS(clazz)->create = _w_control_create;
 	W_WIDGET_CLASS(clazz)->get_shell = _w_control_get_shell;
 	W_WIDGET_CLASS(clazz)->init_themedata = _w_control_init_themedata;

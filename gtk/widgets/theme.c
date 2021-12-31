@@ -831,7 +831,6 @@ const char *gtk_tooltip_name = "gtk-tooltip";
 	const char* gtk_tooltip_name = "gtk-tooltips";
 #endif
 void _gtk_theme_init_widget(_gtk_theme *theme) {
-	return;
 	GtkWidget **handles = theme->handle;
 	handles[GTK_THEME_HANDLE_SHELL] = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	handles[GTK_THEME_HANDLE_TOOLTIP] = gtk_window_new(GTK_WINDOW_POPUP);
@@ -862,8 +861,10 @@ void _gtk_theme_init_widget(_gtk_theme *theme) {
 		}
 	}*/
 	GtkContainer *fixed = GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]);
-	for (int i = GTK_THEME_HANDLE_BUTTON; i < GTK_THEME_HANDLE_LAST; i++) {
-		gtk_container_add(fixed, handles[i]);
+	for (int i = 0; i < GTK_THEME_HANDLE_LAST; i++) {
+		g_object_ref(G_OBJECT(handles[i]));
+		g_object_ref_sink(G_OBJECT(handles[i]));
+		//gtk_container_add(fixed, handles[i]);
 		//gtk_widget_realize(handles[i]);
 	}
 }
@@ -873,8 +874,8 @@ void _gtk_theme_dispose(w_theme *theme) {
 	GtkContainer *fixed = GTK_CONTAINER(handles[GTK_THEME_HANDLE_FIXED]);
 	for (int i = GTK_THEME_HANDLE_LAST - 1; i >= 0; i--) {
 		if (handles[i] != 0) {
-			//g_object_unref(handles[i]);
 			gtk_widget_destroy(handles[i]);
+			g_object_unref(handles[i]);
 		}
 	}
 }

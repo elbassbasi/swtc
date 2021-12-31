@@ -286,6 +286,7 @@ GdkWindow* _w_control_window_paint(w_widget *control, _w_control_priv *priv);
 GdkWindow* _w_control_window_redraw(w_widget *control, _w_control_priv *priv);
 void _w_control_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_control_class *clazz);
+wresult _w_control_dispose_class(struct _w_widget_class *clazz);
 void _w_ccanvas_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_ccanvas_class *clazz);
 /*

@@ -48,9 +48,9 @@ bool MFrame::Create(WToolkit *toolkit) {
 		panel.Create(this);
 		sash.Create(this, W_VERTICAL);
 		sash.SetSelectionAction(this, W_ACTION(MFrame::OnSashSelection));
-		menu.CreateBar(this);
-		menu.CreateItems(this, MApp::Get()->GetImageList16(), menuitems);
-		this->SetMenuBar(menu);
+		menuBar.CreateBar(this);
+		menuBar.CreateItems(this, MApp::Get()->GetImageList16(), menuitems);
+		this->SetMenuBar(menuBar);
 		this->SetBounds(100, 100, 600, 500);
 		return true;
 	} else

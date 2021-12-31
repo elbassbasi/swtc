@@ -24,7 +24,7 @@ private:
     friend class MTreeView;
     static WMenuItems menuitems[];
 	MTreeView panel;
-	WMenu menu;
+	WMenu menuBar;
 	WSash sash;
 	int width;
 	WControl *control;

@@ -285,6 +285,9 @@ _gtk_signal_info _gtk_slider_signal_lookup[3] = { //
 				{ SIGNAL_CHANGE_VALUE, 3, "change-value" }, //
 				{ SIGNAL_VALUE_CHANGED, 2, "value-changed" }, //
 		};
+wresult _w_slider_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_slider_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_slider_class *clazz) {
 	if (classId == _W_CLASS_SLIDER) {
@@ -299,6 +302,7 @@ void _w_slider_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_slider_dispose_class;
 	clazz->get_increment = _w_slider_get_increment;
 	clazz->get_maximum = _w_slider_get_maximum;
 	clazz->get_minimum = _w_slider_get_minimum;

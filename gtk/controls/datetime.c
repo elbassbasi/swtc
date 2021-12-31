@@ -446,6 +446,9 @@ _gtk_signal_info _gtk_datetime_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //
 						"day-selected-double-click" }, //
 				{ SIGNAL_MONTH_CHANGED, 2, "month-changed" }, //
 				{ SIGNAL_OUTPUT, 2, "output" } };
+wresult _w_datetime_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_datetime_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_datetime_class *clazz) {
 	if (classId == _W_CLASS_DATETIME) {
@@ -460,6 +463,7 @@ void _w_datetime_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_datetime_dispose_class;
 	clazz->get_day = _w_datetime_get_day;
 	clazz->get_hours = _w_datetime_get_hours;
 	clazz->get_minutes = _w_datetime_get_minutes;

@@ -631,6 +631,10 @@ gboolean _gtk_composite_style_set(w_widget *widget, _w_event_platform *e,
 	}
 	return result;
 }
+wresult _w_composite_dispose_class(struct _w_widget_class *clazz){
+	_w_scrollable_dispose_class(clazz);
+	return W_TRUE;
+}
 void _w_composite_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_composite_class *clazz) {
 	if (classId == _W_CLASS_COMPOSITE) {
@@ -645,6 +649,7 @@ void _w_composite_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * functions
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_composite_dispose_class;
 	clazz->for_all_children = _w_composite_for_all_children;
 	clazz->get_children = _w_composite_get_children;
 	clazz->get_layout = _w_composite_get_layout;

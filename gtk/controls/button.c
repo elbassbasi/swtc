@@ -653,6 +653,9 @@ gboolean _gtk_button_clicked(w_widget *widget, _w_event_platform *e,
 	_w_widget_send_event(widget, &event, W_EVENT_SEND);
 	return FALSE;
 }
+wresult _w_button_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_button_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_button_class *clazz) {
 	if (classId == _W_CLASS_BUTTON) {
@@ -667,6 +670,7 @@ void _w_button_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_button_dispose_class;
 	clazz->get_alignment = _w_button_get_alignment;
 	clazz->get_grayed = _w_button_get_grayed;
 	clazz->get_image = _w_button_get_image;

@@ -412,6 +412,9 @@ wresult _w_spinner_set_values(w_spinner *spinner, w_spinner_value *value) {
 			(void*) SIGNAL_VALUE_CHANGED);
 	return W_TRUE;
 }
+wresult _w_spinner_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_spinner_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_spinner_class *clazz) {
 	if (classId == _W_CLASS_SPINNER) {
@@ -426,6 +429,7 @@ void _w_spinner_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_spinner_dispose_class;
 	clazz->copy = _w_spinner_copy;
 	clazz->cut = _w_spinner_cut;
 	clazz->get_digits = _w_spinner_get_digits;

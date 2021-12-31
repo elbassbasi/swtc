@@ -657,6 +657,9 @@ void _w_combobox_renderer_get_preferred_width(w_widget *widget,
 			natural_size);
 }
 #endif
+wresult _w_combobox_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_combobox_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_combobox_class *clazz) {
 	if (classId == _W_CLASS_COMBOBOX) {
@@ -671,6 +674,7 @@ void _w_combobox_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_combobox_dispose_class;
 	clazz->clear_selection = _w_combobox_clear_selection;
 	clazz->copy = _w_combobox_copy;
 	clazz->cut = _w_combobox_cut;

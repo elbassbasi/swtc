@@ -759,6 +759,17 @@ gboolean _gtk_treeview_toggled(w_widget *widget, _w_event_platform *e,
 	}
 	return FALSE;
 }
+wresult _w_treeview_dispose_class(struct _w_widget_class *clazz) {
+	_w_composite_dispose_class(clazz);
+	_w_control_priv *priv = _W_CONTROL_PRIV(clazz->platformPrivate);
+	_gtk_signal *signals = _W_LISTVIEWBASE_PRIV(priv)->signals;
+	for (int i = 0; i < _W_LISTVIEW_LAST; i++) {
+		if (signals[i].closure != 0) {
+			g_closure_unref(signals[i].closure);
+		}
+	}
+	return W_TRUE;
+}
 void _w_treeview_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_treeview_class *clazz) {
 	if (classId == _W_CLASS_TREEVIEW) {
@@ -773,6 +784,7 @@ void _w_treeview_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * functions
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_treeview_dispose_class;
 	W_LISTVIEWBASE_CLASS(clazz)->for_all_item = _w_treeview_for_all_item;
 	clazz->clear = _w_treeview_clear;
 	clazz->deselect = _w_treeview_deselect;

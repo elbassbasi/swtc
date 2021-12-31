@@ -916,6 +916,9 @@ _gtk_signal_info _gtk_toolbar_signal_lookup[_W_TOOLBAR_LAST] = { //
 				{ SIGNAL_CLICKED, 2, "clicked" }, //
 				{ SIGNAL_CREATE_MENU_PROXY, 2, "create-menu-proxy" }, //
 		};
+wresult _w_toolbar_dispose_class(struct _w_widget_class *clazz){
+	return W_TRUE;
+}
 void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_toolbar_class *clazz) {
 	if (classId == _W_CLASS_TOOLBAR) {
@@ -930,6 +933,7 @@ void _w_toolbar_class_init(w_toolkit *toolkit, wushort classId,
 	/*
 	 * public function
 	 */
+	W_WIDGET_CLASS(clazz)->dispose_class = _w_toolbar_dispose_class;
 	clazz->get_imagelist = _w_toolbar_get_imagelist;
 	clazz->get_item = _w_toolbar_get_item;
 	clazz->get_item_from_point = _w_toolbar_get_item_from_point;
