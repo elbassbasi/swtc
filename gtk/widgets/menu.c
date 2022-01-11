@@ -813,6 +813,9 @@ gboolean _gtk_menu_activate(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_menu_hide(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (gdk_pointer_is_grabbed()) {
+		gdk_pointer_ungrab(0);
+	}
 	w_event_menu ei;
 	ei.event.type = W_EVENT_HIDE;
 	ei.event.platform_event = _EVENT_PLATFORM(e);
@@ -825,13 +828,16 @@ gboolean _gtk_menu_hide(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_menu_select(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (gdk_pointer_is_grabbed()) {
+		gdk_pointer_ungrab(0);
+	}
 	w_menuitem item;
 	w_event_menu ei;
 	W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);
 	_W_ITEM(&item)->parent = widget;
 	_W_ITEM(&item)->index = -1;
 	_W_MENUITEM(&item)->widget = e->widget;
-	ei.event.type = W_EVENT_ARM;
+	ei.event.type = W_EVENT_ITEM_ARM;
 	ei.event.platform_event = _EVENT_PLATFORM(e);
 	ei.event.widget = widget;
 	ei.event.time = 0;
@@ -842,6 +848,9 @@ gboolean _gtk_menu_select(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_menu_show(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (gdk_pointer_is_grabbed()) {
+		gdk_pointer_ungrab(0);
+	}
 	w_event_menu ei;
 	ei.event.type = W_EVENT_SHOW;
 	ei.event.platform_event = _EVENT_PLATFORM(e);
@@ -854,6 +863,9 @@ gboolean _gtk_menu_show(w_widget *widget, _w_event_platform *e,
 }
 gboolean _gtk_menu_show_help(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
+	if (gdk_pointer_is_grabbed()) {
+		gdk_pointer_ungrab(0);
+	}
 	w_menuitem item;
 	w_event_menu ei;
 	W_WIDGETDATA(&item)->clazz = _W_MENU_GET_ITEM_CLASS(widget);

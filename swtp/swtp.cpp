@@ -402,6 +402,21 @@ bool WMenuBase::PostEvent(WEvent *e) {
 	case W_EVENT_ITEM_DISPOSE:
 		return OnItemDispose(*static_cast<WMenuEvent*>(e));
 		break;
+	case W_EVENT_ITEM_ARM:
+		return OnItemArm(*static_cast<WMenuEvent*>(e));
+		break;
+	case W_EVENT_ITEM_HELP:
+		return OnItemHelp(*static_cast<WMenuEvent*>(e));
+		break;
+	case W_EVENT_HELP:
+		return OnHelp(*static_cast<WMenuEvent*>(e));
+		break;
+	case W_EVENT_HIDE:
+		return OnHide(*static_cast<WMenuEvent*>(e));
+		break;
+	case W_EVENT_SHOW:
+		return OnShow(*static_cast<WMenuEvent*>(e));
+		break;
 	default:
 		return WWidget::PostEvent(e);
 		break;
