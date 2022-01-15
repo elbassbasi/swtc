@@ -140,12 +140,13 @@ gboolean _w_widget_send_IM_key_event(w_widget *widget, _w_event_platform *e,
 void _w_widget_init_signal_0();
 void _w_widget_init_signal(_gtk_signal *signals, _gtk_signal_info *info,
 		int length);
-void _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after);
+gulong _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after);
 int _w_widget_set_input_state(int state);
 int _w_translate_key(int key);
 int _w_untranslate_key(int key);
 void _w_widget_set_font_description(w_widget *control, GtkWidget *widget,
 		PangoFontDescription *font, _w_control_priv *priv);
+wresult _w_widget_post_event(w_widget *widget, w_event *ee, int flags);
 wresult _w_widget_init_themedata(w_widget *widget, w_themedata *data);
 wresult _w_widget_dispose_class(struct _w_widget_class *clazz);
 void _w_widget_class_init(w_toolkit *toolkit, wushort classId,

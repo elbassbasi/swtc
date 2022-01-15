@@ -673,12 +673,12 @@ void _w_widget_init_signal(_gtk_signal *signals, _gtk_signal_info *info,
 		signals[i].number_of_args = info[i].args;
 	}
 }
-void _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after) {
+gulong _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after) {
 	if (signal->closure == 0) {
 		GType type = ((GTypeInstance*) widget)->g_class->g_type;
 		signal->id = g_signal_lookup(signal->name, type);
 		if (signal->callback == 0) {
-			GCallback callback;
+			GCallback callback = 0;
 			switch (signal->number_of_args) {
 			case 2:
 				callback = (GCallback) _w_widget_proc_2;
@@ -703,8 +703,8 @@ void _w_widget_connect(void *widget, _gtk_signal *signal, gboolean after) {
 			g_closure_ref(signal->closure);
 		}
 	}
-	g_signal_connect_closure_by_id(widget, signal->id, 0, signal->closure,
-			after);
+	return g_signal_connect_closure_by_id(widget, signal->id, 0,
+			signal->closure, after);
 }
 gboolean _gtk_signal_null(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
@@ -750,7 +750,7 @@ wresult _w_widget_get_parent(w_widget *control, w_widget **parent) {
 	*parent = _W_WIDGET(control)->parent;
 	return W_TRUE;
 }
-wresult _w_widget_dispose_class(struct _w_widget_class *clazz){
+wresult _w_widget_dispose_class(struct _w_widget_class *clazz) {
 	return W_TRUE;
 }
 void _w_widget_class_init(w_toolkit *toolkit, wushort classId,

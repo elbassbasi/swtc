@@ -42,8 +42,10 @@ void TSimpleDNDExample::CreateControl(WComposite *parent) {
 }
 
 bool TSimpleDNDExampleDragSource::OnDragSetData(WDragSourceEvent &e) {
-	//event.data = tree.getSelection()[0].getText();
-	WString txt = "Drag test";
+	WTreeView* tree =(WTreeView*) this->GetControl();
+	WTreeItem selection;
+	tree->GetSelection(selection);
+	WString txt = selection.GetText();
 	e.SetData(txt, txt.GetLength());
 	return true;
 }

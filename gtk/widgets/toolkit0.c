@@ -6,6 +6,7 @@
  * Licence:
  */
 #include "toolkit.h"
+#include "dnd.h"
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -511,4 +512,6 @@ void _w_toolkit_class_init(_w_toolkit *toolkit) {
 	clazz->update = _w_toolkit_update;
 	clazz->wake = _w_toolkit_wake;
 	clazz->messagebox_open = _w_messagebox_open;
+	clazz->open_clipboard = _w_toolkit_open_clipboard;
+	clazz->register_type = _w_toolkit_register_type;
 }

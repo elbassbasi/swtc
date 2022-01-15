@@ -108,18 +108,6 @@ public:
 		return GetData(w_alloc_string_ref, &str.ref);
 	}
 };
-class WDropTargetEffect {
-private:
-	void Init() {
-
-	}
-	WDropTargetEffect() {
-		Init();
-	}
-	w_control *control;
-	int (*post_event)(w_dragsource_effect *effect, w_event *event);
-	void *handle[0x10];
-};
 /**
  *
  * Class <code>DropTarget</code> defines the target object for a drag and drop transfer.
@@ -213,17 +201,6 @@ public:
 	}
 
 	/**
-	 * Returns the drop effect for this DropTarget.  This drop effect will be
-	 * used during a drag and drop to display the drag under effect on the
-	 * target widget.
-	 *
-	 * @return the drop effect that is registered for this DropTarget
-	 */
-	WDropTargetEffect* GetDropTargetEffect() {
-		return _get_effect();
-	}
-
-	/**
 	 * Returns a list of the data types that can be transferred to this DropTarget.
 	 *
 	 * @return a list of the data types that can be transferred to this DropTarget
@@ -261,9 +238,6 @@ public:
 public:
 	WControl* _get_control() {
 		return (WControl*) w_droptarget_get_control(W_DROPTARGET(this));
-	}
-	WDropTargetEffect* _get_effect() {
-		return (WDropTargetEffect*) w_droptarget_get_effect(W_DROPTARGET(this));
 	}
 	WTransfer** _get_transfer(size_t *length) {
 		return (WTransfer**) w_droptarget_get_transfer(W_DROPTARGET(this),
@@ -362,20 +336,6 @@ public:
 		return this->transfer->set_data(this->transfer, this->dataType, data,
 				size) > 0;
 	}
-};
-class WDragSourceEffect {
-private:
-	void Init() {
-
-	}
-	WDragSourceEffect() {
-		Init();
-	}
-	WControl *control;
-	int (*post_event)(w_droptarget_effect *effect, w_event *event);
-	wresult (*get_item)(w_droptarget_effect *effect, w_item *item, int x,
-			int y);
-	void *handle[0x10];
 };
 /**
  *
@@ -493,16 +453,6 @@ public:
 	}
 
 	/**
-	 * Returns the drag effect that is registered for this DragSource.  This drag
-	 * effect will be used during a drag and drop operation.
-	 *
-	 * @return the drag effect that is registered for this DragSource
-	 */
-	WDragSourceEffect* GetDragSourceEffect() {
-		return get_effect();
-	}
-
-	/**
 	 * Returns the list of data types that can be transferred by this DragSource.
 	 *
 	 * @return the list of data types that can be transferred by this DragSource
@@ -540,9 +490,6 @@ public:
 	}
 	WControl* get_control() {
 		return (WControl*) w_dragsource_get_control(W_DRAGSOURCE(this));
-	}
-	WDragSourceEffect* get_effect() {
-		return (WDragSourceEffect*) w_dragsource_get_effect(W_DRAGSOURCE(this));
 	}
 	WTransfer** get_transfer(size_t *length) {
 		return (WTransfer**) w_dragsource_get_transfer(W_DRAGSOURCE(this),

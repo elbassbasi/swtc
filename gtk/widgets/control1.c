@@ -39,6 +39,14 @@ gboolean _gtk_control_destroy(w_widget *widget, _w_event_platform *ee,
 	if (gtk_toolkit->mnemonicControl == W_CONTROL(widget)) {
 		gtk_toolkit->mnemonicControl = 0;
 	}
+	w_dragsource *dragsource = _W_CONTROL(widget)->dragsource;
+	if (dragsource != 0) {
+		w_widget_dispose(W_WIDGET(dragsource));
+	}
+	w_droptarget *droptarget = _W_CONTROL(widget)->droptarget;
+	if (droptarget != 0) {
+		w_widget_dispose(W_WIDGET(droptarget));
+	}
 	w_widget *p = _W_WIDGET(widget)->parent;
 	if (p != 0) {
 		w_link_unlink_0(&_W_WIDGET(widget)->sibling, widget,
@@ -101,22 +109,22 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 		 * Feature in GTK: DND detection for X.11 & Wayland support is done through motion notify event
 		 * instead of mouse click event. See Bug 503431.
 		 */
-		if (gtk_toolkit->ISX11) { // Wayland
-			if ((_W_WIDGET(widget)->state & STATE_DRAG_DETECT) != 0) {
-				if (gdkEvent->button == 1) {
-					gboolean consume = FALSE;
-					if (_w_control_drag_detect_2(W_CONTROL(widget), gdkEvent->x,
-							gdkEvent->y, TRUE,
-							TRUE, &consume)) {
-						dragging = TRUE;
-						if (consume)
-							result = 1;
-					}
-					if (!w_widget_is_ok(widget))
-						return TRUE;
+		//if (gtk_toolkit->ISX11) { // Wayland
+		if ((_W_WIDGET(widget)->state & STATE_DRAG_DETECT) != 0) {
+			if (gdkEvent->button == 1) {
+				gboolean consume = FALSE;
+				if (_w_control_drag_detect_2(W_CONTROL(widget), gdkEvent->x,
+						gdkEvent->y, TRUE,
+						TRUE, &consume)) {
+					dragging = TRUE;
+					if (consume)
+						result = 1;
 				}
+				if (!w_widget_is_ok(widget))
+					return TRUE;
 			}
 		}
+		//}
 		if (sendMouseDown) {
 			event.event.type = W_EVENT_MOUSEDOWN;
 			event.event.widget = widget;
@@ -141,36 +149,34 @@ gboolean _gtk_control_button_press_event_0(w_widget *widget,
 		 * Feature in GTK: DND detection for X.11 & Wayland support is done through motion notify event
 		 * instead of mouse click event. See Bug 503431.
 		 */
-		if (gtk_toolkit->ISX11) { // Wayland
-			if (dragging) {
-				event.event.type = W_EVENT_DRAGDETECT;
-				event.event.widget = widget;
-				event.event.platform_event = (w_event_platform*) e;
-				event.event.time = gdkEvent->time;
-				event.event.data = 0;
-				event.button = gdkEvent->button;
-				event.clickcount = gtk_toolkit->clickCount;
-				event.x = gdkEvent->x;
-				if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
-					event.x = priv->get_client_width(W_CONTROL(widget), priv)
-							- event.x;
-				}
-				event.y = gdkEvent->y;
-				event.detail = _w_widget_set_input_state(gdkEvent->state);
-				_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
+		//if (gtk_toolkit->ISX11) { // Wayland
+		if (dragging) {
+			event.event.type = W_EVENT_DRAGDETECT;
+			event.event.widget = widget;
+			event.event.platform_event = (w_event_platform*) e;
+			event.event.time = gdkEvent->time;
+			event.event.data = 0;
+			event.button = gdkEvent->button;
+			event.clickcount = gtk_toolkit->clickCount;
+			event.x = gdkEvent->x;
+			if ((_W_WIDGET(widget)->style & W_MIRRORED) != 0) {
+				event.x = priv->get_client_width(W_CONTROL(widget), priv)
+						- event.x;
+			}
+			event.y = gdkEvent->y;
+			event.detail = _w_widget_set_input_state(gdkEvent->state);
+			_w_widget_send_event(widget, (w_event*) &event, W_EVENT_SEND);
+			if (!w_widget_is_ok(widget))
+				return TRUE;
+			if (_W_CONTROL(widget)->dragsource != 0) {
+				event.event.widget = W_WIDGET(_W_CONTROL(widget)->dragsource);
+				_w_widget_send_event(W_WIDGET(_W_CONTROL(widget)->dragsource),
+						(w_event*) &event, W_EVENT_SEND);
 				if (!w_widget_is_ok(widget))
 					return TRUE;
-				if (_W_CONTROL(widget)->dragsource != 0) {
-					event.event.widget = W_WIDGET(
-							_W_CONTROL(widget)->dragsource);
-					_w_widget_send_event(
-							W_WIDGET(_W_CONTROL(widget)->dragsource),
-							(w_event*) &event, W_EVENT_SEND);
-					if (!w_widget_is_ok(widget))
-						return TRUE;
-				}
 			}
 		}
+		//}
 		/*
 		 * Pop up the context menu in the button press event for widgets
 		 * that have default operating system menus in order to stop the

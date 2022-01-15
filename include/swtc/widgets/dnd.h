@@ -95,12 +95,6 @@ SWT_PUBLIC wresult w_clipboard_set_contents(w_clipboard *clipboard,
 /*
  * DragSource
  */
-typedef struct w_dragsource_effect w_dragsource_effect;
-struct w_dragsource_effect {
-	w_control *control;
-	int (*post_event)(w_dragsource_effect *effect, w_event *event);
-	void *handle[0x10];
-};
 typedef struct w_dragsource {
 	w_widget widget;
 	void *handle[0x30];
@@ -108,7 +102,6 @@ typedef struct w_dragsource {
 struct _w_dragsource_class {
 	struct _w_widget_class widget;
 	w_control* (*get_control)(w_dragsource *dragsource);
-	w_dragsource_effect* (*get_effect)(w_dragsource *dragsource);
 	w_transfer** (*get_transfer)(w_dragsource *dragsource, size_t *length);
 	wresult (*set_transfer)(w_dragsource *dragsource,
 			w_transfer **transferAgents, size_t length);
@@ -137,8 +130,6 @@ typedef struct w_event_dragsource {
 #define W_DRAGSOURCE(x) ((w_dragsource*)x)
 #define W_DRAGSOURCE_GET_CLASS(x) ((struct _w_dragsource_class*)W_WIDGET_GET_CLASS(x))
 SWT_PUBLIC w_control* w_dragsource_get_control(w_dragsource *dragsource);
-SWT_PUBLIC w_dragsource_effect* w_dragsource_get_effect(
-		w_dragsource *dragsource);
 SWT_PUBLIC w_transfer** w_dragsource_get_transfer(w_dragsource *dragsource,
 		size_t *length);
 SWT_PUBLIC wresult w_dragsource_set_transfer(w_dragsource *dragsource,
@@ -146,14 +137,6 @@ SWT_PUBLIC wresult w_dragsource_set_transfer(w_dragsource *dragsource,
 /*
  * DropTarget
  */
-typedef struct w_droptarget_effect w_droptarget_effect;
-struct w_droptarget_effect {
-	w_control *control;
-	int (*post_event)(w_droptarget_effect *effect, w_event *event);
-	wresult (*get_item)(w_droptarget_effect *effect, w_item *item, int x,
-			int y);
-	void *handle[0x10];
-};
 typedef struct w_droptarget {
 	w_widget widget;
 	void *handle[0x30];
@@ -161,7 +144,6 @@ typedef struct w_droptarget {
 struct _w_droptarget_class {
 	struct _w_widget_class widget;
 	w_control* (*get_control)(w_droptarget *droptarget);
-	w_droptarget_effect* (*get_effect)(w_droptarget *droptarget);
 	w_transfer** (*get_transfer)(w_droptarget *droptarget, size_t *length);
 	wresult (*set_transfer)(w_droptarget *droptarget,
 			w_transfer **transferAgents, size_t length);
@@ -195,8 +177,6 @@ typedef struct w_event_droptarget {
 #define W_DROPTARGET(x) ((w_droptarget*)x)
 #define W_DROPTARGET_GET_CLASS(x) ((struct _w_droptarget_class*)W_WIDGET_GET_CLASS(x))
 SWT_PUBLIC w_control* w_droptarget_get_control(w_droptarget *droptarget);
-SWT_PUBLIC w_droptarget_effect* w_droptarget_get_effect(
-		w_droptarget *droptarget);
 SWT_PUBLIC w_transfer** w_droptarget_get_transfer(w_droptarget *droptarget,
 		size_t *length);
 SWT_PUBLIC wresult w_droptarget_set_transfer(w_droptarget *droptarget,

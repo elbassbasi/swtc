@@ -7,6 +7,7 @@
  */
 #include "control.h"
 #include "toolkit.h"
+#include "dnd.h"
 #include <sys/time.h>
 #if defined(__GNUC__) || defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -83,12 +84,86 @@ wresult _w_control_create(w_widget *widget, w_widget *parent, wuint64 style,
 wresult _w_control_create_dragsource(w_control *control,
 		w_dragsource *dragsource, wuint64 style,
 		w_widget_post_event_proc post_event) {
-	return W_FALSE;
+	if (control == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (!w_widget_is_ok(W_WIDGET(control)))
+		return W_ERROR_INVALID_ARGUMENT;
+	if (_W_CONTROL(control)->dragsource != 0) {
+		return W_ERROR_CANNOT_INIT_DRAG;
+	}
+	if (style == W_NONE) {
+		style = W_DROP_MOVE;
+	}
+	w_widget_init(W_WIDGET(dragsource));
+	struct _w_widget_class *clazz;
+	clazz = (struct _w_widget_class*) w_toolkit_get_class(
+			W_TOOLKIT(gtk_toolkit), _W_CLASS_DRAGSOURCE);
+	if (clazz == 0)
+		return W_ERROR_INVALID_SUBCLASS;
+	if (clazz->class_id == 0)
+		w_toolkit_init_class(W_TOOLKIT(gtk_toolkit), _W_CLASS_DRAGSOURCE,
+				clazz);
+	memset(&(dragsource->widget.clazz), 0, clazz->object_used_size);
+	dragsource->widget.clazz = clazz;
+	_W_CONTROL(control)->dragsource = W_DRAGSOURCE(dragsource);
+	_W_DRAGSOURCE(dragsource)->control = W_CONTROL(control);
+	_W_WIDGET(dragsource)->post_event = post_event;
+	_W_WIDGET(dragsource)->style = style;
+	_gtk_signal *signals = gtk_toolkit->signals;
+	GtkWidget *handle = _W_WIDGET(control)->handle;
+	_w_widget_connect(handle, &signals[SIGNAL_DRAG_DATA_GET],
+	FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_DRAG_END], FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_DRAG_DATA_DELETE],
+	FALSE);
+	return W_TRUE;
 }
 wresult _w_control_create_droptarget(w_control *control,
 		w_droptarget *droptarget, wuint64 style,
 		w_widget_post_event_proc post_event) {
-	return W_FALSE;
+	if (control == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	if (!w_widget_is_ok(W_WIDGET(control)))
+		return W_ERROR_INVALID_ARGUMENT;
+	if (_W_CONTROL(control)->droptarget != 0) {
+		return W_ERROR_CANNOT_INIT_DRAG;
+	}
+	if (style == W_NONE) {
+		style = W_DROP_MOVE;
+	}
+	w_widget_init(W_WIDGET(droptarget));
+	struct _w_widget_class *clazz;
+	clazz = (struct _w_widget_class*) w_toolkit_get_class(
+			W_TOOLKIT(gtk_toolkit), _W_CLASS_DROPTARGET);
+	if (clazz == 0)
+		return W_ERROR_INVALID_SUBCLASS;
+	if (clazz->class_id == 0)
+		w_toolkit_init_class(W_TOOLKIT(gtk_toolkit), _W_CLASS_DROPTARGET,
+				clazz);
+	memset(&(droptarget->widget.clazz), 0, clazz->object_used_size);
+	droptarget->widget.clazz = clazz;
+	_W_DROPTARGET(droptarget)->keyOperation = -1;
+	_W_CONTROL(control)->droptarget = W_DROPTARGET(droptarget);
+	_W_DROPTARGET(droptarget)->control = W_CONTROL(control);
+	_W_WIDGET(droptarget)->post_event = post_event;
+	_W_WIDGET(droptarget)->style = style;
+	_gtk_signal *signals = gtk_toolkit->signals;
+	GtkWidget *handle = _W_WIDGET(control)->handle;
+	_W_DROPTARGET(droptarget)->drag_motion_handler = _w_widget_connect(handle,
+			&signals[SIGNAL_DRAG_MOTION], FALSE);
+	_W_DROPTARGET(droptarget)->drag_leave_handler = _w_widget_connect(handle,
+			&signals[SIGNAL_DRAG_LEAVE], FALSE);
+	_W_DROPTARGET(droptarget)->drag_data_received_handler = _w_widget_connect(
+			handle, &signals[SIGNAL_DRAG_DATA_RECEIVED],
+			FALSE);
+	_W_DROPTARGET(droptarget)->drag_drop_handler = _w_widget_connect(handle,
+			&signals[SIGNAL_DRAG_DROP], FALSE);
+	/*_w_widget_connect(handle, &signals[SIGNAL_DRAG_MOTION], FALSE);
+	 _w_widget_connect(handle, &signals[SIGNAL_DRAG_LEAVE], FALSE);
+	 _w_widget_connect(handle, &signals[SIGNAL_DRAG_DATA_RECEIVED],
+	 FALSE);
+	 _w_widget_connect(handle, &signals[SIGNAL_DRAG_DROP], FALSE);*/
+	return W_TRUE;
 }
 wresult _w_control_create_widget(w_widget *widget, _w_control_priv *priv) {
 	_W_WIDGET(widget)->state |= STATE_DRAG_DETECT;
@@ -537,11 +612,11 @@ void _w_control_hook_events(w_widget *widget, _w_control_priv *priv) {
 	GtkWidget *blockHandle = fixedHandle != 0 ? fixedHandle : eventHandle;
 	if (blockHandle != eventHandle) {
 		_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_PRESS_EVENT],
-				TRUE);
+		TRUE);
 		_w_widget_connect(blockHandle, &signals[SIGNAL_BUTTON_RELEASE_EVENT],
-				TRUE);
+		TRUE);
 		_w_widget_connect(blockHandle, &signals[SIGNAL_MOTION_NOTIFY_EVENT],
-				TRUE);
+		TRUE);
 	}
 	/* Connect the event_after signal for both key and mouse */
 	_w_widget_connect(eventHandle, &signals[SIGNAL_EVENT_AFTER], FALSE);

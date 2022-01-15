@@ -23,8 +23,13 @@ char randomPermutation[] = { 5, 2, 6, 3, 1, 4, 0 };
 void TWordJumbles::CreateControl(WComposite *parent) {
 	this->Create(parent, W_FREE_MEMORY);
 	this->word = "ECLIPSE";
-	int width = 40;
-	font = WFont::Create("Arial", 18, W_BOLD);
+	int width = 80;
+	WFontData data;
+	WFont* systemFont = WApp::Get()->GetDefaultToolkit()->GetSystemFont();
+	systemFont->GetFontData(data);
+	data.SetHeight(16);
+	//font = WFont::Create("Arial", 18, W_BOLD);
+	font = WFont::Create(data);
 	for (size_t i = 0; i < NUM_LABEL; i++) {
 		CreateLabel(i, width);
 	}
@@ -32,22 +37,19 @@ void TWordJumbles::CreateControl(WComposite *parent) {
 void TWordJumbles::CreateLabel(int i, int &width) {
 	labelsRowOne[i].Create(this, W_BORDER);
 	labelsRowOne[i].SetBounds(10 + width * i, 10, width - 5, width - 5);
-	//labelsRowOne[i].SetFont(&font);
+	labelsRowOne[i].SetFont(font);
 	char tmp[2];
 	tmp[0] = word[randomPermutation[i]];
 	tmp[1] = 0;
 	labelsRowOne[i].SetText(tmp);
 	//labelsRowOne[i].SetAlignment(W_CENTER);
-	if (i == 0) {
-		dragSource[i].Create(this, W_DROP_MOVE);
-	} else
-		dragSource[i].Create(&labelsRowOne[i], W_DROP_MOVE);
+	dragSource[i].Create(&labelsRowOne[i], W_DROP_MOVE);
 	dragSource[i].SetTransfer(WTransfer::GetTextTransfer());
 
 	labelsRowTwo[i].Create(this, W_BORDER);
 	labelsRowTwo[i].SetBounds(10 + width * i, 20 + width, width - 5, width - 5);
 	labelsRowTwo[i].SetBackground(W_COLOR_WHITE);
-	//labelsRowTwo[i].SetFont(&font);
+	labelsRowTwo[i].SetFont(font);
 	//labelsRowTwo[i].SetAlignment(W_CENTER);
 
 	dropTarget[i].Create(&labelsRowTwo[i], W_DROP_MOVE);
@@ -71,7 +73,7 @@ bool TWordJumblesDropTarget::OnDragEnter(WDropTargetEvent &e) {
 	WString str = label->GetText();
 	if (!str.IsEmpty())
 		e.detail = W_DROP_NONE;
-	return true;
+	return false;
 }
 
 bool TWordJumblesDropTarget::OnDragOver(WDropTargetEvent &e) {
@@ -141,6 +143,7 @@ bool TWordJumblesDragSource::OnDragSetData(WDragSourceEvent &e) {
 	if (WTransfer::GetTextTransfer()->IsSupportedType(e.dataType)) {
 		WString str = label->GetText();
 		e.SetData(str.GetChars(), str.GetLength());
+		return true;
 	}
 	return false;
 }

@@ -120,6 +120,12 @@ typedef struct _w_toolkit {
 	w_theme *theme;
 	PangoFontDescription *system_font;
 	/*
+	 * clipboard
+	 */
+	GtkClipboard *GTKCLIPBOARD;
+	GtkClipboard *GTKPRIMARYCLIPBOARD;
+	GtkClipboard *TARGET;
+	/*
 	 * classes
 	 */
 	struct _w_toolkit_class class_toolkit;

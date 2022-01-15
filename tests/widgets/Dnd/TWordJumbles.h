@@ -8,7 +8,7 @@
 #ifndef TESTS_WIDGETS_DND_TWORDJUMBLES_H_
 #define TESTS_WIDGETS_DND_TWORDJUMBLES_H_
 #include "TDnd.h"
-#define NUM_LABEL 5
+#define NUM_LABEL 7
 class TWordJumblesDragSource: public WDragSource {
 public:
 	bool OnDragStart(WDragSourceEvent &e);

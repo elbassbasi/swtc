@@ -369,6 +369,10 @@ void _w_toolkit_classes_init(struct _w_toolkit_classes *classes) {
 	/* tooltip */
 	classes->classes[_W_CLASS_TOOLTIP] = W_WIDGET_CLASS(
 			&classes->class_tooltip);
+	classes->classes[_W_CLASS_DRAGSOURCE] = W_WIDGET_CLASS(
+			&classes->class_dragsource);
+	classes->classes[_W_CLASS_DROPTARGET] = W_WIDGET_CLASS(
+			&classes->class_droptarget);
 }
 const char* w_app_get_executable_file(w_app *app) {
 	if (app->app->argv != 0)

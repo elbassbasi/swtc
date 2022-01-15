@@ -8,6 +8,7 @@
 #include "toolkit.h"
 #include "../../custom/controls/expandbar.h"
 #include <sys/inotify.h>
+#include "dnd.h"
 #define INNER_BORDER 2
 void* _w_toolkit_malloc(size_t size) {
 	void *ptr;
@@ -296,8 +297,9 @@ w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST] = {			//
 				[_W_CLASS_TOOLBAR] =(w_widget_init_class) _w_toolbar_class_init,//
 				/*[_W_CLASS_TRAY] =(w_widget_init_class) _w_tray_class_init,	//
 				 [_W_CLASS_TOOLTIP] =(w_widget_init_class) _w_tooltip_class_init,//*/
-				[_W_CLASS_EXPANDBAR
-						] =(w_widget_init_class) _w_expandbar_class_init,	//
+				[_W_CLASS_EXPANDBAR] =(w_widget_init_class) _w_expandbar_class_init,	//
+				[_W_CLASS_DRAGSOURCE] =(w_widget_init_class) _w_dragsource_class_init,	//
+				[_W_CLASS_DROPTARGET] =(w_widget_init_class) _w_droptarget_class_init,	//
 		};
 void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
 	char txt[30];

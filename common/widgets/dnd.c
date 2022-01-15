@@ -19,13 +19,6 @@ w_control* w_dragsource_get_control(w_dragsource *dragsource) {
 	} else
 		return 0;
 }
-w_dragsource_effect* w_dragsource_get_effect(w_dragsource *dragsource) {
-	int result = W_WIDGET_CHECK0(dragsource);
-	if (result > 0) {
-		return W_DRAGSOURCE_GET_CLASS(dragsource)->get_effect(dragsource);
-	} else
-		return 0;
-}
 w_transfer** w_dragsource_get_transfer(w_dragsource *dragsource,
 		size_t *length) {
 	int result = W_WIDGET_CHECK0(dragsource);
@@ -59,13 +52,6 @@ w_control* w_droptarget_get_control(w_droptarget *droptarget) {
 	int result = W_WIDGET_CHECK0(droptarget);
 	if (result > 0) {
 		return W_DROPTARGET_GET_CLASS(droptarget)->get_control(droptarget);
-	} else
-		return 0;
-}
-w_droptarget_effect* w_droptarget_get_effect(w_droptarget *droptarget) {
-	int result = W_WIDGET_CHECK0(droptarget);
-	if (result > 0) {
-		return W_DROPTARGET_GET_CLASS(droptarget)->get_effect(droptarget);
 	} else
 		return 0;
 }

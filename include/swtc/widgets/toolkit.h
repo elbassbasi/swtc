@@ -199,6 +199,8 @@ struct _w_toolkit_classes {
 	struct _w_tray_class class_tray;
 	struct _w_trayitem_class class_trayitem;
 	struct _w_tooltip_class class_tooltip;
+	struct _w_dragsource_class class_dragsource;
+	struct _w_droptarget_class class_droptarget;
 };
 
 SWT_PUBLIC void _w_toolkit_classes_init(struct _w_toolkit_classes *classes);
