@@ -7,6 +7,7 @@
 
 #include "TRegions.h"
 #include "TRegionDemo.h"
+#include "TRegionPolygon.h"
 
 void TRegions::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Region", new TRegions());
@@ -14,5 +15,6 @@ void TRegions::Registre(WTreeItem &parent) {
 
 bool TRegions::Expand(WTreeItem &item) {
 	TRegionDemo::Registre(item);
+	TRegionPolygon::Registre(item);
 	return true;
 }

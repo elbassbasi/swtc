@@ -51,6 +51,12 @@ public:
 	bool Create() {
 		return w_region_create(W_REGION(this)) > 0;
 	}
+	bool CreateElliptic(const WRect &bounds) {
+		return w_region_create_elliptic(W_REGION(this), (w_rect*) &bounds) > 0;
+	}
+	bool CreateElliptic(int x, int y, int width, int height) {
+		return CreateElliptic(WRect(x, y, width, height));
+	}
 
 	/**
 	 * Adds the given polygon to the collection of polygons
@@ -84,6 +90,28 @@ public:
 	 */
 	bool Add(int x, int y, int width, int height) {
 		return Add(WRect(x, y, width, height));
+	}
+	/**
+	 * Adds the given rectangle to the collection of polygons
+	 * the receiver maintains to describe its area.
+	 *
+	 * @param rect the rectangle to merge with the receiver
+	 */
+	bool AddElliptic(const WRect &rect) {
+		return w_region_add_elliptic(W_REGION(this), (w_rect*) &rect) > 0;
+	}
+
+	/**
+	 * Adds the given rectangle to the collection of polygons
+	 * the receiver maintains to describe its area.
+	 *
+	 * @param x the x coordinate of the rectangle
+	 * @param y the y coordinate of the rectangle
+	 * @param width the width coordinate of the rectangle
+	 * @param height the height coordinate of the rectangle
+	 */
+	bool AddElliptic(int x, int y, int width, int height) {
+		return AddElliptic(WRect(x, y, width, height));
 	}
 
 	/**
@@ -270,6 +298,28 @@ public:
 	 */
 	bool Subtract(int x, int y, int width, int height) {
 		return Subtract(WRect(x, y, width, height));
+	}
+	/**
+	 * Subtracts the given rectangle from the collection of polygons
+	 * the receiver maintains to describe its area.
+	 *
+	 * @param rect the rectangle to subtract from the receiver
+	 */
+	bool SubtractElliptic(const WRect &rect) {
+		return w_region_subtract_elliptic(W_REGION(this), (w_rect*) &rect) > 0;
+	}
+
+	/**
+	 * Subtracts the given rectangle from the collection of polygons
+	 * the receiver maintains to describe its area.
+	 *
+	 * @param x the x coordinate of the rectangle
+	 * @param y the y coordinate of the rectangle
+	 * @param width the width coordinate of the rectangle
+	 * @param height the height coordinate of the rectangle
+	 */
+	bool SubtractElliptic(int x, int y, int width, int height) {
+		return SubtractElliptic(WRect(x, y, width, height));
 	}
 
 	/**

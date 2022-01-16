@@ -14,7 +14,6 @@ public:
 	static void Registre(WTreeItem &parent);
 	TButtonCircle();
 	~TButtonCircle();
-	void CreateCircleRegion(WRegion &region, int r, int offsetX, int offsetY);
 	void CreateControl(WComposite *parent);
 	WFillLayoutVertical layout;
 	WButton btn[length];

@@ -1025,6 +1025,63 @@ wresult _w_shell_set_modified(w_shell *shell, int modified) {
 	}
 	return W_TRUE;
 }
+cairo_region_t* _w_shell_mirror_region(cairo_region_t *region) {
+	if (region == 0)
+		return 0;
+
+	cairo_region_t *mirrored = cairo_region_create();
+	cairo_region_t *rgn = region;
+	size_t nRects = 0;
+	cairo_rectangle_int_t *rects = 0, rect, bounds;
+#if GTK3
+	nRects = cairo_region_num_rectangles(rgn);
+	rects = g_malloc(sizeof(cairo_rectangle_t) * nRects);
+	if (rects != 0) {
+		for (int n = 0; n < nRects; n++) {
+			cairo_region_get_rectangle(rgn, n, &rects[n]);
+		}
+		cairo_region_get_extents(region, &bounds);
+		for (int i = 0; i < nRects; i++) {
+			memcpy(&rect, &rects[i], sizeof(rect));
+			rect.x = bounds.x + bounds.width - rect.x - rect.width;
+			cairo_region_union_rectangle(mirrored, &rect);
+		}
+		if (rects != 0)
+			g_free(rects);
+	}
+#else
+	gdk_region_get_rectangles (region, rectangles, n_rectangles);
+#endif
+
+	return mirrored;
+}
+wresult _w_shell_set_region(w_control *control, w_region *region) {
+	if ((_W_WIDGET(control)->style & W_NO_TRIM) == 0)
+		return W_FALSE;
+	wresult result = W_TRUE;
+	if (region != 0) {
+		w_rect bounds;
+		result = w_region_get_bounds(region, &bounds);
+		if (result < 0)
+			return result;
+		bounds.width += bounds.x;
+		bounds.height += bounds.y;
+		w_control_set_bounds(control, 0, &bounds.sz);
+	}
+	/*Region regionToDispose = null;
+	if ((_W_WIDGET(control)->style & W_RIGHT_TO_LEFT) != 0) {
+		if (originalRegion != null)
+			regionToDispose = this.region;
+		originalRegion = region;
+		region = mirrorRegion(region);
+	} else {
+		originalRegion = null;
+	}*/
+	_w_control_set_region(control, region);
+	/*if (regionToDispose != null)
+		regionToDispose.dispose();*/
+	return result;
+}
 void _w_shell_set_saved_focus(w_shell *shell, w_control *control) {
 	if (W_CONTROL(shell) == control)
 		return;
@@ -1301,7 +1358,7 @@ gboolean _gtk_shell_destroy(w_widget *widget, _w_event_platform *e,
 		_w_control_priv *priv) {
 	_w_toolkit_remove_shell(_W_SHELL(widget));
 	GtkWidget *shellHandle = _W_SHELL_HANDLE(widget);
-	//gtk_widget_hide(shellHandle);
+//gtk_widget_hide(shellHandle);
 	if (gtk_toolkit->activeShell == W_SHELL(widget))
 		gtk_toolkit->activeShell = 0;
 	if (_W_SHELL(widget)->group != 0)
@@ -1740,11 +1797,12 @@ void _w_shell_class_init(w_toolkit *toolkit, wushort classId,
 	W_CONTROL_CLASS(clazz)->get_visible = _w_shell_get_visible;
 	W_CONTROL_CLASS(clazz)->get_region = _w_shell_get_region;
 	W_CONTROL_CLASS(clazz)->print = _w_shell_print;
-	//W_CONTROL_CLASS(clazz)->set_enabled = _w_shell_set_enabled;
-	//W_CONTROL_CLASS(clazz)->set_region = _w_shell_set_region;
+//W_CONTROL_CLASS(clazz)->set_enabled = _w_shell_set_enabled;
+//W_CONTROL_CLASS(clazz)->set_region = _w_shell_set_region;
 	W_CONTROL_CLASS(clazz)->set_visible = _w_shell_set_visible;
 	W_CONTROL_CLASS(clazz)->get_bounds = _w_shell_get_bounds;
-	//W_CONTROL_CLASS(clazz)->is_reparentable = _w_shell_is_reparentable;
+//W_CONTROL_CLASS(clazz)->is_reparentable = _w_shell_is_reparentable;
+	W_CONTROL_CLASS(clazz)->set_region = _w_shell_set_region;
 	clazz->close = _w_shell_close;
 	clazz->get_toolbar = _w_shell_get_toolbar;
 	clazz->get_alpha = _w_shell_get_alpha;
