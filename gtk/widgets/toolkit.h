@@ -65,7 +65,7 @@ typedef struct _w_toolkit {
 	_w_app app;
 	GtkApplication* gtkApp;
 	_w_cursor cursors[W_CURSOR_HAND + 1];
-	_w_image images[5];
+	_w_image systemImages[5];
 	GQuark quark[SWT_GQUARK_LAST];
 	_gtk_signal signals[SIGNAL_LAST];
 	int trimWidths[6];

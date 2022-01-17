@@ -69,7 +69,7 @@ w_app* w_app_get() {
 }
 void w_app_dispose(w_app *app) {
 	w_app_dispose_all();
-	_w_toolkit_dispose((w_disposable*)gtk_toolkit);
+	_w_toolkit_dispose((w_disposable*) gtk_toolkit);
 	munmap(gtk_toolkit, gtk_toolkit->total_size);
 }
 wresult _w_toolkit_check_widget(w_toolkit *toolkit, w_widget *widget) {
@@ -115,38 +115,130 @@ w_theme* _w_toolkit_get_theme(w_toolkit *toolkit) {
 	return _toolkit->theme;
 }
 wresult _w_toolkit_beep(w_toolkit *toolkit) {
-	return W_FALSE;
+	gdk_beep();
+	if (!_W_TOOLKIT(toolkit)->ISX11) {
+		gdk_flush();
+	} else {
+		gdk_flush();
+		/*void* xDisplay = gdk_x11_display_get_xdisplay(
+		 gdk_display_get_default());
+		 XFlush(xDisplay);*/
+	}
+	return W_TRUE;
 }
 w_shell* _w_toolkit_get_active_shell(w_toolkit *toolkit) {
-	return W_FALSE;
+	return _W_TOOLKIT(toolkit)->activeShell;
 }
 w_menu* _w_toolkit_get_menubar(w_toolkit *toolkit) {
 	return 0;
 }
 wresult _w_toolkit_get_bounds(w_toolkit *toolkit, w_rect *rect) {
+	rect->x = 0;
+	rect->y = 0;
+	rect->width = gdk_screen_width();
+	rect->height = gdk_screen_height();
 	return W_TRUE;
 }
 wresult _w_toolkit_get_client_area(w_toolkit *toolkit, w_rect *clientArea) {
+	clientArea->x = 0;
+	clientArea->y = 0;
+	clientArea->width = gdk_screen_width();
+	clientArea->height = gdk_screen_height();
 	return W_TRUE;
 }
 w_control* _w_toolkit_get_cursor_control(w_toolkit *toolkit) {
+	int x = 0, y = 0;
+	GtkWidget *handle = 0;
+	void *user_data = 0;
+	GdkWindow *window;
+#if GTK3
+	GdkDisplay *display = gdk_display_get_default();
+	GdkDeviceManager *device_manager = gdk_display_get_device_manager(display);
+	GdkDevice *device = gdk_device_manager_get_client_pointer(device_manager);
+	window = gdk_device_get_window_at_position(device, &x, &y);
+#else
+		window = gdk_window_at_pointer (&x, &y);
+#endif
+	if (window != 0) {
+		gdk_window_get_user_data(window, &user_data);
+		handle = (GtkWidget*) user_data;
+	} else {
+		/*
+		 * Feature in GTK. gdk_window_at_pointer() will not return a window
+		 * if the pointer is over a foreign embedded window. The fix is to use
+		 * XQueryPointer to find the containing GDK window.
+		 */
+		if (!_W_TOOLKIT(toolkit)->ISX11)
+			return 0;
+		/*gdk_error_trap_push();
+		 int unusedInt = 0;
+		 void* unusedPtr = 0, buffer = 0;
+		 void* xWindow, xParent = XDefaultRootWindow(xDisplay);
+		 do {
+		 if (XQueryPointer(xDisplay, xParent, unusedPtr, buffer,
+		 unusedInt, unusedInt, unusedInt, unusedInt, unusedInt)
+		 == 0) {
+		 handle = 0;
+		 break;
+		 }
+		 if ((xWindow = buffer[0]) != 0) {
+		 xParent = xWindow;
+		 GdkWindow* gdkWindow = 0;
+		 if (GTK_VERSION >= VERSION (2, 24, 0)) {
+		 gdkWindow = gdk_x11_window_lookup_for_display(
+		 gdk_display_get_default(), xWindow);
+		 } else {
+		 gdkWindow = gdk_window_lookup(xWindow);
+		 }
+		 if (gdkWindow != 0) {
+		 gdk_window_get_user_data(gdkWindow, user_data);
+		 if (user_data[0] != 0)
+		 handle = user_data[0];
+		 }
+		 }
+		 } while (xWindow != 0);
+		 gdk_error_trap_pop();*/
+	}
+	if (handle == 0)
+		return 0;
+	do {
+		w_widget *widget = _w_widget_find_control(handle);
+		if (widget != 0 && w_widget_class_id(widget) >= _W_CLASS_CONTROL) {
+			if (w_control_is_enabled(W_CONTROL(widget)))
+				return W_CONTROL(widget);
+		}
+	} while ((handle = gtk_widget_get_parent(handle)) != 0);
 	return 0;
 }
 wresult _w_toolkit_get_cursor_location(w_toolkit *toolkit, w_point *location) {
-	_gdk_window_get_device_position (0, &location->x, &location->y, 0);
+	_gdk_window_get_device_position(0, &location->x, &location->y, 0);
 	return W_TRUE;
 }
 size_t _w_toolkit_get_cursor_sizes(w_toolkit *toolkit, w_size *sizes,
 		size_t length) {
-	if (sizes != 0 && length > 0) {
+	if (sizes != 0) {
+		if (length >= 1) {
+			sizes[0].width = 16;
+			sizes[0].height = 16;
+		}
+		if (length >= 2) {
+			sizes[1].width = 32;
+			sizes[1].height = 32;
+		}
 	}
-	return 1;
+	return 2;
 }
 int _w_toolkit_get_dismissal_alignment(w_toolkit *toolkit) {
-	return W_LEFT;
+	int buffer = 0;
+	GtkSettings *settings = gtk_settings_get_default();
+	g_object_get(settings, "gtk-alternative-button-order", &buffer, NULL);
+	return buffer == 1 ? W_LEFT : W_RIGHT;
 }
 int _w_toolkit_get_double_click_time(w_toolkit *toolkit) {
-	return W_FALSE;
+	GtkSettings *settings = gtk_settings_get_default();
+	int buffer = 0;
+	g_object_get(settings, "gtk-double-click-time", &buffer, NULL);
+	return buffer;
 }
 w_control* _w_toolkit_get_focus_control(w_toolkit *toolkit) {
 	w_control *focusControl = _W_TOOLKIT(toolkit)->focusControl;
@@ -174,14 +266,23 @@ wresult _w_toolkit_get_high_contrast(w_toolkit *toolkit) {
 	return W_FALSE;
 }
 int _w_toolkit_get_icon_depth(w_toolkit *toolkit) {
-	return W_FALSE;
+	if (GTK_VERSION >= VERSION(2, 22, 0)) {
+		return gdk_visual_get_depth(gdk_visual_get_system());
+	} else {
+		GdkVisual *visual = gdk_visual_get_system();
+		return gdk_visual_get_depth(visual);
+	}
 }
 size_t _w_toolkit_get_icon_sizes(w_toolkit *toolkit, w_size *sizes,
 		size_t length) {
 	if (sizes != 0) {
 		if (length >= 1) {
+			sizes[0].width = 16;
+			sizes[0].height = 16;
 		}
 		if (length >= 2) {
+			sizes[1].width = 32;
+			sizes[1].height = 32;
 		}
 	}
 	return 2;
@@ -257,8 +358,30 @@ w_font* _w_toolkit_get_system_font(w_toolkit *toolkit) {
 	}
 	return (w_font*) (_W_TOOLKIT(toolkit)->system_font);
 }
+
 wresult _w_toolkit_get_system_image(w_toolkit *toolkit, wuint id,
 		w_image **image) {
+	const char *image_name = 0;
+	_w_image *_image = 0;
+	switch (id) {
+	case W_ICON_ERROR:
+		image_name = "gtk-dialog-error";
+		_image = &_W_TOOLKIT(toolkit)->systemImages[0];
+		break;
+	case W_ICON_INFORMATION:
+	case W_ICON_WORKING:
+		image_name = "gtk-dialog-info";
+		_image = &_W_TOOLKIT(toolkit)->systemImages[1];
+		break;
+	case W_ICON_QUESTION:
+		image_name = "gtk-dialog-question";
+		_image = &_W_TOOLKIT(toolkit)->systemImages[2];
+		break;
+	case W_ICON_WARNING:
+		image_name = "gtk-dialog-warning";
+		_image = &_W_TOOLKIT(toolkit)->systemImages[3];
+		break;
+	}
 	return W_FALSE;
 }
 w_menu* _w_toolkit_get_system_menu(w_toolkit *toolkit) {
@@ -268,24 +391,109 @@ w_taskbar* _w_toolkit_get_system_taskbar(w_toolkit *toolkit) {
 	return 0;
 }
 w_tray* _w_toolkit_get_system_tray(w_toolkit *toolkit) {
-	return 0;
+	w_tray *tray = &_W_TOOLKIT(toolkit)->tray;
+	if (w_widget_is_ok(W_WIDGET(tray)))
+		return tray;
+	_w_widget_create(W_WIDGET(tray), toolkit, 0, 0, _W_CLASS_TRAY, 0);
+	return tray;
 }
 w_thread* _w_toolkit_get_thread(w_toolkit *toolkit) {
-	return 0;
+	return &_W_TOOLKIT(toolkit)->thread;
 }
 wuint64 _w_toolkit_get_thread_id(w_toolkit *toolkit) {
-	return 0;
+	return _W_TOOLKIT(toolkit)->thread.id;
 }
 wresult _w_toolkit_get_touch_enabled(w_toolkit *toolkit) {
 	return W_FALSE;
 }
+void _w_toolkit_get_window_origin(w_control *control, w_point *origin) {
+	if (w_widget_class_id(W_WIDGET(control)) == _W_CLASS_SHELL) {
+		if (!_W_SHELL(control)->mapped) {
+			/*
+			 * Special case: The handle attributes are not initialized until the
+			 * shell is made visible, so gdk_window_get_origin () always returns {0, 0}.
+			 *
+			 * Once the shell is realized, gtk_window_get_position () includes
+			 * window trims etc. from the window manager. That's why getLocation ()
+			 * is not safe to use for coordinate mappings after the shell has been made visible.
+			 */
+			w_control_get_bounds(control, origin, 0);
+			return;
+		}
+	}
+	_w_control_priv *priv = _W_CONTROL_GET_PRIV(control);
+	GdkWindow *window = priv->window_event(W_WIDGET(control), priv);
+	int x = 0;
+	int y = 0;
+	gdk_window_get_origin(window, &x, &y);
+	origin->x = x;
+	origin->y = y;
+	return;
+}
 wresult _w_toolkit_map_0(w_toolkit *toolkit, w_control *from, w_control *to,
 		w_point *result, w_point *point) {
-	return W_FALSE;
+	if (from != 0 && !w_widget_is_ok(W_WIDGET(from)))
+		return W_ERROR_INVALID_ARGUMENT;
+	if (to != 0 && !w_widget_is_ok(W_WIDGET(to)))
+		return W_ERROR_INVALID_ARGUMENT;
+	memcpy(result, point, sizeof(w_point));
+	if (from == to)
+		return TRUE;
+	w_point origin;
+	if (from != 0) {
+		_w_toolkit_get_window_origin(from, &origin);
+		if ((_W_WIDGET(from)->style & W_MIRRORED) != 0) {
+			_w_control_priv *priv = _W_CONTROL_GET_PRIV(from);
+			result->x = priv->get_client_width(from, priv) - result->x;
+		}
+		result->x += origin.x;
+		result->y += origin.y;
+	}
+	if (to != 0) {
+		_w_toolkit_get_window_origin(to, &origin);
+		result->x -= origin.x;
+		result->y -= origin.y;
+		if ((_W_WIDGET(to)->style & W_MIRRORED) != 0) {
+			_w_control_priv *priv = _W_CONTROL_GET_PRIV(to);
+			result->x = priv->get_client_width(to, priv) - result->x;
+		}
+	}
+	return TRUE;
 }
 wresult _w_toolkit_map_1(w_toolkit *toolkit, w_control *from, w_control *to,
 		w_rect *result, w_rect *rectangle) {
-	return W_FALSE;
+	if (from != 0 && !w_widget_is_ok(W_WIDGET(from)))
+		return W_ERROR_INVALID_ARGUMENT;
+	if (to != 0 && !w_widget_is_ok(W_WIDGET(to)))
+		return W_ERROR_INVALID_ARGUMENT;
+	memcpy(result, rectangle, sizeof(w_rect));
+	if (from == to)
+		return TRUE;
+	int fromRTL = FALSE, toRTL = FALSE;
+	w_point origin;
+	if (from != 0) {
+		_w_toolkit_get_window_origin(from, &origin);
+		fromRTL = (_W_WIDGET(from)->style & W_MIRRORED) != 0;
+		if (fromRTL) {
+			_w_control_priv *priv = _W_CONTROL_GET_PRIV(from);
+			result->x = priv->get_client_width(from, priv) - result->x;
+		}
+		result->x += origin.x;
+		result->y += origin.y;
+	}
+	if (to != 0) {
+		_w_toolkit_get_window_origin(to, &origin);
+		result->x -= origin.x;
+		result->y -= origin.y;
+		toRTL = (_W_WIDGET(to)->style & W_MIRRORED) != 0;
+		if (toRTL) {
+			_w_control_priv *priv = _W_CONTROL_GET_PRIV(to);
+			result->x = priv->get_client_width(to, priv) - result->x;
+		}
+	}
+	if (fromRTL != toRTL)
+		result->x -= result->width;
+	return TRUE;
 }
 wresult _w_toolkit_post(w_toolkit *toolkit, w_event *event) {
 	return W_TRUE;
@@ -458,10 +666,22 @@ wresult _w_toolkit_timer_exec(w_toolkit *toolkit, wuint milliseconds,
 	return _w_toolkit_exec(toolkit, function, args, W_FALSE, milliseconds);
 }
 wresult _w_toolkit_update(w_toolkit *toolkit) {
+	//flushExposes (0, true);
+	/*
+	 * Do not send expose events on GTK 3.16.0+
+	 * It's worth checking whether can be removed on all GTK 3 versions.
+	 */
+	if (GTK_VERSION < VERSION(3, 16, 0)) {
+		gdk_window_process_all_updates();
+	}
 	return W_TRUE;
 }
 wresult _w_toolkit_wake(w_toolkit *toolkit) {
-	return W_FALSE;
+	if (w_thread_get_current_id() == w_toolkit_get_thread_id(toolkit))
+		return W_TRUE;
+	g_main_context_wakeup(0);
+	_W_TOOLKIT(toolkit)->wake = TRUE;
+	return W_TRUE;
 }
 void _w_toolkit_class_init(_w_toolkit *toolkit) {
 	struct _w_toolkit_class *clazz = &toolkit->class_toolkit;

@@ -18,7 +18,7 @@ typedef struct _w_toolkit {
 	w_toolkit toolkit;
 	int version;
 	_w_cursor cursors[W_CURSOR_HAND + 1];
-	_w_image images[5];
+	_w_image systemImages[5];
 	Class nsclasses[_NS_CLASS_LAST];
 	ns_get_widget _ns_get_widget[_NS_CLASS_LAST];
 	w_taskbar taskbar;
