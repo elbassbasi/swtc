@@ -8,6 +8,7 @@
 #include "TDnd.h"
 #include "TClipboard.h"
 #include "TSimpleDNDExample.h"
+#include "TDNDTabView.h"
 #include "TWordJumbles.h"
 void TDnd::Registre(WTreeItem &parent) {
 	ITreeItem::Regitre(parent, "Dnd", new TDnd);
@@ -17,5 +18,6 @@ bool TDnd::Expand(WTreeItem &item) {
 	TClipboard::Registre(item);
 	TSimpleDNDExample::Registre(item);
 	TWordJumbles::Registre(item);
+	TDNDTabView::Registre(item);
 	return true;
 }

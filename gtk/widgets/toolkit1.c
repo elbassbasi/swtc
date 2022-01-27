@@ -297,14 +297,17 @@ w_widget_init_class gtk_toolkit_classes_init[_W_CLASS_LAST] = {			//
 				[_W_CLASS_TOOLBAR] =(w_widget_init_class) _w_toolbar_class_init,//
 				/*[_W_CLASS_TRAY] =(w_widget_init_class) _w_tray_class_init,	//
 				 [_W_CLASS_TOOLTIP] =(w_widget_init_class) _w_tooltip_class_init,//*/
-				[_W_CLASS_EXPANDBAR] =(w_widget_init_class) _w_expandbar_class_init,	//
-				[_W_CLASS_DRAGSOURCE] =(w_widget_init_class) _w_dragsource_class_init,	//
-				[_W_CLASS_DROPTARGET] =(w_widget_init_class) _w_droptarget_class_init,	//
+				[_W_CLASS_EXPANDBAR
+						] =(w_widget_init_class) _w_expandbar_class_init,	//
+				[_W_CLASS_DRAGSOURCE
+						] =(w_widget_init_class) _w_dragsource_class_init,	//
+				[_W_CLASS_DROPTARGET
+						] =(w_widget_init_class) _w_droptarget_class_init,	//
 		};
-void _w_toolkit_init_gtk(_w_toolkit *toolkit) {
+void _w_toolkit_init_gtk(_w_toolkit *toolkit, int argc, char **argv) {
 	char txt[30];
 	//toolkit->gtkApp = gtk_application_new("", G_APPLICATION_FLAGS_NONE);
-	gtk_init(0, 0);
+	gtk_init(&argc, &argv);
 	int major = gtk_get_major_version();
 	int minor = gtk_get_minor_version();
 	int micro = gtk_get_micro_version();
@@ -346,10 +349,10 @@ void _w_toolkit_init_display(_w_toolkit *toolkit) {
 		toolkit->ISWayland = 1;
 	}
 }
-void _w_toolkit_init(_w_toolkit *toolkit) {
+void _w_toolkit_init(_w_toolkit *toolkit, int argc, char **argv) {
 	_w_toolkit_class_init(toolkit);
 	_w_toolkit_classes_init(&toolkit->classes);
-	_w_toolkit_init_gtk(toolkit);
+	_w_toolkit_init_gtk(toolkit,argc,argv);
 	_w_toolkit_init_display(toolkit);
 	_w_toolkit_init_trims(toolkit);
 	_w_widget_init_signal_0();

@@ -74,5 +74,16 @@ typedef struct _w_droptarget_iterator {
 #define _W_DROPTARGET(x) ((_w_droptarget*)x)
 void _w_droptarget_class_init(w_toolkit *toolkit, wushort classId,
 		struct _w_droptarget_class *clazz);
+/*
+ *
+ */
+void _w_control_drag_begin(GtkWidget *widget, GdkDragContext *context);
+void _w_control_drag_end(GtkWidget *widget, GdkDragContext *context);
+void _w_control_drag_data_get(GtkWidget *widget, GdkDragContext *context,
+		GtkSelectionData *selection_data, guint info, guint time_);
+void _w_control_drag_data_delete(GtkWidget *widget, GdkDragContext *context);
+gboolean _w_control_drag_failed(GtkWidget *widget, GdkDragContext *context,
+		GtkDragResult result);
+void _w_control_registre_drag_function(GtkWidgetClass *clazz);
 
 #endif /* GTK_WIDGETS_DND_H_ */

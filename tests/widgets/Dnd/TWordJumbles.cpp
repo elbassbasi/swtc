@@ -25,7 +25,7 @@ void TWordJumbles::CreateControl(WComposite *parent) {
 	this->word = "ECLIPSE";
 	int width = 80;
 	WFontData data;
-	WFont* systemFont = WApp::Get()->GetDefaultToolkit()->GetSystemFont();
+	WFont *systemFont = WApp::Get()->GetDefaultToolkit()->GetSystemFont();
 	systemFont->GetFontData(data);
 	data.SetHeight(16);
 	//font = WFont::Create("Arial", 18, W_BOLD);
@@ -119,15 +119,15 @@ bool TWordJumblesDragSource::OnDragStart(WDragSourceEvent &e) {
 	WString str = label->GetText();
 	if (str.IsEmpty())
 		e.doit = false;
-	/*WSurface surface;
-	 surface.Create(48, 48);
-	 WGraphics gc;
-	 surface.GetGraphics(gc);
-	 gc.SetForeground(W_COLOR_WHITE);
-	 gc.SetBackground(W_COLOR_BLACK);
-	 gc.DrawText(str, 0, 0);
-	 WImage image;
-	 surface.GetImage(e.image);*/
+	WSurface surface;
+	surface.Create(48, 48);
+	WGraphics gc;
+	surface.GetGraphics(gc);
+	gc.SetForeground(W_COLOR_WHITE);
+	gc.SetBackground(W_COLOR_BLUE);
+	gc.DrawText(str, 0, 0);
+	WImage image;
+	surface.GetImage(e.image);
 	return false;
 }
 

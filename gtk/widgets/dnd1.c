@@ -112,6 +112,11 @@ int _w_dragsource_osOpToOp(int osOperation) {
 
 	return operation;
 }
+gboolean _w_dragsource_drag_begin(GtkWidget *widget, GdkDragContext *context,
+		gpointer userdata) {
+	gdk_pointer_ungrab(0);
+	return TRUE;
+}
 void _w_dragsource_drag_end(GtkWidget *widget, GdkDragContext *context) {
 	w_widget *control = (w_widget*) g_object_get_qdata(G_OBJECT(widget),
 			gtk_toolkit->quark[0]);
@@ -219,8 +224,9 @@ wresult _w_dragsource_set_transfer(w_dragsource *dragsource,
 				length * sizeof(w_transfer*));
 		_W_DRAGSOURCE(dragsource)->transfer_length = length;
 	}
-	if (_W_DRAGSOURCE(dragsource)->targetList != 0) {
-		gtk_target_list_unref(_W_DRAGSOURCE(dragsource)->targetList);
+	GtkTargetList *targetList = _W_DRAGSOURCE(dragsource)->targetList;
+	if (targetList != 0) {
+		gtk_target_list_unref(targetList);
 		_W_DRAGSOURCE(dragsource)->targetList = 0;
 	}
 
@@ -250,7 +256,9 @@ wresult _w_dragsource_set_transfer(w_dragsource *dragsource,
 			}
 		}
 	}
-	_W_DRAGSOURCE(dragsource)->targetList = gtk_target_list_new(targets, count);
+	targetList = gtk_target_list_new(targets, count);
+	gtk_target_list_ref(targetList);
+	_W_DRAGSOURCE(dragsource)->targetList = targetList;
 	g_free(targets);
 	return W_TRUE;
 }
@@ -258,9 +266,12 @@ int _w_dragsource_dispose_0(w_widget *widget) {
 	w_control *control = _W_DRAGSOURCE(widget)->control;
 	if (control == 0)
 		return W_TRUE;
+	_W_WIDGET(control)->state &= ~STATE_IGNORE_PLATFORM_DRAGSOURCE;
 	_W_CONTROL(control)->dragsource = 0;
-	if (_W_DRAGSOURCE(widget)->targetList != 0) {
-		gtk_target_list_unref(_W_DRAGSOURCE(widget)->targetList);
+	GtkTargetList *targetList = _W_DRAGSOURCE(widget)->targetList;
+	if (targetList != 0) {
+		gtk_target_list_unref(targetList);
+		_W_DRAGSOURCE(widget)->targetList = 0;
 	}
 	widget->clazz = 0;
 	return W_TRUE;
@@ -299,14 +310,15 @@ int _w_dragsource_dragdetect(w_widget *widget, w_event *e) {
 	GdkDragContext *context;
 	GtkWidget *handle = _W_WIDGET(control)->handle;
 	GtkTargetList *targetList = _W_DRAGSOURCE(widget)->targetList;
-	/*if (GTK_VERSION >= VERSION(3, 10, 0)) {
+	_W_WIDGET(control)->state |= STATE_IGNORE_PLATFORM_DRAGSOURCE;
+	if (GTK_VERSION >= VERSION(3, 10, 0)) {
 		context = gtk_drag_begin_with_coordinates(handle, targetList, actions,
 				1, 0, -1, -1);
-	} else {*/
+	} else {
 		context = gtk_drag_begin(handle, targetList, actions, 1, 0);
-	//}
-	if (context != 0) {
-		if (w_image_is_ok(&event.image)) {
+	}
+	if (w_image_is_ok(&event.image)) {
+		if (context != 0) {
 			GdkPixbuf *pixbuf = _W_IMAGE(&event.image)->pixbuf;
 			if (GTK3) {
 				cairo_surface_t *surface = _w_image_create_surface(pixbuf);
@@ -315,8 +327,8 @@ int _w_dragsource_dragdetect(w_widget *widget, w_event *e) {
 			} else {
 				gtk_drag_set_icon_pixbuf(context, pixbuf, 0, 0);
 			}
-			w_image_dispose(&event.image);
 		}
+		w_image_dispose(&event.image);
 	}
 	return W_TRUE;
 }
@@ -329,7 +341,7 @@ wresult _w_dragsource_post_event(w_widget *widget, w_event *e, int flags) {
 		_w_dragsource_dispose_0(widget);
 		break;
 	}
-	return _w_widget_post_event(widget, e,flags);
+	return _w_widget_post_event(widget, e, flags);
 }
 wresult _w_dragsource_dispose(w_widget *widget) {
 	_w_dragsource_dispose_0(widget);
@@ -362,7 +374,71 @@ void _w_dragsource_class_init(w_toolkit *toolkit, wushort classId,
 	signals[SIGNAL_DRAG_DATA_DELETE].number_of_args = 2;
 	signals[SIGNAL_DRAG_DATA_DELETE].callback =
 			(GCallback) _w_dragsource_drag_data_delete;
-
+	signals[SIGNAL_DRAG_BEGIN].number_of_args = 2;
+	signals[SIGNAL_DRAG_BEGIN].callback = (GCallback) _w_dragsource_drag_begin;
+	signals[SIGNAL_DRAG_BEGIN].name = "drag-begin";
+}
+/*
+ *
+ */
+void _w_control_drag_begin(GtkWidget *widget, GdkDragContext *context) {
+	w_widget *dragWidget = _w_widget_find_control(widget);
+	if (dragWidget != 0
+			&& (_W_WIDGET(dragWidget)->state & STATE_IGNORE_PLATFORM_DRAGSOURCE)
+					!= 0)
+		return;
+	GtkWidgetClass* clazz = _G_TYPE_IGC(widget,0,GtkWidgetClass);
+	GtkWidgetClass* parent = g_type_class_peek_parent(clazz);
+	parent->drag_begin(widget,context);
+}
+void _w_control_drag_end(GtkWidget *widget, GdkDragContext *context) {
+	w_widget *dragWidget = _w_widget_find_control(widget);
+	if (dragWidget != 0
+			&& (_W_WIDGET(dragWidget)->state & STATE_IGNORE_PLATFORM_DRAGSOURCE)
+					!= 0)
+		return;
+	GtkWidgetClass* clazz = _G_TYPE_IGC(widget,0,GtkWidgetClass);
+	GtkWidgetClass* parent = g_type_class_peek_parent(clazz);
+	parent->drag_end(widget,context);
+}
+void _w_control_drag_data_get(GtkWidget *widget, GdkDragContext *context,
+		GtkSelectionData *selection_data, guint info, guint time_) {
+	w_widget *dragWidget = _w_widget_find_control(widget);
+	if (dragWidget != 0
+			&& (_W_WIDGET(dragWidget)->state & STATE_IGNORE_PLATFORM_DRAGSOURCE)
+					!= 0)
+		return;
+	GtkWidgetClass* clazz = _G_TYPE_IGC(widget,0,GtkWidgetClass);
+	GtkWidgetClass* parent = g_type_class_peek_parent(clazz);
+	parent->drag_data_get(widget,context,selection_data,info,time_);
+}
+void _w_control_drag_data_delete(GtkWidget *widget, GdkDragContext *context) {
+	w_widget *dragWidget = _w_widget_find_control(widget);
+	if (dragWidget != 0
+			&& (_W_WIDGET(dragWidget)->state & STATE_IGNORE_PLATFORM_DRAGSOURCE)
+					!= 0)
+		return;
+	GtkWidgetClass* clazz = _G_TYPE_IGC(widget,0,GtkWidgetClass);
+	GtkWidgetClass* parent = g_type_class_peek_parent(clazz);
+	parent->drag_data_delete(widget,context);
+}
+gboolean _w_control_drag_failed(GtkWidget *widget, GdkDragContext *context,
+		GtkDragResult result) {
+	w_widget *dragWidget = _w_widget_find_control(widget);
+	if (dragWidget != 0
+			&& (_W_WIDGET(dragWidget)->state & STATE_IGNORE_PLATFORM_DRAGSOURCE)
+					!= 0)
+		return FALSE;
+	GtkWidgetClass* clazz = _G_TYPE_IGC(widget,0,GtkWidgetClass);
+	GtkWidgetClass* parent = g_type_class_peek_parent(clazz);
+	return parent->drag_failed(widget,context,result);
+}
+void _w_control_registre_drag_function(GtkWidgetClass *clazz) {
+	clazz->drag_begin = _w_control_drag_begin;
+	clazz->drag_end = _w_control_drag_end;
+	clazz->drag_data_get = _w_control_drag_data_get;
+	clazz->drag_data_delete = _w_control_drag_data_delete;
+	clazz->drag_failed = _w_control_drag_failed;
 }
 /*
  * DropTarget
@@ -847,13 +923,12 @@ gboolean _w_droptarget_drag_motion(GtkWidget *widget, GdkDragContext *context,
 		gdk_drag_status(context, (GdkDragAction) 0, time);
 		return FALSE;
 	}
-
 	int allowedOperations = event.operations;
 	/*TransferData[] allowedDataTypes = new TransferData[event.dataTypes.length];
 	 System.arraycopy(event.dataTypes, 0, allowedDataTypes, 0,
 	 allowedDataTypes.length);*/
 	w_transfer_data data;
-	data.type = 0;
+	memset(&data, 0, sizeof(data));
 	event.currentDataType = &data;
 
 	if (oldKeyOperation == -1) {
@@ -862,7 +937,7 @@ gboolean _w_droptarget_drag_motion(GtkWidget *widget, GdkDragContext *context,
 		if (_W_DROPTARGET(target)->keyOperation == oldKeyOperation) {
 			event.event.type = W_EVENT_DRAGOVER;
 			data.type = _W_DROPTARGET(target)->selectedDataType;
-			event.detail = _W_DROPTARGET(target)->selectedOperation;
+			//event.detail = _W_DROPTARGET(target)->selectedOperation;
 		} else {
 			event.event.type = W_EVENT_DRAGOPERATIONCHANGED;
 			data.type = _W_DROPTARGET(target)->selectedDataType;
@@ -888,6 +963,7 @@ gboolean _w_droptarget_drag_motion(GtkWidget *widget, GdkDragContext *context,
 	}
 	if (_W_DROPTARGET(target)->selectedDataType != 0
 			&& (allowedOperations & event.detail) != 0) {
+		printf("detail after : %d\n", event.detail);
 		_W_DROPTARGET(target)->selectedOperation = event.detail;
 	}
 	GdkDragAction dragaction = -1;

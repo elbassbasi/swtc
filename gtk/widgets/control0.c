@@ -113,6 +113,8 @@ wresult _w_control_create_dragsource(w_control *control,
 	GtkWidget *handle = _W_WIDGET(control)->handle;
 	_w_widget_connect(handle, &signals[SIGNAL_DRAG_DATA_GET],
 	FALSE);
+	_w_widget_connect(handle, &signals[SIGNAL_DRAG_BEGIN],
+		FALSE);
 	_w_widget_connect(handle, &signals[SIGNAL_DRAG_END], FALSE);
 	_w_widget_connect(handle, &signals[SIGNAL_DRAG_DATA_DELETE],
 	FALSE);

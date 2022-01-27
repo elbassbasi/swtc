@@ -6,6 +6,7 @@
  */
 #include "tabview.h"
 #include "../widgets/toolkit.h"
+#include "../widgets/dnd.h"
 wresult _w_tabitem_find_handles(w_tabitem *item, _w_widget_handles *handles) {
 	w_widget *parent = _W_ITEM(item)->parent;
 	GtkWidget *handle = _W_WIDGET(parent)->handle;
@@ -23,18 +24,28 @@ wresult _w_tabitem_find_handles(w_tabitem *item, _w_widget_handles *handles) {
 wresult _w_tabitem_get_bounds(w_tabitem *item, w_rect *rect) {
 	w_widget *parent = _W_ITEM(item)->parent;
 	GtkWidget *handle = _W_WIDGET(parent)->handle;
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(handle, &allocation);
-	rect->x = allocation.x;
-	rect->y = allocation.y;
-	rect->width = allocation.width;
-	rect->height = allocation.height;
-	if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
-		_w_control_priv *priv = _W_CONTROL_GET_PRIV(parent);
-		int client_width = priv->get_client_width(W_CONTROL(parent), priv);
-		rect->x = client_width - rect->width - rect->x;
+	GtkWidget *pageHandle = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle),
+	_W_ITEM(item)->index);
+	if (pageHandle != 0) {
+		GtkWidget *tab = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle),
+				pageHandle);
+		if (tab != 0) {
+			GtkAllocation allocation;
+			gtk_widget_get_allocation(tab, &allocation);
+			rect->x = allocation.x;
+			rect->y = allocation.y;
+			rect->width = allocation.width;
+			rect->height = allocation.height;
+			if ((_W_WIDGET(parent)->style & W_MIRRORED) != 0) {
+				_w_control_priv *priv = _W_CONTROL_GET_PRIV(parent);
+				int client_width = priv->get_client_width(W_CONTROL(parent),
+						priv);
+				rect->x = client_width - rect->width - rect->x;
+			}
+			return W_TRUE;
+		}
 	}
-	return W_TRUE;
+	return W_FALSE;
 }
 wresult _w_tabitem_get_image(w_tabitem *item) {
 	_w_widget_handles handles;
@@ -140,6 +151,27 @@ wresult _w_tabitem_set_text(w_item *item, const char *text, int length,
 /*
  *	tabview
  */
+GType _w_notebook_type = 0;
+void _w_notebook_registre(const char *name, GType *type) {
+	GTypeInfo fixed_info = { sizeof(GtkNotebookClass),
+	NULL, /* base_init */
+	NULL, /* base_finalize */
+	(GClassInitFunc) _w_control_registre_drag_function,
+	NULL, /* class_finalize */
+	NULL, /* class_data */
+	sizeof(GtkNotebook), 0, /* n_preallocs */
+	(GInstanceInitFunc) NULL, NULL };
+	//GType parent_class = GTK_TYPE_CONTAINER;
+	*type = g_type_register_static(GTK_TYPE_NOTEBOOK, name, &fixed_info,
+			(GTypeFlags) 0);
+}
+GtkWidget* _w_notebook_new() {
+	if (_w_notebook_type == 0) {
+		_w_notebook_registre("w_notebook", &_w_notebook_type);
+	}
+	GtkWidget *fixed = g_object_new(_w_notebook_type, NULL);
+	return (GtkWidget*) fixed;
+}
 GtkWidget* _w_tabview_handle_parenting(w_widget *widget,
 		_w_control_priv *priv) {
 	GtkWidget *handle = _W_WIDGET(widget)->handle;
@@ -173,7 +205,8 @@ wresult _w_tabview_create_handle(w_widget *widget, _w_control_priv *priv) {
 	if (fixedHandle == 0)
 		goto _err;
 	gtk_widget_set_has_window(fixedHandle, TRUE);
-	handle = gtk_notebook_new();
+	//handle = gtk_notebook_new();
+	handle = _w_notebook_new();
 	if (handle == 0)
 		goto _err;
 	_w_fixed_set_child(fixedHandle, handle);
@@ -284,6 +317,47 @@ wresult _w_tabview_get_item(w_tabview *tabview, int index, w_tabitem *item) {
 }
 wresult _w_tabview_get_item_p(w_tabview *tabview, w_point *point,
 		w_tabitem *item) {
+	if (point == 0)
+		return W_ERROR_NULL_ARGUMENT;
+	GtkWidget *handle = _W_WIDGET(tabview)->handle;
+	int client_width = 0;
+	wuint64 style = _W_WIDGET(tabview)->style;
+	if ((style & W_MIRRORED) != 0) {
+		_w_control_priv *priv = _W_CONTROL_GET_PRIV(tabview);
+		client_width = priv->get_client_width(W_CONTROL(tabview), priv);
+	}
+	GtkAllocation allocation;
+	w_rect rect;
+	int count = gtk_notebook_get_n_pages(GTK_NOTEBOOK(handle));
+	for (int i = 0; i < count; i++) {
+		GtkWidget *child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), i);
+		GtkWidget *pageHandle = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle),
+				i);
+		if (pageHandle != 0) {
+			GtkWidget *tab = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle),
+					pageHandle);
+			if (tab != 0) {
+				gtk_widget_get_allocation(tab, &allocation);
+				if ((style & W_MIRRORED) != 0) {
+					allocation.x = client_width - allocation.width
+							- allocation.x;
+				}
+				if (point->x >= allocation.x && point->y >= allocation.y
+						&& point->x < (allocation.x + allocation.width)
+						&& point->y < (allocation.y + allocation.height)) {
+					if (item != 0) {
+						W_WIDGETDATA(item)->clazz = _W_TABVIEW_GET_ITEM_CLASS(
+								tabview);
+						_W_ITEM(item)->parent = W_WIDGET(tabview);
+						_W_ITEM(item)->index = i;
+					}
+					return W_TRUE;
+				}
+			}
+		}
+	}
+	if (item != 0)
+		W_WIDGETDATA(item)->clazz = 0;
 	return W_FALSE;
 }
 wresult _w_tabview_get_item_count(w_tabview *tabview) {
@@ -493,7 +567,7 @@ _gtk_signal_info _gtk_tabview_signal_lookup[_W_DATETIME_SIGNAL_COUNT] = { //
 		{ SIGNAL_SWITCH_PAGE, 4, "switch-page" }, //
 				{ SIGNAL_CLICKED, 2, "clicked" }, //
 		};
-wresult _w_tabview_dispose_class(struct _w_widget_class *clazz){
+wresult _w_tabview_dispose_class(struct _w_widget_class *clazz) {
 	return W_TRUE;
 }
 void _w_tabview_class_init(w_toolkit *toolkit, wushort classId,

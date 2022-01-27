@@ -22,6 +22,7 @@ wresult w_transfer_registre(w_transfer *transfer) {
 }
 wresult w_transfer_registre_with_name(w_transfer *transfer, const char *name) {
 	transfer->type.name = name;
+	transfer->get_types = w_transfer_get_types;
 	transfer->is_supported_type = w_transfer_is_supported_type;
 	transfer->get_data = w_transfer_get_data;
 	transfer->set_data = w_transfer_set_data;

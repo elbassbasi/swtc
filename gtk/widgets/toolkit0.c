@@ -41,10 +41,10 @@ void w_app_create(w_app *_app, int argc, char **argv) {
 		int total_size = (toolkit_size & ~(page_size - 1)) + 5 * page_size;
 		const int tmp_total = total_size - toolkit_size;
 		gtk_toolkit = mmap(NULL, total_size, PROT_READ | PROT_WRITE,
-		MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+				MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 		if (gtk_toolkit == MAP_FAILED || gtk_toolkit == 0) {
 			fprintf(stderr, "Error : Do not initialize application\n");
-			exit(EXIT_FAILURE);
+			exit (EXIT_FAILURE);
 			return;
 		}
 		gtk_toolkit->total_size = total_size;
@@ -56,7 +56,7 @@ void w_app_create(w_app *_app, int argc, char **argv) {
 			gtk_toolkit->tmpaddr_sz++;
 		gtk_toolkit->tmp_total = tmp_total
 				- gtk_toolkit->tmpaddr_sz * sizeof(wuint64);
-		_w_toolkit_init(gtk_toolkit);
+		_w_toolkit_init(gtk_toolkit, argc, argv);
 		_app->app = &gtk_toolkit->app;
 	}
 	app = _app;
@@ -157,7 +157,7 @@ w_control* _w_toolkit_get_cursor_control(w_toolkit *toolkit) {
 	GdkDevice *device = gdk_device_manager_get_client_pointer(device_manager);
 	window = gdk_device_get_window_at_position(device, &x, &y);
 #else
-		window = gdk_window_at_pointer (&x, &y);
+	window = gdk_window_at_pointer(&x, &y);
 #endif
 	if (window != 0) {
 		gdk_window_get_user_data(window, &user_data);

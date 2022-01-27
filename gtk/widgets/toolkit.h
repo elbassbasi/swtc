@@ -63,7 +63,7 @@ typedef struct _w_toolkit {
 	w_toolkit toolkit;
 	int version;
 	_w_app app;
-	GtkApplication* gtkApp;
+	GtkApplication *gtkApp;
 	_w_cursor cursors[W_CURSOR_HAND + 1];
 	_w_image systemImages[5];
 	GQuark quark[SWT_GQUARK_LAST];
@@ -185,7 +185,7 @@ void* _w_toolkit_new_pages(size_t size);
 void _w_toolkit_delete_pages(void *ptr, size_t size);
 void _w_toolkit_add_shell(_w_shell *shell);
 void _w_toolkit_remove_shell(_w_shell *shell);
-void _w_toolkit_init(_w_toolkit *toolkit);
+void _w_toolkit_init(_w_toolkit *toolkit, int argc, char **argv);
 void _w_toolkit_dispose(w_disposable *disposable);
 void _w_toolkit_class_init(_w_toolkit *toolkit);
 void _w_theme_init();
